@@ -266,6 +266,8 @@ func (p *LangParser) whileExpr() *control.While {
 }
 
 func (p *LangParser) forExpr() ast.Expr {
+	// TODO:
+	//  We could refactor this later to reuse declaring variables inside body
 	p.skip()
 	p.expect(l.OpenCurve)
 	firstName := p.name()
@@ -275,12 +277,28 @@ func (p *LangParser) forExpr() ast.Expr {
 		p.expect(l.In)
 		iterable := p.parse()
 		p.expect(l.CloseCurve)
-		return &control.EachPair{KeyName: firstName, ValueName: valueName, Iterable: iterable, Body: p.body(ScopeLoop)}
+
+		where := p.expect(l.OpenCurly)
+		p.ScopeCursor.Enter(where, ScopeLoop)
+		p.ScopeCursor.DefineVariable(valueName, iterable.Signature())
+		body := p.bodyUntilCurly()
+		p.ScopeCursor.Exit(ScopeLoop)
+		p.expect(l.CloseCurly)
+
+		return &control.EachPair{KeyName: firstName, ValueName: valueName, Iterable: iterable, Body: body}
 	} else if p.consume(l.In) {
 		// For each loop
 		iterable := p.parse()
 		p.expect(l.CloseCurve)
-		return &control.Each{IName: firstName, Iterable: iterable, Body: p.body(ScopeLoop)}
+
+		where := p.expect(l.OpenCurly)
+		p.ScopeCursor.Enter(where, ScopeLoop)
+		p.ScopeCursor.DefineVariable(firstName, iterable.Signature())
+		body := p.bodyUntilCurly()
+		p.ScopeCursor.Exit(ScopeLoop)
+		p.expect(l.CloseCurly)
+
+		return &control.Each{IName: firstName, Iterable: iterable, Body: body}
 	}
 	// For I loop
 	p.expect(l.Colon)
@@ -295,7 +313,15 @@ func (p *LangParser) forExpr() ast.Expr {
 		by = &fundamentals.Number{Content: "1"}
 	}
 	p.expect(l.CloseCurve)
-	return &control.For{IName: firstName, From: from, To: to, By: by, Body: p.body(ScopeLoop)}
+
+	where := p.expect(l.OpenCurly)
+	p.ScopeCursor.Enter(where, ScopeLoop)
+	p.ScopeCursor.DefineVariable(firstName, []ast.Signature{ast.SignNumb})
+	body := p.bodyUntilCurly()
+	p.ScopeCursor.Exit(ScopeLoop)
+	p.expect(l.CloseCurly)
+
+	return &control.For{IName: firstName, From: from, To: to, By: by, Body: body}
 }
 
 func (p *LangParser) ifSmt() ast.Expr {

@@ -1,6 +1,27 @@
-fooBar(1)
+@Canvas { Canvas1 }
+func drawParabola(initialVelocity, height, angleDegrees) {
+  // Constants
+  local gravity = 9.8  // m/s^2 (approximate)
+  local angleRadians = degrees(angleDegrees)  // Convert degrees to radians
 
-func fooBar(x, y) {
-  println(x.trim(1, 2))
+  // Calculate initial horizontal and vertical velocities
+  local initialHorizontalVelocity = initialVelocity * cos(angleRadians)
+  local initialVerticalVelocity = initialVelocity * sin(angleRadians)
+
+  // Calculate the time of flight
+  local timeOfFlight = (2 * initialVerticalVelocity) / gravity
+
+  // Calculate the horizontal range
+  local horizontalRange = initialHorizontalVelocity * timeOfFlight
+
+  // Determine the number of points to draw.  More points for smoother curves.
+  local numberOfPoints = 50
+
+  // Calculate the x and y coordinates for each point and draw it on the canvas.
+  for (i: 0 .. numberOfPoints) {
+    local time = timeOfFlight * i / numberOfPoints  // Time at current point
+    local x = initialHorizontalVelocity * time  // Horizontal position
+    local y = (initialVerticalVelocity * time) - (0.5 * gravity * time ^ 2) + height // Vertical position
+    Canvas1.DrawPoint(x, y) // Assuming Canvas1 is the name of your canvas
+  }
 }
-
