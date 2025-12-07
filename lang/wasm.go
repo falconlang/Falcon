@@ -8,7 +8,6 @@ package main
 import (
 	"Falcon/code/ast"
 	"Falcon/code/context"
-	"Falcon/code/diff"
 	"Falcon/code/lex"
 	"Falcon/code/parser"
 	"Falcon/design"
@@ -108,18 +107,6 @@ func xmlToMist(this js.Value, p []js.Value) any {
 	})
 }
 
-func mergeSyntaxDiff(this js.Value, p []js.Value) any {
-	return safeExec(func() js.Value {
-		if len(p) < 2 {
-			return js.ValueOf("Requires two string arguments, [HumanSyntax, MachineSyntax]")
-		}
-		humanSyntax := p[0].String()
-		machineSyntax := p[1].String()
-		mergedSyntax := diff.MakeSyntaxDiff(humanSyntax, machineSyntax).Merge()
-		return js.ValueOf(mergedSyntax)
-	})
-}
-
 func convertSchemaToXml(this js.Value, p []js.Value) any {
 	return safeExec(func() js.Value {
 		if len(p) < 1 {
@@ -152,7 +139,6 @@ func main() {
 	c := make(chan struct{}, 0)
 	js.Global().Set("mistToXml", js.FuncOf(mistToXml))
 	js.Global().Set("xmlToMist", js.FuncOf(xmlToMist))
-	js.Global().Set("mergeSyntaxDiff", js.FuncOf(mergeSyntaxDiff))
 	js.Global().Set("schemaToXml", js.FuncOf(convertSchemaToXml))
 	js.Global().Set("xmlToSchema", js.FuncOf(convertXmlToSchema))
 	<-c
