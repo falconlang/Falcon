@@ -279,7 +279,7 @@ func (p *XMLParser) parseBlock(block ast.Block) ast.Expr {
 	case "lists_maximum_value":
 		return p.listTransMax(block)
 	case "lists_append_list":
-		return makeFuncCall("append", p.fromMinVals(block.Values, 2)...)
+		return p.listAppend(block)
 
 	case "pair":
 		return p.dictPair(block)
@@ -680,6 +680,11 @@ func (p *XMLParser) dictPair(block ast.Block) ast.Expr {
 	return &fundamentals.Pair{Key: pVals.get("KEY"), Value: pVals.get("VALUE")}
 }
 
+func (p *XMLParser) listAppend(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return p.makePropCall("appendList", pVals.get("LIST0"), pVals.get("LIST1"))
+}
+
 func (p *XMLParser) listTransMax(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
 	pFields := p.makeFieldMap(block.Fields)
@@ -1074,12 +1079,7 @@ func (p *XMLParser) makeQuestion(t lex.Type, on ast.Block, name string) ast.Expr
 }
 
 func (p *XMLParser) makePropCall(name string, on ast.Expr, args ...ast.Expr) ast.Expr {
-	return &method.Call{
-		Where: makeFakeToken(lex.Text),
-		Name:  name,
-		On:    on,
-		Args:  args,
-	}
+	return &method.Call{Where: makeFakeToken(lex.Text), Name: name, On: on, Args: args}
 }
 
 func (p *XMLParser) makeBinary(operator string, operands []ast.Expr) ast.Expr {
