@@ -10,7 +10,9 @@ type Text struct {
 }
 
 func (t *Text) String() string {
-	return "\"" + strings.Replace(t.Content, "\"", "\\\"", -1) + "\""
+	escaped := strings.ReplaceAll(t.Content, `\`, `\\`)
+	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
+	return `"` + escaped + `"`
 }
 
 func (t *Text) Blockly(flags ...bool) ast.Block {
