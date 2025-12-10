@@ -133,7 +133,7 @@ func (p *XMLParser) parseBlock(block ast.Block) ast.Expr {
 		return &fundamentals.Boolean{Value: block.SingleField() == "TRUE"}
 	case "logic_negate":
 		return &fundamentals.Not{Expr: p.singleExpr(block)}
-	case "logic_compare", "logic_operation":
+	case "logic_compare", "logic_operation", "logic_or":
 		return p.logicExpr(block)
 
 	case "text":
@@ -278,6 +278,8 @@ func (p *XMLParser) parseBlock(block ast.Block) ast.Expr {
 		return p.listTransMin(block)
 	case "lists_maximum_value":
 		return p.listTransMax(block)
+	case "lists_append_list":
+		return makeFuncCall("append", p.fromMinVals(block.Values, 2)...)
 
 	case "pair":
 		return p.dictPair(block)
@@ -375,6 +377,10 @@ func (p *XMLParser) parseBlock(block ast.Block) ast.Expr {
 	case "component_all_component_block":
 		return &components.EveryComponent{Type: block.Mutation.ComponentType}
 	default:
+		if strings.HasPrefix(block.Type, "helpers_") {
+			return &fundamentals.Text{Content: block.SingleField()}
+		}
+		println("Unsupported block type: " + block.Type)
 		panic("Unsupported block type: " + block.Type)
 	}
 }
@@ -903,7 +909,7 @@ func (p *XMLParser) textChangeCase(block ast.Block) ast.Expr {
 func (p *XMLParser) textCompare(block ast.Block) ast.Expr {
 	var pOperation string
 	switch block.SingleField() {
-	case "EQ":
+	case "EQUAL":
 		pOperation = "==="
 	case "NEQ":
 		pOperation = "!=="

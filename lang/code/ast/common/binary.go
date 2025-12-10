@@ -107,7 +107,7 @@ func (b *BinaryExpr) textCompare() ast.Block {
 	var fieldOp string
 	switch b.Operator {
 	case lex.TextEquals:
-		fieldOp = "EQ"
+		fieldOp = "EQUAL"
 	case lex.TextNotEquals:
 		fieldOp = "NEQ"
 	case lex.TextLessThan:
