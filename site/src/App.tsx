@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { FloppyDiskIcon } from '@phosphor-icons/react'
+import { FloppyDiskIcon, Copy } from '@phosphor-icons/react'
 import { CodeBlock } from './components/CodeBlock';
 import { SyntaxEditor } from './components/SyntaxEditor';
 import './App.css'
@@ -99,7 +99,15 @@ Button1.Click {
             />
             {error && (
               <div className="editor-error">
-                {error}
+                <span>{error}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(error)}
+                  className="error-copy-btn"
+                  title="Copy Error"
+                  aria-label="Copy Error"
+                >
+                  <Copy size={16} />
+                </button>
               </div>
             )}
           </div>

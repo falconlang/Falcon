@@ -13,7 +13,10 @@
   src: url('/fonts/Iosevka-ExtraLight.ttf') format('truetype');
 }
 
-* {
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
   scrollbar-width: thin;
 }
 
@@ -184,6 +187,34 @@ p {
   border-top: 1px solid rgba(255, 107, 107, 0.2);
   min-height: 1.5rem;
   animation: fadeIn 0.2s ease-in-out;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.error-copy-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.error-copy-btn:hover {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: #ff6b6b;
+  opacity: 1;
+}
+
+.error-copy-btn:active {
+  transform: scale(0.95);
 }
 
 @keyframes fadeIn {
@@ -451,6 +482,8 @@ pre[class*="language-"] {
 .anchor-link {
   position: absolute;
   margin-left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--link-color);
   text-decoration: none;
   opacity: 0;
@@ -464,4 +497,34 @@ pre[class*="language-"] {
 
 .anchor-link:hover {
   color: var(--link-hover);
+}
+
+@media (max-width: 900px) {
+  .playground-container {
+    flex-direction: column;
+    height: auto;
+    width: 100%;
+  }
+
+  .editor-card,
+  .preview-card {
+    min-height: 50vh;
+    width: 100%;
+  }
+
+  .demo-section {
+    height: auto;
+    min-height: 100vh;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+    justify-content: flex-start;
+  }
+
+  h1 {
+    font-size: clamp(4rem, 15vw, 10rem);
+  }
+
+  .hero-section p {
+    text-align: center;
+  }
 }
