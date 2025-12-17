@@ -38,18 +38,50 @@ function App() {
     docsRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  /**
+   * Exports all top-level blocks in the main workspace as PNGs.
+   */
+  function exportAllBlocks() {
+    // Get the main Blockly workspace.
+    const workspace = (window as any).Blockly?.getMainWorkspace();
+    if (!workspace) {
+      console.error("Main workspace not found.");
+      return;
+    }
 
-  const handleSave = () => {
-    const blob = new Blob([code], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'falcon_blocks.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+    // Get all the top-level blocks on the workspace.
+    const topBlocks = workspace.getTopBlocks(true);
+
+    if (topBlocks.length === 0) {
+      console.log("No blocks to export.");
+      return;
+    }
+
+    // Iterate over each top-level block and trigger the export.
+    // This will download a PNG for each top block and its children.
+    topBlocks.forEach((block: any) => {
+      (window as any).Blockly?.exportBlockAsPng(block);
+    });
+  }
+
+  /**
+   * Exports a single block by its ID.
+   * @param {string} blockId The ID of the block to export.
+   */
+  function exportSpecificBlock(blockId: string) {
+    const workspace = (window as any).Blockly?.getMainWorkspace();
+    if (!workspace) {
+      console.error("Main workspace not found.");
+      return;
+    }
+
+    const block = workspace.getBlockById(blockId);
+    if (block) {
+      (window as any).Blockly?.exportBlockAsPng(block);
+    } else {
+      console.error("Block with ID '" + blockId + "' not found.");
+    }
+  }
 
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
@@ -187,7 +219,7 @@ function App() {
                 <button onClick={handleZoomOut} className="icon-btn" title="Zoom Out">
                   <Minus size={20} />
                 </button>
-                <button onClick={handleSave} className="icon-btn" title="Save Blocks">
+                <button onClick={exportAllBlocks} className="icon-btn" title="Save Blocks">
                   <FloppyDiskIcon size={20} />
                 </button>
               </div>
