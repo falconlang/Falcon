@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { FloppyDiskIcon, Copy, FileArchiveIcon, MinusIcon, PlusIcon, CopyIcon } from '@phosphor-icons/react'
+import { FloppyDiskIcon, FileArchiveIcon, MinusIcon, PlusIcon, CopyIcon } from '@phosphor-icons/react'
 import JSZip from 'jszip';
 import { CodeBlock } from './components/CodeBlock';
 import { SyntaxEditor } from './components/SyntaxEditor';
