@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
-import { FloppyDiskIcon, Copy, Plus, Minus } from '@phosphor-icons/react'
+import { FloppyDiskIcon, Copy, Plus, Minus, FileArchive, FileArchiveIcon } from '@phosphor-icons/react'
+import JSZip from 'jszip';
 import { CodeBlock } from './components/CodeBlock';
 import { SyntaxEditor } from './components/SyntaxEditor';
 import { AIBlockly } from './components/AIBlockly';
@@ -64,24 +65,46 @@ function App() {
     });
   }
 
-  /**
-   * Exports a single block by its ID.
-   * @param {string} blockId The ID of the block to export.
-   */
-  function exportSpecificBlock(blockId: string) {
+  const handleZip = async () => {
     const workspace = (window as any).Blockly?.getMainWorkspace();
-    if (!workspace) {
-      console.error("Main workspace not found.");
-      return;
-    }
+    if (!workspace) return;
 
-    const block = workspace.getBlockById(blockId);
-    if (block) {
-      (window as any).Blockly?.exportBlockAsPng(block);
-    } else {
-      console.error("Block with ID '" + blockId + "' not found.");
+    const topBlocks = workspace.getTopBlocks(true);
+    if (topBlocks.length === 0) return;
+
+    const zip = new JSZip();
+    const promises = topBlocks.map((block: any) => {
+      return new Promise<void>((resolve) => {
+        // Use the requested blockToPngBlob function
+        (window as any).Blockly.blockToPngBlob(block).then((blob: Blob) => {
+          // Name the file based on the block type or id, ensure unique names if needed
+          // For simplicity using Block Type and ID
+          const filename = `${block.type}_${block.id}.png`;
+          zip.file(filename, blob);
+          resolve();
+        }).catch((err: any) => {
+          console.error("Error generating png for block", block, err);
+          resolve(); // Resolve anyway to continue zip generation
+        });
+      });
+    });
+
+    try {
+      await Promise.all(promises);
+      const content = await zip.generateAsync({ type: "blob" });
+
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'falcon_blocks.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error creating zip", error);
     }
-  }
+  };
 
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
@@ -221,6 +244,9 @@ function App() {
                 </button>
                 <button onClick={exportAllBlocks} className="icon-btn" title="Save Blocks">
                   <FloppyDiskIcon size={20} />
+                </button>
+                <button onClick={handleZip} className="icon-btn" title="Zip Blocks">
+                  <FileArchiveIcon size={20} />
                 </button>
               </div>
             </div>
