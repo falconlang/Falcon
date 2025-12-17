@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { FloppyDiskIcon, Copy, Plus, Minus, FileArchive, FileArchiveIcon } from '@phosphor-icons/react'
+import { FloppyDiskIcon, Copy, FileArchiveIcon, MinusIcon, PlusIcon, CopyIcon } from '@phosphor-icons/react'
 import JSZip from 'jszip';
 import { CodeBlock } from './components/CodeBlock';
 import { SyntaxEditor } from './components/SyntaxEditor';
@@ -227,7 +227,7 @@ function App() {
                   title="Copy Error"
                   aria-label="Copy Error"
                 >
-                  <Copy size={16} />
+                  <CopyIcon size={16} />
                 </button>
               </div>
             )}
@@ -237,10 +237,10 @@ function App() {
               <h3>Blocks Preview</h3>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={handleZoomIn} className="icon-btn" title="Zoom In">
-                  <Plus size={20} />
+                  <PlusIcon size={20} />
                 </button>
                 <button onClick={handleZoomOut} className="icon-btn" title="Zoom Out">
-                  <Minus size={20} />
+                  <MinusIcon size={20} />
                 </button>
                 <button onClick={exportAllBlocks} className="icon-btn" title="Save Blocks">
                   <FloppyDiskIcon size={20} />
