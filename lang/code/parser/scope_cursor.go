@@ -17,6 +17,7 @@ const (
 	ScopeLoop
 	ScopeIfBody
 	ScopeSmartBody
+	ScopeTypeTransform
 )
 
 type ScopeCursor struct {
