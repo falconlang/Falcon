@@ -552,10 +552,13 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 	}
 	p.expect(l.OpenCurly)
 	// oh, no! he's a transformer >_>
+	p.ScopeCursor.Enter(where, ScopeTypeTransform)
 	var namesUsed []string
 	if !p.consume(l.RightArrow) {
 		for {
-			namesUsed = append(namesUsed, p.name())
+			mName := p.name()
+			p.ScopeCursor.DefineVariable(mName, []ast.Signature{ast.SignAny})
+			namesUsed = append(namesUsed, mName)
 			if !p.consume(l.Comma) {
 				break
 			}
@@ -563,6 +566,7 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 		p.consume(l.RightArrow)
 	}
 	transformer := p.parse()
+	p.ScopeCursor.Exit(ScopeTypeTransform)
 	p.consume(l.CloseCurly)
 	errorMessage, signature := list.TestSignature(name, len(args), len(namesUsed))
 	if signature == nil {
