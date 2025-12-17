@@ -12,25 +12,28 @@ import (
 	"Falcon/code/parser"
 	"Falcon/design"
 	"encoding/xml"
-	"runtime/debug"
 	"strings"
 	"syscall/js"
 )
 
-func safeExec(fn func() js.Value) js.Value {
+func safeExec(fn func() js.Value) (ret js.Value) {
+	ret = js.Undefined()
+
 	defer func() {
 		if r := recover(); r != nil {
-			switch err := r.(type) {
-			case error:
-				println("Recovered from panic:", err.Error())
-			default:
-				println("Recovered from panic (non-error):", r)
+			if msg, ok := r.(string); ok {
+				js.Global().Get("console").Call("error", msg)
+			} else if err, ok := r.(error); ok {
+				js.Global().Get("console").Call("error", err.Error())
+			} else {
+				// last-resort: print the raw value
+				js.Global().Get("console").Call("error", r)
 			}
-			println("Stack trace:")
-			println(string(debug.Stack())) // Print full stack trace
 		}
 	}()
-	return fn()
+
+	ret = fn()
+	return
 }
 
 // Code -> Blocks

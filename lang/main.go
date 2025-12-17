@@ -17,14 +17,14 @@ func main() {
 	println("Hello from Falcon!\n")
 
 	//diffTest()
-	//analyzeSyntax()
-	xmlTest()
+	analyzeSyntax()
+	//xmlTest()
 	//designTest()
 }
 
 func designTest() {
 	xmlFile := "Screen1.aiml"
-	xmlPath := "/home/ekina/GolandProjects/Falcon/testing/" + xmlFile
+	xmlPath := "/home/ekina/GolandProjects/FalconMain/testing/" + xmlFile
 	codeBytes, err := os.ReadFile(xmlPath)
 	if err != nil {
 		panic(err)
@@ -45,7 +45,7 @@ func designTest() {
 
 func xmlTest() {
 	xmlFile := "xml.txt"
-	xmlPath := "/home/ekina/GolandProjects/Falcon/testing/" + xmlFile
+	xmlPath := "/home/ekina/GolandProjects/FalconMain/testing/" + xmlFile
 	codeBytes, err := os.ReadFile(xmlPath)
 	if err != nil {
 		panic(err)
@@ -62,7 +62,7 @@ func xmlTest() {
 
 func analyzeSyntax() {
 	fileName := "hi.mist"
-	filePath := "/home/ekina/GolandProjects/Falcon/testing/" + fileName
+	filePath := "/home/ekina/GolandProjects/FalconMain/testing/" + fileName
 	codeBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)
