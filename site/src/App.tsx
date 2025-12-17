@@ -1,8 +1,11 @@
 import { useRef, useState, useEffect } from 'react'
-import { FloppyDiskIcon, Copy } from '@phosphor-icons/react'
+import { FloppyDiskIcon, Copy, Plus, Minus } from '@phosphor-icons/react'
 import { CodeBlock } from './components/CodeBlock';
 import { SyntaxEditor } from './components/SyntaxEditor';
+import { AIBlockly } from './components/AIBlockly';
 import './App.css'
+
+declare function mistToXml(mistCode: string, componentDefinitions: Record<string, string[]>): string;
 
 function AnchorHeading({ level, id, children }: { level: 'h2' | 'h3' | 'h4', id: string, children: React.ReactNode }) {
   const Tag = level;
@@ -24,10 +27,7 @@ function AnchorHeading({ level, id, children }: { level: 'h2' | 'h3' | 'h4', id:
 function App() {
   const demoRef = useRef<HTMLDivElement>(null);
   const docsRef = useRef<HTMLDivElement>(null);
-  const [code, setCode] = useState(`// Example
-Button1.Click {
-  Label1.Text = "Hello World"
-}`);
+  const [code, setCode] = useState(`// Type Falcon Code`);
   const [error, setError] = useState<string | null>("Syntax Error: Expected '}' at line 3, column 5");
 
   const scrollToDemo = () => {
@@ -53,8 +53,74 @@ Button1.Click {
 
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
+    translateToBlocks(newCode);
     setError(null);
   };
+
+  const handleZoomIn = () => {
+    const workspace = (window as any).Blockly?.getMainWorkspace();
+    workspace?.zoom(0, 0, 1);
+  };
+
+  const handleZoomOut = () => {
+    const workspace = (window as any).Blockly?.getMainWorkspace();
+    workspace?.zoom(0, 0, -1);
+  };
+
+
+  // Mist -> XML
+  function translateToBlocks(mistCode: string) {
+    try {
+      const xmlCode = mistToXml(mistCode, {});
+      console.log("Generated XML Code:", xmlCode);
+      renderBlocks(xmlCode);
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  function renderBlocks(xmlGenerated: string) {
+    // First clear the existing workspace, and inject the new blocks
+    const xmlStrings = xmlGenerated.split("\u0000");
+    const workspace = (window as any).Blockly?.getMainWorkspace();
+    workspace.clear()
+
+    const blocks = [];
+
+    for (let i = 0; i < xmlStrings.length; i++) {
+      const xmlString = xmlStrings[i].trim();
+      if (!xmlString || xmlString.replace(/\0/g, '').trim() === '') {
+        continue;
+      }
+
+      console.log(xmlString);
+      const xml = (window as any).Blockly?.utils.xml.textToDom(xmlString);
+      const xmlBlock = xml.firstElementChild;
+      const block = (window as any).Blockly?.Xml.domToBlock(xmlBlock, workspace);
+      block.initSvg(); // Init all blocks first
+      blocks.push(block); // Save for rendering later
+    }
+
+    for (const block of blocks) {
+      workspace.requestRender(block);
+    }
+    sortBlocks();
+  }
+
+  function sortBlocks() {
+    // Sort all the blocks in order
+    const item = (window as any).Blockly?.ContextMenuRegistry.registry.getItem("appinventor_arrange_vertical");
+
+    if (item && typeof item.callback === "function") {
+      const workspace = (window as any).Blockly?.getMainWorkspace();
+
+      const fakeScope = { workspace: workspace, };
+      item.callback(fakeScope, null);
+    } else {
+      console.error("Callback not found or item is invalid");
+    }
+  };
+
 
   // Handle initial hash navigation
   useEffect(() => {
@@ -114,13 +180,19 @@ Button1.Click {
           <div className="preview-card">
             <div className="card-header">
               <h3>Blocks Preview</h3>
-              <button onClick={handleSave} className="icon-btn" title="Save Blocks">
-                <FloppyDiskIcon size={20} />
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={handleZoomIn} className="icon-btn" title="Zoom In">
+                  <Plus size={20} />
+                </button>
+                <button onClick={handleZoomOut} className="icon-btn" title="Zoom Out">
+                  <Minus size={20} />
+                </button>
+                <button onClick={handleSave} className="icon-btn" title="Save Blocks">
+                  <FloppyDiskIcon size={20} />
+                </button>
+              </div>
             </div>
-            <div className="blocks-placeholder">
-              <span>Blocks will appear here</span>
-            </div>
+            <AIBlockly />
           </div>
         </div>
       </section>

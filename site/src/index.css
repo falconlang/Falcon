@@ -528,3 +528,31 @@ pre[class*="language-"] {
     text-align: center;
   }
 }
+/* Blockly Transparency Overrides */
+.blocklySvg {
+  background-color: transparent !important;
+}
+
+.blocklyMainBackground {
+  stroke: none !important;
+  fill: transparent !important;
+}
+
+.blocklyToolboxDiv {
+  background-color: transparent !important;
+}
+
+.blocklyFlyoutBackground {
+  fill: var(--bg-color) !important;
+  fill-opacity: 0.8 !important;
+}
+
+/* Scrollbar tweaks to match theme */
+.blocklyScrollbarHandle {
+  fill: var(--text-color) !important;
+  fill-opacity: 0.2 !important;
+}
+
+.blocklyScrollbarHandle:hover {
+  fill-opacity: 0.4 !important;
+}

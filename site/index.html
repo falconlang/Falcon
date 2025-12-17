@@ -1,13 +1,55 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>site</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Falcon</title>
+  <script src="/compiled_blockly/messages.js"></script>
+  <script src="/compiled_blockly/blockly-all.js"></script>
+  <script src="/compiled_blockly/extensions/scroll-options-5.0.11.min.js"></script>
+  <script src="/compiled_blockly/extensions/workspace-multiselect-0.1.14-beta2.min.js"></script>
+  <script src="/compiled_blockly/extensions/workspace-search.min.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    const WASM_FILE = "/wasm/falcon.wasm"
+    const WASM_EXEC = "/wasm/wasm_exec.js"
+    function loadWasm() {
+      if (!WebAssembly.instantiateStreaming) { // polyfill
+        WebAssembly.instantiateStreaming = async (resp, importObject) => {
+          const source = await (await resp).arrayBuffer();
+          return await WebAssembly.instantiate(source, importObject);
+        };
+      }
+
+      const go = new Go();
+      let mod, inst;
+      WebAssembly.instantiateStreaming(fetch(WASM_FILE), go.importObject).then((result) => {
+        mod = result.module;
+        inst = result.instance;
+
+        console.clear()
+        go.run(inst);
+        inst = WebAssembly.instantiate(mod, go.importObject);
+      }).catch((err) => {
+        console.error(err);
+      });
+    }
+
+    const script = document.createElement("script");
+    script.src = WASM_EXEC
+    script.async = true
+    script.onload = (e) => {
+      console.log("Mist JS was Loaded!");
+      loadWasm()
+    }
+    document.head.appendChild(script);
+  </script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
