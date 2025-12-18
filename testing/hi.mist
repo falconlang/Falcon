@@ -1,39 +1,7 @@
-@Canvas { Canvas1 }
-func drawParabola(initialVelocity, height, angleDegrees) {
-  // Constants
-  local g = 9.8 // Acceleration due to gravity (m/s^2) - assuming meters and seconds
-  local angleRadians = degreesToRadians(angleDegrees)
-  local initialVelocityX = initialVelocity * cos(angleRadians)
-  local initialVelocityY = initialVelocity * sin(angleRadians)
-  local timeOfFlight = (2 * initialVelocityY) / g
-  local canvasWidth = 499
-  local canvasHeight = 499
-  local maxX = initialVelocityX * timeOfFlight
-  local scaleX = canvasWidth / maxX
-  local scaleY = canvasHeight / height
-
-  // Clear the canvas.  This is assumed to be handled elsewhere, but is good practice
-  // and the logic is provided in case it isn't.  No direct "clear canvas" method is provided.
-  // Instead, the approach is to "draw" a rectangle to effectively clear it.  This is a
-  // common technique in App Inventor or similar environments.
-
-  // Draw the parabola
-  for (t: 0 .. timeOfFlight step 0.05) {  // Adjust step for smoother curve
-    local x = initialVelocityX * t
-    local y = (initialVelocityY * t) - (0.5 * g * t ^ 2)
-
-    // Scale x and y to canvas coordinates
-    local canvasX = x * scaleX
-    local canvasY = canvasHeight - (y * scaleY)  // Invert y-axis to match canvas coordinates
-
-    // Ensure points are within canvas bounds
-    if (canvasX >= 0 && canvasX <= canvasWidth && canvasY >= 0 && canvasY <= canvasHeight) {
-      Canvas1.DrawPoint(canvasX, canvasY)
-    }
+func RunLengthEncode(text) = {
+  local encoded = ""
+  for (i: 0.. text.textLen() step 1) {
+    println("Cat")
   }
-}
-
-// Helper function to convert degrees to radians
-func degreesToRadians(degrees) = {
-  degrees * PI / 180
+  "Cat"
 }

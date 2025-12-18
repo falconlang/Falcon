@@ -264,11 +264,16 @@ func (l *Lexer) alpha() {
 
 func (l *Lexer) numeric() {
 	var numb strings.Builder
-	l.writeNumeric(&numb)
+	numb.WriteString(l.readNumeric())
 	if l.notEOF() && l.peek() == '.' {
 		l.skip()
-		numb.WriteByte('.')
-		l.writeNumeric(&numb)
+		decimalNumb := l.readNumeric()
+		if len(decimalNumb) != 0 {
+			numb.WriteByte('.')
+			numb.WriteString(decimalNumb)
+		} else {
+			l.back()
+		}
 	}
 	content := numb.String()
 	l.appendToken(&Token{
@@ -287,12 +292,12 @@ func (l *Lexer) appendToken(token *Token) {
 	l.Tokens = append(l.Tokens, token)
 }
 
-func (l *Lexer) writeNumeric(builder *strings.Builder) {
+func (l *Lexer) readNumeric() string {
 	startIndex := l.currIndex
 	for l.notEOF() && l.isDigit() {
 		l.skip()
 	}
-	builder.WriteString(l.source[startIndex:l.currIndex])
+	return l.source[startIndex:l.currIndex]
 }
 
 func (l *Lexer) isAlphaNumeric() bool {
