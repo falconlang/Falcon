@@ -460,7 +460,6 @@ func (p *LangParser) assignSmt(left ast.Expr, right ast.Expr) (ast.Expr, bool) {
 }
 
 func (p *LangParser) element() ast.Expr {
-	leftRow := p.peek().Column
 	left := p.term()
 	for p.notEOF() {
 		pe := p.peek()
@@ -486,13 +485,11 @@ func (p *LangParser) element() ast.Expr {
 			// constant value transformer
 			left = &common.Transform{Where: p.next(), On: left, Name: p.name()}
 		case l.OpenSquare:
-			if leftRow == p.peek().Column {
-				p.skip()
-				// an index element access
-				left = &list.Get{List: left, Index: p.parse()}
-				p.expect(l.CloseSquare)
-				continue
-			}
+			p.skip()
+			// an index element access
+			left = &list.Get{List: left, Index: p.parse()}
+			p.expect(l.CloseSquare)
+			continue
 		}
 		break
 	}
