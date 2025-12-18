@@ -149,7 +149,7 @@ Or over a dictionary:
 ```
 local animalInfo = { "Animal": "Tiger", "Scientific Name": "Panthera tigris" }
 
-for (key, value in animalDetail) {
+for (key, value in animalInfo) {
   println(key _ " : " _ value) // e.g prints  "Animal: Tiger" to the console
 }
 ```

@@ -280,6 +280,7 @@ func (p *LangParser) forExpr() ast.Expr {
 
 		where := p.expect(l.OpenCurly)
 		p.ScopeCursor.Enter(where, ScopeLoop)
+		p.ScopeCursor.DefineVariable(firstName, iterable.Signature())
 		p.ScopeCursor.DefineVariable(valueName, iterable.Signature())
 		body := p.bodyUntilCurly()
 		p.ScopeCursor.Exit(ScopeLoop)
