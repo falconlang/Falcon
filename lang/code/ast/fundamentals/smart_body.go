@@ -74,7 +74,7 @@ func (s *SmartBody) createDoSmt(doResult ast.Expr, doBody []ast.Expr) ast.Block 
 		}
 		doExpr = ast.Block{
 			Type:       "controls_do_then_return",
-			Statements: []ast.Statement{ast.CreateStatement("STM", doBody)},
+			Statements: ast.OptionalStatement("STM", doBody),
 			// TODO: we have set the flag to false, previously was true, verify effects
 			Values: []ast.Value{{Name: "VALUE", Block: doResult.Blockly(false)}},
 		}

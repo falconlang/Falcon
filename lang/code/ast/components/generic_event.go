@@ -19,10 +19,6 @@ func (g *GenericEvent) String() string {
 }
 
 func (g *GenericEvent) Blockly(flags ...bool) ast.Block {
-	var statements []ast.Statement
-	if len(g.Body) > 0 {
-		statements = []ast.Statement{ast.CreateStatement("DO", g.Body)}
-	}
 	return ast.Block{
 		Type: "component_event",
 		Mutation: &ast.Mutation{
@@ -30,7 +26,7 @@ func (g *GenericEvent) Blockly(flags ...bool) ast.Block {
 			EventName:     g.Event,
 			ComponentType: g.ComponentType,
 		},
-		Statements: statements,
+		Statements: ast.OptionalStatement("DO", g.Body),
 	}
 }
 

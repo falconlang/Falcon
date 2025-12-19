@@ -24,16 +24,12 @@ func (v *Var) String() string {
 }
 
 func (v *Var) Blockly(flags ...bool) ast.Block {
-	var statements []ast.Statement
-	if len(v.Body) != 0 {
-		statements = []ast.Statement{ast.CreateStatement("STACK", v.Body)}
-	}
 	return ast.Block{
 		Type:       "local_declaration_statement",
 		Mutation:   &ast.Mutation{LocalNames: ast.MakeLocalNames(v.Names...)},
 		Fields:     ast.ToFields("VAR", v.Names),
 		Values:     ast.ValuesByPrefix("DECL", v.Values),
-		Statements: statements,
+		Statements: ast.OptionalStatement("STACK", v.Body),
 	}
 }
 

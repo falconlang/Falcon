@@ -138,6 +138,13 @@ func MakeValueArgs(on Expr, onName string, operands []Expr, names ...string) []V
 	return values
 }
 
+func OptionalStatement(name string, body []Expr) []Statement {
+	if len(body) > 0 {
+		return []Statement{CreateStatement(name, body)}
+	}
+	return nil
+}
+
 func CreateStatement(name string, body []Expr) Statement {
 	// Pass true to indicate a statement
 	headBlock := ensureStatement(body[0])

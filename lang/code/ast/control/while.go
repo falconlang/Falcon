@@ -18,7 +18,7 @@ func (w *While) Blockly(flags ...bool) ast.Block {
 	return ast.Block{
 		Type:       "controls_while",
 		Values:     []ast.Value{{Name: "TEST", Block: w.Condition.Blockly(false)}},
-		Statements: []ast.Statement{ast.CreateStatement("DO", w.Body)},
+		Statements: ast.OptionalStatement("DO", w.Body),
 	}
 }
 

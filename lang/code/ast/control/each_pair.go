@@ -24,7 +24,7 @@ func (e *EachPair) Blockly(flags ...bool) ast.Block {
 			{Name: "VALUE", Value: e.ValueName},
 		},
 		Values:     []ast.Value{{Name: "DICT", Block: e.Iterable.Blockly(false)}},
-		Statements: []ast.Statement{ast.CreateStatement("DO", e.Body)},
+		Statements: ast.OptionalStatement("DO", e.Body),
 	}
 }
 

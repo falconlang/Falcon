@@ -17,15 +17,11 @@ func (v *VoidProcedure) String() string {
 }
 
 func (v *VoidProcedure) Blockly(flags ...bool) ast.Block {
-	var statements []ast.Statement
-	if len(v.Body) > 0 {
-		statements = []ast.Statement{ast.CreateStatement("STACK", v.Body)}
-	}
 	return ast.Block{
 		Type:       "procedures_defnoreturn",
 		Mutation:   &ast.Mutation{Args: ast.ToArgs(v.Parameters)},
 		Fields:     append(ast.ToFields("VAR", v.Parameters), ast.Field{Name: "NAME", Value: v.Name}),
-		Statements: statements,
+		Statements: ast.OptionalStatement("STACK", v.Body),
 	}
 }
 

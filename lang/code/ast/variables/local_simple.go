@@ -23,16 +23,12 @@ func (v *SimpleVar) String() string {
 }
 
 func (v *SimpleVar) Blockly(flags ...bool) ast.Block {
-	var statements []ast.Statement
-	if len(v.Body) > 0 {
-		statements = []ast.Statement{ast.CreateStatement("STACK", v.Body)}
-	}
 	return ast.Block{
 		Type:       "local_declaration_statement",
 		Mutation:   &ast.Mutation{LocalNames: ast.MakeLocalNames(v.Name)},
 		Fields:     []ast.Field{{Name: "VAR0", Value: v.Name}},
 		Values:     []ast.Value{{Name: "DECL0", Block: v.Value.Blockly(false)}},
-		Statements: statements,
+		Statements: ast.OptionalStatement("STACK", v.Body),
 	}
 }
 

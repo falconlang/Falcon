@@ -23,7 +23,7 @@ func (f *For) Blockly(flags ...bool) ast.Block {
 		Type:       "controls_forRange",
 		Fields:     []ast.Field{{Name: "VAR", Value: f.IName}},
 		Values:     ast.MakeValues([]ast.Expr{f.From, f.To, f.By}, "START", "END", "STEP"),
-		Statements: []ast.Statement{ast.CreateStatement("DO", f.Body)},
+		Statements: ast.OptionalStatement("DO", f.Body),
 	}
 }
 
