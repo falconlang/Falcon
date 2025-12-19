@@ -22,12 +22,12 @@ func safeExec(fn func() js.Value) (ret js.Value) {
 	defer func() {
 		if r := recover(); r != nil {
 			if msg, ok := r.(string); ok {
-				js.Global().Get("console").Call("error", msg)
+				js.Global().Call("mistError", msg)
 			} else if err, ok := r.(error); ok {
-				js.Global().Get("console").Call("error", err.Error())
+				js.Global().Call("mistError", err.Error())
 			} else {
 				// last-resort: print the raw value
-				js.Global().Get("console").Call("error", r)
+				js.Global().Call("mistError", r)
 			}
 		}
 	}()
