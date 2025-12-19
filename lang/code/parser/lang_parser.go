@@ -844,6 +844,9 @@ func (p *LangParser) peek() *l.Token {
 }
 
 func (p *LangParser) next() *l.Token {
+	if p.isEOF() {
+		panic("Early EOF!")
+	}
 	token := p.Tokens[p.currIndex]
 	p.currIndex++
 	return token
