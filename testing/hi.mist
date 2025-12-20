@@ -1,3 +1,3 @@
 @Web { Web1 }
 
-call("Web", Web1, "Get", 1, 2)
+vcall("Web", Web1, "Get", 1, 2)

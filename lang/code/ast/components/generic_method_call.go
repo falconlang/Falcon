@@ -10,10 +10,17 @@ type GenericMethodCall struct {
 	ComponentType string
 	Method        string
 	Args          []ast.Expr
+	Returning     bool
 }
 
 func (g *GenericMethodCall) String() string {
-	return sugar.Format("call(\"%\", %, \"%\", %)", g.ComponentType, g.Component.String(), g.Method, ast.JoinExprs(", ", g.Args))
+	var callType string
+	if g.Returning {
+		callType = "vcall"
+	} else {
+		callType = "call"
+	}
+	return sugar.Format("%(\"%\", %, \"%\", %)", callType, g.ComponentType, g.Component.String(), g.Method, ast.JoinExprs(", ", g.Args))
 }
 
 func (g *GenericMethodCall) Blockly(flags ...bool) ast.Block {

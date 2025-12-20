@@ -402,6 +402,7 @@ func (p *XMLParser) componentMethod(block ast.Block) ast.Expr {
 			ComponentType: block.Mutation.ComponentType,
 			Method:        block.Mutation.MethodName,
 			Args:          callArgs,
+			Returning:     block.Mutation.Shape == "value",
 		}
 	}
 	return &components.MethodCall{

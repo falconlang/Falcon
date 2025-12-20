@@ -82,7 +82,8 @@ var signatures = map[string]*FuncCallSignature{
 
 	"set":   makeSignature("set", 4, ast.SignVoid),
 	"get":   makeSignature("get", 3, ast.SignAny),
-	"call":  makeSignature("call", -1-(3), ast.SignAny),
+	"call":  makeSignature("call", -1-(3), ast.SignVoid),
+	"vcall": makeSignature("vcall", -1-(3), ast.SignAny),
 	"every": makeSignature("every", 1, ast.SignAny),
 }
 
@@ -191,7 +192,9 @@ func (f *FuncCall) Blockly(flags ...bool) ast.Block {
 	case "get":
 		return f.genericGet()
 	case "call":
-		return f.genericCall()
+		return f.genericCall(false)
+	case "vcall":
+		return f.genericCall(true)
 	case "every":
 		return f.everyComponent()
 	default:
@@ -208,7 +211,8 @@ func (f *FuncCall) Consumable(flags ...bool) bool {
 	if f.Name == "setRandSeed" || f.Name == "println" ||
 		f.Name == "openScreen" || f.Name == "openScreenWithValue" ||
 		f.Name == "closeScreen" || f.Name == "closeScreenWithValue" ||
-		f.Name == "closeApp" || f.Name == "closeScreenWithPlainText" || f.Name == "set" {
+		f.Name == "closeApp" || f.Name == "closeScreenWithPlainText" ||
+		f.Name == "set" || f.Name == "call" {
 		return false
 	}
 	return true
@@ -234,11 +238,12 @@ func (f *FuncCall) everyComponent() ast.Block {
 	}
 }
 
-func (f *FuncCall) genericCall() ast.Block {
+func (f *FuncCall) genericCall(vcall bool) ast.Block {
 	// arg[0] 	 compType
 	// arg[1] 	 component (any object)
 	// arg[2] 	 method name
 	// arg[4->n] invoke args
+	// if {vcall}, it is a returning method
 	compType, ok := f.Args[0].(*fundamentals.Text)
 	if !ok {
 		f.Where.Error("Expected a component type for call() 1st argument!")
@@ -247,12 +252,19 @@ func (f *FuncCall) genericCall() ast.Block {
 	if !ok {
 		f.Where.Error("Expected a method name for call() 3rd argument!")
 	}
+	var shape string
+	if vcall {
+		shape = "value"
+	} else {
+		shape = "statement"
+	}
 	return ast.Block{
 		Type: "component_method",
 		Mutation: &ast.Mutation{
 			MethodName:    vGet.Content,
 			IsGeneric:     true,
 			ComponentType: compType.Content,
+			Shape:         shape,
 		},
 		Values: ast.ValueArgsByPrefix(f.Args[1], "COMPONENT", "ARG", f.Args[3:]),
 	}
