@@ -20,6 +20,14 @@ func (g *Get) String() string {
 }
 
 func (g *Get) Blockly(flags ...bool) ast.Block {
+	// check if this refers to an event parameter
+	if len(g.ValueSignature) > 0 && g.ValueSignature[0] == ast.SignOfEvent {
+		return ast.Block{
+			Type:     "lexical_variable_get",
+			Mutation: &ast.Mutation{EventParams: []ast.EventParam{{Name: g.Name}}},
+			Fields:   []ast.Field{{Name: "VAR", Value: g.Name}},
+		}
+	}
 	var name string
 	if g.Global {
 		name = "global " + g.Name
@@ -41,6 +49,5 @@ func (g *Get) Consumable(flags ...bool) bool {
 }
 
 func (g *Get) Signature() []ast.Signature {
-	// TODO: later define a variable lookup table
 	return []ast.Signature{ast.SignAny}
 }

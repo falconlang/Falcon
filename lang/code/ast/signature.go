@@ -12,6 +12,7 @@ const (
 	SignComponent
 	SignHelper
 	SignAny
+	SignOfEvent
 	SignVoid
 )
 

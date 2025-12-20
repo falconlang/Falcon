@@ -34,25 +34,31 @@ type Value struct {
 }
 
 type Mutation struct {
-	XMLName       xml.Name    `xml:"mutation"`
-	ItemCount     int         `xml:"items,attr"`
-	ElseIfCount   int         `xml:"elseif,attr"`
-	ElseCount     int         `xml:"else,attr"`
-	LocalNames    []LocalName `xml:"localname"`
-	Args          []Arg       `xml:"arg"`
-	Key           string      `xml:"key,attr,omitempty"`
-	SetOrGet      string      `xml:"set_or_get,attr,omitempty"`
-	PropertyName  string      `xml:"property_name,attr,omitempty"`
-	IsGeneric     bool        `xml:"is_generic,attr,omitempty"`
-	ComponentType string      `xml:"component_type,attr,omitempty"`
-	InstanceName  string      `xml:"instance_name,attr,omitempty"`
-	EventName     string      `xml:"event_name,attr,omitempty"`
-	MethodName    string      `xml:"method_name,attr,omitempty"`
-	ParamCount    int         `xml:"param_count,attr,omitempty"`
-	Mode          string      `xml:"mode,attr,omitempty"`
-	Cofounder     string      `xml:"confounder,attr,omitempty"`
-	Inline        bool        `xml:"inline,attr,omitempty"`
-	Name          string      `xml:"name,attr,omitempty"`
+	XMLName       xml.Name     `xml:"mutation"`
+	ItemCount     int          `xml:"items,attr"`
+	ElseIfCount   int          `xml:"elseif,attr"`
+	ElseCount     int          `xml:"else,attr"`
+	LocalNames    []LocalName  `xml:"localname"`
+	Args          []Arg        `xml:"arg"`
+	EventParams   []EventParam `xml:"eventparam"`
+	Key           string       `xml:"key,attr,omitempty"`
+	SetOrGet      string       `xml:"set_or_get,attr,omitempty"`
+	PropertyName  string       `xml:"property_name,attr,omitempty"`
+	IsGeneric     bool         `xml:"is_generic,attr,omitempty"`
+	ComponentType string       `xml:"component_type,attr,omitempty"`
+	InstanceName  string       `xml:"instance_name,attr,omitempty"`
+	EventName     string       `xml:"event_name,attr,omitempty"`
+	MethodName    string       `xml:"method_name,attr,omitempty"`
+	ParamCount    int          `xml:"param_count,attr,omitempty"`
+	Mode          string       `xml:"mode,attr,omitempty"`
+	Cofounder     string       `xml:"confounder,attr,omitempty"`
+	Inline        bool         `xml:"inline,attr,omitempty"`
+	Name          string       `xml:"name,attr,omitempty"`
+}
+
+type EventParam struct {
+	XMLName xml.Name `xml:"eventparam"`
+	Name    string   `xml:"name,attr"`
 }
 
 type LocalName struct {

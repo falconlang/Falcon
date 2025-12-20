@@ -165,7 +165,7 @@ func (p *LangParser) genericEvent() ast.Expr {
 	where := p.expect(l.OpenCurly)
 	p.ScopeCursor.Enter(where, ScopeEvent)
 	for _, param := range parameters {
-		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignAny})
+		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignOfEvent, ast.SignAny})
 	}
 	body := p.bodyUntilCurly()
 	p.ScopeCursor.Exit(ScopeEvent)
@@ -184,7 +184,7 @@ func (p *LangParser) event() ast.Expr {
 	where := p.expect(l.OpenCurly)
 	p.ScopeCursor.Enter(where, ScopeEvent)
 	for _, param := range parameters {
-		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignAny})
+		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignOfEvent, ast.SignAny})
 	}
 	body := p.bodyUntilCurly()
 	p.ScopeCursor.Exit(ScopeEvent)
