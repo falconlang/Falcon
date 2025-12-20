@@ -451,3 +451,47 @@ when any Web.GotText(url, responseCode, responseType, responseContent) {
   println(responseType)
 }
 ```
+
+### Property Set
+
+```
+@Web { Web1 }
+
+Web1.Url = "https://google.com"
+```
+
+### Property Get
+
+```
+@Web { Web1 }
+
+println(Web1.Url)
+```
+
+### Generic Property Set
+
+```
+@Web { Web1 }
+
+set("Web", Web1, "Url", "https://google.com")
+```
+
+### Generic Property Get
+
+```
+@Web { Web1 }
+
+println(get("Web", Web1, "Url"))
+```
+
+### Method Call (limited support)
+
+```
+@Web { Web1 }
+
+Web1.Get()
+```
+
+### Generic Method Call
+
+Not yet supported
