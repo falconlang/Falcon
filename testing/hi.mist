@@ -1,5 +1,0 @@
-global lemonadeSold = [10, "N/A", 12, 16, "N/A", 17, 12]
-
-func GetTotalRevenue() =
-  this.lemonadeSold
-    .filter { n -> n ? number }
