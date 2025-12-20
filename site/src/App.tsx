@@ -29,7 +29,7 @@ function App() {
   const demoRef = useRef<HTMLDivElement>(null);
   const docsRef = useRef<HTMLDivElement>(null);
   const [code, setCode] = useState(`// Type Falcon Code`);
-  const [error, setError] = useState<string | null>("Syntax Error: Expected '}' at line 3, column 5");
+  const [error, setError] = useState<string | null>(null);
 
   const scrollToDemo = () => {
     demoRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -106,20 +106,44 @@ function App() {
     }
   };
 
+  const errorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    (window as any).mistError = (errorMessage: string) => {
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = setTimeout(() => {
+        setError(errorMessage);
+        errorTimeoutRef.current = null;
+      }, 1000); // Wait a second after typing stops to show error
+    };
+
+    (window as any).renderBlocks = renderBlocks;
+
+    return () => {
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    };
+  }, []);
+
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
-    translateToBlocks(newCode);
     setError(null);
+    if (errorTimeoutRef.current) {
+      clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = null;
+    }
+    translateToBlocks(newCode);
   };
 
   const handleZoomIn = () => {
     const workspace = (window as any).Blockly?.getMainWorkspace();
     workspace?.zoom(0, 0, 1);
+    // sortBlocks();
   };
 
   const handleZoomOut = () => {
     const workspace = (window as any).Blockly?.getMainWorkspace();
     workspace?.zoom(0, 0, -1);
+    // sortBlocks();
   };
 
 
@@ -220,7 +244,7 @@ function App() {
             />
             {error && (
               <div className="editor-error">
-                <span>{error}</span>
+                <div className="error-message">{error}</div>
                 <button
                   onClick={() => navigator.clipboard.writeText(error)}
                   className="error-copy-btn"
@@ -250,7 +274,9 @@ function App() {
                 </button>
               </div>
             </div>
-            <AIBlockly />
+            <div className="blockly-wrapper">
+              <AIBlockly />
+            </div>
           </div>
         </div>
       </section>

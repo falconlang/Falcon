@@ -189,8 +189,15 @@ p {
   animation: fadeIn 0.2s ease-in-out;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
+}
+
+.error-message {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+  flex: 1;
 }
 
 .error-copy-btn {
@@ -263,6 +270,14 @@ textarea {
   resize: none;
   outline: none;
   line-height: 1.5;
+}
+
+.blockly-wrapper {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  min-height: 300px;
+  overflow: hidden;
 }
 
 .blocks-placeholder {
@@ -528,6 +543,7 @@ pre[class*="language-"] {
     text-align: center;
   }
 }
+
 /* Blockly Transparency Overrides */
 .blocklySvg {
   background-color: transparent !important;

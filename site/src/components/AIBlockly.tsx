@@ -132,6 +132,11 @@ export function AIBlockly() {
       resizeObserver.observe(blocklyDiv);
     }
 
+    // Initial resize after a short delay to ensure layout is settled
+    setTimeout(() => {
+      Blockly.svgResize(workspace);
+    }, 100);
+
     return () => {
       workspace.dispose();
       resizeObserver.disconnect();
@@ -139,6 +144,5 @@ export function AIBlockly() {
   }, []);
 
   console.log("Done");
-  return <div id="blocklyDiv" style={{ width: '100%', height: '100%', flex: 1 }} />
-
+  return <div id="blocklyDiv" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
 }
