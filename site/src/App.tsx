@@ -549,6 +549,55 @@ func GetTotalRevenue() = {
     .map { n -> n * 2 }	    // Multiply by price
     .reduce(0) { x, soFar -> x + soFar }  // Sum up
 }`} />
+
+            <AnchorHeading level="h2" id="components">Components</AnchorHeading>
+
+            <AnchorHeading level="h3" id="defining-components">Defining components</AnchorHeading>
+            <CodeBlock code={`@ComponentType { InstanceName1, InstanceName2 }`} />
+            <p>e.g.</p>
+            <CodeBlock code={`@Button { Button1, Button2 }`} />
+
+            <AnchorHeading level="h3" id="events">Events</AnchorHeading>
+            <CodeBlock code={`@Web { Web1 }
+
+when Web1.GotText(url, responseCode, responseType, responseContent) {
+  println(responseType)
+}`} />
+
+            <AnchorHeading level="h3" id="generic-events">Generic Events</AnchorHeading>
+            <CodeBlock code={`@Web { Web1 }
+
+when any Web.GotText(url, responseCode, responseType, responseContent) {
+  println(responseType)
+}`} />
+
+            <AnchorHeading level="h3" id="property-set">Property Set</AnchorHeading>
+            <CodeBlock code={`@Web { Web1 }
+
+Web1.Url = "https://google.com"`} />
+
+            <AnchorHeading level="h3" id="property-get">Property Get</AnchorHeading>
+            <CodeBlock code={`@Web { Web1 }
+
+println(Web1.Url)`} />
+
+            <AnchorHeading level="h3" id="generic-property-set">Generic Property Set</AnchorHeading>
+            <CodeBlock code={`@Web { Web1 }
+
+set("Web", Web1, "Url", "https://google.com")`} />
+
+            <AnchorHeading level="h3" id="generic-property-get">Generic Property Get</AnchorHeading>
+            <CodeBlock code={`@Web { Web1 }
+
+println(get("Web", Web1, "Url"))`} />
+
+            <AnchorHeading level="h3" id="method-call">Method Call (limited support)</AnchorHeading>
+            <CodeBlock code={`@Web { Web1 }
+
+Web1.Get()`} />
+
+            <AnchorHeading level="h3" id="generic-method-call">Generic Method Call</AnchorHeading>
+            <p>Not yet supported</p>
           </div>
         </div>
       </section>
