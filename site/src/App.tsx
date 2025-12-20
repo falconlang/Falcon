@@ -28,6 +28,7 @@ function AnchorHeading({ level, id, children }: { level: 'h2' | 'h3' | 'h4', id:
 function App() {
   const demoRef = useRef<HTMLDivElement>(null);
   const docsRef = useRef<HTMLDivElement>(null);
+  const sponsorsRef = useRef<HTMLDivElement>(null);
   const [code, setCode] = useState(`// Type Falcon Code`);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +38,10 @@ function App() {
 
   const scrollToDocs = () => {
     docsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToSponsors = () => {
+    sponsorsRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   /**
@@ -221,6 +226,7 @@ function App() {
         </p>
         <div className="info-card">
           <a href="#documentation" onClick={(e) => { e.preventDefault(); scrollToDocs(); }}>Documentation</a>
+          <a href="#sponsors" onClick={(e) => { e.preventDefault(); scrollToSponsors(); }}>Sponsors</a>
           <a href="https://github.com/XomaDev/Falcon">GitHub</a>
         </div>
         <div className="scroll-indicator" onClick={scrollToDemo}>
@@ -598,6 +604,20 @@ Web1.Get()`} />
 
             <AnchorHeading level="h4" id="generic-method-call">Generic Method Call</AnchorHeading>
             <p>Not yet supported</p>
+          </div>
+        </div>
+      </section>
+      <section className="sponsors-section" ref={sponsorsRef} id="sponsors">
+        <div className="sponsors-container">
+          <AnchorHeading level="h2" id="sponsors">Sponsors</AnchorHeading>
+          <p>Help the open-source project by donating. Be the first person and help us purchase a new domain name.</p>
+
+          <div className="sponsors-grid">
+            <a href="https://www.patreon.com/cw/Kumaraswamy08" target="_blank" rel="noopener noreferrer" className="sponsor-card" style={{ opacity: 0.6 }}>
+              <div className="sponsor-logo-placeholder" style={{ background: 'var(--border-color)', color: 'var(--text-color)' }}>+</div>
+              <div className="sponsor-name">Become a Sponsor</div>
+              <div className="sponsor-tier">Support Falcon</div>
+            </a>
           </div>
         </div>
       </section>

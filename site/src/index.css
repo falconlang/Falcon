@@ -572,3 +572,96 @@ pre[class*="language-"] {
 .blocklyScrollbarHandle:hover {
   fill-opacity: 0.4 !important;
 }
+
+/* Sponsors Section */
+.sponsors-section {
+  height: auto;
+  min-height: 80vh;
+  justify-content: flex-start;
+  padding: 8rem 2rem;
+  background: linear-gradient(to bottom, transparent, rgba(100, 108, 255, 0.02));
+}
+
+.sponsors-container {
+  width: 100%;
+  max-width: 1000px;
+  text-align: center;
+}
+
+.sponsors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  margin-top: 4rem;
+}
+
+.sponsor-card {
+  background: rgba(128, 128, 128, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sponsor-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--link-color), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.sponsor-card:hover {
+  transform: translateY(-10px);
+  background: rgba(128, 128, 128, 0.08);
+  border-color: var(--link-color);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.sponsor-card:hover::before {
+  transform: translateX(100%);
+}
+
+.sponsor-logo-placeholder {
+  width: 64px;
+  height: 64px;
+  background: var(--link-color);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+.sponsor-name {
+  font-family: 'Iosevka Web', monospace;
+  font-size: 1.2rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.sponsor-tier {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0.5rem;
+  opacity: 0.5;
+  font-family: 'IosevkaMonospace', monospace;
+}
