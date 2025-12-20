@@ -1,5 +1,5 @@
-func hello() {
-  while (true) {
-    
-  }
+@Web { Web1 }
+
+when Web1.GotText(url, responseCode, responseType, responseContent) {
+  println("Got text from web: " _ responseContent)
 }

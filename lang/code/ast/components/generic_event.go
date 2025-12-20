@@ -25,6 +25,7 @@ func (g *GenericEvent) Blockly(flags ...bool) ast.Block {
 			IsGeneric:     true,
 			EventName:     g.Event,
 			ComponentType: g.ComponentType,
+			Args:          ast.ToArgs(g.Parameters),
 		},
 		Statements: ast.OptionalStatement("DO", g.Body),
 	}

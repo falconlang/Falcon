@@ -413,12 +413,19 @@ func (p *XMLParser) componentMethod(block ast.Block) ast.Expr {
 }
 
 func (p *XMLParser) componentEvent(block ast.Block) ast.Expr {
-	// TODO: supply parameters to events later
+	var mutArgsNames []ast.Arg
+	if block.Mutation != nil {
+		mutArgsNames = block.Mutation.Args
+	}
+	paramNames := make([]string, len(mutArgsNames))
+	for i := range mutArgsNames {
+		paramNames[i] = mutArgsNames[i].Name
+	}
 	if block.Mutation.IsGeneric {
 		return &components.GenericEvent{
 			ComponentType: block.Mutation.ComponentType,
 			Event:         block.Mutation.EventName,
-			Parameters:    make([]string, 0),
+			Parameters:    paramNames,
 			Body:          p.optSingleBody(block),
 		}
 	}
@@ -426,7 +433,7 @@ func (p *XMLParser) componentEvent(block ast.Block) ast.Expr {
 		ComponentName: block.Mutation.InstanceName,
 		ComponentType: block.Mutation.ComponentType,
 		Event:         block.Mutation.EventName,
-		Parameters:    make([]string, 0),
+		Parameters:    paramNames,
 		Body:          p.optSingleBody(block),
 	}
 }

@@ -162,7 +162,14 @@ func (p *LangParser) genericEvent() ast.Expr {
 	if p.isNext(l.OpenCurve) {
 		parameters = p.parameters()
 	}
-	body := p.body(ScopeGenericEvent)
+	where := p.expect(l.OpenCurly)
+	p.ScopeCursor.Enter(where, ScopeEvent)
+	for _, param := range parameters {
+		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignAny})
+	}
+	body := p.bodyUntilCurly()
+	p.ScopeCursor.Exit(ScopeEvent)
+	p.expect(l.CloseCurly)
 	return &components.GenericEvent{ComponentType: componentType, Event: eventName, Parameters: parameters, Body: body}
 }
 
@@ -174,7 +181,15 @@ func (p *LangParser) event() ast.Expr {
 	if p.isNext(l.OpenCurve) {
 		parameters = p.parameters()
 	}
-	body := p.body(ScopeEvent)
+	where := p.expect(l.OpenCurly)
+	p.ScopeCursor.Enter(where, ScopeEvent)
+	for _, param := range parameters {
+		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignAny})
+	}
+	body := p.bodyUntilCurly()
+	p.ScopeCursor.Exit(ScopeEvent)
+	p.expect(l.CloseCurly)
+
 	return &components.Event{
 		ComponentName: component.Name,
 		ComponentType: component.Type,

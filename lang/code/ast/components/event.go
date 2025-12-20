@@ -20,10 +20,6 @@ func (e *Event) String() string {
 }
 
 func (e *Event) Blockly(flags ...bool) ast.Block {
-	var statements []ast.Statement
-	if len(e.Body) > 0 {
-		statements = []ast.Statement{ast.CreateStatement("DO", e.Body)}
-	}
 	return ast.Block{
 		Type: "component_event",
 		Mutation: &ast.Mutation{
@@ -31,9 +27,10 @@ func (e *Event) Blockly(flags ...bool) ast.Block {
 			InstanceName:  e.ComponentName,
 			EventName:     e.Event,
 			ComponentType: e.ComponentType,
+			Args:          ast.ToArgs(e.Parameters),
 		},
 		Fields:     []ast.Field{{Name: "COMPONENT_SELECTOR", Value: e.ComponentName}},
-		Statements: statements,
+		Statements: ast.OptionalStatement("DO", e.Body),
 	}
 }
 

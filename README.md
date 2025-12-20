@@ -9,12 +9,12 @@ Falcon is a language designed for App Inventor to enable syntax-based programmin
 4. Falcon follows Kotlin's style of functional expressions.
 5. Falcon does not have a return statement; the last expression in a body is returned.
 6. Falcon does NOT have a try-catch or a throw statement.
-8. Only single-line comments using double slash `//` are supported.
-9. Do not use `_` in place of unused variables
-10. Variables can never be uninitialized.
-11. Always keep the last expression for returning functions.
-12. Always generate codes between ``` and code tag falcon.
-13. If the contents of two strings are numeric, then they can be numerically operated on, e.g. `"2" + "3.14"` is a valid code.
+7. Only single-line comments using double slash `//` are supported.
+8. Do not use `_` in place of unused variables
+9. Variables can never be uninitialized.
+10. Always keep the last expression for returning functions.
+11. Always generate codes between ``` and code tag falcon.
+12. If the contents of two strings are numeric, then they can be numerically operated on, e.g. `"2" + "3.14"` is a valid code.
 
 ## Data types
 1. String `"Hello, world!"`
@@ -417,4 +417,25 @@ Now, when we call `GetTotalRevenue()`:
 
 ```
 println("Last week’s revenue was " _ GetTotalRevenue())
+```
+
+## Components
+
+### Defining components
+
+```
+@ComponentType { InstanceName1, InstanceName2 } 
+``` 
+
+e.g.
+```
+@Button { Button1, Button2 }
+```
+
+### Events
+
+```
+@Web { Web1 }
+
+
 ```
