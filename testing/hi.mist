@@ -1,3 +1,0 @@
-@Web { Web1 }
-
-vcall("Web", Web1, "Get", 1, 2)
