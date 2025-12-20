@@ -70,21 +70,50 @@ export function SyntaxEditor({ value, onChange, placeholder }: SyntaxEditorProps
             return;
         }
 
-        // Handle Enter key inside brackets - auto-indent
+        // Handle Enter key with auto-indent
         if (e.key === 'Enter') {
             const beforeCursor = currentValue.substring(0, selectionStart);
             const afterCursor = currentValue.substring(selectionStart);
+            
+            // Get current line's indentation
+            const linesBefore = beforeCursor.split('\n');
+            const currentLine = linesBefore[linesBefore.length - 1];
+            const currentIndent = currentLine.match(/^\s*/)?.[0] || '';
+            
             const lastChar = beforeCursor[beforeCursor.length - 1];
             const nextChar = afterCursor[0];
 
             if (lastChar === '{' && nextChar === '}') {
+                // Expanding {|} to 
+                // {
+                //   |
+                // }
                 e.preventDefault();
                 const indent = '  ';
-                const newValue = beforeCursor + '\n' + indent + '\n' + afterCursor;
+                const newValue = beforeCursor + '\n' + currentIndent + indent + '\n' + currentIndent + afterCursor;
                 onChange(newValue);
 
                 setTimeout(() => {
-                    target.selectionStart = target.selectionEnd = selectionStart + 1 + indent.length;
+                    target.selectionStart = target.selectionEnd = selectionStart + 1 + currentIndent.length + indent.length;
+                }, 0);
+                return;
+            } else if (lastChar === '{' || lastChar === '(' || lastChar === '[') {
+                // Indent after opening bracket
+                e.preventDefault();
+                const indent = '  ';
+                const newValue = beforeCursor + '\n' + currentIndent + indent + afterCursor;
+                onChange(newValue);
+                setTimeout(() => {
+                    target.selectionStart = target.selectionEnd = selectionStart + 1 + currentIndent.length + indent.length;
+                }, 0);
+                return;
+            } else {
+                // Regular enter maintains indentation
+                e.preventDefault();
+                const newValue = beforeCursor + '\n' + currentIndent + afterCursor;
+                onChange(newValue);
+                setTimeout(() => {
+                    target.selectionStart = target.selectionEnd = selectionStart + 1 + currentIndent.length;
                 }, 0);
                 return;
             }
