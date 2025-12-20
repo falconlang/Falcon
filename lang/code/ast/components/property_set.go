@@ -17,6 +17,11 @@ func (p *PropertySet) String() string {
 }
 
 func (p *PropertySet) Blockly(flags ...bool) ast.Block {
+	newValue := p.Value.Blockly(false)
+	// explicitly mark as value for consumption
+	if newValue.Mutation != nil {
+		newValue.Mutation.Shape = "value"
+	}
 	return ast.Block{
 		Type: "component_set_get",
 		Mutation: &ast.Mutation{
@@ -30,7 +35,7 @@ func (p *PropertySet) Blockly(flags ...bool) ast.Block {
 			"COMPONENT_SELECTOR": p.ComponentName,
 			"PROP":               p.Property,
 		}),
-		Values: []ast.Value{{Name: "VALUE", Block: p.Value.Blockly(false)}},
+		Values: []ast.Value{{Name: "VALUE", Block: newValue}},
 	}
 }
 

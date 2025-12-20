@@ -13,8 +13,7 @@ type GenericPropertySet struct {
 }
 
 func (g *GenericPropertySet) String() string {
-	return sugar.Format("set(%, %, %, %)", g.ComponentType, g.Component.String(), g.Property, g.Value.String())
-
+	return sugar.Format("set(\"%\", %, \"%\", %)", g.ComponentType, g.Component.String(), g.Property, g.Value.String())
 }
 
 func (g *GenericPropertySet) Blockly(flags ...bool) ast.Block {

@@ -239,65 +239,65 @@ func (f *FuncCall) genericCall() ast.Block {
 	// arg[1] 	 component (any object)
 	// arg[2] 	 method name
 	// arg[4->n] invoke args
-	compType, ok := f.Args[0].(*variables.Get)
-	if !ok || compType.Global {
+	compType, ok := f.Args[0].(*fundamentals.Text)
+	if !ok {
 		f.Where.Error("Expected a component type for call() 1st argument!")
 	}
-	vGet, ok := f.Args[2].(*variables.Get)
-	if !ok || vGet.Global {
+	vGet, ok := f.Args[2].(*fundamentals.Text)
+	if !ok {
 		f.Where.Error("Expected a method name for call() 3rd argument!")
 	}
 	return ast.Block{
 		Type: "component_method",
 		Mutation: &ast.Mutation{
-			MethodName:    vGet.Name,
+			MethodName:    vGet.Content,
 			IsGeneric:     true,
-			ComponentType: compType.Name,
+			ComponentType: compType.Content,
 		},
 		Values: ast.ValueArgsByPrefix(f.Args[1], "COMPONENT", "ARG", f.Args[3:]),
 	}
 }
 
 func (f *FuncCall) genericGet() ast.Block {
-	compType, ok := f.Args[0].(*variables.Get)
-	if !ok || compType.Global {
+	compType, ok := f.Args[0].(*fundamentals.Text)
+	if !ok {
 		f.Where.Error("Expected a component type for get() 1st argument!")
 	}
-	vGet, ok := f.Args[2].(*variables.Get)
-	if !ok || vGet.Global {
+	vGet, ok := f.Args[2].(*fundamentals.Text)
+	if !ok {
 		f.Where.Error("Expected a property type for get() 3rd argument!")
 	}
 	return ast.Block{
 		Type: "component_set_get",
 		Mutation: &ast.Mutation{
 			SetOrGet:      "get",
-			PropertyName:  vGet.Name,
+			PropertyName:  vGet.Content,
 			IsGeneric:     true,
-			ComponentType: compType.Name,
+			ComponentType: compType.Content,
 		},
-		Fields: []ast.Field{{Name: "PROP", Value: vGet.Name}},
+		Fields: []ast.Field{{Name: "PROP", Value: vGet.Content}},
 		Values: []ast.Value{{Name: "COMPONENT", Block: f.Args[1].Blockly(false)}},
 	}
 }
 
 func (f *FuncCall) genericSet() ast.Block {
-	compType, ok := f.Args[0].(*variables.Get)
-	if !ok || compType.Global {
+	compType, ok := f.Args[0].(*fundamentals.Text)
+	if !ok {
 		f.Where.Error("Expected a component type for set() 1st argument!")
 	}
-	vGet, ok := f.Args[2].(*variables.Get)
-	if !ok || vGet.Global {
+	propName, ok := f.Args[2].(*fundamentals.Text)
+	if !ok {
 		f.Where.Error("Expected a property type for set() 3rd argument!")
 	}
 	return ast.Block{
 		Type: "component_set_get",
 		Mutation: &ast.Mutation{
 			SetOrGet:      "set",
-			PropertyName:  vGet.Name,
+			PropertyName:  propName.Content,
 			IsGeneric:     true,
-			ComponentType: compType.Name,
+			ComponentType: compType.Content,
 		},
-		Fields: []ast.Field{{Name: "PROP", Value: vGet.Name}},
+		Fields: []ast.Field{{Name: "PROP", Value: propName.Content}},
 		Values: ast.MakeValues([]ast.Expr{f.Args[1], f.Args[3]}, "COMPONENT", "VALUE"),
 	}
 }

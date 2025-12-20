@@ -13,7 +13,7 @@ type GenericMethodCall struct {
 }
 
 func (g *GenericMethodCall) String() string {
-	return sugar.Format("call(%, %, %, %)", g.ComponentType, g.Component.String(), g.Method, ast.JoinExprs(", ", g.Args))
+	return sugar.Format("call(\"%\", %, \"%\", %)", g.ComponentType, g.Component.String(), g.Method, ast.JoinExprs(", ", g.Args))
 }
 
 func (g *GenericMethodCall) Blockly(flags ...bool) ast.Block {

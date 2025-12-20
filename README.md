@@ -437,5 +437,17 @@ e.g.
 ```
 @Web { Web1 }
 
+when Web1.GotText(url, responseCode, responseType, responseContent) {
+  println(responseType)
+}
+```
 
+### Generic Events
+
+```
+@Web { Web1 }
+
+when any Web.GotText(url, responseCode, responseType, responseContent) {
+  println(responseType)
+}
 ```

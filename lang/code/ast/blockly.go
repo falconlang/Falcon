@@ -49,6 +49,7 @@ type Mutation struct {
 	InstanceName  string       `xml:"instance_name,attr,omitempty"`
 	EventName     string       `xml:"event_name,attr,omitempty"`
 	MethodName    string       `xml:"method_name,attr,omitempty"`
+	Shape         string       `xml:"shape,attr,omitempty"`
 	ParamCount    int          `xml:"param_count,attr,omitempty"`
 	Mode          string       `xml:"mode,attr,omitempty"`
 	Cofounder     string       `xml:"confounder,attr,omitempty"`
