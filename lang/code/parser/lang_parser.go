@@ -13,8 +13,9 @@ import (
 	"Falcon/code/sugar"
 	"strconv"
 	"strings"
+
+	l "Falcon/code/lex"
 )
-import l "Falcon/code/lex"
 
 type LangParser struct {
 	Tokens         []*l.Token
@@ -80,7 +81,8 @@ func (p *LangParser) checkPendingSymbols() {
 	for token, parseError := range p.aggregator.Errors {
 		// try resolve global variables again
 		if get, ok := parseError.Owner.(*variables.Get); ok && get.Global {
-			signatures, resolved := p.ScopeCursor.ResolveVariable(get.String())
+			signatures, resolved := p.ScopeCursor.ResolveVariable(get.Name)
+			println("Failed to resolve: " + get.String())
 			if resolved {
 				get.ValueSignature = signatures
 				continue
@@ -784,7 +786,7 @@ func (p *LangParser) value(t *l.Token) ast.Expr {
 		signatures, found := p.ScopeCursor.ResolveVariable(name)
 		get := &variables.Get{Where: t, Global: true, Name: name, ValueSignature: signatures}
 		if !found {
-			p.aggregator.EnqueueSymbol(t, get, "Cannot find symbol '"+*t.Content+"'")
+			p.aggregator.EnqueueSymbol(nameToken, get, "Cannot find symbol '"+*nameToken.Content+"'")
 		}
 		return get
 	case l.ColorCode:
