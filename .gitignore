@@ -16,6 +16,7 @@
 
 # IDE / Editor settings
 .idea/
+.zed/
 .vscode/
 *.swp
 
