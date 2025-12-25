@@ -60,7 +60,7 @@ func (p *XmlParser) componentToJson(component Component) interface{} {
 	schema := map[string]interface{}{
 		"$Name":    compId,
 		"$Type":    component.Type,
-		"$Version": "0",
+		"$Version": "32",
 	}
 	if len(children) > 0 {
 		schema["$Components"] = children
