@@ -74,3 +74,15 @@ func (s *StaticToken) Normal(
 		Content: &content,
 	}
 }
+
+// TODO: (future) it'll point to something meaningful
+func MakeFakeToken(t Type) *Token {
+	return &Token{
+		Column:  -1,
+		Row:     -1,
+		Context: nil,
+		Type:    t,
+		Flags:   make([]Flag, 0),
+		Content: nil,
+	}
+}

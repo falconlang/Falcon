@@ -87,6 +87,10 @@ var signatures = map[string]*FuncCallSignature{
 	"every": makeSignature("every", 1, ast.SignAny),
 }
 
+func MakeFuncCall(name string, args ...ast.Expr) ast.Expr {
+	return &FuncCall{Where: lex.MakeFakeToken(lex.Func), Name: name, Args: args}
+}
+
 func TestSignature(funcName string, argsCount int) (string, *FuncCallSignature) {
 	callSignature, ok := signatures[funcName]
 	if !ok {
