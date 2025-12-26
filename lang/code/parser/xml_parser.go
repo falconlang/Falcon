@@ -109,23 +109,23 @@ func (p *XMLParser) parseBlock(block ast.Block) ast.Expr {
 	case "controls_do_then_return":
 		return &control.Do{Body: p.optSingleBody(block), Result: p.singleExpr(block)}
 	case "controls_eval_but_ignore":
-		return makeFuncCall("println", p.singleExpr(block))
+		return common.MakeFuncCall("println", p.singleExpr(block))
 	case "controls_openAnotherScreen":
-		return makeFuncCall("openScreen", p.singleExpr(block))
+		return common.MakeFuncCall("openScreen", p.singleExpr(block))
 	case "controls_openAnotherScreenWithStartValue":
-		return makeFuncCall("openScreenWithValue", p.singleExpr(block))
+		return common.MakeFuncCall("openScreenWithValue", p.singleExpr(block))
 	case "controls_getStartValue":
-		return makeFuncCall("getStartValue")
+		return common.MakeFuncCall("getStartValue")
 	case "controls_closeScreen":
-		return makeFuncCall("closeScreen")
+		return common.MakeFuncCall("closeScreen")
 	case "controls_closeScreenWithValue":
-		return makeFuncCall("closeScreenWithValue", p.singleExpr(block))
+		return common.MakeFuncCall("closeScreenWithValue", p.singleExpr(block))
 	case "controls_closeApplication":
-		return makeFuncCall("closeApp")
+		return common.MakeFuncCall("closeApp")
 	case "controls_getPlainStartText":
-		return makeFuncCall("getPlainStartText")
+		return common.MakeFuncCall("getPlainStartText")
 	case "controls_closeScreenWithPlainText":
-		return makeFuncCall("closeScreenWithPlainText", p.singleExpr(block))
+		return common.MakeFuncCall("closeScreenWithPlainText", p.singleExpr(block))
 	case "controls_break":
 		return &control.Break{}
 
@@ -188,25 +188,25 @@ func (p *XMLParser) parseBlock(block ast.Block) ast.Expr {
 	case "math_random_int":
 		return p.mathRandom(block)
 	case "math_random_float":
-		return makeFuncCall("randFloat")
+		return common.MakeFuncCall("randFloat")
 	case "math_random_set_seed":
-		return makeFuncCall("setRandSeed", p.singleExpr(block))
+		return common.MakeFuncCall("setRandSeed", p.singleExpr(block))
 	case "math_number_radix":
 		return p.mathRadix(block)
 	case "math_on_list": // min() and max()
-		return makeFuncCall(strings.ToLower(block.SingleField()), p.fromMinVals(block.Values, 1)...)
+		return common.MakeFuncCall(strings.ToLower(block.SingleField()), p.fromMinVals(block.Values, 1)...)
 	case "math_on_list2":
 		return p.mathOnList2(block)
 	case "math_mode_of_list":
-		return makeFuncCall("modeOf", p.singleExpr(block))
+		return common.MakeFuncCall("modeOf", p.singleExpr(block))
 	case "math_trig", "math_sin", "math_cos", "math_tan":
-		return makeFuncCall(strings.ToLower(block.SingleField()), p.singleExpr(block))
+		return common.MakeFuncCall(strings.ToLower(block.SingleField()), p.singleExpr(block))
 	case "math_single":
 		return p.mathSingle(block)
 	case "math_atan2":
-		return makeFuncCall("aTan2", p.fromVals(block.Values)...)
+		return common.MakeFuncCall("aTan2", p.fromVals(block.Values)...)
 	case "math_format_as_decimal":
-		return makeFuncCall("formatDecimal", p.fromMinVals(block.Values, 2)...)
+		return common.MakeFuncCall("formatDecimal", p.fromMinVals(block.Values, 2)...)
 	case "math_divide":
 		return p.mathDivide(block)
 	case "math_is_a_number":
@@ -239,7 +239,7 @@ func (p *XMLParser) parseBlock(block ast.Block) ast.Expr {
 	case "lists_remove_item":
 		return p.listRemoveItem(block)
 	case "lists_copy":
-		return makeFuncCall("copyList", p.singleExpr(block))
+		return common.MakeFuncCall("copyList", p.singleExpr(block))
 	case "lists_reverse":
 		return p.makePropCall("reverseList", p.singleExpr(block))
 	case "lists_to_csv_row":
@@ -306,7 +306,7 @@ func (p *XMLParser) parseBlock(block ast.Block) ast.Expr {
 	case "dictionaries_dict_to_alist":
 		return p.makePropCall("toPairs", p.singleExpr(block))
 	case "dictionaries_copy":
-		return makeFuncCall("copyDict", p.singleExpr(block))
+		return common.MakeFuncCall("copyDict", p.singleExpr(block))
 	case "dictionaries_combine_dicts":
 		return p.dictCombine(block)
 	case "dictionaries_walk_tree":
@@ -341,9 +341,9 @@ func (p *XMLParser) parseBlock(block ast.Block) ast.Expr {
 	case "color_dark_gray":
 		return p.makeColor(block)
 	case "color_make_color":
-		return makeFuncCall("makeColor", p.singleExpr(block))
+		return common.MakeFuncCall("makeColor", p.singleExpr(block))
 	case "color_split_color":
-		return makeFuncCall("splitColor", p.singleExpr(block))
+		return common.MakeFuncCall("splitColor", p.singleExpr(block))
 
 	case "global_declaration":
 		return &variables.Global{Name: block.SingleField(), Value: p.singleExpr(block)}
@@ -627,7 +627,7 @@ func (p *XMLParser) variableGet(block ast.Block) ast.Expr {
 	if isGlobal {
 		varName = varName[len("global "):]
 	}
-	return &variables.Get{Where: makeFakeToken(lex.Global), Global: isGlobal, Name: varName}
+	return &variables.Get{Where: lex.MakeFakeToken(lex.Global), Global: isGlobal, Name: varName}
 }
 
 func (p *XMLParser) dictWalkTree(block ast.Block) ast.Expr {
@@ -697,7 +697,7 @@ func (p *XMLParser) listTransMax(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
 	pFields := p.makeFieldMap(block.Fields)
 	return &list.Transformer{
-		Where:       makeFakeToken(lex.OpenSquare),
+		Where:       lex.MakeFakeToken(lex.OpenSquare),
 		List:        pVals.get("LIST"),
 		Name:        "max",
 		Args:        []ast.Expr{},
@@ -710,7 +710,7 @@ func (p *XMLParser) listTransMin(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
 	pFields := p.makeFieldMap(block.Fields)
 	return &list.Transformer{
-		Where:       makeFakeToken(lex.OpenSquare),
+		Where:       lex.MakeFakeToken(lex.OpenSquare),
 		List:        pVals.get("LIST"),
 		Name:        "min",
 		Args:        []ast.Expr{},
@@ -722,7 +722,7 @@ func (p *XMLParser) listTransMin(block ast.Block) ast.Expr {
 func (p *XMLParser) listSortKeyComparator(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
 	return &list.Transformer{
-		Where:       makeFakeToken(lex.OpenSquare),
+		Where:       lex.MakeFakeToken(lex.OpenSquare),
 		List:        pVals.get("LIST"),
 		Name:        "sortByKey",
 		Args:        []ast.Expr{},
@@ -735,7 +735,7 @@ func (p *XMLParser) listSortComparator(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
 	pFields := p.makeFieldMap(block.Fields)
 	return &list.Transformer{
-		Where:       makeFakeToken(lex.OpenSquare),
+		Where:       lex.MakeFakeToken(lex.OpenSquare),
 		List:        pVals.get("LIST"),
 		Name:        "sort",
 		Args:        []ast.Expr{},
@@ -748,7 +748,7 @@ func (p *XMLParser) listReduce(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
 	pFields := p.makeFieldMap(block.Fields)
 	return &list.Transformer{
-		Where:       makeFakeToken(lex.OpenSquare),
+		Where:       lex.MakeFakeToken(lex.OpenSquare),
 		List:        pVals.get("LIST"),
 		Name:        "reduce",
 		Args:        []ast.Expr{pVals.get("INITANSWER")},
@@ -760,7 +760,7 @@ func (p *XMLParser) listReduce(block ast.Block) ast.Expr {
 func (p *XMLParser) listFilter(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
 	return &list.Transformer{
-		Where:       makeFakeToken(lex.OpenSquare),
+		Where:       lex.MakeFakeToken(lex.OpenSquare),
 		List:        pVals.get("LIST"),
 		Name:        "filter",
 		Args:        []ast.Expr{},
@@ -772,7 +772,7 @@ func (p *XMLParser) listFilter(block ast.Block) ast.Expr {
 func (p *XMLParser) listMap(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
 	return &list.Transformer{
-		Where:       makeFakeToken(lex.OpenSquare),
+		Where:       lex.MakeFakeToken(lex.OpenSquare),
 		List:        pVals.get("LIST"),
 		Name:        "map",
 		Args:        []ast.Expr{},
@@ -852,7 +852,7 @@ func (p *XMLParser) textReplaceMap(block ast.Block) ast.Expr {
 
 func (p *XMLParser) textObfuscate(block ast.Block) ast.Expr {
 	return &common.Transform{
-		Where: makeFakeToken(lex.Text),
+		Where: lex.MakeFakeToken(lex.Text),
 		On:    &fundamentals.Text{Content: block.SingleField()},
 		Name:  "obfuscate"}
 }
@@ -944,7 +944,7 @@ func (p *XMLParser) mathConvertAngles(block ast.Block) ast.Expr {
 	case "DEGREES_TO_RADIANS":
 		funcName = "radians"
 	}
-	return makeFuncCall(funcName, p.singleExpr(block))
+	return common.MakeFuncCall(funcName, p.singleExpr(block))
 }
 
 func (p *XMLParser) mathConvertNumber(block ast.Block) ast.Expr {
@@ -961,7 +961,7 @@ func (p *XMLParser) mathConvertNumber(block ast.Block) ast.Expr {
 	default:
 		panic("Unknown MathConvertNumber type: " + block.SingleField())
 	}
-	return makeFuncCall(funcName, p.singleExpr(block))
+	return common.MakeFuncCall(funcName, p.singleExpr(block))
 }
 
 func (p *XMLParser) mathIsNumber(block ast.Block) ast.Expr {
@@ -993,7 +993,7 @@ func (p *XMLParser) mathDivide(block ast.Block) ast.Expr {
 	default:
 		panic("Unsupported math divide type: " + block.SingleField())
 	}
-	return makeFuncCall(funcName, p.fromMinVals(block.Values, 2)...)
+	return common.MakeFuncCall(funcName, p.fromMinVals(block.Values, 2)...)
 }
 
 func (p *XMLParser) mathSingle(block ast.Block) ast.Expr {
@@ -1004,7 +1004,7 @@ func (p *XMLParser) mathSingle(block ast.Block) ast.Expr {
 	case "ceiling":
 		funcName = "ceil"
 	}
-	return makeFuncCall(funcName, p.singleExpr(block))
+	return common.MakeFuncCall(funcName, p.singleExpr(block))
 }
 
 func (p *XMLParser) mathOnList2(block ast.Block) ast.Expr {
@@ -1025,7 +1025,7 @@ func (p *XMLParser) mathOnList2(block ast.Block) ast.Expr {
 	default:
 		panic("Unsupported math on list operation: " + block.SingleField())
 	}
-	return makeFuncCall(funcName, p.singleExpr(block))
+	return common.MakeFuncCall(funcName, p.singleExpr(block))
 }
 
 func (p *XMLParser) mathRadix(block ast.Block) ast.Expr {
@@ -1043,12 +1043,12 @@ func (p *XMLParser) mathRadix(block ast.Block) ast.Expr {
 	default:
 		panic("Unknown Math Radix Type: " + pFields["OP"])
 	}
-	return makeFuncCall(funcName, &fundamentals.Text{Content: pFields["NUM"]})
+	return common.MakeFuncCall(funcName, &fundamentals.Text{Content: pFields["NUM"]})
 }
 
 func (p *XMLParser) mathRandom(block ast.Block) ast.Expr {
 	valMap := p.makeValueMap(block.Values)
-	return makeFuncCall("randInt", valMap.get("FROM"), valMap.get("TO"))
+	return common.MakeFuncCall("randInt", valMap.get("FROM"), valMap.get("TO"))
 }
 
 func (p *XMLParser) mathExpr(block ast.Block) ast.Expr {
@@ -1079,36 +1079,20 @@ func (p *XMLParser) mathExpr(block ast.Block) ast.Expr {
 }
 
 func (p *XMLParser) makeColor(block ast.Block) ast.Expr {
-	return &fundamentals.Color{Where: makeFakeToken(lex.ColorCode), Hex: block.SingleField()}
+	return &fundamentals.Color{Where: lex.MakeFakeToken(lex.ColorCode), Hex: block.SingleField()}
 }
 
 func (p *XMLParser) makeQuestion(t lex.Type, on ast.Block, name string) ast.Expr {
-	return &common.Question{Where: makeFakeToken(t), On: p.singleExpr(on), Question: name}
+	return &common.Question{Where: lex.MakeFakeToken(t), On: p.singleExpr(on), Question: name}
 }
 
 func (p *XMLParser) makePropCall(name string, on ast.Expr, args ...ast.Expr) ast.Expr {
-	return &method.Call{Where: makeFakeToken(lex.Text), Name: name, On: on, Args: args}
+	return &method.Call{Where: lex.MakeFakeToken(lex.Text), Name: name, On: on, Args: args}
 }
 
 func (p *XMLParser) makeBinary(operator string, operands []ast.Expr) ast.Expr {
 	token := makeToken(operator)
 	return &common.BinaryExpr{Where: token, Operator: token.Type, Operands: operands}
-}
-
-func makeFuncCall(name string, args ...ast.Expr) ast.Expr {
-	return &common.FuncCall{Where: makeFakeToken(lex.Func), Name: name, Args: args}
-}
-
-// TODO: (future) it'll point to something meaningful
-func makeFakeToken(t lex.Type) *lex.Token {
-	return &lex.Token{
-		Column:  -1,
-		Row:     -1,
-		Context: nil,
-		Type:    t,
-		Flags:   make([]lex.Flag, 0),
-		Content: nil,
-	}
 }
 
 func makeToken(symbol string) *lex.Token {

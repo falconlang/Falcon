@@ -439,7 +439,7 @@ func (p *LangParser) compoundOperator(opToken *l.Token, left ast.Expr) ast.Expr 
 	right := p.parse()
 	var binaryOperator ast.Expr
 	if opToken.Type == l.Remainder {
-		binaryOperator = makeFuncCall("rem", left, right)
+		binaryOperator = common.MakeFuncCall("rem", left, right)
 	} else {
 		binaryOperator = p.makeBinary(opToken, left, right)
 	}
@@ -462,7 +462,7 @@ func (p *LangParser) makeBinary(opToken *l.Token, left ast.Expr, right ast.Expr)
 			return expr
 		}
 	case l.Remainder:
-		return makeFuncCall("rem", left, right)
+		return common.MakeFuncCall("rem", left, right)
 	}
 	return &common.BinaryExpr{Where: opToken, Operands: []ast.Expr{left, right}, Operator: opToken.Type}
 }
@@ -615,7 +615,7 @@ func (p *LangParser) term() ast.Expr {
 	case l.Not:
 		return &fundamentals.Not{Expr: p.element()}
 	case l.Dash:
-		return makeFuncCall("neg", p.element())
+		return common.MakeFuncCall("neg", p.element())
 	case l.If:
 		p.back()
 		return p.ifSmt()
