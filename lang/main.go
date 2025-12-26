@@ -7,6 +7,7 @@ import (
 	"Falcon/code/context"
 	"Falcon/code/lex"
 	blocklyParser "Falcon/code/parsers/blocklytomist"
+	yailParser "Falcon/code/parsers/blocklytoyail"
 	mistParser "Falcon/code/parsers/mistparser"
 	designAnalysis "Falcon/design"
 	"encoding/xml"
@@ -20,7 +21,8 @@ func main() {
 	//diffTest()
 	// analyzeSyntax()
 	// xmlTest()
-	designTest()
+	// designTest()
+	yailTest()
 }
 
 func designTest() {
@@ -116,4 +118,48 @@ func analyzeSyntax() {
 	//println("\n=== DIFF ===\n")
 	//syntaxDiff := diff.MakeSyntaxDiff(sourceCode, machineSourceCode.String())
 	//println(syntaxDiff.Merge())
+}
+
+func yailTest() {
+	println("=== Test Mist -> YAIL ===\n")
+
+	fileName := "hi.mist"
+	filePath := "/home/ekina/GolandProjects/FalconMain/testing/" + fileName
+	codeBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		panic(err)
+	}
+	inputCode := string(codeBytes)
+
+	// 1. Lexing
+	codeContext := &context.CodeContext{SourceCode: &inputCode, FileName: fileName}
+	tokens := lex.NewLexer(codeContext).Lex()
+
+	// 2. Parsers
+	langParser := mistParser.NewLangParser(false, tokens)
+	expressions := langParser.ParseAll()
+
+	// 3. To Blockly
+	blocks := make([]ast.Block, len(expressions))
+	for i, expression := range expressions {
+		blocks[i] = expression.Blockly(true)
+	}
+
+	xmlBlock := ast.XmlRoot{
+		Blocks: blocks,
+		XMLNS:  "https://developers.google.com/blockly/xml",
+	}
+
+	xmlBytes, err := xml.MarshalIndent(xmlBlock, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	xmlString := string(xmlBytes)
+	println("Generated XML:")
+	println(xmlString)
+	println("\nGenerated YAIL:")
+
+	// 4. To YAIL
+	yailCode := yailParser.NewParser(xmlString).GenerateYAIL()
+	println(yailCode)
 }
