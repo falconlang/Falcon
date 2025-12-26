@@ -6,7 +6,8 @@ import (
 	"Falcon/code/ast"
 	"Falcon/code/context"
 	"Falcon/code/lex"
-	codeAnalysis "Falcon/code/parser"
+	blocklyParser "Falcon/code/parsers/blocklytomist"
+	mistParser "Falcon/code/parsers/mistparser"
 	designAnalysis "Falcon/design"
 	"encoding/xml"
 	"os"
@@ -51,7 +52,7 @@ func xmlTest() {
 		panic(err)
 	}
 	xmlString := string(codeBytes)
-	exprs := codeAnalysis.NewXMLParser(xmlString).ParseBlockly()
+	exprs := blocklyParser.NewParser(xmlString).GenerateAST()
 	var machineSourceCode strings.Builder
 	for _, expr := range exprs {
 		machineSourceCode.WriteString(expr.String())
@@ -79,7 +80,7 @@ func analyzeSyntax() {
 	println("\n=== AST ===\n")
 
 	// conversion of Falcon -> Blockly XML
-	langParser := codeAnalysis.NewLangParser(true, tokens)
+	langParser := mistParser.NewLangParser(true, tokens)
 	expressions := langParser.ParseAll()
 	println(langParser.GetComponentDefinitionsCode())
 	for _, expression := range expressions {
@@ -103,7 +104,7 @@ func analyzeSyntax() {
 	println()
 
 	// reconversion of Blockly XML -> Falcon
-	exprs := codeAnalysis.NewXMLParser(xmlContent).ParseBlockly()
+	exprs := blocklyParser.NewParser(xmlContent).GenerateAST()
 	var machineSourceCode strings.Builder
 	for _, expr := range exprs {
 		machineSourceCode.WriteString(expr.String())
