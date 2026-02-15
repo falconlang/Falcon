@@ -216,10 +216,12 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 	case "math_convert_angles":
 		return p.mathConvertAngles(block)
 
-	case "matrices_create":
+	case "matrices_create": // todo: we need to be able to form the matrix block from syntax (currently can't!, only lists)
 		return p.matricesCreate(block)
 	case "matrices_create_multidim":
 		return p.matricesNdArray(block)
+	case "matrices_get_cell":
+		return p.matricesGetCell(block) // todo: same, we need to preserve matrix reconversion at the end using comment blocks
 
 	case "lists_create_with":
 		return &fundamentals.List{Elements: p.fromMinVals(block.Values, 0)}
@@ -950,6 +952,21 @@ func (p *Parser) textCompare(block ast.Block) ast.Expr {
 		panic("Unknown Text Compare operation: " + block.SingleField())
 	}
 	return p.makeBinary(pOperation, p.fromMinVals(block.Values, 2))
+}
+
+func (p *Parser) matricesGetCell(block ast.Block) ast.Expr {
+	numItems := block.Mutation.ItemCount
+	pVals := p.makeValueMap(block.Values)
+
+	matrix := pVals.get("MATRIX")
+	var currHead ast.Expr
+	currHead = matrix
+
+	for i := 0; i < numItems; i++ {
+		dim := pVals.get("DIM" + strconv.Itoa(i))
+		currHead = &list.Get{List: currHead, Index: dim}
+	}
+	return currHead
 }
 
 func (p *Parser) matricesNdArray(block ast.Block) ast.Expr {
