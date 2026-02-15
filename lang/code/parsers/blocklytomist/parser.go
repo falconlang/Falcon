@@ -216,6 +216,11 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 	case "math_convert_angles":
 		return p.mathConvertAngles(block)
 
+	case "matrices_create":
+		return p.matricesCreate(block)
+	case "matrices_create_multidim":
+		return p.matricesNdArray(block)
+
 	case "lists_create_with":
 		return &fundamentals.List{Elements: p.fromMinVals(block.Values, 0)}
 	case "lists_add_items":
@@ -945,6 +950,32 @@ func (p *Parser) textCompare(block ast.Block) ast.Expr {
 		panic("Unknown Text Compare operation: " + block.SingleField())
 	}
 	return p.makeBinary(pOperation, p.fromMinVals(block.Values, 2))
+}
+
+func (p *Parser) matricesNdArray(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return common.MakeFuncCall("makeNdArray", pVals.get("DIM"), pVals.get("INITIAL"))
+}
+
+func (p *Parser) matricesCreate(block ast.Block) ast.Expr {
+	pFields := p.makeFieldMap(block.Fields)
+	numRows, err := strconv.Atoi(pFields["ROWS"])
+	if err != nil {
+		panic(err)
+	}
+	numCols, err := strconv.Atoi(pFields["COLS"])
+	if err != nil {
+		panic(err)
+	}
+	matrix := make([]ast.Expr, numRows)
+	for i := range matrix {
+		row := make([]ast.Expr, numCols)
+		for j := range row {
+			row[j] = &fundamentals.Number{Content: pFields["MATRIX_"+strconv.Itoa(i)+"_"+strconv.Itoa(j)]}
+		}
+		matrix[i] = &fundamentals.List{Elements: row}
+	}
+	return &fundamentals.List{Elements: matrix}
 }
 
 func (p *Parser) mathConvertAngles(block ast.Block) ast.Expr {
