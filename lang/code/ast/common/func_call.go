@@ -80,6 +80,8 @@ var signatures = map[string]*FuncCallSignature{
 	"makeColor":  makeSignature("makeColor", 1, ast.SignNumb),
 	"splitColor": makeSignature("splitColor", 1, ast.SignList),
 
+	"makeNdArray": makeSignature("makeNdArray", 2, ast.SignList),
+
 	"set":   makeSignature("set", 4, ast.SignVoid),
 	"get":   makeSignature("get", 3, ast.SignAny),
 	"call":  makeSignature("call", -1-(3), ast.SignVoid),
@@ -180,16 +182,19 @@ func (f *FuncCall) Blockly(flags ...bool) ast.Block {
 	case "getPlainStartText":
 		return f.ctrlSimpleBlock("controls_getPlainStartText")
 	case "closeScreenWithPlainText":
+
 		return f.closeScreenWithPlainText()
 	case "copyList":
 		return f.copyList()
 	case "copyDict":
 		return f.copyDict()
-
 	case "makeColor":
 		return f.makeColor()
 	case "splitColor":
 		return f.splitColor()
+
+	case "makeNdArray":
+		return f.makeNdArray()
 
 	case "set":
 		return f.genericSet()
@@ -315,6 +320,13 @@ func (f *FuncCall) genericSet() ast.Block {
 		},
 		Fields: []ast.Field{{Name: "PROP", Value: propName.Content}},
 		Values: ast.MakeValues([]ast.Expr{f.Args[1], f.Args[3]}, "COMPONENT", "VALUE"),
+	}
+}
+
+func (f *FuncCall) makeNdArray() ast.Block {
+	return ast.Block{
+		Type:   "matrices_create_multidim",
+		Values: ast.MakeValues(f.Args, "DIM", "INITIAL"),
 	}
 }
 

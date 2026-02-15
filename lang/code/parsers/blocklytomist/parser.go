@@ -216,6 +216,34 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 	case "math_convert_angles":
 		return p.mathConvertAngles(block)
 
+	case "matrices_create": // todo: we need to be able to form the matrix block from syntax (currently can't!, only lists)
+		return p.matricesCreate(block)
+	case "matrices_create_multidim":
+		return p.matricesNdArray(block)
+	case "matrices_get_cell":
+		return p.matricesGetCell(block) // todo: same, we need to preserve matrix reconversion at the end using comment blocks
+	case "matrices_set_cell":
+		return p.matricesSetCell(block) // todo: same thing
+	case "matrices_get_row":
+		return p.matricesGetRow(block) // we are done
+	case "matrices_get_column":
+		return p.matricesGetColumn(block) // we are done
+	case "matrices_get_dims":
+		return p.matricesGetDimension(block) // we are done
+	case "matrices_is_matrix":
+		return p.makeQuestion(lex.OpenSquare, block, "matrix")
+	case "matrices_add":
+		return p.makeBinary("+", p.fromMinVals(block.Values, 2))
+	case "matrices_subtract":
+		return p.makeBinary("-", p.fromMinVals(block.Values, 2))
+	case "matrices_multiply":
+		return p.makeBinary("*", p.fromMinVals(block.Values, 2))
+	case "matrices_power":
+		return p.makeBinary("^", p.fromMinVals(block.Values, 2))
+
+	case "matrices_operations":
+		return p.matricesOperations(block) // we are done
+
 	case "lists_create_with":
 		return &fundamentals.List{Elements: p.fromMinVals(block.Values, 0)}
 	case "lists_add_items":
@@ -947,6 +975,92 @@ func (p *Parser) textCompare(block ast.Block) ast.Expr {
 	return p.makeBinary(pOperation, p.fromMinVals(block.Values, 2))
 }
 
+func (p *Parser) matricesGetRow(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return &method.Call{
+		Where: lex.MakeFakeToken(lex.OpenSquare),
+		On:    pVals.get("MATRIX"),
+		Name:  "row",
+		Args:  []ast.Expr{pVals.get("ROW")},
+	}
+}
+
+func (p *Parser) matricesGetDimension(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return &method.Call{
+		Where: lex.MakeFakeToken(lex.OpenSquare),
+		On:    pVals.get("MATRIX"),
+		Name:  "dimension",
+		Args:  []ast.Expr{},
+	}
+}
+
+func (p *Parser) matricesGetColumn(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return &method.Call{
+		Where: lex.MakeFakeToken(lex.OpenSquare),
+		On:    pVals.get("MATRIX"),
+		Name:  "col",
+		Args:  []ast.Expr{pVals.get("COLUMN")},
+	}
+}
+
+func (p *Parser) matricesSetCell(block ast.Block) ast.Expr {
+	numItems := block.Mutation.ItemCount
+	pVals := p.makeValueMap(block.Values)
+
+	matrix := pVals.get("MATRIX")
+	var currHead ast.Expr
+	currHead = matrix
+
+	for i := 0; i < numItems-1; i++ {
+		dim := pVals.get("DIM" + strconv.Itoa(i))
+		currHead = &list.Get{List: currHead, Index: dim}
+	}
+	return &list.Set{List: currHead, Index: pVals.get("DIM" + strconv.Itoa(numItems-1)), Value: pVals.get("VALUE")}
+}
+
+func (p *Parser) matricesGetCell(block ast.Block) ast.Expr {
+	numItems := block.Mutation.ItemCount
+	pVals := p.makeValueMap(block.Values)
+
+	matrix := pVals.get("MATRIX")
+	var currHead ast.Expr
+	currHead = matrix
+
+	for i := 0; i < numItems; i++ {
+		dim := pVals.get("DIM" + strconv.Itoa(i))
+		currHead = &list.Get{List: currHead, Index: dim}
+	}
+	return currHead
+}
+
+func (p *Parser) matricesNdArray(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return common.MakeFuncCall("makeNdArray", pVals.get("DIM"), pVals.get("INITIAL"))
+}
+
+func (p *Parser) matricesCreate(block ast.Block) ast.Expr {
+	pFields := p.makeFieldMap(block.Fields)
+	numRows, err := strconv.Atoi(pFields["ROWS"])
+	if err != nil {
+		panic(err)
+	}
+	numCols, err := strconv.Atoi(pFields["COLS"])
+	if err != nil {
+		panic(err)
+	}
+	matrix := make([]ast.Expr, numRows)
+	for i := range matrix {
+		row := make([]ast.Expr, numCols)
+		for j := range row {
+			row[j] = &fundamentals.Number{Content: pFields["MATRIX_"+strconv.Itoa(i)+"_"+strconv.Itoa(j)]}
+		}
+		matrix[i] = &fundamentals.List{Elements: row}
+	}
+	return &fundamentals.List{Elements: matrix}
+}
+
 func (p *Parser) mathConvertAngles(block ast.Block) ast.Expr {
 	var funcName string
 	switch block.SingleField() {
@@ -1091,6 +1205,29 @@ func (p *Parser) mathExpr(block ast.Block) ast.Expr {
 
 func (p *Parser) makeColor(block ast.Block) ast.Expr {
 	return &fundamentals.Color{Where: lex.MakeFakeToken(lex.ColorCode), Hex: block.SingleField()}
+}
+
+func (p *Parser) matricesOperations(block ast.Block) ast.Expr {
+	var matrixMethod string
+	switch block.SingleField() {
+	case "INVERSE":
+		matrixMethod = "inverse"
+	case "TRANSPOSE":
+		matrixMethod = "transpose"
+	case "ROTATE_LEFT":
+		matrixMethod = "rotateLeft"
+	case "ROTATE_RIGHT":
+		matrixMethod = "rotateRight"
+	default:
+		panic("Unknown matrix operation type: " + block.SingleField())
+	}
+	pVals := p.makeValueMap(block.Values)
+	return &method.Call{
+		Where: lex.MakeFakeToken(lex.OpenSquare),
+		On:    pVals.get("MATRIX"),
+		Name:  matrixMethod,
+		Args:  []ast.Expr{},
+	}
 }
 
 func (p *Parser) makeQuestion(t lex.Type, on ast.Block, name string) ast.Expr {

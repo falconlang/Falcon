@@ -31,6 +31,8 @@ func (q *Question) Blockly(flags ...bool) ast.Block {
 		return q.listQuestion()
 	case "dict":
 		return q.dictQuestion()
+	case "matrix":
+		return q.matrixQuestion()
 	case "emptyText":
 		return q.textIsEmpty()
 	case "emptyList":
@@ -85,6 +87,13 @@ func (q *Question) listIsEmpty() ast.Block {
 func (q *Question) textIsEmpty() ast.Block {
 	return ast.Block{
 		Type:   "text_isEmpty",
+		Values: []ast.Value{{Name: "VALUE", Block: q.On.Blockly(false)}},
+	}
+}
+
+func (q *Question) matrixQuestion() ast.Block {
+	return ast.Block{
+		Type:   "matrices_is_matrix",
 		Values: []ast.Value{{Name: "VALUE", Block: q.On.Blockly(false)}},
 	}
 }

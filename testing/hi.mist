@@ -1,14 +1,1 @@
-@Button { Button1 }
-@Label { Label1 }
-
-func main() {
-  println("Hello, World!")
-  println("Counter is currently: " _ this.counter)
-}
-
-global counter = 0
-
-when Button1.Click {
-  this.counter = this.counter + 1
-  Label1.Text = counter
-}
+[[1, 2], [3, 4]].rotateLeft()
