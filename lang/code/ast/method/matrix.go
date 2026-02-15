@@ -8,8 +8,17 @@ func (c *Call) matrixMethods(signature *CallSignature) ast.Block {
 		return c.matrixGetRow()
 	case "matrices_get_column":
 		return c.matrixGetColumn()
+	case "matrices_get_dims":
+		return c.matrixGetDimensions()
 	default:
 		panic("Unknown matrix method: " + signature.BlocklyName)
+	}
+}
+
+func (c *Call) matrixGetDimensions() ast.Block {
+	return ast.Block{
+		Type:   "matrices_get_dims",
+		Values: []ast.Value{{Name: "MATRIX", Block: c.On.Blockly()}},
 	}
 }
 

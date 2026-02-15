@@ -228,6 +228,8 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return p.matricesGetRow(block) // we are done
 	case "matrices_get_column":
 		return p.matricesGetColumn(block) // we are done
+	case "matrices_get_dims":
+		return p.matricesGetDimension(block) // we are done
 
 	case "lists_create_with":
 		return &fundamentals.List{Elements: p.fromMinVals(block.Values, 0)}
@@ -967,6 +969,16 @@ func (p *Parser) matricesGetRow(block ast.Block) ast.Expr {
 		On:    pVals.get("MATRIX"),
 		Name:  "row",
 		Args:  []ast.Expr{pVals.get("ROW")},
+	}
+}
+
+func (p *Parser) matricesGetDimension(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return &method.Call{
+		Where: lex.MakeFakeToken(lex.OpenSquare),
+		On:    pVals.get("MATRIX"),
+		Name:  "dimension",
+		Args:  []ast.Expr{},
 	}
 }
 
