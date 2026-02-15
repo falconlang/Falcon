@@ -224,6 +224,10 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return p.matricesGetCell(block) // todo: same, we need to preserve matrix reconversion at the end using comment blocks
 	case "matrices_set_cell":
 		return p.matricesSetCell(block) // todo: same thing
+	case "matrices_get_row":
+		return p.matricesGetRow(block) // we are done
+	case "matrices_get_column":
+		return p.matricesGetColumn(block) // we are done
 
 	case "lists_create_with":
 		return &fundamentals.List{Elements: p.fromMinVals(block.Values, 0)}
@@ -954,6 +958,26 @@ func (p *Parser) textCompare(block ast.Block) ast.Expr {
 		panic("Unknown Text Compare operation: " + block.SingleField())
 	}
 	return p.makeBinary(pOperation, p.fromMinVals(block.Values, 2))
+}
+
+func (p *Parser) matricesGetRow(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return &method.Call{
+		Where: lex.MakeFakeToken(lex.OpenSquare),
+		On:    pVals.get("MATRIX"),
+		Name:  "row",
+		Args:  []ast.Expr{pVals.get("ROW")},
+	}
+}
+
+func (p *Parser) matricesGetColumn(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return &method.Call{
+		Where: lex.MakeFakeToken(lex.OpenSquare),
+		On:    pVals.get("MATRIX"),
+		Name:  "col",
+		Args:  []ast.Expr{pVals.get("COLUMN")},
+	}
 }
 
 func (p *Parser) matricesSetCell(block ast.Block) ast.Expr {
