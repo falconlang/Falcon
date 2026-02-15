@@ -222,6 +222,8 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return p.matricesNdArray(block)
 	case "matrices_get_cell":
 		return p.matricesGetCell(block) // todo: same, we need to preserve matrix reconversion at the end using comment blocks
+	case "matrices_set_cell":
+		return p.matricesSetCell(block) // todo: same thing
 
 	case "lists_create_with":
 		return &fundamentals.List{Elements: p.fromMinVals(block.Values, 0)}
@@ -952,6 +954,21 @@ func (p *Parser) textCompare(block ast.Block) ast.Expr {
 		panic("Unknown Text Compare operation: " + block.SingleField())
 	}
 	return p.makeBinary(pOperation, p.fromMinVals(block.Values, 2))
+}
+
+func (p *Parser) matricesSetCell(block ast.Block) ast.Expr {
+	numItems := block.Mutation.ItemCount
+	pVals := p.makeValueMap(block.Values)
+
+	matrix := pVals.get("MATRIX")
+	var currHead ast.Expr
+	currHead = matrix
+
+	for i := 0; i < numItems-1; i++ {
+		dim := pVals.get("DIM" + strconv.Itoa(i))
+		currHead = &list.Get{List: currHead, Index: dim}
+	}
+	return &list.Set{List: currHead, Index: pVals.get("DIM" + strconv.Itoa(numItems-1)), Value: pVals.get("VALUE")}
 }
 
 func (p *Parser) matricesGetCell(block ast.Block) ast.Expr {
