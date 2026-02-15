@@ -232,6 +232,15 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return p.matricesGetDimension(block) // we are done
 	case "matrices_is_matrix":
 		return p.makeQuestion(lex.OpenSquare, block, "matrix")
+	case "matrices_add":
+		return p.makeBinary("+", p.fromMinVals(block.Values, 2))
+	case "matrices_subtract":
+		return p.makeBinary("-", p.fromMinVals(block.Values, 2))
+	case "matrices_multiply":
+		return p.makeBinary("*", p.fromMinVals(block.Values, 2))
+	case "matrices_power":
+		return p.makeBinary("^", p.fromMinVals(block.Values, 2))
+
 	case "matrices_operations":
 		return p.matricesOperations(block) // we are done
 
