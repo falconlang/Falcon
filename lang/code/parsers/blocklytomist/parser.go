@@ -230,6 +230,8 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return p.matricesGetColumn(block) // we are done
 	case "matrices_get_dims":
 		return p.matricesGetDimension(block) // we are done
+	case "matrices_is_matrix":
+		return p.makeQuestion(lex.OpenSquare, block, "matrix")
 
 	case "lists_create_with":
 		return &fundamentals.List{Elements: p.fromMinVals(block.Values, 0)}
