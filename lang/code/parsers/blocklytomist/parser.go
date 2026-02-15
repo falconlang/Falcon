@@ -232,6 +232,8 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return p.matricesGetDimension(block) // we are done
 	case "matrices_is_matrix":
 		return p.makeQuestion(lex.OpenSquare, block, "matrix")
+	case "matrices_operations":
+		return p.matricesOperations(block) // we are done
 
 	case "lists_create_with":
 		return &fundamentals.List{Elements: p.fromMinVals(block.Values, 0)}
@@ -1194,6 +1196,29 @@ func (p *Parser) mathExpr(block ast.Block) ast.Expr {
 
 func (p *Parser) makeColor(block ast.Block) ast.Expr {
 	return &fundamentals.Color{Where: lex.MakeFakeToken(lex.ColorCode), Hex: block.SingleField()}
+}
+
+func (p *Parser) matricesOperations(block ast.Block) ast.Expr {
+	var matrixMethod string
+	switch block.SingleField() {
+	case "INVERSE":
+		matrixMethod = "inverse"
+	case "TRANSPOSE":
+		matrixMethod = "transpose"
+	case "ROTATE_LEFT":
+		matrixMethod = "rotateLeft"
+	case "ROTATE_RIGHT":
+		matrixMethod = "rotateRight"
+	default:
+		panic("Unknown matrix operation type: " + block.SingleField())
+	}
+	pVals := p.makeValueMap(block.Values)
+	return &method.Call{
+		Where: lex.MakeFakeToken(lex.OpenSquare),
+		On:    pVals.get("MATRIX"),
+		Name:  matrixMethod,
+		Args:  []ast.Expr{},
+	}
 }
 
 func (p *Parser) makeQuestion(t lex.Type, on ast.Block, name string) ast.Expr {

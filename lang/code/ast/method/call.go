@@ -92,9 +92,13 @@ var signatures = map[string]*CallSignature{
 	"values":      makeSignature("dict", "dictionaries_getters", 0, true, ast.SignList),
 	"toPairs":     makeSignature("dict", "dictionaries_dict_to_alist", 0, true, ast.SignList),
 
-	"row":       makeSignature("matrix", "matrices_get_row", 1, true, ast.SignAny),
-	"col":       makeSignature("matrix", "matrices_get_column", 1, true, ast.SignAny),
-	"dimension": makeSignature("matrix", "matrices_get_dims", 1, true, ast.SignList),
+	"row":         makeSignature("matrix", "matrices_get_row", 1, true, ast.SignAny),
+	"col":         makeSignature("matrix", "matrices_get_column", 1, true, ast.SignAny),
+	"dimension":   makeSignature("matrix", "matrices_get_dims", 1, true, ast.SignList),
+	"inverse":     makeSignature("matrix", "matrices_operations", 0, true, ast.SignList),
+	"transpose":   makeSignature("matrix", "matrices_operations", 0, true, ast.SignList),
+	"rotateLeft":  makeSignature("matrix", "matrices_operations", 0, true, ast.SignList),
+	"rotateRight": makeSignature("matrix", "matrices_operations", 0, true, ast.SignList),
 }
 
 func TestSignature(methodName string, argsCount int) (string, *CallSignature) {
