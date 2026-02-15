@@ -340,6 +340,10 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return p.makeColor(block)
 	case "color_dark_gray":
 		return p.makeColor(block)
+	case "color_light_green":
+		return p.makeColor(block)
+	case "color_gray":
+		return p.makeColor(block)
 	case "color_make_color":
 		return common.MakeFuncCall("makeColor", p.singleExpr(block))
 	case "color_split_color":
@@ -377,6 +381,9 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 	case "component_all_component_block":
 		return &components.EveryComponent{Type: block.Mutation.ComponentType}
 	default:
+		if strings.HasPrefix(block.Type, "color_") && len(block.Fields) > 0 {
+			return p.makeColor(block)
+		}
 		if strings.HasPrefix(block.Type, "helpers_") {
 			return &fundamentals.Text{Content: block.SingleField()}
 		}
@@ -888,15 +895,19 @@ func (p *Parser) textSplit(block ast.Block) ast.Expr {
 func (p *Parser) textContains(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
 	var pOperation string
-	switch block.SingleField() {
-	case "CONTAINS":
+	if len(block.Fields) > 0 {
+		switch block.SingleField() {
+		case "CONTAINS":
+			pOperation = "contains"
+		case "CONTAINS_ANY":
+			pOperation = "containsAny"
+		case "CONTAINS_ALL":
+			pOperation = "containsAll"
+		default:
+			panic("Unsupported Text Contains operation: " + block.SingleField())
+		}
+	} else {
 		pOperation = "contains"
-	case "CONTAINS_ANY":
-		pOperation = "containsAny"
-	case "CONTAINS_ALL":
-		pOperation = "containsAll"
-	default:
-		panic("Unsupported Text Contains operation: " + block.SingleField())
 	}
 	return p.makePropCall(pOperation, pVals.get("TEXT"), pVals.get("PIECE"))
 }
