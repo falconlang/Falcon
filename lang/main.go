@@ -18,9 +18,9 @@ func main() {
 	println("Hello from Falcon!\n")
 
 	//diffTest()
-	// analyzeSyntax()
-	// xmlTest()
-	designTest()
+	analyzeSyntax()
+	//xmlTest()
+	//designTest()
 }
 
 func designTest() {
@@ -46,7 +46,7 @@ func designTest() {
 
 func xmlTest() {
 	xmlFile := "xml.txt"
-	xmlPath := "/home/ekina/Documents/Falcon/testing/" + xmlFile
+	xmlPath := "/home/kumaraswamy/Documents/falcon/testing/" + xmlFile
 	codeBytes, err := os.ReadFile(xmlPath)
 	if err != nil {
 		panic(err)
@@ -63,7 +63,7 @@ func xmlTest() {
 
 func analyzeSyntax() {
 	fileName := "hi.mist"
-	filePath := "/home/ekina/Documents/Falcon/testing/" + fileName
+	filePath := "/home/kumaraswamy/Documents/Falcon/testing/" + fileName
 	codeBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)
