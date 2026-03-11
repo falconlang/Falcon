@@ -1,0 +1,1033 @@
+# PROBLEM3: Functional Programming Patterns (Problems 1201–1700)
+
+---
+
+## Section 1: Variables (Problems 1201–1250)
+
+1201. Declare a global `accumulator` set to `0`. Write a result function `addAndGet(n)` that adds `n` to `this.accumulator` and returns the new value. Call it with `5`, `3`, `12` and print each return value.
+
+1202. Declare a local `snapshot` set to an empty dict. Write a function `capture(key, value)` that stores `value` under `key` in `snapshot`. Capture three entries and print the dict.
+
+1203. Declare a global `idCounter` set to `1000`. Write a result function `nextId()` that returns `this.idCounter` and then increments it by `1`. Call it four times and print each returned id.
+
+1204. Declare locals `minBound` and `maxBound` set to `1` and `100`. Write a result function `clamp(x)` that returns `minBound` if `x < minBound`, `maxBound` if `x > maxBound`, or `x` otherwise. Test with `-5`, `50`, `150`.
+
+1205. Declare a global `eventLog` as an empty list. Declare a global `eventCount` at `0`. Write `emit(name)` that appends `name` to the log and increments the count. Emit five events and print both globals.
+
+1206. Declare a local `memo` as an empty dict. Without recursion, compute and cache the first 8 triangular numbers (T(n) = n*(n+1)/2) in `memo` keyed by `n`. Print the dict.
+
+1207. Declare a global `state` dict with keys `"active"` (false), `"score"` (0), `"level"` (1). Write `startGame()` that sets active to true and `levelUp()` that increments level and multiplies score by 2. Run the sequence and print state.
+
+1208. Declare a local `chain` as `[1]`. Using a while loop, repeatedly append `chain[chain.listLen()] * 3` until the last element exceeds `700`. Print `chain`.
+
+1209. Declare a global `registry` as an empty dict and a global `count` at `0`. Write `register(name, value)` that stores the pair, increments count, and returns the assigned key (use `"item" _ this.count`). Register four items and print the registry.
+
+1210. Declare locals `prev` and `curr` both set to `0` and `1`. Without a function, advance 12 steps to collect Lucas numbers into a list (start with `[2, 1]` then each term is sum of previous two). Print the list.
+
+1211. Declare a global `pipeline` as an empty list. Write `addStage(fn_name)` that appends the name string to `this.pipeline`. Add four stage names and print the pipeline list.
+
+1212. Declare a local `tagged` as an empty list. Write a for loop from `1` to `20` appending a dict `{"n": i, "even": i % 2 == 0}` for each i. Print elements where `even` is true.
+
+1213. Declare a global `cache` as an empty dict. Write `getOrCompute(key, val)` — returns `this.cache.get(key, "MISSING")` if found, otherwise stores `val` in cache and returns `val`. Test with repeated keys.
+
+1214. Declare a local `running` as an empty list. For i from 1 to 10 append the running sum up to i into `running`. Print it.
+
+1215. Declare a global `errorCount` at `0` and a global `errors` as an empty list. Write `reportError(msg)` that appends `msg` to errors and increments errorCount. Report 5 errors then print both globals.
+
+1216. Declare a local `matrix` as a list of 4 lists, each containing 4 zeros. Set the diagonal elements `matrix[i][i]` to `1` for i from 1 to 4 (identity matrix). Print the matrix.
+
+1217. Declare a global `subscribers` as an empty list. Write `subscribe(name)` and `unsubscribe(name)` — the latter removes the first occurrence of name using `indexOf` and `remove`. Subscribe 5 names, unsubscribe 2, print result.
+
+1218. Declare a local `ops` as an empty list. Append the strings `"add"`, `"sub"`, `"mul"`, `"div"` representing pending operations. Write a result function `popOp()` that removes and returns the last element. Pop twice and print `ops`.
+
+1219. Declare a global `config` dict `{"retries": 3, "timeout": 30, "verbose": false}`. Write `updateConfig(key, val)` that sets the key. Update two keys and print the config.
+
+1220. Declare a local `sequence` as `[0]`. Use a for loop to produce the next 14 terms where each term equals the sum of all previous terms plus 1. Print `sequence`.
+
+1221. Declare globals `produced` and `consumed` both at `0`. Write `produce(n)` and `consume(n)` that increment their respective globals. Write `backpressure()` that returns `this.produced - this.consumed`. Simulate and print.
+
+1222. Declare a local `pairs` as an empty list. For i from 1 to 5, append the pair dict `{"key": i, "val": i * i}`. Print the list.
+
+1223. Declare a global `flagged` as an empty list. Write `flagIf(val, cond)` that appends `val` to `this.flagged` only if `cond` is true. Call it 8 times with various conditions and print.
+
+1224. Declare a local `tally` dict `{"pass": 0, "fail": 0}`. Write `record(passed)` that increments the appropriate key. Record 10 mixed results and print the tally.
+
+1225. Declare a global `stack` as an empty list. Write `push(x)` and `pop()` functions. `pop()` removes and returns the last element, or returns `"empty"` if the list is empty. Perform 5 pushes and 3 pops. Print the stack.
+
+1226. Declare a local `steps` at `0`. Write a while loop that increments `steps` and appends `steps * steps` to a local `squares` list until `steps == 10`. Print `squares`.
+
+1227. Declare a global `db` as an empty dict. Write `put(k, v)` and `get(k)` — `get` returns `"NOT_FOUND"` if key missing. Put 4 entries, retrieve 2 existing and 1 missing. Print results.
+
+1228. Declare a local `countdown` at `10`. Write a while loop that appends `countdown` to a local `ticks` list and decrements by 1 until `countdown == 0`. Print `ticks`.
+
+1229. Declare a global `listeners` dict where keys are event names and values are counts of listeners. Write `addListener(event)` that increments the count (defaulting to 0 if missing). Add listeners for `"click"`, `"hover"`, `"keydown"`. Print the dict.
+
+1230. Declare locals `a`, `b`, `c` as `2`, `3`, `5`. Use them to compute `(a + b) * c`, `a ^ b + c`, and `c % a`. Print all three.
+
+1231. Declare a global `history` as an empty list with a max size of `5` stored in a global `maxHistory` at `5`. Write `addHistory(item)` that appends to history but removes the oldest entry if length would exceed max. Add 8 items and print.
+
+1232. Declare a local `freq` as an empty dict. Given the list `["cat", "dog", "cat", "bird", "dog", "cat"]`, count frequencies and store in `freq`. Print the most frequent key.
+
+1233. Declare a global `generation` at `0`. Write `nextGen(pop)` that increments `this.generation` and returns a copy of `pop` with each element doubled. Call 3 times from initial `[1, 2, 3]` and print each result.
+
+1234. Declare a local `result` set to `1`. Use a for loop from `1` to `10` multiplying `result` by each i (i.e. compute 10!). Print `result`.
+
+1235. Declare a global `memo` dict. Write `fibMemo(n)` — a memoised result function. If `n` in memo, return it; else compute recursively and store. Call `fibMemo(15)` and print.
+
+1236. Declare a local `words` list `["hello", "world", "falcon", "code"]`. Use a for-each loop to build a new list `upper` of uppercased versions. Print `upper`.
+
+1237. Declare a global `pool` as a list `[10, 20, 30, 40, 50]`. Write `draw()` that removes and returns a random element. Draw 3 times and print what remains.
+
+1238. Declare a local `bits` set to `0`. Toggle bit 3 (0-indexed from right) using bitwise XOR: `bits = bits ~ 4`. Toggle it twice and print intermediate values.
+
+1239. Declare a global `schedule` as an empty list. Write `schedule_at(time, task)` that appends `{"time": time, "task": task}`. Add 4 tasks, sort by time using `.sort { a, b -> a.get("time", 0) < b.get("time", 0) }`, and print.
+
+1240. Declare a local `ring` as `[1, 2, 3, 4, 5]`. Write a while loop that rotates the list leftward (removes first, appends to end) 3 times. Print after each rotation.
+
+1241. Declare globals `totalIn` and `totalOut` both at `0`. Write `flow(in_val, out_val)` that updates both and returns the net balance. Simulate 4 calls and print the balance each time.
+
+1242. Declare a local `primes` as an empty list. Use a for loop from `2` to `50` with a nested loop to test primality (no functions). Append confirmed primes. Print `primes`.
+
+1243. Declare a global `active` dict `{"tasks": []}`. Write `addTask(t)` and `removeTask(index)`. Add 5 tasks, remove index 2, print remaining tasks.
+
+1244. Declare a local `lookup` dict `{"a": 1, "b": 2, "c": 3}`. Write `translateAll(chars)` — returns a new list mapping each character through `lookup`, defaulting to 0 if missing. Test with `["a", "c", "d", "b"]`.
+
+1245. Declare a global `tokens` as an empty list. Write `tokenize(text)` that splits text at spaces and appends each token to `this.tokens`. Tokenize two sentences and print.
+
+1246. Declare a local `sorted_desc` starting as `[9, 1, 7, 3, 5]`. Sort it in descending order using `.sort { a, b -> a > b }`. Print.
+
+1247. Declare globals `maxRetries` at `3` and `attempts` at `0`. Write a while loop that simulates attempts: break on success (when `attempts == 2`) or when max retries reached. Print the outcome.
+
+1248. Declare a local `pairs` as `[["a", 1], ["b", 2], ["c", 3]]`. Build a dict from this list without using `pairsToDict`. Print the dict.
+
+1249. Declare a global `version` dict `{"major": 1, "minor": 0, "patch": 0}`. Write `bumpPatch()`, `bumpMinor()` (resets patch to 0), and `bumpMajor()` (resets minor and patch). Bump each once and print final version.
+
+1250. Declare a local `filtered` as an empty list. Given `[3, -1, 4, -1, 5, -9, 2, 6]`, append only positive numbers to `filtered`. Print the sum of `filtered` using `.reduce(0) { x, s -> x + s }`.
+
+---
+
+## Section 2: Math (Problems 1251–1330)
+
+1251. Write `isPrime(n)` — return true if n is prime. Use it to find the 20th prime number and print it.
+
+1252. Write `gcd(a, b)` using the Euclidean algorithm. Then write `lcm(a, b)` using `gcd`. Test with `(12, 18)`, `(100, 75)`.
+
+1253. Write `sieve(limit)` — Sieve of Eratosthenes returning a list of all primes up to `limit`. Print primes up to `50`.
+
+1254. Write `digitSum(n)` — sum of decimal digits of a positive integer. Test with `12345` (sum 15) and `99999` (sum 45).
+
+1255. Write `factorial(n)` iteratively using a for loop. Compute `10!` and `15!`. Print both.
+
+1256. Write `power(base, exp)` iteratively (without using `^`). Test `power(2, 10)` and `power(3, 7)`.
+
+1257. Write `fibonacci(n)` iteratively. Return the nth Fibonacci number (0-indexed). Print `fibonacci(30)`.
+
+1258. Write `isArmstrong(n)` — n equals sum of each digit raised to the power of the number of digits. Find all 3-digit Armstrong numbers.
+
+1259. Write `sumDivisors(n)` — sum of all proper divisors of n. Find all perfect numbers below `1000`.
+
+1260. Write `toBinary(n)` — convert positive integer to binary string without using `decToBin`. Test with `42` and `255`.
+
+1261. Write `fromBinary(s)` — convert binary string to integer without using `binToDec`. Test with `"101010"` and `"11111111"`.
+
+1262. Write `collatz(n)` — return the Collatz sequence from n to 1 as a list. Print the sequence for `n=27`.
+
+1263. Write `isCollatzLong(n, threshold)` — true if Collatz sequence length exceeds threshold. Find all n below 100 with length above 50.
+
+1264. Write `intSqrt(n)` — integer square root (floor of sqrt(n)) using binary search instead of `sqrt`. Test with `16`, `17`, `100`, `101`.
+
+1265. Write `numDigits(n)` — count decimal digits of n without string conversion. Test with `1`, `99`, `1000`.
+
+1266. Write `reverseDigits(n)` — reverse the digits of a number mathematically. Test `12345` → `54321`.
+
+1267. Write `isPalindrome_n(n)` — true if integer n reads the same forwards and backwards. Test with `121`, `123`, `1221`.
+
+1268. Write `lcmList(nums)` — LCM of all numbers in a list. Test with `[4, 6, 10]`.
+
+1269. Write `gcdList(nums)` — GCD of all numbers in a list using reduce. Test with `[48, 36, 24]`.
+
+1270. Write `clamp(x, lo, hi)` — return x constrained to [lo, hi]. Test with `(-3, 0, 10)`, `(5, 0, 10)`, `(15, 0, 10)`.
+
+1271. Write `lerp(a, b, t)` — linear interpolation: a + t * (b - a). Test for t in `[0, 0.25, 0.5, 0.75, 1]`.
+
+1272. Write `mapRange(x, inLo, inHi, outLo, outHi)` — map x from input range to output range. Test mapping `50` from `[0, 100]` to `[-1, 1]`.
+
+1273. Write `countBits(n)` — count the number of 1-bits in n using repeated division by 2. Test `255` (8 bits) and `170`.
+
+1274. Write `isPowerOf2(n)` — true if n is a power of 2. Test `1`, `2`, `4`, `7`, `16`, `100`.
+
+1275. Write `nextPowerOf2(n)` — smallest power of 2 >= n. Test `5`, `8`, `9`, `100`.
+
+1276. Write `sumRange(a, b)` — sum of all integers from a to b inclusive using the formula `(b-a+1)*(a+b)/2`. Verify with a loop for `(1, 100)`.
+
+1277. Write `productRange(a, b)` — product of integers from a to b. Test `(1, 5)` = 120.
+
+1278. Write `harmonicSum(n)` — sum of 1/1 + 1/2 + ... + 1/n. Print for n = 10 and n = 100.
+
+1279. Write `geometricSum(r, n)` — sum of geometric series: 1 + r + r^2 + ... + r^n. Test `r=2, n=10`.
+
+1280. Write `babylonSqrt(n, iters)` — approximate sqrt(n) using Babylonian method for `iters` iterations. Test `n=2, iters=10`.
+
+1281. Write `phi(n)` — Euler's totient function. Test with `1`, `6`, `9`, `12`.
+
+1282. Write `primeFactors(n)` — list of prime factors of n (with repetition). Test `360`.
+
+1283. Write `distinctPrimeFactors(n)` — list of unique prime factors. Test `360`.
+
+1284. Write `mobiusVal(n)` using `distinctPrimeFactors` — 0 if any squared factor, +1 or -1 by parity. Test 1..12.
+
+1285. Write `isSquareFree(n)` — no prime factor appears more than once. Test `30` (yes), `12` (no).
+
+1286. Write `digitProduct(n)` — product of digits. Test `23` = 6, `999` = 729. Handle n = 0.
+
+1287. Write `isNarcissistic(n)` — generalised Armstrong check for any number of digits. Find all 4-digit narcissistic numbers.
+
+1288. Write `isHappy(n)` — repeatedly replace n with sum of squares of its digits; happy if reaches 1, sad if hits cycle at 4. Test `7` (happy) and `4` (sad).
+
+1289. Write `isAbundant(n)` — sum of proper divisors exceeds n. List all abundant numbers below 100.
+
+1290. Write `isDeficient(n)` — sum of proper divisors < n. Count deficient numbers below 100.
+
+1291. Write `isPerfect(n)` — sum of proper divisors == n. Test 6, 28, 496.
+
+1292. Write `sigma(n, k)` — sum of k-th powers of divisors of n. Test `sigma(6, 1)` (sum of divisors = 12), `sigma(4, 2)`.
+
+1293. Write `sumOfSquares(n)` — 1^2 + 2^2 + ... + n^2 using formula n(n+1)(2n+1)/6. Verify with loop for n = 10.
+
+1294. Write `sumOfCubes(n)` — 1^3 + ... + n^3. Compare to `(n*(n+1)/2)^2` for n = 5.
+
+1295. Write `triangleNum(n)` — nth triangular number. Check that T(10) = 55.
+
+1296. Write `squareNum(n)` — nth square number. List first 10.
+
+1297. Write `pentagonalNum(n)` — nth pentagonal number P(n) = n(3n-1)/2. List first 10.
+
+1298. Write `catalan(n)` — nth Catalan number using the recurrence C(0)=1, C(n+1) = sum C(i)*C(n-i). Print first 8.
+
+1299. Write `binomCoeff(n, k)` — using Pascal's rule iteratively. Compute C(10, 3) and C(15, 7).
+
+1300. Write `stirling2(n, k)` — Stirling numbers of the second kind using recurrence. Compute for n=5, k=1..5.
+
+1301. Write `logBase(x, base)` — logarithm base `base` of x using `log(x) / log(base)`. Test `logBase(8, 2)` = 3.
+
+1302. Write `isPerfectSquare(n)` — true if n is a perfect square. Test 1, 4, 9, 10, 16, 17.
+
+1303. Write `isPerfectCube(n)` — true if n is a perfect cube. Test 1, 8, 27, 26.
+
+1304. Write `nextPrime(n)` — smallest prime strictly greater than n. Test `nextPrime(10)` = 11, `nextPrime(23)` = 29.
+
+1305. Write `goldbach(n)` — list of pairs of primes summing to even n. Test n = 28.
+
+1306. Write `primeGaps(limit)` — list of gaps between consecutive primes up to limit. Find the largest gap below 100.
+
+1307. Write `twinPrimes(limit)` — list of twin prime pairs (p, p+2) up to limit. List all below 50.
+
+1308. Write `bernoulli2(n)` — n*(n-1)/2 (second Bernoulli polynomial at 1). Verify for n=1..5.
+
+1309. Write `manhattanDist(x1, y1, x2, y2)` — |x1-x2| + |y1-y2|. Test `(0,0)` to `(3,4)`.
+
+1310. Write `chebyshevDist(x1, y1, x2, y2)` — max(|dx|, |dy|). Test same points.
+
+1311. Write `hypot(a, b)` — sqrt(a^2 + b^2) without using `sqrt` (use `babylonSqrt` from 1280 or `sqrt`). Test `3, 4` → 5.
+
+1312. Write `normalise(vec)` — divide each component of a 2-element list by its magnitude. Test `[3, 4]`.
+
+1313. Write `dotProduct(a, b)` — sum of pairwise products of two same-length lists. Test `[1,2,3]` · `[4,5,6]` = 32.
+
+1314. Write `crossProduct2D(a, b)` — scalar cross product a[1]*b[2] - a[2]*b[1]. Test `[1,0]` × `[0,1]` = 1.
+
+1315. Write `degreesToRadians(d)` and `radiansToDegrees(r)` without using built-ins. Test round-trip for 45, 90, 180.
+
+1316. Write `sinApprox(x, terms)` — Taylor series for sin. Compare to `sin(x)` for x = 1.0.
+
+1317. Write `cosApprox(x, terms)` — Taylor series for cos. Compare to `cos(x)` for x = 1.0.
+
+1318. Write `expApprox(x, terms)` — Taylor series for e^x. Compare to `exp(x)` for x = 1.0.
+
+1319. Write `intPow(base, exp)` — integer power using fast exponentiation (repeated squaring). Test `intPow(2, 20)`.
+
+1320. Write `modPow(base, exp, m)` — modular exponentiation. Test `modPow(2, 10, 1000)` = 24.
+
+1321. Write `extGcd(a, b)` — extended Euclidean algorithm returning a list `[gcd, x, y]` such that ax + by = gcd. Test `(35, 15)`.
+
+1322. Write `modinv(a, m)` — modular inverse of a mod m using extGcd. Test `modinv(3, 7)` = 5.
+
+1323. Write `crt(remainders, moduli)` — Chinese Remainder Theorem for two simultaneous congruences. Test x ≡ 2 (mod 3) and x ≡ 3 (mod 5).
+
+1324. Write `sumPrimesBelow(n)` — sum of all primes < n using the sieve. Print for n = 100.
+
+1325. Write `nthPrime(n)` — nth prime (1-indexed). Print `nthPrime(100)` = 541.
+
+1326. Write `primeCountBelow(n)` — count of primes below n (pi function). Test 10, 100.
+
+1327. Write `aliquotSequence(n, steps)` — repeatedly replace n with sumDivisors(n), collecting a list. Test `n=12, steps=8`.
+
+1328. Write `kaprekar(n)` — one Kaprekar step: sort digits descending minus ascending. Iterate until reaching 6174 from 1234. Count steps.
+
+1329. Write `digitalRoot(n)` — repeatedly sum digits until single digit. Test `493` (digital root = 7).
+
+1330. Write `harshad(n)` — divisible by digit sum. List all Harshad numbers from 1 to 100.
+
+---
+
+## Section 3: Text (Problems 1331–1400)
+
+1331. Write `isPalindrome_s(s)` — true if string s reads the same forwards and backwards. Test `"racecar"` and `"falcon"`.
+
+1332. Write `countChar(s, c)` — count occurrences of character c in s. Test `"mississippi"`, `"s"` → 4.
+
+1333. Write `reverseWords(s)` — reverse the order of words (split on space, reverse list, join). Test `"Hello World Falcon"`.
+
+1334. Write `capitalize(s)` — uppercase the first character and lowercase the rest. Test `"hello"` → `"Hello"`.
+
+1335. Write `titleCase(words)` — given a list of words, return each capitalized and joined by space.
+
+1336. Write `countWords(s)` — count words in a string (split at spaces). Test `"The quick brown fox"` → 4.
+
+1337. Write `longestWord(s)` — return the longest word in a string. Test `"I love programming in Falcon"`.
+
+1338. Write `shortestWord(s)` — return the shortest word. Test same string.
+
+1339. Write `truncate(s, maxLen)` — if s.textLen() > maxLen, return first `maxLen - 3` chars + `"..."`. Test `"Hello World"` with maxLen 8.
+
+1340. Write `padLeft(s, width, ch)` — pad string on the left with ch to reach width. Test `padLeft("42", 6, "0")` = `"000042"`.
+
+1341. Write `padRight(s, width, ch)` — pad on the right. Test `padRight("Hi", 5, "-")` = `"Hi---"`.
+
+1342. Write `center(s, width, ch)` — center s in a field of given width using ch on both sides. Test `center("Falcon", 12, "*")`.
+
+1343. Write `repeat(s, n)` — concatenate s with itself n times. Test `repeat("ab", 3)` = `"ababab"`.
+
+1344. Write `stripLeft(s)` — remove leading spaces using `trim()` and checking manually, or by iterating. Test `"   hello"`.
+
+1345. Write `stripRight(s)` — remove trailing spaces. Test `"hello   "`.
+
+1346. Write `countVowels(s)` — count vowels (a, e, i, o, u) in s (case insensitive). Test `"Hello World"`.
+
+1347. Write `countConsonants(s)` — count consonants (letters that are not vowels). Test same string.
+
+1348. Write `isAnagram(a, b)` — true if a and b are anagrams (same letters, different order). Test `"listen"` and `"silent"`.
+
+1349. Write `removeDuplicateChars(s)` — return s with each character appearing only once (first occurrence). Test `"programming"`.
+
+1350. Write `mostFreqChar(s)` — return the character that appears most often. Test `"abracadabra"`.
+
+1351. Write `charFrequency(s)` — return a dict mapping each char to its count. Test `"falcon"`.
+
+1352. Write `rotateString(s, k)` — rotate s left by k positions. Test `rotateString("abcdef", 2)` = `"cdefab"`.
+
+1353. Write `isSubstring(haystack, needle)` — true if needle appears in haystack using `contains`. Test two examples.
+
+1354. Write `replaceAll(s, from, to)` — replace all occurrences using `replace`. Test `"aababc"` replacing `"a"` with `"x"`.
+
+1355. Write `slug(s)` — convert to lowercase and replace spaces with hyphens. Test `"Hello World Falcon"`.
+
+1356. Write `camelToSnake(s)` — split at uppercase letters and join with underscores, lowercased. Test `"camelCaseWord"`.
+
+1357. Write `snakeToCamel(s)` — split at underscores, capitalize each segment except the first, join. Test `"snake_case_word"`.
+
+1358. Write `countLines(s)` — count newline characters + 1. Test a multiline string.
+
+1359. Write `firstLine(s)` — return text before the first newline. Test `"Line1\nLine2\nLine3"`.
+
+1360. Write `commonPrefix(a, b)` — return the longest common prefix of two strings. Test `"flower"` and `"flow"` → `"flow"`.
+
+1361. Write `commonSuffix(a, b)` — return the longest common suffix. Test `"talking"` and `"walking"` → `"alking"`.
+
+1362. Write `zigzag(s)` — return a new string alternating upper/lowercase character by character. Test `"falcon"`.
+
+1363. Write `caesarCipher(s, shift)` — shift each letter by `shift` positions (wrap around). Test `caesarCipher("abc", 3)` = `"def"`.
+
+1364. Write `caesarDecipher(s, shift)` using `caesarCipher(s, 26 - shift)`. Verify round-trip.
+
+1365. Write `runLengthEncode(s)` — encode consecutive repeated characters. Test `"aaabbbccddddee"` → `"3a3b2c4d2e"`.
+
+1366. Write `levenshtein(a, b)` — edit distance between strings using dynamic programming (store rows as lists). Test `("kitten", "sitting")` → 3.
+
+1367. Write `longestCommonSubsequence(a, b)` — LCS length. Test `("ABCBDAB", "BDCAB")` → 4.
+
+1368. Write `isRotation(a, b)` — true if b is a rotation of a. Test `"abcde"` and `"cdeab"`.
+
+1369. Write `numberToWords(n)` — convert single-digit integer to English word. Test 0..9.
+
+1370. Write `wordsToNumber(s)` — reverse of above. Test `"zero"` through `"nine"`.
+
+1371. Write `maskEmail(email)` — replace all chars before `@` except first and last with `*`. Test `"user@example.com"`.
+
+1372. Write `validateEmail(s)` — return true if s contains exactly one `@` and at least one `.` after `@`. Test two valid and two invalid strings.
+
+1373. Write `extractDomain(email)` — return the part after `@`. Test `"user@falcon.dev"` → `"falcon.dev"`.
+
+1374. Write `initials(fullName)` — return the initials string. Test `"John Michael Doe"` → `"JMD"`.
+
+1375. Write `countSentences(s)` — count `.`, `!`, `?` characters as sentence-enders. Test a paragraph.
+
+1376. Write `removePunctuation(s)` — remove `.`, `,`, `!`, `?`, `"`, `'` using repeated `.replace()`. Test a sentence.
+
+1377. Write `reverseEachWord(s)` — reverse each word individually but keep word order. Test `"hello world"` → `"olleh dlrow"`.
+
+1378. Write `interleave(a, b)` — merge two strings character by character. Test `"abc"` and `"xyz"` → `"axbycz"`.
+
+1379. Write `isBalanced(s)` — true if `(`, `)` characters are balanced (equal count and never negative running sum). Test `"(a(b)c)"` and `")(abc"`.
+
+1380. Write `compress(s)` — replace runs of 3+ identical characters with `n*c`. Test `"aaabbbcccc"` → `"3a3b4c"`.
+
+1381. Write `splitIntoChunks(s, size)` — split string into a list of chunks of given size. Test `splitIntoChunks("abcdefgh", 3)` → `["abc", "def", "gh"]`.
+
+1382. Write `wrap(s, width)` — insert `"\n"` every `width` characters. Test width = 10.
+
+1383. Write `countOccurrences(s, sub)` — count non-overlapping occurrences of sub in s. Test `("ababab", "ab")` → 3.
+
+1384. Write `uniqueWords(s)` — list distinct words in s. Test a sentence with repeated words.
+
+1385. Write `wordFrequency(s)` — dict of word to count. Test `"the cat sat on the mat"`.
+
+1386. Write `longestPalindromeSubstring(s)` — find the longest palindromic substring by checking all substrings. Test `"babad"`.
+
+1387. Write `charCodeAt(s, i)` — return ASCII-like code using a hardcoded lookup dict for a-z. Test `"a"` and `"z"`.
+
+1388. Write `isValidIdentifier(s)` — true if s starts with a letter and contains only letters, digits, underscores. Test several strings.
+
+1389. Write `tokenizeCSV(line)` — split a CSV line on commas and trim each field. Test `" hello , world , 42 "`.
+
+1390. Write `joinWith(list, sep)` — same as `.join(sep)`. Reimplement using a for-each loop. Test `(["a","b","c"], ", ")`.
+
+1391. Write `multiReplace(s, replacements)` — given a dict of `{from: to}`, apply all replacements in one pass. Test `"cat and dog"` with `{"cat": "bird", "dog": "fish"}`.
+
+1392. Write `stripTags(s)` — remove all text between `<` and `>` inclusive. Test `"<b>Hello</b> World"` → `"Hello World"`.
+
+1393. Write `extractNumbers(s)` — extract all numeric substrings from s as a list of strings. Test `"I have 3 cats and 12 birds"` → `["3", "12"]`.
+
+1394. Write `startsWith_manual(s, prefix)` without using `.startsWith()`. Test two examples.
+
+1395. Write `endsWith_manual(s, suffix)` without using any built-in suffix check. Test two examples.
+
+1396. Write `toHexStr(n)` — convert integer to hex string without using `decToHex`. Test `255` → `"ff"`.
+
+1397. Write `parseHexStr(s)` — convert hex string to integer without `hexToDec`. Test `"ff"` → 255.
+
+1398. Write `fizzBuzzStr(n)` — return `"Fizz"`, `"Buzz"`, `"FizzBuzz"`, or the number as a string. Test 1..20.
+
+1399. Write `luhnCheck(s)` — Luhn algorithm for credit card validation. Test `"4532015112830366"` (valid).
+
+1400. Write `soundex(s)` — simplified Soundex code (first letter + 3 digits). Test `"Robert"` → `"R163"`.
+
+---
+
+## Section 4: Lists (Problems 1401–1480)
+
+1401. Write `flatten(list)` — flatten a one-level nested list `[[1,2],[3,4],[5]]` → `[1,2,3,4,5]`. Use a for-each and `appendList`.
+
+1402. Write `zip(a, b)` — pair elements of two same-length lists into a list of 2-element lists. Test `([1,2,3], ["a","b","c"])`.
+
+1403. Write `unzip(pairs)` — split a list of pairs into two lists. Test with result of `zip`.
+
+1404. Write `chunk(list, size)` — split a list into sublists of given size. Test `([1..10], 3)`.
+
+1405. Write `sliding(list, size)` — all sliding windows of given size. Test `([1,2,3,4,5], 3)`.
+
+1406. Write `partition(list, pred_fn_name)` — split into two lists: passing and failing. Write a helper `isEven(n)` and partition `[1..10]`.
+
+1407. Write `groupBy(list, key_fn)` — group elements by a computed key into a dict of lists. Group `[1..10]` by parity (`even` / `odd`).
+
+1408. Write `uniqueBy(list, key_fn)` — deduplicate keeping first occurrence per key. Test deduplicating by string length.
+
+1409. Write `countBy(list, key_fn)` — return a dict of key → count. Count words by length.
+
+1410. Write `transpose(matrix)` — transpose a rectangular matrix (list of lists). Test 3×4 matrix.
+
+1411. Write `flatten2(nested)` — flatten up to 2 levels deep. Test `[[[1,2],[3]],[[4]]]`.
+
+1412. Write `intersection(a, b)` — elements in both lists (no duplicates). Test `([1,2,3,4], [2,4,6])`.
+
+1413. Write `union(a, b)` — all elements from both lists with no duplicates. Test same.
+
+1414. Write `difference(a, b)` — elements in a but not in b. Test `([1,2,3,4], [2,4])` → `[1,3]`.
+
+1415. Write `symmetricDiff(a, b)` — elements in one but not both. Test same.
+
+1416. Write `compact(list)` — remove falsy values (0, false, empty string). Test `[0, 1, false, "hi", "", 2]`.
+
+1417. Write `pluck(records, key)` — extract a field from each dict in a list. Test extracting `"name"` from a list of people dicts.
+
+1418. Write `maxBy(list, key_fn)` — element with the maximum value of key_fn. Find the longest string in `["cat", "elephant", "ox"]`.
+
+1419. Write `minBy(list, key_fn)` — element with the minimum value of key_fn. Find the shortest.
+
+1420. Write `sumBy(list, key_fn)` — sum of key_fn applied to each element. Sum the `"score"` field of a list of dicts.
+
+1421. Write `average(list)` — arithmetic mean. Test `[2, 4, 6, 8, 10]` → 6.
+
+1422. Write `median(list)` — sort then pick middle element(s). Test `[3, 1, 4, 1, 5, 9, 2, 6]`.
+
+1423. Write `mode(list)` — most common element using a frequency dict. Test `[1, 2, 2, 3, 3, 3]`.
+
+1424. Write `stdDev(list)` — population standard deviation. Test `[2, 4, 4, 4, 5, 5, 7, 9]`.
+
+1425. Write `normalize(list)` — scale all values to [0, 1] using min and max. Test `[10, 20, 30, 40, 50]`.
+
+1426. Write `cumSum(list)` — running cumulative sum. Test `[1, 2, 3, 4, 5]` → `[1, 3, 6, 10, 15]`.
+
+1427. Write `cumProd(list)` — running cumulative product. Test `[1, 2, 3, 4, 5]`.
+
+1428. Write `diff(list)` — consecutive differences. Test `[1, 4, 9, 16, 25]` → `[3, 5, 7, 9]`.
+
+1429. Write `movingAvg(list, k)` — sliding window average of size k. Test `([1,2,3,4,5,6,7], 3)`.
+
+1430. Write `runningMax(list)` — running maximum. Test `[3, 1, 4, 1, 5, 9, 2, 6]`.
+
+1431. Write `runningMin(list)` — running minimum. Test same list.
+
+1432. Write `intersperse(list, sep)` — insert sep between every element. Test `([1,2,3], 0)` → `[1,0,2,0,3]`.
+
+1433. Write `rotate(list, k)` — rotate list left by k. Test `([1,2,3,4,5], 2)`.
+
+1434. Write `dedup(list)` — remove duplicates while preserving order. Test `[1,2,2,3,1,4,3]`.
+
+1435. Write `cartesian(a, b)` — all pairs `[x, y]` from a × b. Test `([1,2], ["a","b"])`.
+
+1436. Write `flatten_deep(list)` — recursively flatten arbitrarily nested lists. Test `[1, [2, [3, [4, 5]]]]`.
+
+1437. Write `takeWhile(list, pred_fn)` — take elements while pred is true. Take from `[2,4,6,7,8]` while even.
+
+1438. Write `dropWhile(list, pred_fn)` — skip elements while pred is true. Drop from `[2,4,6,7,8]` while even.
+
+1439. Write `span(list, pred_fn)` — split into (takeWhile, dropWhile) pair. Test same list.
+
+1440. Write `findIndex(list, pred_fn)` — 1-based index of first matching element, or -1. Find first even in `[1,3,5,4,2]`.
+
+1441. Write `countIf(list, pred_fn)` — count elements satisfying predicate. Count evens in `[1..10]`.
+
+1442. Write `any(list, pred_fn)` — true if any element satisfies pred. Test if any negative in `[1,-2,3]`.
+
+1443. Write `all(list, pred_fn)` — true if all elements satisfy pred. Test if all positive.
+
+1444. Write `none(list, pred_fn)` — true if no element satisfies pred. Test.
+
+1445. Write `sumSquares(list)` — sum of squares using `.map` and `.reduce`. Test `[1,2,3,4]`.
+
+1446. Write `product(list)` — product of all elements using `.reduce(1)`. Test `[1,2,3,4,5]` = 120.
+
+1447. Write `flatten_by(list, fn)` — map each element to a list then concatenate. Test mapping numbers to `[n, n*2]`.
+
+1448. Write `sample(list, k)` — return k distinct random elements. Test `([1..10], 3)`.
+
+1449. Write `frequencies(list)` — dict of element → count. Test `[1,2,1,3,2,1]`.
+
+1450. Write `pairs(list)` — all consecutive pairs. Test `[1,2,3,4]` → `[[1,2],[2,3],[3,4]]`.
+
+1451. Write `triples(list)` — all consecutive triples. Test `[1,2,3,4,5]`.
+
+1452. Write `prefixes(list)` — all non-empty prefixes. Test `[1,2,3]`.
+
+1453. Write `suffixes(list)` — all non-empty suffixes. Test `[1,2,3]`.
+
+1454. Write `powerset(list)` — all subsets of a 3-element list. Test `[1,2,3]`.
+
+1455. Write `permutations(list)` — all orderings of a 3-element list. Test `[1,2,3]`.
+
+1456. Write `combinations(list, k)` — all k-element subsets. Test `([1,2,3,4], 2)`.
+
+1457. Write `isSorted(list)` — true if list is in non-decreasing order. Test `[1,2,3,3,5]` and `[1,3,2]`.
+
+1458. Write `isSortedDesc(list)` — non-increasing order. Test `[5,4,3,3,1]`.
+
+1459. Write `insertSorted(list, val)` — insert val into an already sorted list maintaining order. Test `([1,3,5,7], 4)`.
+
+1460. Write `binarySearch(list, val)` — 1-based index or -1 using binary search on a sorted list. Test `([1,3,5,7,9], 7)`.
+
+1461. Write `mergeSort(list)` — recursive merge sort. Test `[5,2,8,1,9,3]`.
+
+1462. Write `quickSort(list)` — recursive quicksort with first element as pivot. Test same input.
+
+1463. Write `bubbleSort(list)` — iterative bubble sort. Test same input.
+
+1464. Write `insertionSort(list)` — iterative insertion sort. Test same input.
+
+1465. Write `selectionSort(list)` — iterative selection sort. Test same input.
+
+1466. Write `merge(a, b)` — merge two sorted lists into one sorted list. Test `([1,3,5], [2,4,6])`.
+
+1467. Write `removeDuplicates(list)` — using sort + dedup approach. Compare with `dedup` from 1434.
+
+1468. Write `zip3(a, b, c)` — zip three lists. Test `([1,2], [3,4], [5,6])`.
+
+1469. Write `enumerate(list)` — return list of `[1-based-index, value]` pairs. Test `["a","b","c"]`.
+
+1470. Write `firstN(list, n)` — first n elements. Test `([1..10], 4)`.
+
+1471. Write `lastN(list, n)` — last n elements. Test `([1..10], 3)`.
+
+1472. Write `dropN(list, n)` — all but first n elements. Test `([1..10], 3)`.
+
+1473. Write `dropLast(list, n)` — all but last n elements. Test `([1..10], 3)`.
+
+1474. Write `flatten_pairs(dict)` — convert dict to `[key, value, key, value, ...]` flat list. Test a 3-entry dict.
+
+1475. Write `splitAt(list, i)` — split list into two at 1-based index i. Test `([1,2,3,4,5], 3)`.
+
+1476. Write `replaceAt(list, i, val)` — return new list with value at 1-based index i replaced. Test `([1,2,3,4], 2, 99)`.
+
+1477. Write `swapAt(list, i, j)` — swap elements at positions i and j. Test `([1,2,3,4,5], 2, 4)`.
+
+1478. Write `flatten_matrix(matrix)` — flatten a 2D matrix to a 1D list. Test 3×3 identity.
+
+1479. Write `maxSubarraySum(list)` — Kadane's algorithm. Test `[-2,1,-3,4,-1,2,1,-5,4]` → 6.
+
+1480. Write `longestIncreasingSubseq(list)` — length of LIS using O(n^2) DP. Test `[10,9,2,5,3,7,101,18]` → 4.
+
+---
+
+## Section 5: Dictionaries (Problems 1481–1550)
+
+1481. Write `invertDict(d)` — swap keys and values. Test `{"a":1, "b":2, "c":3}`.
+
+1482. Write `mergeWith(d1, d2, combiner)` — merge two dicts, combining values for shared keys. Sum shared numeric values.
+
+1483. Write `filterDict(d, pred)` — keep only entries where pred(value) is true. Keep values > 10 in `{"a":5,"b":15,"c":8,"d":20}`.
+
+1484. Write `mapValues(d, fn)` — apply fn to every value. Double all values in `{"x":1,"y":2,"z":3}`.
+
+1485. Write `mapKeys(d, fn)` — apply fn to every key. Uppercase all keys.
+
+1486. Write `pick(d, keys)` — return a new dict with only the listed keys. Test `pick({"a":1,"b":2,"c":3}, ["a","c"])`.
+
+1487. Write `omit(d, keys)` — return a dict with the listed keys removed. Test `omit({"a":1,"b":2,"c":3}, ["b"])`.
+
+1488. Write `defaults(d, defaults_dict)` — fill in missing keys from defaults. Test with a partial config dict.
+
+1489. Write `deepMerge(d1, d2)` — merge dicts; for nested dict values, recurse. Test two nested dicts.
+
+1490. Write `flattenDict(d, prefix)` — flatten nested dict to dot-separated keys. Test `{"a": {"b": 1, "c": 2}}` → `{"a.b":1, "a.c":2}`.
+
+1491. Write `dictFromLists(keys, vals)` — build dict from two parallel lists. Test `(["a","b","c"], [1,2,3])`.
+
+1492. Write `countValues(d)` — count how many distinct values exist. Test `{"a":1,"b":1,"c":2}` → 2.
+
+1493. Write `groupByKey(records, key)` — group list of dicts by a field's value. Group people by `"city"`.
+
+1494. Write `sortByKey(d)` — return a list of `[key, value]` pairs sorted by key. Test `{"c":3,"a":1,"b":2}`.
+
+1495. Write `sortByValue(d)` — return a list of `[key, value]` pairs sorted by value ascending. Test same.
+
+1496. Write `topN(d, n)` — return the n keys with largest values. Test `({"a":5,"b":3,"c":8,"d":1}, 2)` → `["c","a"]`.
+
+1497. Write `bottomN(d, n)` — return the n keys with smallest values. Test same.
+
+1498. Write `sumValues(d)` — sum all numeric values. Test `{"a":10,"b":20,"c":5}` → 35.
+
+1499. Write `productValues(d)` — product of all numeric values. Test `{"a":2,"b":3,"c":4}` → 24.
+
+1500. Write `anyValue(d, pred)` — true if any value satisfies pred. Test `{"a":1,"b":-2,"c":3}` for negative value.
+
+1501. Write `allValues(d, pred)` — true if all values satisfy pred. Test same.
+
+1502. Write `keyOf(d, val)` — return the first key whose value equals val, or `"NONE"`. Test `{"x":10,"y":20,"z":10}` with val=10.
+
+1503. Write `mostCommonValue(d)` — the value that appears most often. Test `{"a":1,"b":2,"c":1,"d":1}` → 1.
+
+1504. Write `histogramFromList(list)` — build a frequency dict from a list. Test `["cat","dog","cat","bird","dog","cat"]`.
+
+1505. Write `normalizeDict(d)` — divide all numeric values by their sum so they total 1.0. Test `{"a":1,"b":3,"c":6}`.
+
+1506. Write `diffDict(d1, d2)` — return keys whose values differ between d1 and d2. Test two similar configs.
+
+1507. Write `updateNested(d, path, val)` — update a value at a dot-path like `"a.b.c"`. Test `{"a": {"b": {"c": 0}}}`.
+
+1508. Write `getNested(d, path, default)` — retrieve a value at a dot-path. Test missing path returns default.
+
+1509. Write `toTable(records)` — list of dicts → dict of lists (columnar format). Test 3 records with 3 fields.
+
+1510. Write `fromTable(table)` — reverse of `toTable`. Test round-trip.
+
+1511. Write `zipDicts(d1, d2)` — merge same-keyed values into `[v1, v2]` pairs. Test `{"a":1,"b":2}` and `{"a":3,"b":4}`.
+
+1512. Write `maxValue(d)` — key-value pair with the maximum value as a dict. Test `{"x":5,"y":9,"z":3}`.
+
+1513. Write `minValue(d)` — key-value pair with the minimum value. Test same.
+
+1514. Write `deleteKeys(d, keys)` — delete all listed keys from d in place. Test `{"a":1,"b":2,"c":3}`.
+
+1515. Write `renameKeys(d, mapping)` — rename keys according to a mapping dict. Test `{"old_name": 5}` renaming `"old_name"` to `"new_name"`.
+
+1516. Write `containsAll(d, keys)` — true if all keys exist in dict. Test.
+
+1517. Write `containsAny(d, keys)` — true if any key exists. Test.
+
+1518. Write `pairsDiff(d1, d2)` — return a dict of keys only in d1, only in d2, and keys in both. Return a summary dict.
+
+1519. Write `accumulate(d, key, amount)` — add `amount` to `d[key]` (defaulting to 0 if missing). Simulate a tally.
+
+1520. Write `nested_get(d, keys_list)` — navigate nested dicts by list of keys. Test `({"a": {"b": {"c": 42}}}, ["a","b","c"])` → 42.
+
+1521. Write `stringify(d)` — convert dict to a string `"key: value, key: value"`. Test a 3-entry dict.
+
+1522. Write `parsePairs(s)` — parse `"key:value,key:value"` into a dict. Test the output of `stringify`.
+
+1523. Write `compact_dict(d)` — remove entries whose value is false, 0, or empty string. Test a mixed dict.
+
+1524. Write `frequencies_2d(matrix)` — count each distinct value across a 2D list (list of lists). Test a 3×3 grid.
+
+1525. Write `invert_multi(d)` — invert a dict where multiple keys may have the same value; result values are lists. Test `{"a":1,"b":2,"c":1}` → `{1:["a","c"],2:["b"]}`.
+
+1526. Write `entries(d)` — return a list of `{"key":k, "val":v}` dicts. Test a 3-entry dict.
+
+1527. Write `fromEntries(list)` — rebuild dict from `entries` output. Test round-trip.
+
+1528. Write `chunkDict(d, size)` — split a dict into a list of smaller dicts of at most `size` entries each. Test a 7-entry dict with size 3.
+
+1529. Write `applyAll(d, fns_dict)` — for each key, apply the function whose name is stored in `fns_dict[key]`. Test doubling some and negating others.
+
+1530. Write `histDiff(before, after)` — given two dicts, return three lists: keys added, keys removed, keys changed. Test two versions of a config.
+
+1531. Write `scoreBoard(scores_dict)` — print a formatted leaderboard sorted by score descending. Test with 5 entries.
+
+1532. Write `flatPairs(d)` — return a flat list `[k1, v1, k2, v2, ...]`. Test a 4-entry dict.
+
+1533. Write `buildTree(pairs_list)` — build a nested dict from a list of `["path.to.key", value]` strings. Test three pairs.
+
+1534. Write `aggregate(records, group_key, agg_key)` — group records by `group_key` and sum the `agg_key` per group. Test sales records grouped by region.
+
+1535. Write `pivot(records, row_key, col_key, val_key)` — build a pivot table as a nested dict. Test a 6-record dataset.
+
+1536. Write `topKByFreq(list, k)` — return the k most frequent elements. Test `(["a","b","a","c","b","a"], 2)` → `["a","b"]`.
+
+1537. Write `sliding_window_dict(list, k, fn)` — apply fn to each window of size k, collecting results. Test computing window sums.
+
+1538. Write `patchDict(base, patch)` — apply a patch: keys with null-like value delete the key, others update. Test.
+
+1539. Write `jsonPath(d, path)` — simplified JSONPath: support dot notation and `[n]` for list index. Test `"a.b[1].c"`.
+
+1540. Write `schemaValidate(record, schema)` — schema dict maps field names to type strings (`"text"`, `"number"`, `"list"`, `"dict"`). Return list of violations. Test with two records.
+
+1541. Write `leftJoin(a_records, b_records, key)` — for each record in a, find matching record in b by key and merge. Return list of merged dicts (null-style merge if no match).
+
+1542. Write `innerJoin(a_records, b_records, key)` — only records with matching keys on both sides. Test same.
+
+1543. Write `groupAggregate(records, group_key, agg_fns)` — for each group, compute multiple aggregations. Test count, sum, max.
+
+1544. Write `rollingHash(d, new_entry)` — maintain a fixed-size window dict keyed by sequential ids; evict oldest when full. Test size 3.
+
+1545. Write `histogramBuckets(list, buckets)` — classify each number into named buckets defined by `[label, max]` pairs. Test data with 4 buckets.
+
+1546. Write `multiIndex(records, keys_list)` — build multiple index dicts (one per key) for fast lookup. Test 5 records indexed by `"id"` and `"name"`.
+
+1547. Write `diffPatch(d1, d2)` — generate a patch list of operations `[op, key, value]` to transform d1 into d2. Test two configs.
+
+1548. Write `applyPatch(d, patch)` — apply the patch from `diffPatch`. Verify round-trip.
+
+1549. Write `nestedKeys(d)` — return a list of all dot-separated paths to leaf values in a nested dict. Test `{"a": {"b": 1, "c": {"d": 2}}}`.
+
+1550. Write `deepEqual(d1, d2)` — true if two dicts have identical nested structure and values. Test two equal and two unequal nested dicts.
+
+---
+
+## Section 6: Colors (Problems 1551–1580)
+
+1551. Declare a local `red` set to `#FF0000`. Print it and confirm it is a valid color literal.
+
+1552. Declare a local `palette` as `[#FF0000, #00FF00, #0000FF]`. Print each element on its own line.
+
+1553. Write `toRGB(color)` — use `splitColor` to get a list of RGBA components and return a dict `{"r":r,"g":g,"b":b}`. Test with `#FFA500`.
+
+1554. Write `fromRGB(r, g, b)` — build a color using `makeColor([r, g, b])`. Test `fromRGB(255, 165, 0)`.
+
+1555. Write `luminance(color)` — compute approximate luminance as `0.299*r + 0.587*g + 0.114*b` after splitting. Test `#FFFFFF` and `#000000`.
+
+1556. Write `isLight(color)` — true if luminance > 128. Test `#FFFF00` (yellow, light) and `#000080` (dark).
+
+1557. Write `blendColors(c1, c2, t)` — linearly interpolate each RGB channel by factor t. Test `(#FF0000, #0000FF, 0.5)`.
+
+1558. Write `grayScale(color)` — convert to grayscale by setting all channels to the luminance value. Test `#FFA500`.
+
+1559. Write `invertColor(color)` — return `makeColor([255-r, 255-g, 255-b])`. Test `#AABBCC`.
+
+1560. Write `complementColor(color)` — hue complement approximation: invert R and B channels only. Test `#FF8800`.
+
+1561. Write `colorToHex(color)` — convert color to a `"#RRGGBB"` string using `decToHex` for each channel. Test `#01EF3A`.
+
+1562. Write `hexToColor(hexStr)` — parse `"RRGGBB"` string (without #) to a color using `hexToDec` per channel pair. Test `"FF0080"`.
+
+1563. Write `contrastRatio(c1, c2)` — approximate contrast as `abs(luminance(c1) - luminance(c2))`. Test black vs white.
+
+1564. Write `sortByLuminance(palette)` — sort a list of colors by luminance ascending. Test a 5-color list.
+
+1565. Write `mostVibrant(palette)` — return the color with the highest saturation approximation (max(r,g,b) - min(r,g,b)). Test 4 colors.
+
+1566. Write `darken(color, amount)` — subtract `amount` from each channel clamped to 0. Test `darken(#8080FF, 30)`.
+
+1567. Write `lighten(color, amount)` — add `amount` to each channel clamped to 255. Test `lighten(#406080, 40)`.
+
+1568. Write `colorDistance(c1, c2)` — Euclidean distance in RGB space. Test `(#FF0000, #0000FF)`.
+
+1569. Write `nearestColor(target, palette)` — return the color in palette nearest to target by RGB distance. Test 5 colors.
+
+1570. Write `generateGradient(start, end, steps)` — produce a list of `steps` colors interpolating from start to end. Test `steps=5`.
+
+1571. Write `isOpaque(color)` — true if alpha channel (from `splitColor`) is 255. Test `#FF0000` (fully opaque).
+
+1572. Write `withAlpha(color, alpha)` — return `makeColor([r, g, b, alpha])` where r/g/b come from the original. Test setting alpha to 128.
+
+1573. Write `averageColor(palette)` — average each channel across a list of colors. Test 3 colors.
+
+1574. Write `themeFromBase(base)` — generate a 5-color theme: base, darken 20, lighten 20, grayscale, invert. Return as a list.
+
+1575. Write `colorMatrix(rows, cols)` — create a `rows × cols` 2D list filled with `#000000`. Then set the diagonal to `#FFFFFF`. Print it.
+
+1576. Write `colorToAnsi(color)` — return an escape code string for terminal coloring based on the RGB value. Test `#FF0000` → `"\e[31m"` (approximate).
+
+1577. Write `parseColorName(name)` — map color names `"red"`, `"green"`, `"blue"`, `"white"`, `"black"` to their color literals. Test all five.
+
+1578. Write `colorReport(color)` — print a formatted report: hex string, RGB values, luminance, isLight result. Test `#3399FF`.
+
+1579. Write `interpolatePalette(colors, steps)` — given a list of color stops, interpolate `steps` colors between each consecutive pair. Test `([#FF0000, #00FF00, #0000FF], 3)`.
+
+1580. Write `dominantChannel(color)` — return `"red"`, `"green"`, or `"blue"` depending on which channel is highest. Test `#FF8040`.
+
+---
+
+## Section 7: Controls (Problems 1581–1640)
+
+1581. Write a while loop that prints all perfect squares less than 200. Use a counter variable.
+
+1582. Write a for loop from `1` to `100` printing only multiples of 7.
+
+1583. Write nested for loops to print a 5×5 multiplication table as a 2D list.
+
+1584. Write a while loop with a `break` that exits when the running sum of `1+2+3+...` first exceeds 100.
+
+1585. Write a for-each loop over `["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]` and print only weekdays.
+
+1586. Write an if-else chain to classify a number as negative, zero, small (1–9), medium (10–99), or large (100+).
+
+1587. Write a while loop implementing a countdown from 10 to 0, printing each value. Use `break` to exit early at 5.
+
+1588. Write a for loop from `1` to `20` using an if expression inline: print `"even"` or `"odd"` for each number.
+
+1589. Write a nested while loop that counts pairs (i, j) where 1 ≤ i < j ≤ 10. Print the count.
+
+1590. Write a for loop that sums only even numbers from 1 to 50 using a conditional inside the loop.
+
+1591. Write a for-each loop over a list of dicts `[{"name":"Alice","age":25},...]` printing names of people over 20.
+
+1592. Write a while loop that reads from a list one at a time (using an index variable) and stops when it finds the string `"STOP"`.
+
+1593. Write a for loop implementing FizzBuzz from 1 to 30.
+
+1594. Write nested for loops to generate all pairs (i, j) where i and j are from 1 to 5 and `i + j == 6`.
+
+1595. Write a while loop that computes the running product of elements from `[1,2,3,4,5,6]` one at a time and prints when the product exceeds 100.
+
+1596. Write a for-each loop over a list of numbers and build two lists: one for values above average, one below.
+
+1597. Write a for loop from `2` to `30` using `isPrime` (or inline primality test) and print all primes.
+
+1598. Write a while loop that simulates a simple stack using a list: push items from `[5,3,8,1]` one at a time, popping whenever the top is less than the previous.
+
+1599. Write a nested for-each loop to find all pairs in `[1,2,3,4,5]` that sum to 6.
+
+1600. Write a for loop from `1` to `10` that skips multiples of 3 using an if-else (just don't print if multiple of 3).
+
+1601. Write a while loop that progressively halves a number starting at `1024` until it reaches `1`. Print each step.
+
+1602. Write a for-each loop over strings and build a dict counting words by first letter.
+
+1603. Write a for loop implementing binary counting: print numbers 0 through 15 in binary using `decToBin`.
+
+1604. Write a nested for loop to find the first pair (i, j) where i^j > 1000 for i and j in 1..10.
+
+1605. Write a while loop simulating a random walk: start at 0, add +1 or -1 randomly, stop when abs(position) > 10. Print steps taken.
+
+1606. Write a for-each loop that collects items from a list into two separate lists based on their type check using `? number` and `? text`.
+
+1607. Write a for loop from `1` to `n` that builds a Pascal's triangle row from the previous row.
+
+1608. Write a while loop that reads characters from a string one at a time (using `segment`) and counts vowels and consonants.
+
+1609. Write a for loop that computes prefix XOR (`~` operator) of a list `[3, 5, 2, 8, 1]`. Print the XOR array.
+
+1610. Write nested for loops to compute the matrix product of two 3×3 matrices stored as lists of lists.
+
+1611. Write a for loop from 1 to 20 building a list of primes using the trial-division test inline.
+
+1612. Write a while loop to find the first n for which the sum `1 + 1/2 + 1/3 + ... + 1/n` exceeds 3.
+
+1613. Write a for-each loop to partition a list of words into those shorter than 5 chars and those 5 or longer.
+
+1614. Write a for loop from `1` to `100` using a nested if to count numbers that are simultaneously multiples of 3 AND 5.
+
+1615. Write a while loop simulating exponential growth: start at `1`, multiply by `1.1` each step, stop when value exceeds `10`. Print steps.
+
+1616. Write a for loop generating the first 20 terms of the Padovan sequence (P(0)=P(1)=P(2)=1, P(n)=P(n-2)+P(n-3)).
+
+1617. Write a while loop reading integers from a list, maintaining a maximum subarray sum (Kadane's algorithm manually).
+
+1618. Write a for-each loop over a list of (x, y) point dicts and find the point farthest from the origin.
+
+1619. Write a for loop simulating `n` rounds of a dice game: each round add a random int `1..6` to score. Print final score for `n=20`.
+
+1620. Write a nested for loop to generate the first 8 rows of Pascal's triangle as a list of lists.
+
+1621. Write a while loop implementing Newton's method for finding sqrt(x): start with guess x/2, iterate until convergence. Test x=2.
+
+1622. Write a for loop implementing a simple histogram: count how many numbers fall in each of the buckets [0-9],[10-19],[20-29],[30+] from a random-generated list.
+
+1623. Write a for-each loop over a sentence's words to build a reversed-word dict: word → reversed word.
+
+1624. Write a while loop that finds the longest run of identical elements in `[1,1,2,3,3,3,2,2]`. Print the element and run length.
+
+1625. Write a for loop from `1` to `50` collecting numbers where `n % 3 == 0` OR `n % 5 == 0` (but not both) using XOR logic.
+
+1626. Write a nested for loop to count the number of inversions in a list `[3,1,4,1,5,9,2,6]` (pairs i<j where a[i]>a[j]).
+
+1627. Write a while loop simulating a leaky-bucket rate limiter: bucket fills by 5 per tick, drains by request size; stop after 10 ticks or bucket overflow. Print state each tick.
+
+1628. Write a for-each loop over a list of transactions `[{"type":"debit","amount":n}, ...]` summing debits and credits separately.
+
+1629. Write a for loop implementing the Sieve of Eratosthenes up to 50 using a boolean list.
+
+1630. Write a while loop to repeatedly apply the Collatz function to 27 until it reaches 1. Count steps.
+
+1631. Write a for loop from `1` to `100` printing only numbers whose digit sum is divisible by 7.
+
+1632. Write a for-each loop to find all anagram pairs in the list `["cat","act","dog","god","bird"]`.
+
+1633. Write a for loop that builds a "running max so far" list from `[3,1,4,1,5,9,2,6,5,3]`.
+
+1634. Write a while loop that counts how many random integers from 1 to 6 you need to generate before seeing a 6.
+
+1635. Write a for loop from 2 to 100 that builds an index dict mapping each prime to its ordinal position (2→1st, 3→2nd, ...).
+
+1636. Write a nested for-each loop to compute the total edit distance between all pairs of strings in a short list.
+
+1637. Write a while loop that simulates a turn-based game: two players alternate adding 1 or 2, first to reach 21 wins. Print the winner.
+
+1638. Write a for loop implementing cumulative XOR of a list and detect if any prefix XOR equals 0.
+
+1639. Write a for-each loop over a list of intervals `[{"start":s,"end":e}]` to merge overlapping intervals.
+
+1640. Write a while loop implementing the Euclidean algorithm iteratively to find GCD of 1071 and 462. Print each step.
+
+---
+
+## Section 8: Procedures (Problems 1641–1700)
+
+1641. Write `compose2(f, g)` — apply f after g for a single argument. Since Falcon has no first-class functions, implement it by passing function names as strings and using if-else dispatch. Test with `abs` and `neg`.
+
+1642. Write `applyTwice(fn_name, x)` — apply a named function twice. Test with a doubling function.
+
+1643. Write `memoize(fn_name, arg)` — a general memoizer using a global dict keyed by `fn_name _ "_" _ arg`. Test with a slow fibonacci variant.
+
+1644. Write `retry(fn_name, max_attempts)` — call a function up to max_attempts times until it returns true. Test with a function that succeeds on the 3rd attempt using a global counter.
+
+1645. Write `debounce(key, value, delay_count)` — using a global dict tracking last-seen value per key; only "fire" if the value changes `delay_count` times. Test with toggling values.
+
+1646. Write `pipelineFns(x, fn_names)` — apply a list of named functions in sequence to x. Test `[double, increment, double]`.
+
+1647. Write `throttle(key, max_calls)` — track call counts per key in a global dict and block calls beyond max. Test with 5 calls and max 3.
+
+1648. Write `once(key)` — track which keys have been "called"; return false if already called, true and mark otherwise. Use a global set (dict). Test calling the same key twice.
+
+1649. Write `curry2(fn_name, a)` — store `a` in a global and return `fn_name _ "_curried"` as a tag. Write a second function `applyCurried(tag, b)` that retrieves `a` and dispatches. Test.
+
+1650. Write `guard(pred_name, fn_name, x)` — only call fn if pred returns true; otherwise return `"BLOCKED"`. Test.
+
+1651. Write `countCalls(key)` — increment a global counter per key and return the current count. Use in functions to track invocations.
+
+1652. Write `timedOut(fn_name, x, step_limit)` — simulate timeout by running fn up to step_limit iterations using a global `stepCount`. Return `"TIMEOUT"` if not done.
+
+1653. Write `partialApply(fn_name, arg1)` — store arg1 and return a tag. Write `callPartial(tag, arg2)` to complete the call. Test with an addition function.
+
+1654. Write `flip(fn_name, a, b)` — call fn with arguments reversed. Test with a division function.
+
+1655. Write `identity(x)` — returns x unchanged. Use it to verify composition with other functions.
+
+1656. Write `constant(x)` — returns a function tag that always returns x, using global storage. Test.
+
+1657. Write `andFns(pred1, pred2, x)` — true only if both predicates return true on x. Test.
+
+1658. Write `orFns(pred1, pred2, x)` — true if either predicate returns true on x. Test.
+
+1659. Write `notFn(pred_name, x)` — negate the result of pred. Test with `isPrime`.
+
+1660. Write `mapFn(fn_name, list)` — apply fn to every element. Reimplementation using for-each. Test with `abs` on `[-1,-2,3]`.
+
+1661. Write `filterFn(pred_name, list)` — keep elements where pred returns true. Test with `isPrime` on `[1..15]`.
+
+1662. Write `reduceFn(fn_name, list, init)` — fold with a named binary function. Test with addition.
+
+1663. Write `sortWith(list, comparator_name)` — sort using a named comparator. Test descending sort.
+
+1664. Write `groupWith(list, key_fn_name)` — group by key function. Test grouping by even/odd.
+
+1665. Write `partitionWith(pred_name, list)` — split into passing/failing. Test with `isPrime`.
+
+1666. Write `findWith(pred_name, list)` — find first matching element. Test with `isNarcissistic`.
+
+1667. Write `allWith(pred_name, list)` — all elements satisfy pred. Test.
+
+1668. Write `anyWith(pred_name, list)` — any element satisfies pred. Test.
+
+1669. Write `noneWith(pred_name, list)` — no element satisfies pred. Test.
+
+1670. Write `countWith(pred_name, list)` — count matching elements. Test.
+
+1671. Write `zipWith(fn_name, a, b)` — pairwise application of fn to two lists. Test adding corresponding elements.
+
+1672. Write `scanLeft(fn_name, list, init)` — running fold, return list of all intermediate results. Test with addition on `[1,2,3,4,5]`.
+
+1673. Write `unfold(fn_name, seed, count)` — generate a list by repeatedly applying fn. Test generating powers of 2 from seed 1.
+
+1674. Write `iterate(fn_name, x, n)` — apply fn n times, returning final result. Test with doubling 10 times from 1.
+
+1675. Write `fix(fn_name, x, tolerance)` — apply fn repeatedly until |result - prev| < tolerance. Test with `babylonSqrt` step.
+
+1676. Write `applyN(fn_name, x, n)` — alias for `iterate`. Test.
+
+1677. Write `juxtapose(fn_names, x)` — apply each fn in list to x and return results list. Test `["abs","neg","floor"]` on `-3.7`.
+
+1678. Write `overEvery(preds, x)` — true if all predicates pass (like `allWith` but takes list). Test.
+
+1679. Write `overSome(preds, x)` — true if any predicate passes. Test.
+
+1680. Write `memoizeAll(fn_name, args_list)` — batch memoize: compute and cache fn for all args. Test with expensive fibonacci.
+
+1681. Write `trace(fn_name, x)` — call fn, print `"Called fn_name with x → result"`, return result. Test.
+
+1682. Write `benchmark(fn_name, x, reps)` — call fn `reps` times and return average simulated cost (count iterations). Test.
+
+1683. Write `safeDiv(a, b)` — return `a / b` or `"DIV_BY_ZERO"` if b == 0. Use as a guarded function.
+
+1684. Write `safeGet(list_or_dict, key)` — return the value or `"NOT_FOUND"` for list index out of range or missing dict key.
+
+1685. Write `collect(fn_name, n, seed)` — generate a list of n results by applying fn starting from seed. Test generating Fibonacci.
+
+1686. Write `flatMap(fn_name, list)` — map fn then flatten one level. Test splitting each string into chars.
+
+1687. Write `chain(fn_names, x)` — alias for `pipelineFns`. Reuse and test.
+
+1688. Write `tap(fn_name, x)` — call fn(x) for side effect but return x unchanged. Test with println.
+
+1689. Write `when(condition, fn_name, x)` — call fn only if condition is true. Test.
+
+1690. Write `unless(condition, fn_name, x)` — call fn only if condition is false. Test.
+
+1691. Write `converge(fn_name, branch_fns, x)` — apply each branch fn to x, then apply fn to the results list. Test.
+
+1692. Write `spreadArgs(fn_name, args_list)` — call fn with args_list unpacked (2-arg version). Test.
+
+1693. Write `zip_apply(fn_names, values)` — apply fn_names[i] to values[i] for each i. Test.
+
+1694. Write `memoKey(fn_name, a, b)` — two-argument memoization keyed by `fn_name _ a _ "_" _ b`. Test with a multiplication function.
+
+1695. Write `lazyEval(fn_name, tag)` — store fn_name under tag globally; `force(tag)` executes it. Test lazy computation.
+
+1696. Write `either(val, default_val)` — return val if not false/0/"", else default_val. Test `either(0, 42)` → 42.
+
+1697. Write `cond(pairs, x)` — evaluate `[pred, fn]` pairs in order and apply the first matching fn. Test classifying a number.
+
+1698. Write `trampoline(fn_name, x)` — simulate trampolining to avoid deep recursion: fn returns either a value or a `{"bounce": true, "arg": n}` dict; loop until non-bounce. Test with a countdown.
+
+1699. Write `memoFib(n)` using a global dict cache. Compute `memoFib(40)` and print it along with the cache size.
+
+1700. Write `pipeline(x, stages)` — apply a list of `{"fn": name, "enabled": bool}` stage dicts to x, skipping disabled stages. Test with a 5-stage pipeline where 2 stages are disabled.
