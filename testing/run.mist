@@ -1,4 +1,275 @@
-// Fibonacci (recursive)
+// ============================================================
+// Test Helpers
+// ============================================================
+
+func check(label, cond) {
+  if (cond) {
+    println("PASS  " _ label)
+  } else {
+    println("FAIL  " _ label)
+  }
+}
+
+func assertEqual(label, got, expected) {
+  if (got == expected) {
+    println("PASS  " _ label)
+  } else {
+    println("FAIL  " _ label _ "  got=" _ got _ "  expected=" _ expected)
+  }
+}
+
+// ============================================================
+// 1. Boolean literals
+// ============================================================
+check("bool true literal", true)
+check("bool false negated", !false)
+check("bool not true", !(true) == false)
+
+// ============================================================
+// 2. Arithmetic operators
+// ============================================================
+assertEqual("arith add", 3 + 4, 7)
+assertEqual("arith sub", 10 - 3, 7)
+assertEqual("arith mul", 6 * 7, 42)
+assertEqual("arith div", 15 / 4, 3.75)
+assertEqual("arith power", 2 ^ 10, 1024)
+assertEqual("arith remainder", rem(17, 5), 2)
+assertEqual("arith mod", mod(17, 5), 2)
+assertEqual("arith quot", quot(17, 5), 3)
+assertEqual("arith negate", -8, -8)
+
+// ============================================================
+// 3. Numeric string coercion
+// ============================================================
+assertEqual("coerce add strings", "3" + "4", 7)
+assertEqual("coerce mul str+num", "5" * 3, 15)
+
+// ============================================================
+// 4. Equality & relational operators
+// ============================================================
+check("eq numbers", 7 == 7)
+check("neq numbers", 7 != 8)
+check("lt", 3 < 5)
+check("lte eq", 5 <= 5)
+check("lte less", 4 <= 5)
+check("gt", 6 > 5)
+check("gte eq", 5 >= 5)
+
+// ============================================================
+// 5. Logical operators
+// ============================================================
+check("and TT", true && true)
+check("and TF false", !(true && false))
+check("or FT", false || true)
+check("or FF false", !(false || false))
+local sc = false && rem(1, 0) == 0
+check("and short-circuit", sc == false)
+
+// ============================================================
+// 6. Bitwise operators
+// ============================================================
+assertEqual("bit and", 12 & 10, 8)
+assertEqual("bit or",  12 | 10, 14)
+assertEqual("bit xor", 12 ~ 10, 6)
+
+// ============================================================
+// 7. Text join (_)
+// ============================================================
+assertEqual("text join 2", "Hello" _ " World", "Hello World")
+assertEqual("text join 3", "a" _ "b" _ "c", "abc")
+assertEqual("text join num", "x=" _ 42, "x=42")
+
+// ============================================================
+// 8. Lexicographic text operators
+// ============================================================
+check("text eq ===", "abc" === "abc")
+check("text neq !==", "abc" !== "xyz")
+check("text lt <<", "apple" << "banana")
+check("text gt >>", "zebra" >> "mango")
+
+// ============================================================
+// 9. Question (?) operator
+// ============================================================
+check("? number true",  42 ? number)
+check("? number str",   "3.14" ? number)
+check("? number false", !("hello" ? number))
+check("? text true",    "hi" ? text)
+check("? text false",   !(42 ? text))
+check("? list true",    [1, 2] ? list)
+check("? list false",   !("x" ? list))
+check("? dict true",    {"k": 1} ? dict)
+check("? dict false",   !([] ? dict))
+check("? emptyText",    "" ? emptyText)
+check("? not emptyText", !("hello" ? emptyText))
+check("? emptyList",    [] ? emptyList)
+check("? not emptyList",!([1] ? emptyList))
+check("? bin",          "1010" ? bin)
+check("? bin false",    !("102" ? bin))
+check("? hexa",         "1F" ? hexa)
+check("? hexa false",   !("1G" ? hexa))
+check("? base10",       "123" ? base10)
+check("? base10 false", !("12.3" ? base10))
+check("? even",         8 ? even)
+check("? odd",          7 ? odd)
+check("? even false",   !(7 ? even))
+
+// ============================================================
+// 10. Local variables & assignment
+// ============================================================
+local x = 10
+local y = 20
+assertEqual("local vars", x + y, 30)
+x = 55
+assertEqual("local reassign", x, 55)
+
+// ============================================================
+// 11. Multi-local (combined Var node)
+// ============================================================
+local p = 3
+local q = 4
+assertEqual("multi-local sum", p + q, 7)
+assertEqual("multi-local product", p * q, 12)
+
+// ============================================================
+// 12. Global variables
+// ============================================================
+global gVal = 100
+assertEqual("global read", this.gVal, 100)
+this.gVal = 200
+assertEqual("global write", this.gVal, 200)
+
+// ============================================================
+// 13. If / else if / else (expression form)
+// ============================================================
+local grade = 75
+local letter = if (grade >= 90) "A" else if (grade >= 80) "B" else if (grade >= 70) "C" else "D"
+assertEqual("if-expr", letter, "C")
+
+// ============================================================
+// 14. If / else (statement form)
+// ============================================================
+local branch = 0
+if (false) {
+  branch = 1
+} else if (false) {
+  branch = 2
+} else {
+  branch = 3
+}
+assertEqual("if-else stmt", branch, 3)
+
+// ============================================================
+// 15. While loop
+// ============================================================
+local wCount = 0
+local wSum = 0
+while (wCount < 5) {
+  wCount = wCount + 1
+  wSum = wSum + wCount
+}
+assertEqual("while sum", wSum, 15)
+
+// ============================================================
+// 16. While + break
+// ============================================================
+local bVal = 0
+while (true) {
+  bVal = bVal + 1
+  if (bVal == 7) {
+    break
+  }
+}
+assertEqual("while break", bVal, 7)
+
+// ============================================================
+// 17. For range (default step=1)
+// ============================================================
+local forSum = 0
+for (i: 1 .. 10) {
+  forSum = forSum + i
+}
+assertEqual("for range sum", forSum, 55)
+
+// ============================================================
+// 18. For range with step
+// ============================================================
+local stepSum = 0
+for (j: 0 .. 10 step 2) {
+  stepSum = stepSum + j
+}
+assertEqual("for step sum", stepSum, 30)
+
+// ============================================================
+// 19. For range negative step
+// ============================================================
+local countdown = 0
+for (k: 5 .. 1 step -1) {
+  countdown = countdown + k
+}
+assertEqual("for countdown", countdown, 15)
+
+// ============================================================
+// 20. For each (list)
+// ============================================================
+local animals = ["cat", "dog", "bird"]
+local animalStr = ""
+for (a in animals) {
+  animalStr = animalStr _ a _ " "
+}
+assertEqual("for each list", animalStr.trim(), "cat dog bird")
+
+// ============================================================
+// 21. For each pair (dict)
+// ============================================================
+local scores = {"alice": 90, "bob": 85, "carol": 95}
+local keyStr = ""
+for (name, score in scores) {
+  keyStr = keyStr _ name _ ":"
+}
+assertEqual("for each dict keys", keyStr, "alice:bob:carol:")
+
+// ============================================================
+// 22. For each with break
+// ============================================================
+local nums = [10, 20, 30, 40, 50]
+local earlySum = 0
+for (n in nums) {
+  if (n == 30) { break }
+  earlySum = earlySum + n
+}
+assertEqual("for each break", earlySum, 30)
+
+// ============================================================
+// 23. Void procedure
+// ============================================================
+global sideEffect = 0
+func addEffect(n) {
+  this.sideEffect = this.sideEffect + n
+}
+addEffect(10)
+addEffect(20)
+addEffect(30)
+assertEqual("void proc side effect", this.sideEffect, 60)
+
+// ============================================================
+// 24. Returning procedure (basic)
+// ============================================================
+func cube(n) = { n * n * n }
+assertEqual("ret proc cube", cube(4), 64)
+
+// ============================================================
+// 25. Returning procedure with local vars (VarResult)
+// ============================================================
+func hypotenuse(a, b) = {
+  local a2 = a * a
+  local b2 = b * b
+  sqrt(a2 + b2)
+}
+assertEqual("varresult hyp", hypotenuse(3, 4), 5)
+
+// ============================================================
+// 26. Recursive procedure (fibonacci)
+// ============================================================
 func fib(n) = {
   if (n <= 1) {
     n
@@ -6,53 +277,341 @@ func fib(n) = {
     fib(n - 1) + fib(n - 2)
   }
 }
+assertEqual("recursive fib", fib(10), 55)
 
-println("fib(10) = " _ fib(10))
+// ============================================================
+// 27. Recursive procedure (factorial)
+// ============================================================
+func fact(n) = {
+  if (n <= 1) { 1 } else { n * fact(n - 1) }
+}
+assertEqual("recursive factorial", fact(6), 720)
 
-// List lambdas
-local nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-local evens = nums.filter { n -> n % 2 == 0 }
-println("evens: " _ evens.join(", "))
-
-local doubled = evens.map { n -> n * 2 }
-println("doubled evens: " _ doubled.join(", "))
-
-local sum = nums.reduce(0) { x, acc -> x + acc }
-println("sum 1..10 = " _ sum)
-
-// While loop with break
-local x = 0
-while (true) {
-  x = x + 1
-  if (x == 5) {
-    break
+// ============================================================
+// 28. Mutual-style void + global counter
+// ============================================================
+global pingCount = 0
+global pongCount = 0
+func ping(n) {
+  if (n > 0) {
+    this.pingCount = this.pingCount + 1
+    pong(n - 1)
   }
 }
-println("x after break = " _ x)
-
-// For loop
-local total = 0
-for (i: 1 .. 5) {
-  total = total + i
+func pong(n) {
+  if (n > 0) {
+    this.pongCount = this.pongCount + 1
+    ping(n - 1)
+  }
 }
-println("total 1..5 = " _ total)
+ping(6)
+assertEqual("mutual ping", this.pingCount, 3)
+assertEqual("mutual pong", this.pongCount, 3)
 
-// Dict operations
-local info = { "name": "Falcon", "version": "1.0" }
-println("lang = " _ info.get("name", "unknown"))
-info.set("author", "Kumaraswamy")
-println("author = " _ info.get("author", "?"))
-println("keys = " _ info.keys().join(", "))
+// ============================================================
+// 29. Math built-ins
+// ============================================================
+assertEqual("sqrt 25",   sqrt(25), 5)
+assertEqual("abs neg",   abs(-9), 9)
+assertEqual("abs pos",   abs(9), 9)
+assertEqual("floor 3.9", floor(3.9), 3)
+assertEqual("ceil 3.1",  ceil(3.1), 4)
+assertEqual("round 2.5", round(2.5), 3)
+assertEqual("min vararg", min(5, 2, 9, 1, 7), 1)
+assertEqual("max vararg", max(5, 2, 9, 1, 7), 9)
+assertEqual("atan2",     round(degrees(atan2(1, 1))), 45)
 
-// Global variable
-global counter = 0
+// ============================================================
+// 30. List stats built-ins
+// ============================================================
+local statList = [2, 4, 6, 8, 10]
+assertEqual("avgOf", avgOf(statList), 6)
+assertEqual("maxOf", maxOf(statList), 10)
+assertEqual("minOf", minOf(statList), 2)
 
-func increment() {
-  this.counter = this.counter + 1
-}
+// ============================================================
+// 31. Base conversion built-ins
+// ============================================================
+assertEqual("decToBin",  decToBin(10), "1010")
+assertEqual("binToDec",  binToDec("1010"), 10)
+assertEqual("decToHex",  decToHex(255), "FF")
+assertEqual("hexToDec",  hexToDec("FF"), 255)
 
-increment()
-increment()
-increment()
-println("counter = " _ this.counter)
+// ============================================================
+// 32. List creation & 1-based indexing
+// ============================================================
+local fruits = ["apple", "banana", "cherry", "date"]
+assertEqual("list idx 1", fruits[1], "apple")
+assertEqual("list idx 3", fruits[3], "cherry")
+assertEqual("list idx 4", fruits[4], "date")
+
+// ============================================================
+// 33. List index set (mutation)
+// ============================================================
+fruits[2] = "mango"
+assertEqual("list set", fruits[2], "mango")
+
+// ============================================================
+// 34. List methods: len, indexOf, containsItem
+// ============================================================
+local nums2 = [10, 20, 30, 40, 50]
+assertEqual("listLen", nums2.listLen(), 5)
+assertEqual("indexOf found", nums2.indexOf(30), 3)
+assertEqual("indexOf not found", nums2.indexOf(99), 0)
+check("containsItem true", nums2.containsItem(40))
+check("containsItem false", !(nums2.containsItem(99)))
+
+// ============================================================
+// 35. List add, insert, remove
+// ============================================================
+local mlist = [1, 2, 3]
+mlist.add(4)
+assertEqual("add", mlist.listLen(), 4)
+mlist.insert(2, 99)
+assertEqual("insert", mlist[2], 99)
+assertEqual("after insert len", mlist.listLen(), 5)
+mlist.remove(2)
+assertEqual("after remove", mlist[2], 2)
+
+// ============================================================
+// 36. List join, slice, reverseList
+// ============================================================
+local abc = ["a", "b", "c", "d", "e"]
+assertEqual("join", abc.join("-"), "a-b-c-d-e")
+local sliced = abc.slice(2, 4)
+assertEqual("slice", sliced.join(","), "b,c,d")
+local rev = [1, 2, 3, 4].reverseList()
+assertEqual("reverseList", rev.join(","), "4,3,2,1")
+
+// ============================================================
+// 37. List sort (default)
+// ============================================================
+local us = [5, 3, 8, 1, 9, 2]
+local sorted = us.sort()
+assertEqual("sort[1]", sorted[1], 1)
+assertEqual("sort[6]", sorted[6], 9)
+
+// ============================================================
+// 38. List allButFirst, allButLast
+// ============================================================
+local five = [1, 2, 3, 4, 5]
+assertEqual("allButFirst", five.allButFirst().listLen(), 4)
+assertEqual("allButFirst[1]", five.allButFirst()[1], 2)
+assertEqual("allButLast", five.allButLast().listLen(), 4)
+assertEqual("allButLast[4]", five.allButLast()[4], 4)
+
+// ============================================================
+// 39. appendList & copyList
+// ============================================================
+local la = [1, 2]
+local lb = [3, 4]
+la.appendList(lb)
+assertEqual("appendList len", la.listLen(), 4)
+assertEqual("appendList[3]", la[3], 3)
+
+local orig = [10, 20, 30]
+local cp = copyList(orig)
+cp[1] = 999
+assertEqual("copyList independent", orig[1], 10)
+
+// ============================================================
+// 40. lookupInPairs
+// ============================================================
+local pairs = [["color", "red"], ["fruit", "apple"], ["lang", "Falcon"]]
+assertEqual("lookupInPairs hit", pairs.lookupInPairs("lang", "?"), "Falcon")
+assertEqual("lookupInPairs miss", pairs.lookupInPairs("missing", "default"), "default")
+
+// ============================================================
+// 41. pairsToDict & toPairs
+// ============================================================
+local pDict = pairs.pairsToDict()
+assertEqual("pairsToDict get", pDict.get("color", "?"), "red")
+local backPairs = pDict.toPairs()
+assertEqual("toPairs len", backPairs.listLen(), 3)
+
+// ============================================================
+// 42. List lambda: map
+// ============================================================
+local doubled = [1, 2, 3, 4, 5].map { n -> n * 2 }
+assertEqual("map", doubled.join(","), "2,4,6,8,10")
+
+// ============================================================
+// 43. List lambda: filter
+// ============================================================
+local evens = [1, 2, 3, 4, 5, 6, 7, 8].filter { n -> n % 2 == 0 }
+assertEqual("filter", evens.join(","), "2,4,6,8")
+
+// ============================================================
+// 44. List lambda: reduce
+// ============================================================
+local product = [1, 2, 3, 4, 5].reduce(1) { x, acc -> x * acc }
+assertEqual("reduce product", product, 120)
+
+local sumStr = ["a", "b", "c"].reduce("") { s, acc -> acc _ s }
+assertEqual("reduce concat", sumStr, "abc")
+
+// ============================================================
+// 45. List lambda: sort (custom comparator)
+// ============================================================
+local descNums = [3, 1, 4, 1, 5, 9].sort { m, n -> m > n }
+assertEqual("sort desc[1]", descNums[1], 9)
+assertEqual("sort desc[6]", descNums[6], 1)
+
+local words = ["banana", "fig", "apple", "kiwi"]
+local byLen = words.sort { m, n -> m.textLen() < n.textLen() }
+assertEqual("sort by len[1]", byLen[1], "fig")
+
+// ============================================================
+// 46. List lambda: min / max
+// ============================================================
+local wlist = ["banana", "fig", "apple", "cherry"]
+local shortest = wlist.min { m, n -> n.textLen() < m.textLen() }
+assertEqual("min lambda", shortest, "fig")
+local longest = wlist.max { m, n -> n.textLen() > m.textLen() }
+assertEqual("max lambda", longest, "banana")
+
+// ============================================================
+// 47. Dict creation, get, set, delete, containsKey
+// ============================================================
+local person = {"name": "Alice", "age": 30, "city": "Paris"}
+assertEqual("dict get", person.get("name", "?"), "Alice")
+assertEqual("dict len", person.dictLen(), 3)
+person.set("country", "France")
+check("dict containsKey", person.containsKey("country"))
+assertEqual("dict get after set", person.get("country", "?"), "France")
+person.delete("city")
+check("dict delete", !(person.containsKey("city")))
+assertEqual("dict len after delete", person.dictLen(), 3)
+
+// ============================================================
+// 48. Dict keys / values
+// ============================================================
+local d = {"x": 1, "y": 2, "z": 3}
+assertEqual("dict keys", d.keys().join(","), "x,y,z")
+assertEqual("dict values sum", d.values().reduce(0) { v, acc -> v + acc }, 6)
+
+// ============================================================
+// 49. copyDict
+// ============================================================
+local od = {"a": 1, "b": 2}
+local cd = copyDict(od)
+cd.set("c", 3)
+check("copyDict independent", !(od.containsKey("c")))
+
+// ============================================================
+// 50. Dict getAtPath / setAtPath
+// ============================================================
+local nested = {"user": {"name": "Bob", "score": 99}}
+assertEqual("getAtPath", nested.getAtPath(["user", "name"], "?"), "Bob")
+nested.setAtPath(["user", "score"], 100)
+assertEqual("setAtPath", nested.getAtPath(["user", "score"], 0), 100)
+
+// ============================================================
+// 51. Text methods: trim, upper, lower, textLen
+// ============================================================
+assertEqual("trim", "  hello  ".trim(), "hello")
+assertEqual("uppercase", "hello".uppercase(), "HELLO")
+assertEqual("lowercase", "WORLD".lowercase(), "world")
+assertEqual("textLen", "Falcon".textLen(), 6)
+
+// ============================================================
+// 52. Text methods: startsWith, contains, reverse
+// ============================================================
+check("startsWith true",  "Hello World".startsWith("Hello"))
+check("startsWith false", !("Hello World".startsWith("World")))
+check("contains true",    "Hello World".contains("World"))
+check("contains false",   !("Hello World".contains("xyz")))
+assertEqual("reverse text", "abcde".reverse(), "edcba")
+
+// ============================================================
+// 53. Text methods: split, replace, segment
+// ============================================================
+local parts2 = "one,two,three".split(",")
+assertEqual("split len", parts2.listLen(), 3)
+assertEqual("split[2]", parts2[2], "two")
+
+assertEqual("replace", "Hello World".replace("World", "Falcon"), "Hello Falcon")
+assertEqual("segment", "Hello World".segment(7, 5), "World")
+
+// ============================================================
+// 54. Text methods: splitAtFirst, splitAtSpaces
+// ============================================================
+local sp1 = "key:value:extra".splitAtFirst(":")
+assertEqual("splitAtFirst[1]", sp1[1], "key")
+assertEqual("splitAtFirst[2]", sp1[2], "value:extra")
+
+local spWords = "  hello   world  ".splitAtSpaces()
+assertEqual("splitAtSpaces len", spWords.listLen(), 2)
+assertEqual("splitAtSpaces[1]", spWords[1], "hello")
+
+// ============================================================
+// 55. Text methods: containsAny, containsAll
+// ============================================================
+local haystack = "The quick brown fox"
+check("containsAny true",  haystack.containsAny(["cat", "fox", "dog"]))
+check("containsAny false", !(haystack.containsAny(["cat", "dog"])))
+check("containsAll true",  haystack.containsAll(["quick", "brown"]))
+check("containsAll false", !(haystack.containsAll(["quick", "cat"])))
+
+// ============================================================
+// 56. Color literal
+// ============================================================
+local red = #FF0000
+check("color literal type", red === "#FF0000")
+local green = #00FF00
+check("color neq", red !== green)
+
+// ============================================================
+// 57. makeColor / splitColor
+// ============================================================
+local myColor = makeColor([255, 128, 64])
+local channels = splitColor(myColor)
+assertEqual("splitColor R", channels[1], 255)
+assertEqual("splitColor G", channels[2], 128)
+assertEqual("splitColor B", channels[3], 64)
+
+// ============================================================
+// 58. Random (seeded for determinism)
+// ============================================================
+setRandSeed(42)
+local r1 = randInt(1, 10)
+local r2 = randInt(1, 10)
+check("randInt range r1", r1 >= 1 && r1 <= 10)
+check("randInt range r2", r2 >= 1 && r2 <= 10)
+local rf = randFloat()
+check("randFloat range", rf >= 0 && rf < 1)
+
+// ============================================================
+// 59. formatDecimal
+// ============================================================
+assertEqual("formatDecimal", formatDecimal(3.14159, 2), "3.14")
+
+// ============================================================
+// 60. geoMeanOf, avgOf chain
+// ============================================================
+local gList = [2.0, 8.0]
+assertEqual("geoMeanOf", geoMeanOf(gList), 4)
+
+// ============================================================
+// 61. List toCsvRow / csvRowToList round-trip
+// ============================================================
+local csvRow = ["Alice", "30", "Paris"]
+local csvStr = csvRow.toCsvRow()
+local parsed = csvStr.csvRowToList()
+assertEqual("csvRow round-trip[1]", parsed[1], "Alice")
+assertEqual("csvRow round-trip[3]", parsed[3], "Paris")
+
+// ============================================================
+// 62. Dict mergeInto
+// ============================================================
+local base = {"a": 1, "b": 2}
+local extra = {"b": 99, "c": 3}
+base.mergeInto(extra)
+assertEqual("mergeInto overwrite", base.get("b", 0), 99)
+assertEqual("mergeInto new key", base.get("c", 0), 3)
+
+// ============================================================
+// Done
+// ============================================================
+println("")
+println("=== Test run complete ===")
