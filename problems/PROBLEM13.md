@@ -1,0 +1,1035 @@
+# PROBLEM13: Real-World Application Problems (6201–6700)
+
+Problems covering calendars, time/date arithmetic, unit conversions, formatting, localization, measurement systems, cooking/recipe scaling, travel/distance, sports statistics, and grade calculators — implemented in the Falcon language.
+
+---
+
+## Section 1: Variables (Problems 6201–6255)
+
+6201. A teacher needs to store the current school year as a global string (e.g., `"2025-2026"`) and a local variable for today's date as a formatted string `"YYYY-MM-DD"`. Print both variables to confirm they are set correctly.
+
+6202. A chef wants to keep a global variable for the number of servings a base recipe feeds (e.g., `4`) and a local scaling factor. Declare both, multiply them, and print the resulting total servings.
+
+6203. A traveler must store their home city and destination city as global strings, then declare a local boolean `isInternational` set to `true` if the destination is not in the same country. Print the trip description.
+
+6204. A coach needs a global variable for the team name and a local variable for the current win streak. Print a motivational message combining both values using the `_` join operator.
+
+6205. A student wants to track their GPA as a global decimal number initialized to `0.0`. After adding five course grades as local variables, compute the average and store it back into the global GPA. Print the final GPA.
+
+6206. A recipe app stores the base cooking temperature in Fahrenheit as a global (`350`). A local variable holds the altitude adjustment (`-25` degrees per 5000 feet). Declare both and print the adjusted temperature.
+
+6207. A sports analyst stores a player's jersey number as a global integer and their position as a global string. Declare a local variable for current season stats and print a formatted player card line.
+
+6208. A calendar app needs a global variable for the number of days in the current month and a local variable for the current day of the month. Compute and print how many days remain in the month.
+
+6209. A unit converter stores the conversion factor from miles to kilometers (`1.60934`) as a global. A local variable holds a distance in miles. Compute the equivalent in kilometers and print it formatted to two decimal places using `formatDecimal`.
+
+6210. A grade calculator stores the maximum possible points as a global (`100`) and the points earned as a local. Compute and print the percentage score formatted to one decimal place.
+
+6211. A cooking timer app needs a global variable for the oven preheat time in minutes (`15`) and a local variable for the actual bake time. Print the total time from start to finish.
+
+6212. A travel app stores the speed of sound in km/h (`1234.8`) as a global constant. A local variable holds a flight speed. Compute and print the Mach number to three decimal places.
+
+6213. A teacher records the passing grade threshold as a global (`60`). A local variable holds a student's raw score. Print whether the student passed or failed by comparing the two variables.
+
+6214. A fitness tracker stores the recommended daily steps as a global (`10000`). A local variable tracks steps taken today. Compute and print the remaining steps needed and the percentage completed.
+
+6215. A chef stores the number of calories per gram of fat (`9`), protein (`4`), and carbohydrates (`4`) as separate global variables. Given local gram values for each macronutrient, compute and print the total calories.
+
+6216. A sports league stores the points awarded for a win (`3`), draw (`1`), and loss (`0`) as globals. A team has local variables for wins, draws, and losses. Compute and print the total league points.
+
+6217. A traveler needs a global variable for the exchange rate between USD and EUR. A local variable holds an amount in USD. Compute and print the equivalent in EUR formatted to two decimal places.
+
+6218. A calendar app stores the number of weeks in a year (`52`) and days in a week (`7`) as globals. A local variable holds a day-of-year number. Compute and print the corresponding week number.
+
+6219. A teacher stores the weight of each assignment category — homework (`20`%), quizzes (`30`%), and exams (`50`%) — as globals. Given local scores for each category, compute and print the weighted final grade.
+
+6220. A recipe scaler stores the original yield (`24` cookies) as a global. A local variable holds the desired yield. Compute and print the scaling ratio to three decimal places.
+
+6221. A distance tracker stores the Earth's circumference in kilometers (`40075`) as a global. A local variable holds a distance traveled. Print what fraction of the Earth's circumference has been covered, formatted to four decimal places.
+
+6222. A sports app stores a basketball court's length (`28` m) and width (`15` m) as globals. A local variable holds the number of laps run around the court. Compute and print the total distance in meters.
+
+6223. A time-zone converter stores the UTC offset for two cities as global integers. A local variable holds the current time in city A as an hour (0–23). Compute and print the equivalent time in city B, wrapping around midnight using `mod`.
+
+6224. A cooking app needs global variables for water's boiling point at sea level in Celsius (`100`) and the reduction per 300 meters of altitude (`1` degree). Given a local altitude in meters, compute and print the adjusted boiling point.
+
+6225. A grade book stores the total number of students in a class as a global. A local variable holds the number who passed. Compute and print the pass rate as a percentage.
+
+6226. A travel planner stores the fuel efficiency of a car in km per liter as a global. A local variable holds the trip distance in km. Compute and print how many liters of fuel are needed, formatted to two decimal places.
+
+6227. A chef stores the density of water (`1` g/mL) and flour (`0.593` g/mL) as globals. Given a local volume of flour in mL, compute and print the weight in grams to one decimal place.
+
+6228. A fitness app stores the MET (metabolic equivalent) value for running (`9.8`) as a global and a user's weight in kg as another global. Given local exercise duration in minutes, compute and print calories burned using the formula `MET * weight * duration / 60`.
+
+6229. A calendar stores the start day of the year as a global integer (day of week, 0=Sunday). A local variable holds a month offset. Print the starting weekday of that month.
+
+6230. A sports tracker stores a swimmer's best lap time in seconds as a global. A local variable holds the current lap time. Compute and print the improvement (or regression) in seconds and whether a personal record was set.
+
+6231. A teacher stores the letter-grade cutoffs — A (`90`), B (`80`), C (`70`), D (`60`) — as separate globals. A local score variable is compared against these to print the letter grade.
+
+6232. A recipe app stores the number of teaspoons in a tablespoon (`3`) and tablespoons in a cup (`16`) as globals. A local variable holds a measurement in teaspoons. Convert and print the equivalent in cups as a decimal.
+
+6233. A travel app stores the average taxi speed in a city (`25` km/h) as a global. A local variable holds a distance in km. Compute and print the estimated travel time in minutes.
+
+6234. A coach stores the target heart rate zone lower bound (`0.6 * max_hr`) and upper bound (`0.8 * max_hr`) where `max_hr` is `220 - age`. Given a local age variable, compute and print both bounds.
+
+6235. A student stores the number of credit hours per course and the grade points earned as local variables. A global accumulates total credit hours. After three courses, print the cumulative GPA.
+
+6236. A chef stores the percentage of a recipe that is each ingredient by weight as globals. A local variable holds the total batch weight in grams. Compute and print each ingredient's weight.
+
+6237. A traveler stores the cost of a flight per km (`0.12` USD) as a global. Local variables hold the origin and destination distances. Compute and print the estimated airfare.
+
+6238. A calendar app stores the number of leap years between 2000 and 2100 as a global (`25`). A local variable holds a specific year. Print whether that year is a leap year using the standard divisibility rules.
+
+6239. A sports app stores the scoring zones of a dartboard (bullseye `50`, outer bull `25`) as globals. Local variables hold three dart scores. Compute and print the total score.
+
+6240. A cooking app stores standard baking pan sizes (8-inch = `50.27` sq in, 9-inch = `63.62` sq in) as globals. A local scaling factor adjusts recipe amounts. Print the adjusted ingredient quantities.
+
+6241. A grade calculator stores the number of extra credit points available as a global (`10`). A local variable holds the base score. Print the final score capped at `100` using `min`.
+
+6242. A distance app stores the average human walking speed (`5` km/h) as a global. A local variable holds a distance in km. Compute and print the estimated walking time in hours and minutes.
+
+6243. A teacher needs to store class attendance for a week. Declare global variables for each day's attendance count and a local variable for the weekly total. Compute and print average daily attendance.
+
+6244. A chef stores the alcohol content of wine (`12`%) as a global. A local variable holds the volume of wine in mL. Compute and print the number of standard drinks (one standard drink = `14` g = `17.7` mL pure alcohol).
+
+6245. A sports analyst stores the league average batting average (`0.250`) as a global. A local variable holds a player's average. Print whether the player is above, at, or below the league average.
+
+6246. A travel app stores the international date line's longitude (`180`) as a global. A local variable holds a departure longitude and another holds an arrival longitude. Print whether crossing the date line changes the day.
+
+6247. A recipe scaler needs a global for the number of egg whites per recipe (`3`) and yolks (`2`). Given a local scaling factor, print how many whole eggs and extra whites/yolks are needed.
+
+6248. A fitness tracker stores VO2 max estimate formula constants as globals. Given local variables for resting heart rate and max heart rate, compute and print the estimated VO2 max.
+
+6249. A calendar app stores the Julian Day Number for January 1, 2000 (`2451545`) as a global. A local variable holds a number of days elapsed. Compute and print the corresponding calendar date components.
+
+6250. A coach stores the required qualifying time for a race in seconds as a global. A local variable holds an athlete's time. Print whether they qualify and by how many seconds they beat or missed the cutoff.
+
+6251. A chef stores the standard ratio of flour to butter in shortcrust pastry (`2:1`) as a global ratio value (`2.0`). A local variable holds the available butter in grams. Compute and print the flour needed.
+
+6252. A grade book stores the maximum number of absences allowed before failing (`5`) as a global. A local variable holds a student's absence count. Print a warning or pass notice accordingly.
+
+6253. A travel app stores a car's tank capacity in liters (`50`) as a global. Local variables hold the current fuel level and the trip distance. Compute and print whether a fuel stop is needed.
+
+6254. A sports app stores the dimensions of a soccer field (length `105` m, width `68` m) as globals. A local variable holds the number of field lengths a player has run. Compute and print the total distance in km.
+
+6255. A student stores the required reading pace in pages per day (`30`) as a global. A local variable holds the number of pages remaining and the days until the deadline. Print whether the student is on track.
+
+---
+
+## Section 2: Math (Problems 6256–6335)
+
+6256. A chef needs to scale a recipe that uses `2.5` cups of flour for 6 servings up to 15 servings. Use multiplication and `formatDecimal` to print the exact amount of flour needed to two decimal places.
+
+6257. A teacher calculates a student's weighted grade: homework is 20%, quizzes 30%, and the final exam 50%. Given scores of `85`, `78`, and `91`, compute and print the weighted average to one decimal place.
+
+6258. A travel app must convert a temperature from Celsius to Fahrenheit using the formula `F = C * 9/5 + 32`. Given `37` degrees Celsius (body temperature), print the Fahrenheit equivalent.
+
+6259. A coach computes the Body Mass Index (BMI) using `weight_kg / (height_m * height_m)`. Given weight `70` kg and height `1.75` m, print the BMI formatted to one decimal place and the corresponding category.
+
+6260. A calendar app calculates how many days are between two dates. Given month, day, and year for two dates, compute the total day count using the formula for day-of-year and print the difference.
+
+6261. A recipe app needs to compute the area of a circular pizza to determine how much topping to use. Given a diameter of `30` cm, use `3.14159` for pi, compute the area, and print it formatted to two decimal places.
+
+6262. A sports analyst computes the slugging percentage: total bases divided by at-bats. Given `40` singles, `10` doubles, `5` triples, and `8` home runs in `200` at-bats, compute and print the slugging percentage to three decimal places.
+
+6263. A traveler needs to find the great-circle distance between two cities using the haversine approximation. Use `sin`, `cos`, and `sqrt` with Earth's radius `6371` km and print the distance in km.
+
+6264. A fitness app computes the calories burned during cycling using `MET * weight * hours`. For a 75 kg person cycling at moderate pace (`MET = 8.0`) for 45 minutes, print calories burned.
+
+6265. A grade calculator computes a z-score: `(score - mean) / stddev`. Given a score of `88`, class mean `75`, and standard deviation `10`, compute and print the z-score to two decimal places.
+
+6266. A cooking timer app calculates the total prep and cook time. If prep takes `15` min, marinating `120` min, and cooking `45` min, print the total time in hours and minutes.
+
+6267. A travel planner estimates fuel cost: distance divided by fuel efficiency times price per liter. For a 450 km trip, efficiency of `12` km/L, and price `1.85` USD/L, print the estimated fuel cost.
+
+6268. A sports app computes the quarterback rating using the NFL passer rating formula. Given completions `220`, attempts `350`, yards `2800`, touchdowns `22`, and interceptions `8`, compute and print the rating.
+
+6269. A teacher calculates the percentage improvement between two test scores. Given a first score of `62` and a second of `78`, compute `(new - old) / old * 100` and print the improvement percentage.
+
+6270. A recipe app converts ounces to grams (`1 oz = 28.3495 g`). Given a measurement of `3.5` oz of chocolate, print the equivalent in grams to one decimal place.
+
+6271. A calendar app determines the day of the week for any date using Zeller's congruence formula. Given the formula components for March 15, 2025, compute and print the day name.
+
+6272. A fitness tracker computes the target training heart rate range. For a 30-year-old, max HR = `220 - 30 = 190`. Print the 60% and 80% zones as integer values using `floor` and `ceil`.
+
+6273. A chef scales a recipe by a non-integer factor. Original recipe uses `1.75` cups of sugar; scaling to 5/3 of the original. Compute the scaled amount and print it using `formatDecimal` to three decimal places.
+
+6274. A sports analyst computes the Pythagorean winning expectation: `RS^2 / (RS^2 + RA^2)`. Given runs scored `750` and runs allowed `680`, compute and print the expected win percentage to four decimal places.
+
+6275. A travel app computes the total cost of a road trip. Fuel costs `$0.15/km`, tolls are `$12.50`, meals are `$45.00`, and lodging is `$89.99`. Print the total trip cost formatted to two decimal places.
+
+6276. A grade book computes the harmonic mean of three test scores using `3 / (1/a + 1/b + 1/c)`. Given scores `80`, `90`, and `70`, print the harmonic mean to two decimal places.
+
+6277. A calendar app determines whether a year is a leap year: divisible by 4, except centuries must be divisible by 400. Use arithmetic and modulo checks to print `"leap"` or `"not leap"` for year `2100`.
+
+6278. A recipe app uses the altitude adjustment rule: reduce baking powder by `1/8 tsp` per `3000 ft` above sea level. For an altitude of `7500 ft`, compute and print the total reduction.
+
+6279. A sports tracker computes a runner's pace in minutes per km. Given a 10 km race finished in 52 minutes and 30 seconds, convert total time to seconds, divide by distance, and print pace as `MM:SS`.
+
+6280. A teacher computes the standard deviation of five test scores using the formula involving the mean and squared differences. Given scores `72`, `85`, `90`, `68`, `79`, use `stdDevOf` and print the result to two decimal places.
+
+6281. A cooking app converts a recipe from volume to weight for flour. One cup of all-purpose flour weighs `125` g. A recipe needs `2.75` cups. Compute and print the weight in grams.
+
+6282. A travel app calculates the time to destination given speed and distance. At `110` km/h, a `385` km journey takes how many hours and minutes? Compute and print using `floor` for hours and `round` for minutes.
+
+6283. A fitness app computes the one-rep max (1RM) using the Epley formula: `weight * (1 + reps / 30)`. For a set of `10` reps at `80` kg, compute and print the estimated 1RM to one decimal place.
+
+6284. A grade calculator applies a curve: add the square root of the percentage to each score. Given a raw score of `64`, compute `64 + sqrt(64)` and print the curved score capped at `100`.
+
+6285. A sports analyst computes the on-base percentage (OBP): `(H + BB + HBP) / (AB + BB + HBP + SF)`. Given `H=130`, `BB=45`, `HBP=3`, `AB=400`, `SF=4`, compute and print OBP to three decimal places.
+
+6286. A chef computes the total recipe cost. Ingredients cost `$1.20`, `$0.85`, `$2.30`, `$0.45`, and `$3.10`. Print the total and the cost per serving for a recipe that serves `8`.
+
+6287. A calendar app computes the number of working days between two dates, excluding weekends. Given start date Monday March 3 and end date Friday March 21, compute and print the number of working days.
+
+6288. A fitness tracker calculates the caloric deficit needed to lose 1 kg of fat. One kg of fat contains approximately `7700` calories. Print how many days it takes to lose 1 kg at a daily deficit of `500` calories.
+
+6289. A sports app computes the shooting percentage in basketball: `field_goals_made / field_goals_attempted * 100`. Given `187` made and `432` attempted, print the percentage to one decimal place.
+
+6290. A travel app estimates flight time between two airports. The distance is `8750` km and the average cruising speed is `900` km/h. Compute total flight time in hours and minutes and print it.
+
+6291. A recipe app calculates the sugar concentration of a syrup. Dissolving `200` g of sugar in `300` mL of water gives a total volume of `450` mL. Compute and print the concentration in g/mL to three decimal places.
+
+6292. A teacher computes a final semester grade using four quarter grades with equal weight. Given grades `82`, `79`, `88`, `91`, compute the average and print it with the corresponding letter grade.
+
+6293. A sports analyst uses the linear weights formula to compute runs created. Each single is worth `0.47`, double `0.77`, triple `1.04`, home run `1.40`. Given counts `40`, `12`, `3`, `15`, print total runs created.
+
+6294. A travel planner computes the total travel time including layovers. Flight 1 is `3h 45m`, layover is `2h 10m`, Flight 2 is `1h 55m`. Print the total journey time in hours and minutes.
+
+6295. A cooking app converts Celsius to Kelvin (`K = C + 273.15`). A recipe calls for flash-freezing at `-196`°C (liquid nitrogen). Print the temperature in Kelvin.
+
+6296. A fitness tracker uses the Harris-Benedict equation to compute BMR for a male: `88.362 + 13.397*w + 4.799*h - 5.677*a`. For weight `80` kg, height `175` cm, age `30`, print the BMR to the nearest integer.
+
+6297. A grade calculator applies weighted partial credit. A problem is worth `25` points: setup `5`, method `10`, answer `10`. A student earns full setup, half method, and no answer. Compute and print the earned points.
+
+6298. A sports app computes the efficiency rating of a basketball player: `(PTS + REB + AST + STL + BLK - (FGA - FGM) - (FTA - FTM) - TOV)`. Given appropriate stats, print the efficiency rating.
+
+6299. A travel app computes the carbon footprint of a flight: `0.255` kg CO2 per km per passenger. For a 5600 km flight with 180 passengers, print the total CO2 in metric tons to two decimal places.
+
+6300. A recipe app uses Beer-Lambert law to estimate coffee strength: `A = e * c * l`. Given extinction coefficient `0.025`, concentration `0.05` mol/L, and path length `1` cm, compute and print absorbance.
+
+6301. A calendar app computes the moon phase cycle. The lunar cycle is `29.53` days. Given that a new moon occurred on day `1` of the year, compute the phase on day `100` using `mod` and print the phase name.
+
+6302. A chef uses the rule of thumb that pasta doubles in volume when cooked. A recipe needs `500` g of cooked pasta. How many grams of dry pasta are needed? Print the answer and the total water weight absorbed.
+
+6303. A sports analyst computes the win probability added (WPA) approximation. Given the change in win probability from `0.42` to `0.67` on a key play, print the WPA and label it as `"positive"` or `"negative"`.
+
+6304. A travel app computes the time difference between departure and arrival, accounting for time zones. Departure at `14:30` in UTC-5, arrival at `09:15` next day in UTC+9. Compute and print the total flight duration.
+
+6305. A fitness app computes the pace needed to achieve a target 5K time. A runner wants to finish in `22:30`. Compute the required pace in minutes and seconds per kilometer and print it formatted as `MM:SS/km`.
+
+6306. A grade book computes the median grade from an odd set of scores. Given `[67, 82, 75, 90, 58, 88, 71]`, sort them and extract the middle value. Print the median.
+
+6307. A cooking app converts a recipe's baking time when changing pan size. Using the formula `t2 = t1 * (area1 / area2)^0.9`, given an 8-inch pan at `35` minutes and switching to a 9-inch pan, print the adjusted time.
+
+6308. A sports app computes a baseball pitcher's WHIP: `(walks + hits) / innings_pitched`. Given `45` walks, `180` hits, and `210` innings, print the WHIP to two decimal places.
+
+6309. A travel app computes the refraction correction for a GPS altitude reading. Given a satellite elevation angle of `10` degrees, use the formula `r = 1.02 / tan(angle + 10.3 / (angle + 5.11))` and print the correction in arcminutes.
+
+6310. A recipe app uses the Maillard reaction threshold temperature `154`°C. Given an oven temperature in Fahrenheit, convert to Celsius using `(F - 32) * 5 / 9` and print whether Maillard browning will occur.
+
+6311. A fitness tracker computes the ideal body weight using the Devine formula for males: `50 + 2.3 * (height_in - 60)`. For a height of `5'11"` (71 inches), compute and print the ideal weight in kg.
+
+6312. A sports analyst computes the league ERA (earned run average): `earned_runs / innings * 9`. Given `350` earned runs across `1250` innings for the league, print the ERA to two decimal places.
+
+6313. A travel planner computes the savings from taking a direct flight vs. connecting. Direct is `$485`, connection is `$312` but adds `4h 30m` of travel time. If time is valued at `$25/hr`, print the true cost of each option.
+
+6314. A chef computes the percentage of water that evaporates during a reduction. Starting with `800` mL of stock and reducing to `300` mL, print the percentage reduced and the concentration multiplier.
+
+6315. A grade calculator uses a standard grading scale to assign letter grades to a list of percentages. For percentages `93`, `85`, `72`, `64`, `55`, print each grade using the A/B/C/D/F scale.
+
+6316. A sports app computes a diver's score. Five judges give scores `7.5`, `8.0`, `7.0`, `8.5`, `7.5`; the highest and lowest are dropped, and the average of the remaining three is multiplied by the degree of difficulty `2.8`. Print the final score.
+
+6317. A travel app calculates the fuel surcharge on a ticket. The base fare is `$320` and the fuel surcharge is `18.5`% of the base fare plus a flat `$15` fee. Print the total ticket price.
+
+6318. A cooking app determines the number of calories from each macronutrient in a meal. Fat `22` g, protein `35` g, carbs `60` g, using `9`, `4`, `4` cal/g respectively. Print total calories and each macro's percentage.
+
+6319. A sports analyst computes the adjusted OPS+ using the formula `100 * (OBP/lgOBP + SLG/lgSLG - 1)`. Given player OBP `0.370`, SLG `0.520`, league OBP `0.320`, league SLG `0.420`, print OPS+.
+
+6320. A travel app estimates the cost of delays. A delayed flight costs the airline `$10,000/hr` for a narrow-body aircraft. For a 2h 45m delay, print the total cost.
+
+6321. A recipe app scales spice quantities. The original recipe uses `0.25` tsp of cayenne for 4 servings. Scaling to 18 servings, print the scaled amount and round up to the nearest `0.25` tsp increment.
+
+6322. A fitness app computes the power output during cycling: `P = F * v`, where force is `150` N and velocity is `8` m/s. Print the power in watts and the equivalent in horsepower (`1 hp = 745.7 W`).
+
+6323. A grade book computes the drop-lowest policy. A student's quiz scores are `[55, 88, 72, 91, 63, 84]`. Drop the lowest score, then compute and print the average of the remaining scores.
+
+6324. A sports app computes the Elo rating change after a match. Using `K=32`, expected score `0.64`, actual score `1`, compute the new rating for a player starting at `1500`.
+
+6325. A travel planner computes the cost-effectiveness of a rail pass. A 7-day pass costs `$299`. Individual ticket prices for planned trips are `$45`, `$62`, `$38`, `$55`, `$70`. Print whether the pass saves money.
+
+6326. A cooking app computes the gluten development index for bread dough. Given hydration `68`%, absorption `62`%, print the ratio and classify as `"slack"`, `"medium"`, or `"stiff"` dough.
+
+6327. A sports analyst computes the true shooting percentage: `PTS / (2 * (FGA + 0.44 * FTA))`. Given `1850` points, `1400` FGA, `450` FTA, print the TS% to three decimal places.
+
+6328. A travel app computes the time savings of a high-speed train vs. car. Train covers `400` km in `1h 45m`; car travels at `110` km/h. Compute and print the time difference in minutes.
+
+6329. A recipe app computes the yield percentage of vegetables after trimming. Starting with `1.5` kg of broccoli, trimming waste is `30`%. Compute and print the usable weight and the cost per usable kg if broccoli costs `$2.40/kg`.
+
+6330. A fitness tracker computes the estimated finish time for a marathon based on a training run. A runner completes a 10 km run in `52:00`. Using Riegel's formula `t2 = t1 * (d2/d1)^1.06`, print the predicted marathon time.
+
+6331. A sports app computes the expected goals (xG) for a shot. Using a simplified model where probability = `0.35 * (1 - distance/40)` for shots within `40` m, given a shot from `18` m, print the xG value.
+
+6332. A travel app computes the cumulative cost of airline baggage fees. First bag `$35`, second `$45`, overweight fee (over 23 kg) `$100`. For 2 bags where one weighs `28` kg, print the total baggage fees.
+
+6333. A grade calculator implements the plus/minus grading system. A score of `88` earns a `B+`. Define the boundaries and print the plus/minus letter grade for scores `93`, `87`, `79`, `72`, `68`.
+
+6334. A sports analyst computes the pace of play metric for basketball: possessions per game = `(FGA - ORB + TOV + 0.44 * FTA) / 2`. Given stats for both teams, compute and print the game pace.
+
+6335. A travel app computes the visa fee for multiple family members. Adult fee is `$160`, child (under 12) is `$80`. For a family with 2 adults and 3 children, print the total visa cost and the per-person average.
+
+---
+
+## Section 3: Text (Problems 6336–6425)
+
+6336. A calendar app needs to format a date stored as separate integers (year `2025`, month `3`, day `7`) into the ISO format `"2025-03-07"`. Use text joining and `formatDecimal` to zero-pad single-digit values.
+
+6337. A chef wants to display recipe names in title case. Given the string `"pan-fried chicken breast with garlic butter"`, split by spaces and hyphens, capitalize each word, and rejoin.
+
+6338. A travel app stores destination names in mixed case. Given `"sÃo PaUlO"`, convert to lowercase and print the normalized form for database storage.
+
+6339. A sports analyst needs to parse a box score string `"PTS:28 REB:11 AST:7"`. Split by spaces and then by `":"` to extract each stat label and value, printing them on separate lines.
+
+6340. A teacher needs to generate a report header. Given teacher name `"Ms. Johnson"`, class `"Math 101"`, and date `"March 7, 2025"`, join them into a formatted header string with separators.
+
+6341. A recipe app displays serving size instructions. Given a base instruction `"Mix ingredients for X minutes"`, replace `"X"` with the actual time `"3"` using `.replace()` and print the result.
+
+6342. A travel planner formats a flight itinerary. Given departure city `"New York"`, arrival city `"London"`, and time `"22:45"`, build and print a string like `"NYC → LHR | Dep: 22:45"`.
+
+6343. A sports app formats a scoreboard line. Given home team `"Eagles"`, score `24`, away team `"Lions"`, score `17`, print a formatted string like `"Eagles 24 — Lions 17"`.
+
+6344. A grade book generates student ID codes. Given a student's first name `"Alexander"`, last name `"Brown"`, and year `2025`, extract the first 3 letters of each name and append the last 2 digits of the year to form the ID.
+
+6345. A cooking timer displays time remaining. Given a total time of `2700` seconds, convert to `MM:SS` format and print a display string like `"Time remaining: 45:00"`.
+
+6346. A travel app needs to check if a destination name contains a space (indicating a multi-word city). Use `.contains(" ")` and print either the full name or just the first word.
+
+6347. A teacher generates a fill-in-the-blank question. Given the answer word `"photosynthesis"`, replace it with underscores equal to its length using `.textLen()` and a loop, then print the blanked question.
+
+6348. A recipe app formats ingredient quantities. Given a quantity `0.75` and unit `"cup"`, format as `"3/4 cup"` by comparing the decimal to known fractions and printing the fraction form.
+
+6349. A sports analyst parses a player's stats from a CSV string `"James,LeBron,28.5,7.4,8.3"`. Split by `","` and print a formatted player profile with labels for each field.
+
+6350. A travel app validates airport codes. Given a code string, check that it has exactly 3 characters using `.textLen()`, that it is uppercase using `.uppercase()` comparison, and print whether it is valid.
+
+6351. A grade book formats a progress report. Given a student name, percentage grade, and attendance count, build a multi-line string using `_` and newlines, then print the full report.
+
+6352. A chef needs to parse a recipe instruction that uses abbreviated units. Replace `"tsp"` with `"teaspoon"`, `"tbsp"` with `"tablespoon"`, and `"oz"` with `"ounce"` in a given instruction string.
+
+6353. A travel app generates a booking reference. Given the first letters of origin `"P"`, destination `"R"`, year `"25"`, month `"03"`, and a random 4-digit number, concatenate and print the reference code.
+
+6354. A sports app formats a leaderboard entry. Given rank `1`, player name `"Curry"`, and score `42`, left-pad the rank to 2 digits and right-pad the name to 10 characters using spaces, then print the line.
+
+6355. A teacher formats exam instructions. Given a list of instructions, number each one and join with newline characters using `.join("\n")` after prepending the number, then print the formatted list.
+
+6356. A recipe app extracts the yield from an instruction string like `"Yields: 24 cookies"`. Use `.split(":")` and `.trim()` to extract and print just the yield information.
+
+6357. A travel app formats a distance for display. Given a distance in meters `1850`, convert to `"1.85 km"` if over 1000 or keep as `"1850 m"` otherwise, and print the formatted string.
+
+6358. A sports analyst formats a season summary. Given a team's record as wins `42`, losses `28`, draws `6`, print it in the standard `"W-L-D"` format with a win percentage appended.
+
+6359. A grade book generates a histogram bar. Given a score `78` out of `100`, print a bar made of `"#"` characters proportional to the score, followed by the numeric value.
+
+6360. A cooking app normalizes ingredient names. Given `"  all-purpose Flour  "`, trim whitespace, convert to lowercase, and replace hyphens with spaces, then print the cleaned name.
+
+6361. A travel app abbreviates country names for display. Given `"United States of America"`, split by spaces, take the first letter of each word, and print the abbreviation `"USA"`.
+
+6362. A teacher builds a multiple-choice question. Given a question text and options list `["Paris","London","Berlin","Madrid"]`, format each option with a letter label `"A."`, `"B."`, etc., and print the question block.
+
+6363. A recipe app formats a time duration. Given total minutes `95`, compute hours and minutes and print as `"1 hr 35 min"` or just `"55 min"` if under an hour.
+
+6364. A sports app parses a game clock string `"Q3 08:42"`. Split to extract the quarter number and the remaining time, then print `"Third quarter, 8 minutes 42 seconds remaining"`.
+
+6365. A travel app generates a packing list label. Given category `"Electronics"` and items `["charger","adapter","earphones"]`, format as `"Electronics: charger, adapter, earphones"` using `.join(", ")`.
+
+6366. A grade book formats a percentage for display. Given a raw ratio `0.8375`, multiply by `100`, format to one decimal place using `formatDecimal`, and append `"%"` for display.
+
+6367. A chef generates a shopping list from a recipe. Given ingredient names and quantities as separate lists, zip them together and print each as `"- 2 cups flour"` with proper formatting.
+
+6368. A travel app validates a date string format. Given a string like `"2025-13-45"`, split by `"-"` and check that the month is 1–12 and day is 1–31, printing `"valid"` or `"invalid"`.
+
+6369. A sports analyst formats a player's shooting line for a box score. Given `7`, `15`, `3`, `4` for FGM, FGA, 3PM, 3PA, format as `"7-15 FG, 3-4 3PT"` and print.
+
+6370. A teacher creates a word-frequency summary from a text. Given a sentence, split by spaces, count each unique word, and print `"The word 'X' appears N time(s)"` for each distinct word.
+
+6371. A recipe app extracts allergen information from ingredient descriptions. Given a string containing `"(contains gluten)"`, use `.contains()` to check for common allergens and print a warning list.
+
+6372. A travel app formats currency amounts. Given an amount `1234567.89` and currency code `"USD"`, format as `"USD 1,234,567.89"` by inserting commas every three digits from the right.
+
+6373. A sports app generates a match report headline. Given result `"win"`, team `"Arsenal"`, score `3`, opponent `"Chelsea"`, opp_score `1`, build and print `"Arsenal beat Chelsea 3-1"` or the appropriate variant.
+
+6374. A grade book generates an alphabetical class roster. Given a list of last names, sort them alphabetically using `.sort()` and print the numbered roster with each name on its own line.
+
+6375. A cooking app generates recipe tags from ingredient names. Given ingredients `["chicken","lemon","garlic","rosemary","olive oil"]`, extract the first word of each and join with commas to create a tag string.
+
+6376. A travel app parses an airline flight code. Given `"BA2490"`, extract the two-letter carrier code `"BA"` using `.segment()` and the flight number `"2490"` and print both separately.
+
+6377. A teacher builds a grade feedback message. Given a score `85` and max `100`, print `"You scored 85/100 (85.0%). Well done!"` with appropriate encouragement based on the grade range.
+
+6378. A recipe app formats a temperature instruction. Given a value `180` and scale `"C"`, print `"Preheat oven to 180°C (356°F)"` by computing the Fahrenheit equivalent inline.
+
+6379. A sports app generates a bracket display. Given team names for a 4-team bracket, format and print the matchups as `"[1] TeamA vs [4] TeamD"` and `"[2] TeamB vs [3] TeamC"`.
+
+6380. A travel app extracts the city name from an address string `"221B Baker Street, London, NW1 6XE, UK"`. Split by `","`, trim each part, and print the city (second element).
+
+6381. A grade book formats a letter-grade distribution. Given counts for A, B, C, D, F, build a text bar chart where each bar is made of `"|"` characters scaled to the count, and print it.
+
+6382. A cooking app formats a unit conversion table. For cups in `[0.25, 0.5, 1, 2, 4]`, compute each value in mL (`1 cup = 236.6 mL`) and print a formatted two-column table.
+
+6383. A travel app generates a timezone display string. Given a city name and UTC offset (e.g., `"Tokyo"`, `+9`), format as `"Tokyo (UTC+9)"` handling both positive and negative offsets.
+
+6384. A sports analyst formats a season record. Given monthly win-loss records as strings `["Mar: 8-5","Apr: 12-3","May: 10-7"]`, join them into a season summary line with total wins and losses.
+
+6385. A teacher generates personalized exam headers. Given student name `"Emma Clarke"`, split the name, extract the last name, and build a header `"Clarke, E. | Exam 3 | March 2025"`.
+
+6386. A recipe app formats a nutritional label. Given calories `320`, fat `12`, carbs `42`, protein `18`, build a multi-line label string with proper labels and units (g) and print it.
+
+6387. A travel app formats a visa duration. Given days `90`, print `"90 days (approximately 3 months)"` by dividing by `30` for the approximate months.
+
+6388. A sports app generates a sports ticker message. Given scores for three simultaneous games, format each as `"TM1 N - N TM2"` and join with `" | "` to create a single ticker string.
+
+6389. A grade book checks for grade inflation. Given last year's average `82.3` and this year's `85.1`, compute the difference and print `"Grade inflation detected: +2.8 points"` or `"Grade deflation: -X points"`.
+
+6390. A cooking app generates a metric measurement reference. Given common US measurements in cups `[0.0625, 0.125, 0.25, 0.333, 0.5, 1]` and their names `["1 tbsp","1/8 cup","1/4 cup","1/3 cup","1/2 cup","1 cup"]`, print each with its mL equivalent.
+
+6391. A travel app builds a packing checklist. Given a destination temperature `5`°C, print a category-labeled list: `"Cold weather: heavy coat, thermal layers, gloves, scarf"` based on temperature thresholds.
+
+6392. A sports app formats an injury report. Given a list of player names and their statuses `["questionable","out","probable"]`, print a formatted two-column injury report.
+
+6393. A teacher formats a rubric score breakdown. Given category names and points earned vs. maximum, print each row as `"Argument: 18/20"` and a total row at the bottom.
+
+6394. A recipe app generates an ingredient substitution note. Given `"buttermilk"` as the ingredient, print `"Substitute: 1 cup buttermilk = 1 cup milk + 1 tbsp lemon juice or white vinegar"` and similar for common substitutions.
+
+6395. A travel app builds a hotel confirmation email. Given guest name, hotel name, check-in date, check-out date, and room type, build and print a multi-line confirmation string with all details.
+
+6396. A sports app formats a race result. Given position `1`, name `"Usain Bolt"`, time `"9.58"`, and nationality `"JAM"`, print `"1. Usain Bolt (JAM) — 9.58s"` using string joining.
+
+6397. A grade book generates a student report card. For five subjects with grades and teacher comments, format a complete report card string with headers and aligned columns, then print it.
+
+6398. A cooking app generates step-by-step instructions. Given a list of instruction strings, number them from `1` and print each on a new line as `"Step 1: Preheat the oven to 375°F."`.
+
+6399. A travel app parses a hotel address. Given `"Hilton Vienna Park, Am Stadtpark 1, 1030 Vienna, Austria"`, split appropriately and print the hotel name, street address, and country separately.
+
+6400. A sports analyst builds a press release opening. Given team name `"Red Sox"`, opponent `"Yankees"`, date `"April 15"`, and score `"7-4"`, construct and print a standard press release opening sentence.
+
+6401. A teacher formats test time remaining. Given start time and current time as `HH:MM` strings, compute elapsed minutes and print `"25 minutes elapsed, 35 minutes remaining"` for a 60-minute test.
+
+6402. A recipe app formats a wine pairing suggestion. Given a dish `"roasted lamb"` and wine `"Cabernet Sauvignon"`, print `"Pairing suggestion: Roasted Lamb pairs well with a bold Cabernet Sauvignon."` with proper capitalization.
+
+6403. A travel app validates a passport number format. Given a string, check it starts with two uppercase letters followed by seven digits using `.segment()` and `.split()`, and print `"valid"` or `"invalid"`.
+
+6404. A sports app generates a fantasy sports trade proposal. Given two player names and their point values, build a trade offer string: `"Offer: [PlayerA (25.3 pts)] for [PlayerB (22.1 pts)] — Net gain: +3.2 pts"`.
+
+6405. A grade book formats a GPA for a transcript. Given a GPA `3.7` and scale `4.0`, print `"Cumulative GPA: 3.70 / 4.00 — Magna Cum Laude"` based on honor thresholds (3.5 = Cum Laude, 3.7 = Magna, 3.9 = Summa).
+
+6406. A cooking app generates a time-lapse log. Given cooking start time `"14:30"` and elapsed minutes `[5,10,20,40,60]`, print each checkpoint time as `"14:35 — Stir the sauce"` with action descriptions.
+
+6407. A travel app formats a train schedule. Given departure times as integers (minutes from midnight), format each as `"HH:MM"` using `floor` and `mod`, then print the schedule in order.
+
+6408. A sports app builds a game preview. Given two team names, their records (W-L), and venue, print `"[Team1 W-L] vs. [Team2 W-L] at [Venue] — Preview"` as a complete formatted string.
+
+6409. A grade book generates a certificate of achievement. Given a student name, award name, and date, build a formatted certificate string with border characters and centered text using spaces.
+
+6410. A cooking app formats a substitution ratio. Given original ingredient `"all-purpose flour"` and substitute `"almond flour"` with ratio `0.75`, print `"Replace 1 cup all-purpose flour with 3/4 cup almond flour"`.
+
+6411. A travel app normalizes phone numbers. Given `"(212) 555-0147"`, remove all non-digit characters by splitting and filtering, then format as `"+1-212-555-0147"`.
+
+6412. A sports analyst generates a standings table header. Print a formatted header line `"  Rank | Team           | W  | L  | D  | Pts | GD "` with correct spacing using string padding.
+
+6413. A teacher creates an answer key. Given correct answers `["B","A","C","D","B","A","C","B","D","A"]`, format and print them as `"1. B  2. A  3. C ..."` in a two-column layout.
+
+6414. A recipe app extracts cooking method from a recipe title. Given `"Slow-Roasted Garlic Chicken"`, split by `"-"` and spaces to identify and print the cooking method as the first significant word.
+
+6415. A travel app generates a luggage tag. Given name `"Dr. Sarah Chen"`, address `"42 Maple Ave, Boston MA 02101"`, and phone `"617-555-0132"`, format and print a compact luggage tag string.
+
+6416. A sports app generates a trade rumor summary. Given player name, from-team, to-team, and reported compensation, build a formatted rumor string: `"Breaking: [Player] to [Team] from [Team] in exchange for [comp]"`.
+
+6417. A grade book detects grade rounding. Given a raw score `89.5`, use the `round` function and print both the raw and rounded score, plus whether rounding changed the letter grade.
+
+6418. A cooking app formats a prep time summary. Given prep `15`, cook `45`, rest `10` minutes, print a formatted summary: `"Prep: 15 min | Cook: 45 min | Rest: 10 min | Total: 70 min"`.
+
+6419. A travel app generates a seat assignment string. Given row `14`, seat `"C"`, and class `"Economy"`, print `"Seat 14C — Economy Class"` and note whether it is a window, middle, or aisle seat.
+
+6420. A sports app formats a post-game reaction quote. Given player name, a quote string, and the game result, print `"'[Quote]' — [Player], after [result]"` using proper text joining.
+
+6421. A teacher generates a seating chart label. Given student name, row `3`, seat `2`, and any notes like `"near board"`, print a formatted seating label with all information included.
+
+6422. A recipe app generates a mise en place list. Given a recipe name and a list of prep tasks with estimated minutes, format a numbered list with the total prep time at the bottom.
+
+6423. A travel app builds an itinerary summary. Given day numbers and activities as parallel lists, join each pair as `"Day 1: Arrive in Rome, check into hotel"` and print the full itinerary.
+
+6424. A sports app formats a statistics percentile. Given a player's stat `28.5` PPG and the percentile `97`, print `"28.5 PPG — 97th percentile in the league"` with correct ordinal suffix (st/nd/rd/th).
+
+6425. A grade book generates a missing assignment notice. Given student name, assignment name, due date, and point value, print a formatted notice: `"NOTICE: [Name] is missing '[Assignment]' (due [Date], worth [Pts] pts)"`.
+
+---
+
+## Section 4: Lists (Problems 6426–6500)
+
+6426. A teacher stores quiz scores for a class of 30 students in a list. Use `.sort()` to order them, then print the minimum, maximum, median, and the interquartile range.
+
+6427. A chef maintains a list of recipe ingredient amounts in grams. Use `.map { x -> x * 1.5 }` to scale all ingredients by 1.5x and print the new scaled list.
+
+6428. A travel app stores distances between consecutive stops on a road trip: `[120, 85, 210, 95, 160]`. Use `.reduce(0) { x,acc -> x+acc }` to compute the total distance and print it.
+
+6429. A sports analyst stores a player's game-by-game points: `[18, 25, 12, 30, 22, 8, 27]`. Use `.filter { x -> x > 20 }` to find games where the player scored over 20 and print the count.
+
+6430. A grade book stores weighted scores as pairs `[[85, 0.2], [78, 0.3], [91, 0.5]]`. Use `.map` and `.reduce` to compute the weighted average and print it.
+
+6431. A cooking app stores baking times in minutes for a batch of items: `[25, 30, 22, 28, 35, 20]`. Find the item with the minimum time using `.min { a,b -> a < b }` and print it.
+
+6432. A travel app tracks daily expenses as a list: `[45.50, 120.00, 33.75, 89.20, 65.00]`. Compute the running total at each day and print the cumulative expense list.
+
+6433. A sports app stores lap times in seconds: `[62.3, 61.8, 63.1, 60.5, 62.7]`. Find the fastest lap using `.min { a,b -> a < b }` and print the improvement from the first to the fastest lap.
+
+6434. A teacher stores student names and their corresponding grades as two parallel lists. Sort the names alphabetically using `.sort()` and rearrange the grades list to match, then print the paired results.
+
+6435. A recipe app stores recipes as a list of dicts. Use `.filter { x -> x.get("category","") === "dessert" }` to extract only dessert recipes and print their names.
+
+6436. A travel planner stores flight prices found across different searches: `[542, 489, 612, 467, 523, 498]`. Remove the highest price using `.sort()` and `.allButLast()` and print the remaining options.
+
+6437. A sports analyst stores team names and their win totals in two lists. Use `.sort { a,b -> a > b }` on the wins list along with index tracking to print the top-3 ranked teams.
+
+6438. A grade book tracks a student's test scores over the semester. Use `.slice(1,5)` to extract the first marking period scores and compute the period average.
+
+6439. A cooking app stores a grocery list of items with prices. Use `.reduce(0) { x,acc -> x+acc }` on the price list after filtering for items under `$5` to compute the budget subtotal.
+
+6440. A travel app stores check-in times (in minutes from midnight) for guests: `[870, 930, 1050, 780, 960]`. Sort them and print the check-in schedule as formatted time strings.
+
+6441. A sports app stores a basketball team's scoring by quarter: `[28, 22, 31, 25]`. Use `.appendList()` to add a second game's scores and compute the combined game total.
+
+6442. A teacher stores all student scores in a list and wants to apply a curve. Use `.map { x -> min(x + 5, 100) }` to add 5 points but cap at 100, then print the curved list.
+
+6443. A recipe app stores ingredients as a list. Use `.reverseList()` to print them in reverse order, simulating a prep checklist that starts with the last step's ingredients.
+
+6444. A travel app stores the names of visited countries. Use `.containsItem("Japan")` to check if Japan has been visited and print a corresponding message, then add it if missing.
+
+6445. A sports analyst stores shot distances (in feet) for a basketball player: `[12, 24, 3, 18, 31, 7, 22, 15]`. Use `.filter { x -> x > 20 }` to count three-point attempts (over 22 feet).
+
+6446. A grade book stores the class average for each week: `[74.2, 76.5, 72.1, 79.8, 81.3]`. Compute the week-over-week change for each week and print the trend as a list of deltas.
+
+6447. A cooking app stores temperatures at different rack positions: `[325, 350, 375, 350, 325]`. Use `.indexOf(350)` to find the first standard position and print its index.
+
+6448. A travel app stores passenger ages for a family trip: `[45, 42, 17, 15, 8]`. Use `.filter { x -> x < 12 }` to identify children, `.filter { x -> x >= 18 }` for adults, and print ticket prices.
+
+6449. A sports app tracks a runner's weekly mileage: `[28, 32, 35, 30, 38, 42, 40]`. Find the peak mileage week and the week number, then print how many weeks before the peak training was below average.
+
+6450. A teacher builds a class frequency distribution. Given scores list, use `.filter` with ranges to count how many fall in A/B/C/D/F bands and print the distribution.
+
+6451. A recipe app stores portions in a list. Use `.insert(3, 0.5)` to add a new ingredient portion at position 3 and print the updated list.
+
+6452. A travel app stores timezone offsets for a meeting across cities: `[-5, 0, 1, 8, 9]`. Given a meeting time of `14:00` UTC, compute local times using `.map { x -> mod(14 + x, 24) }` and print them.
+
+6453. A sports app stores a relay race's split times: `[23.4, 22.8, 24.1, 23.7]`. Remove the slowest leg using `.sort()` and `.remove()` then compute the best-3-legs total.
+
+6454. A grade book stores assignment scores and their due dates as a list of pairs. Use `.filter` to find all late assignments (score below threshold) and print a summary.
+
+6455. A cooking app stores yield percentages for vegetables: `[78, 82, 65, 90, 75]`. Use `.map { x -> x / 100.0 }` to convert to decimals and `.reduce` to compute the average yield.
+
+6456. A travel app stores the prices of travel insurance options. Use `.sort { a,b -> a < b }` to find the cheapest three options and print them with their coverage descriptions.
+
+6457. A sports analyst stores a football team's yardage per play: `[4, 7, -2, 12, 3, 0, 8, -3, 5, 6]`. Compute the average gain on positive-yardage plays only using `.filter` and `avgOf`.
+
+6458. A teacher stores homework completion percentages per student. Use `.filter { x -> x < 50 }` to identify students at risk and print an intervention list.
+
+6459. A recipe app stores baking recipes with their difficulty ratings. Use `.sort { a,b -> a.get("difficulty",0) < b.get("difficulty",0) }` to order recipes and print the easiest five.
+
+6460. A travel app stores hotel ratings (1–5 stars) for 10 options. Compute the average rating using `avgOf`, filter for options with rating `>= 4`, and print how many meet the quality threshold.
+
+6461. A sports app stores a basketball player's assists per game over 10 games. Use `.reduce(0) { x,acc -> acc + x }` to compute total assists and divide by the list length to get the per-game average.
+
+6462. A grade book stores test scores as a list and wants to identify outliers. Compute the mean and standard deviation, then use `.filter` to find scores more than 2 standard deviations from the mean.
+
+6463. A cooking app stores recipe preparation times. Use `.sort()` followed by `.slice(1,3)` to get the three fastest recipes and compute their average prep time.
+
+6464. A travel app stores a packing list. Use `.remove(2)` to delete an item at position 2, then use `.insert(2, "power bank")` to replace it with a different item and print the updated list.
+
+6465. A sports analyst stores shots on target by half: first half `[1,0,2,1,3,0,1]`, second half `[2,1,0,2,1,3,2]`. Compute totals for each half using `.reduce` and print which half had more shots.
+
+6466. A teacher stores reading comprehension scores for 4 different passages. Use `.appendList()` to combine all scores into one list and compute the overall mean.
+
+6467. A recipe app stores a list of ingredient names. Use `.map { x -> x.uppercase() }` to capitalize all names for a printed header label and print the result.
+
+6468. A travel app stores connecting flight durations in minutes: `[85, 50, 120, 95, 75]`. Find total travel time and the percentage of time spent on the longest leg.
+
+6469. A sports app stores a cyclist's power output in watts for each minute of a race: a 20-element list. Compute the normalized power (4th root of mean of 4th powers) using `.map` and `.reduce`.
+
+6470. A grade book stores a student's GPA by semester: `[3.2, 3.5, 3.1, 3.8, 3.6]`. Compute the cumulative GPA progression after each semester using a running average and print the trend.
+
+6471. A cooking app stores ingredient shelf-life in days: `[365, 180, 7, 30, 730, 14]`. Use `.filter { x -> x < 30 }` to find perishables and print a shopping priority list.
+
+6472. A travel app stores prices for the same hotel room from different booking sites. Use `.min { a,b -> a < b }` to find the best deal and compute how much is saved vs. the average price.
+
+6473. A sports analyst stores a pitcher's strikeouts per inning: `[1,2,0,3,1,2,1,0,2]`. Compute the strikeout rate per 9 innings: `sum / innings * 9` and print it.
+
+6474. A teacher stores quiz scores from two sections. Use `.appendList()` to merge both sections and compute a combined class average, then compare it to each section's individual average.
+
+6475. A recipe app stores ingredient amounts and uses `.toCsvRow()` to format them as a CSV string for export. Print the CSV-formatted ingredient list.
+
+6476. A travel app stores the check-in times for a hostel's guests as a list of hour values. Use `.sort()`, find the median arrival time, and print whether it is AM or PM.
+
+6477. A sports app stores a team's score margins for each game: `[+7, -3, +14, +1, -10, +5, +21, -2]`. Use `.filter { x -> x > 0 }` to count wins and `.filter { x -> x < 0 }` for losses, ignoring ties.
+
+6478. A grade book stores final exam scores. Use `.sort()` to rank them, assign percentile ranks to each student using the formula `rank/n * 100`, and print each score with its percentile.
+
+6479. A cooking app stores measurements in tablespoons. Use `.map { x -> x / 16.0 }` to convert all to cups and print the converted list formatted to three decimal places.
+
+6480. A travel app stores a list of city names visited. Use `.random()` to select a random city as the destination for the next trip and print a travel message.
+
+6481. A sports analyst stores weekly training loads: `[350, 420, 390, 450, 380, 470, 410]`. Compute the acute-to-chronic workload ratio: last week divided by 4-week rolling average.
+
+6482. A teacher stores a class list and wants to form random groups of 4. Use `.random()` in a loop to simulate drawing names and print the group assignments.
+
+6483. A recipe app stores the volumes (mL) of liquid ingredients. Use `.reduce(0) { x,acc -> x+acc }` to compute total liquid volume and check if it exceeds a bowl's capacity `2000` mL.
+
+6484. A travel app stores per-day spending for a two-week trip. Use `.slice(1,7)` for week 1 and `.slice(8,14)` for week 2, compute each week's total, and print the comparison.
+
+6485. A sports app stores a volleyball team's set scores: `[25,23], [23,25], [25,20], [25,18]` as a list of pairs. Count sets won by each side and print the match result.
+
+6486. A grade book builds a list of students who qualify for honor roll (GPA ≥ 3.5). Given a list of GPA values and student names, use `.filter` on GPAs and print the honor roll names.
+
+6487. A cooking app stores calorie counts per serving for all dishes in a meal plan. Use `.reduce` to compute daily totals and print a weekly calorie chart.
+
+6488. A travel app stores the altitudes (in meters) of cities on a hiking itinerary: `[850, 1200, 1650, 2100, 1850, 1400]`. Compute total ascent (sum of positive differences) and total descent.
+
+6489. A sports analyst stores a batter's plate appearances as outcomes: `["H","BB","K","H","HR","K","H","BB","K","H"]`. Use `.filter` to count each outcome type and print the breakdown.
+
+6490. A teacher stores absent student names per day over a month. Use `.appendList()` to build the full list, remove duplicates by building a new list checking `.containsItem`, and print chronically absent students.
+
+6491. A recipe app stores cooking temperatures for each step: `[350, 375, 400, 375, 350]`. Use `.map { x -> (x - 32) * 5 / 9 }` to convert all from Fahrenheit to Celsius and print the converted list.
+
+6492. A travel app stores baggage weights in kg: `[22.5, 18.0, 25.1, 19.8, 23.4]`. Use `.filter { x -> x > 23 }` to identify overweight bags and compute the total overage fees at `$15/kg` over 23 kg.
+
+6493. A sports app stores a soccer team's shot attempts per match: `[14,9,17,11,8,15,12,10,16,13]`. Compute the shots-per-game average and find how many matches exceeded the average.
+
+6494. A grade book stores individual question scores for an essay: `[8,7,9,6,8,7,8,9,7,8]` out of 10 per question. Use `avgOf` and `stdDevOf` on the question score list and print the essay analytics.
+
+6495. A cooking app stores a list of baking recipes and their oven temperatures. Use `.sort { a,b -> a.get("temp",0) < b.get("temp",0) }` to order by temperature and print a baking schedule.
+
+6496. A travel app stores transit times (minutes) between tourist attractions: `[15,25,10,30,20,35,12]`. Use `.reduce` to find the path that minimizes total transit time given a subset of stops.
+
+6497. A sports analyst stores a skier's gate times: `[1.42, 1.38, 1.51, 1.39, 1.44, 1.47]`. Remove the two slowest gates using `.sort()` and `.slice()`, then compute the adjusted total time.
+
+6498. A teacher stores the number of correct answers per student out of 20 questions. Use `.map { x -> x / 20.0 * 100 }` to convert to percentages and use `.filter { x -> x >= 70 }` to count passing students.
+
+6499. A recipe app stores a pantry inventory as a list of item names. A shopping list is also a list. Use a loop with `.containsItem()` to find items needed that are not in the pantry and print the missing items.
+
+6500. A travel app stores flight search results as a list of price-duration pairs. Use `.sort { a,b -> a.get("price",0) < b.get("price",0) }` to sort by price and print the top three cheapest options with their durations.
+
+---
+
+## Section 5: Dictionaries (Problems 6501–6580)
+
+6501. A chef builds a recipe dictionary with keys `"name"`, `"servings"`, `"prepTime"`, `"cookTime"`, and `"ingredients"`. Use `.set()` to add a `"difficulty"` key after creation and print the complete recipe card.
+
+6502. A travel app stores city information: name, country, timezone offset, and population. Use `.get("population", 0)` to safely retrieve the population and print a city fact sheet.
+
+6503. A sports analyst stores a player's career statistics in a dict. Use `.keys()` to iterate over all stat categories and print each stat with its value and a brief label.
+
+6504. A grade book stores student records keyed by student ID. Use `.containsKey(id)` before accessing to safely look up a student's grade and print either the grade or a `"not found"` message.
+
+6505. A cooking app stores unit conversion factors as a dict: `{"tsp_to_ml": 4.929, "tbsp_to_ml": 14.787, "cup_to_ml": 236.588}`. Given a measurement and unit, use `.get()` to retrieve the factor and compute the mL equivalent.
+
+6506. A travel app stores exchange rates against USD as a dict. Use `.keys()` to list all available currencies and `.values()` to find the highest exchange rate, then print that currency.
+
+6507. A sports app stores game statistics for multiple teams. Use `.mergeInto()` to combine two partial stats dicts and print the merged team record.
+
+6508. A grade calculator stores grade thresholds as a dict `{"A":90,"B":80,"C":70,"D":60}`. Iterate with `.toPairs()` to find and print the letter grade for a given score of `83`.
+
+6509. A recipe app stores ingredient quantities per serving in a dict. Use a `.keys()` loop to scale every value by a factor of `2.5` using `.set()` and print the scaled recipe.
+
+6510. A travel app stores airport codes mapped to city names. Use `.containsKey("CDG")` to verify an airport exists and then `.get()` to print the full city name.
+
+6511. A sports analyst uses a nested dict to store player stats by season: `{"2023": {"pts":22.3}, "2024": {"pts":26.1}}`. Use `.getAtPath(["2024","pts"], 0)` to retrieve the latest season's points.
+
+6512. A grade book stores assignment weights in a dict: `{"homework":0.15,"quizzes":0.25,"midterm":0.25,"final":0.35}`. Verify the weights sum to `1.0` using `.values()` and `.reduce`, printing a warning if they do not.
+
+6513. A cooking app stores allergen information for each ingredient in a dict. Given an ingredient name, use `.get(name, "none")` to retrieve its allergen and print a safety warning.
+
+6514. A travel planner stores hotel amenities as a dict of boolean values. Use `.toPairs()` to list only the amenities that are `true` and print the available features.
+
+6515. A sports app stores a team's home and away records separately in two dicts. Use `.mergeInto()` to combine them (summing wins, losses, draws) and print the overall record.
+
+6516. A recipe app stores cooking temperatures for different baked goods in a dict. Use `.delete("cookie")` to remove an item, then use `.dictLen()` to verify the dict shrank and print the updated count.
+
+6517. A travel app stores per-day costs (accommodation, food, transport) as a nested dict. Use `.getAtPath(["day3","food"], 0)` to retrieve a specific cost and print the total cost for day 3.
+
+6518. A sports analyst stores a baseball team's roster in a dict keyed by jersey number. Use `.keys()` to list all jersey numbers, sort them, and print the roster in numerical order.
+
+6519. A grade book stores semester grades for multiple students. Use `.toPairs()` then `.sort { a,b -> a.get(1,0) > b.get(1,0) }` on the pairs to rank students by grade and print the ranking.
+
+6520. A cooking app stores a dict of substitution ratios for baking ingredients. Use `.getAtPath(["flour","almond_flour"], 0)` to find the ratio and compute the substitute amount needed.
+
+6521. A travel app stores a user's visited countries in a dict with visit year as value. Use `.dictLen()` to count total countries and `.values()` to find the most recent visit year.
+
+6522. A sports app stores league standings in a dict. Use `.set(team, pts + 3)` to update a team's points after a win and print the updated standings in sorted order.
+
+6523. A recipe app builds a nutrition facts dict. Use `.setAtPath(["macros","fat"], 12)` to add fat grams to the nested structure and print the complete nutrition label.
+
+6524. A travel planner stores the visa requirements for different passports in a dict of dicts. Use `.getAtPath(["US","Germany"], "required")` to check if a US passport holder needs a visa for Germany.
+
+6525. A sports analyst stores match results in a dict with match ID as key. Use `.delete(id)` to remove a postponed match and `.containsKey(id)` to confirm deletion, then print the updated count.
+
+6526. A grade book stores rubric scores for an essay. Use `.toPairs()` to iterate and compute the weighted total where each category has a max defined in a separate weights dict.
+
+6527. A cooking app stores ingredient prices in a dict. Given a recipe dict with ingredient amounts, loop over ingredients, look up each price, and compute the total recipe cost.
+
+6528. A travel app stores flight data in a dict with departure time, arrival time, airline, and price. Use `.toPairs()` to build a formatted summary string and print the flight details.
+
+6529. A sports app stores a player's stats by position (when playing different positions). Use `.keys()` to list positions played and compute the average points across all positions.
+
+6530. A grade book builds a class-average dict by subject. After computing averages, use `.mergeInto()` to add new subject averages for a second semester and print the combined dict.
+
+6531. A cooking app stores spice inventory in a dict with quantities in grams. After cooking, subtract used amounts with `.set()` and use `.toPairs()` to list spices running low (under 20 g).
+
+6532. A travel app stores parking garage rates in a dict: first hour, subsequent hours, daily max. Use `.get()` to retrieve each tier and compute the total parking cost for 4.5 hours.
+
+6533. A sports analyst stores a tennis player's stats by surface: `{"clay":{"winRate":0.72},"grass":{"winRate":0.65},"hard":{"winRate":0.68}}`. Find the best surface using `.toPairs()` and print it.
+
+6534. A grade book stores assignment metadata in a dict including name, max points, due date, and weight. Use `.getAtPath(["metadata","weight"], 0)` to retrieve the weight for grade calculation.
+
+6535. A recipe app stores recipe categories as keys and lists of recipe names as values. Use `.get("Italian", [])` to retrieve Italian recipes and print the count and names.
+
+6536. A travel planner stores cost breakdowns for two travel options in two dicts. Merge them using `.mergeInto(copyDict(dict2))` and use `.toPairs()` to compare line items side by side.
+
+6537. A sports app stores league statistics leaders in a dict: points leader, rebound leader, etc. Use `.keys()` to print a formatted leaders board with stat name and player name.
+
+6538. A grade book creates a lookup dict from student names to their seat numbers. Use `.pairsToDict()` from a list of `["name", seat_num]` pairs to build the dict, then look up a specific student.
+
+6539. A cooking app stores recipe step durations in a dict keyed by step number. Use `.keys()` to iterate in order and compute a cumulative timeline, printing each step's start and end time.
+
+6540. A travel app stores city coordinates in a dict `{"lat": 48.8566, "lon": 2.3522}`. Given two city dicts, compute the approximate distance using the Pythagorean approximation and print it.
+
+6541. A sports analyst stores a golfer's scores by hole in a dict. Use `.values()` to compute the total score and count holes under par (`< 4`) for the birdie count.
+
+6542. A grade book stores a school's grading scale as a dict. Use `.toPairs()` sorted by value to print the scale from highest to lowest grade threshold.
+
+6543. A cooking app stores a menu dict with dish names and calorie counts. A user selects items; use `.get()` for each and accumulate the total calories, printing whether the meal exceeds 800 kcal.
+
+6544. A travel app stores a layered nested dict for a trip: `{"flights": {...}, "hotels": {...}, "activities": {...}}`. Use `.keys()` to generate a trip summary and `.getAtPath` to pull key details.
+
+6545. A sports app stores penalty records in a dict keyed by player name with values being a list of infraction types. Use `.get(player, [])` to retrieve a player's record and print the count.
+
+6546. A grade book builds a dict from two lists using `.pairsToDict()`. Given student names and their scores as parallel lists, convert to pairs using a list loop, then build and print the dict.
+
+6547. A recipe app stores ingredient dicts with name, quantity, and unit. Use `.toPairs()` to iterate and build a formatted shopping list string for each ingredient.
+
+6548. A travel planner stores per-person costs in a dict. Given a group size, use `.keys()` to iterate, multiply each cost by the group size, and print the total group cost per category.
+
+6549. A sports analyst stores a team's draft picks by round in a dict. Use `.set("round7", "undrafted_FA")` to add a late addition and print the full draft class.
+
+6550. A grade book stores term grades in a dict with terms as keys. Use `.getAtPath(["Spring2025", "Math"], 0)` to fetch a specific term-subject grade and print it.
+
+6551. A cooking app builds a recipe index dict: recipe name maps to a page number. Use `.containsKey(name)` to look up a recipe and print the page number or a `"not found"` message.
+
+6552. A travel app stores departure taxes by airport code in a dict. Look up the tax for departure airport `"NRT"` and add it to the base fare, printing the total price.
+
+6553. A sports app stores a swimmer's personal bests by stroke and distance in a nested dict. Use `.getAtPath(["freestyle","100m"], "N/A")` to retrieve a specific personal best.
+
+6554. A grade book stores assignment scores per unit. After computing each unit average, use `.set(unit, avg)` to build a unit-performance dict and print the strongest and weakest units.
+
+6555. A recipe app stores equipment requirements per recipe in a dict. Use `.values()` to flatten all equipment lists, deduplicate, and print the complete kitchen equipment needed.
+
+6556. A travel planner stores travel advisories by country code. Use `.get("IR", "check locally")` to retrieve a country's advisory status and print a warning if it is not `"safe"`.
+
+6557. A sports analyst stores positional salary averages across the league. Use `.toPairs()` to compute the overall average salary across all positions and identify the highest-paid position.
+
+6558. A grade book computes the GPA from a dict of course grades (letter to points: A=4, B=3, C=2, D=1, F=0). Use a lookup dict and `.get()` to convert grades to points and compute GPA.
+
+6559. A cooking app stores pantry quantities. After using a recipe, call `.set(item, current - used)` for each ingredient and then use `.toPairs()` to flag items with quantity `<= 0` as needing restocking.
+
+6560. A travel app stores travel history as a dict with year as key and list of countries as value. Use `.keys()` to find the most-traveled year and print the destinations visited that year.
+
+6561. A sports app stores a team's all-time win-loss record by opponent. Use `.containsKey(opponent)` to check if a record exists and update it with `.set()`, or initialize if not found.
+
+6562. A grade book stores exam statistics as a dict: mean, median, std dev, high, low. Print a formatted statistics report using `.get()` for each field.
+
+6563. A recipe app stores a dict of ingredient-to-calorie mappings. Given a recipe's ingredient list and gram amounts, look up each ingredient's calories per gram and compute the total.
+
+6564. A travel planner builds an itinerary dict keyed by day number. Use `.setAtPath(["day2","activities"], ["museum","dinner"])` to schedule activities and print the full itinerary.
+
+6565. A sports analyst stores weekly performance metrics in a dict. Use `.mergeInto()` to add this week's metrics and use `.toPairs()` to identify any metric that declined from last week.
+
+6566. A grade book stores learning objectives and whether each was met (boolean) in a dict. Use `.toPairs()` with `.filter` to list unmet objectives and print a remediation plan.
+
+6567. A cooking app stores the flavor profile of dishes: `{"spicy":3,"sweet":1,"sour":2,"salty":4,"bitter":1}`. Use `.toPairs()` to find the dominant flavor and print a pairing recommendation.
+
+6568. A travel app stores connections between cities as a dict of dicts, representing an adjacency matrix. Use `.get(cityA, {}).get(cityB, -1)` to retrieve the direct flight duration between two cities.
+
+6569. A sports app stores a marathon's checkpoint times for multiple runners in a nested dict. Use `.getAtPath([runner, checkpoint], 0)` to retrieve split times and compute the pace between checkpoints.
+
+6570. A grade book stores a department's average grades by instructor. Use `.toPairs()` sorted by value descending to identify and print the top-performing instructor.
+
+6571. A recipe app stores a flavor pairing dict: each ingredient maps to a list of complementary ingredients. Use `.get("strawberry",[])` to retrieve pairings and print suggestions.
+
+6572. A travel app stores hotel loyalty points balances. After a stay earning `500` points, use `.set()` to update the balance and print the new total and whether the user reached a reward threshold.
+
+6573. A sports analyst stores a game's play-by-play as a list of event dicts. Filter plays with `.get("type","") === "touchdown"` and count them using list length.
+
+6574. A grade book stores prerequisite chains as a dict: each course maps to a list of required courses. Use `.get("Calculus II", [])` to print the prerequisites for a given course.
+
+6575. A cooking app stores nutrition targets and actual intake in two dicts. Use `.toPairs()` to compare each nutrient and print `"over"`, `"under"`, or `"on target"` for each.
+
+6576. A travel planner stores transportation options with cost and time in a dict of dicts. Use `.toPairs()` to compare all options and print the one with the best time-to-cost ratio.
+
+6577. A sports app builds a scoring summary dict during a match. After each score event, use `.set()` to update the running totals and print the current score state.
+
+6578. A grade book stores a student's progress portfolio as a nested dict. Use `.setAtPath(["Q3","project","score"], 88)` to record a new score and print the updated portfolio.
+
+6579. A recipe app stores a dict of common measurement conversions. Use `.lookupInPairs(dict.toPairs(), key, default)` to find a conversion and print the converted measurement.
+
+6580. A travel app stores arrival and departure times for all flights in a trip as a dict. Use `.toPairs()` to compute the total time spent in transit vs. time at destinations and print both durations.
+
+---
+
+## Section 6: Colors (Problems 6581–6610)
+
+6581. A cooking app uses color to indicate food safety: `#00CC00` for safe, `#FFAA00` for use soon, `#CC0000` for expired. Given an expiry status string, print the corresponding hex color code.
+
+6582. A sports app needs to display team colors. Given a team name, look up its primary and secondary hex colors from a dict and print a formatted team color palette.
+
+6583. A travel app visualizes temperature using color: below 0°C is blue (`#0066FF`), 0–15 is cyan (`#00CCFF`), 16–25 is green (`#00BB44`), 26–35 is orange (`#FF8800`), above 35 is red (`#FF2200`). Given a temperature, print the color.
+
+6584. A grade calculator colors grade bands: A is `#4CAF50`, B is `#8BC34A`, C is `#FFC107`, D is `#FF9800`, F is `#F44336`. Given a score, print the corresponding color.
+
+6585. A calendar app marks days with activity levels. Use `makeColor([255, 200 - intensity * 20, 200 - intensity * 20])` where intensity is 0–5 to generate a red-scale color for each activity level.
+
+6586. A fitness app displays hydration level using a gradient. Use `makeColor([0, round(level * 2.55), 255])` where level is 0–100 to compute a blue-intensity color and print its hex equivalent.
+
+6587. A recipe app color-codes difficulty levels: easy is `#66BB6A`, medium is `#FFA726`, hard is `#EF5350`. Given a difficulty value 1–3, use `if` expressions to select and print the color.
+
+6588. A travel app needs to overlay two semi-transparent route colors. Given colors `#FF6600` and `#0066FF` with alpha values `128` each, use `splitColor` to extract components and compute the blended RGB values.
+
+6589. A sports app needs a progress bar color that shifts from red to green as a percentage increases. Given percentage `p`, compute `makeColor([round((1-p/100)*255), round(p/100*255), 0])` and print the resulting color.
+
+6590. A grade book visualizes class performance. For each student's score, compute a color using `makeColor([255 - score*2, score*2, 50])` to produce a red-to-green heat map color and print it.
+
+6591. A calendar app color-codes months by season: Dec–Feb is `#87CEEB` (winter blue), Mar–May is `#90EE90` (spring green), Jun–Aug is `#FFD700` (summer gold), Sep–Nov is `#CD853F` (autumn brown). Given a month number, print the color.
+
+6592. A travel app needs to compute the luminance of a destination's flag color to decide whether to use white or black text. Use `splitColor` to get RGB, compute `0.299*R + 0.587*G + 0.114*B`, and print `"white text"` if luminance < 128.
+
+6593. A cooking app generates a spice heat indicator color. For Scoville units, map 0–1000 to `#FFFF99`, 1001–10000 to `#FFAA00`, 10001–100000 to `#FF4400`, over 100000 to `#880000`. Print the heat color.
+
+6594. A fitness app needs a color for a sleep quality gauge. Given hours slept, use `makeColor([255 - min(hours,8)*25, min(hours,8)*25, 100])` to produce a color and print the hex value.
+
+6595. A sports app needs to dim a team color for an away game display. Given primary color `#C8102E`, use `splitColor` to extract RGB, multiply each channel by `0.6`, and create the dimmed color with `makeColor`.
+
+6596. A travel app assigns colored markers to attraction categories. Museums are `#9C27B0`, restaurants `#FF5722`, parks `#4CAF50`, hotels `#2196F3`. Given a category string, print the marker color.
+
+6597. A recipe app needs a color-coded timer. Print `#00CC00` for over 5 minutes remaining, `#FFCC00` for 2–5 minutes, `#FF4400` for under 2 minutes, based on seconds remaining input.
+
+6598. A grade calculator needs to compare two students' grades visually. For the higher-scoring student print `#2ECC71`, for the lower `#E74C3C`, and for a tie `#F39C12`.
+
+6599. A calendar app highlights today's date with a pulsing color effect. Given a pulse parameter `t` (0–100), compute `makeColor([100, 150 + round(sin(t*3.14159/50)*100), 200])` and print the animated color.
+
+6600. A travel app needs to convert a hex color string `"#3498DB"` to its RGB components. Use `.segment()` to extract each two-character hex pair, apply `hexToDec` to each, and print R, G, B values.
+
+6601. A sports app needs to lighten a team color by mixing it with white (`#FFFFFF`) at a ratio of `0.7` original, `0.3` white. Use `splitColor`, compute blended channels, and print the lightened hex color.
+
+6602. A fitness app color-codes calorie burn intensity. Under 200 kcal: `#B3E5FC`, 200–400: `#4FC3F7`, 400–600: `#0288D1`, over 600: `#01579B`. Given total kcal, print the intensity color.
+
+6603. A cooking app visualizes oil smoke points with color. Below 160°C: `#FFFFE0`, 160–200°C: `#FFD700`, 200–230°C: `#FF8C00`, above 230°C: `#FF0000`. Print the color for a given temperature.
+
+6604. A travel app needs to generate a unique color for each continent. Given continent name, use a dict mapping to hex colors and print the corresponding color for map visualization.
+
+6605. A grade book uses color to show grade trends: improving is `#27AE60`, stable is `#F39C12`, declining is `#E74C3C`. Compare last two grades to determine trend and print the appropriate color.
+
+6606. A sports app shows shot accuracy as a color scale. Use `makeColor([round(255*(1-acc)), round(255*acc), 0])` where `acc` is 0.0–1.0. For accuracy `0.72`, compute and print the color.
+
+6607. A calendar app generates a background color for birthdays. Given the person's birth month, use `makeColor([mod(month*40,256), mod(month*70,256), mod(month*100,256)])` and print the personalized color.
+
+6608. A fitness app renders a body weight trend graph. Points above target use `#E74C3C`, at target `#2ECC71`, below `#3498DB`. Given current weight and target weight, print the appropriate point color.
+
+6609. A travel app computes an accessibility contrast ratio. Given foreground and background colors, use `splitColor` to get luminances, compute the ratio `(L1+0.05)/(L2+0.05)`, and print whether WCAG AA contrast (4.5:1) is met.
+
+6610. A recipe app assigns colors to nutritional quality scores. Use `makeColor([max(0,255-score*2), min(255,score*2), 80])` where score is 0–100 to generate a quality color for a dish and print it.
+
+---
+
+## Section 7: Controls (Problems 6611–6660)
+
+6611. A teacher needs an if-else chain to classify a test score. If score ≥ 90, print `"Excellent"`; 80–89 `"Good"`; 70–79 `"Satisfactory"`; 60–69 `"Needs Improvement"`; below 60 `"Failing"`.
+
+6612. A chef uses a while loop to reduce a sauce. Start with `volume = 1000` mL; each iteration reduces volume by `8`%. Print the volume after each reduction until it drops below `400` mL, then print the number of iterations.
+
+6613. A travel app uses a for-range loop to generate a list of dates for a 14-day trip starting from day-of-year `85`. For each day, compute and print the date in `MM/DD` format.
+
+6614. A sports app uses a for-each loop over a list of game scores to count wins, losses, and draws for a team with a target score. Print the final season record.
+
+6615. A grade calculator uses nested if-else to determine scholarship eligibility: GPA ≥ 3.8 and attendance ≥ 95% is `"Full Scholarship"`; GPA ≥ 3.5 and attendance ≥ 90% is `"Partial Scholarship"`; otherwise `"Not Eligible"`.
+
+6616. A cooking app uses a while loop to simulate a countdown timer. Start at `300` seconds, decrement by `1` each iteration, and print milestone messages at 240, 180, 120, 60, and 0 seconds.
+
+6617. A travel app uses a for-dict loop to iterate over a currency exchange rate dict and print each currency code and its USD equivalent formatted to four decimal places.
+
+6618. A sports analyst uses a while loop to simulate a penalty shootout. Each iteration, generate a random shot result using `randInt(0,1)`. Alternate teams and stop when one team scores 3 or after 5 rounds each. Print the winner.
+
+6619. A teacher uses a for-range loop with step `5` to generate grade thresholds from `60` to `100` and print a grading scale table.
+
+6620. A recipe app uses a for-each loop over an ingredients list. For each ingredient, check if it is a liquid using `.containsItem()` against a liquids list and print separate dry and wet ingredient tallies.
+
+6621. A travel app uses nested for loops to generate a distance matrix between 4 cities. Print the matrix with city-name labels as a formatted table (skip diagonal entries as `"-"`).
+
+6622. A sports app uses a while loop to simulate a basketball free throw session. Generate random makes/misses with `randInt(0,1)` until 10 shots are taken. Print the shooting percentage.
+
+6623. A grade book uses a for-in loop over a student score list. If a score is below 60, use `break` to stop processing and print a message that a failing score was found, along with the student index.
+
+6624. A cooking app uses an if expression to compute cooking time adjustment: `cookTime = if (altitude > 5000) { cookTime * 1.1 } else { cookTime }`. Given altitude `7200` ft and cook time `30` min, print the adjusted time.
+
+6625. A travel app uses a for-range loop to compute compound currency conversion across 5 intermediate currencies. Print the effective exchange rate after all conversions.
+
+6626. A sports analyst uses a while loop to find the first game in a season where a team's cumulative point total exceeds `100`. Print the game number and the exact cumulative total.
+
+6627. A teacher uses nested if-else to determine a student's academic standing: GPA thresholds combined with credit hours determine `"Freshman"`, `"Sophomore"`, `"Junior"`, or `"Senior"` standing.
+
+6628. A recipe app uses a for-dict loop over a pantry dict to check if all required ingredients for a recipe are available in sufficient quantities. Print a list of any missing or insufficient items.
+
+6629. A travel app uses a while loop to compute the optimal number of currency exchanges needed. Starting with `100` USD, exchange to EUR and back, applying a `2`% fee each time. Print how many exchanges before falling below `80` USD.
+
+6630. A sports app uses a for-each loop over a list of athletes to build a weight-class assignment. For each athlete's weight, use an if-else chain to assign and print their weight class.
+
+6631. A grade book uses a for-range loop to simulate grade curve scenarios. For curves from `+2` to `+10` points in steps of `2`, count how many students would change letter grade and print the results.
+
+6632. A cooking app uses a while loop for a rise timer. Dough starts at volume `500` mL and doubles every `45` minutes. Print the volume and time elapsed at each doubling until the dough exceeds `4000` mL.
+
+6633. A travel app uses nested for loops to find the cheapest combination of outbound and return flights. Outbound prices are `[320, 410, 285, 365]` and return prices are `[290, 350, 265, 380]`. Print the cheapest combination.
+
+6634. A sports analyst uses a for-range loop to compute a rolling 3-game average for a player's point totals. For each window, print the average and flag it if above or below the season average.
+
+6635. A teacher uses an if-else chain to assign homework groupings. Given a student's score, assign them to group A (90+), B (75–89), C (60–74), or remedial (<60) and print their group assignment.
+
+6636. A recipe app uses a while loop to simulate the Maillard reaction stages. Starting at `120`°C, incrementing by `5`°C per iteration, print the flavor development stage name for each temperature range until `200`°C.
+
+6637. A travel app uses a for-each loop to process a list of flight segments. For each segment, compute the departure time plus duration and print whether the flight is domestic or international based on a country lookup.
+
+6638. A sports app uses nested for loops to generate a round-robin schedule for 4 teams. Print each matchup with home and away team, ensuring no team plays itself.
+
+6639. A grade book uses a while loop to compute when a student's grade will drop below passing. Given current grade `72`, weekly decrease `1.5` points, and passing threshold `60`, print the week number.
+
+6640. A cooking app uses a for-dict loop to compute the cost of a full recipe. For each ingredient in the recipe dict, look up its price in a price dict and accumulate the total cost.
+
+6641. A travel app uses an if-else chain to determine luggage fee tiers. Under 15 kg: free; 15–23 kg: `$25`; 23–32 kg: `$75`; over 32 kg: `$150`. Given a weight, print the applicable fee.
+
+6642. A sports analyst uses a while loop to simulate a tennis tie-break. Alternate points between two players using `randInt(0,1)`. First to 7 points with a 2-point lead wins. Print the final score.
+
+6643. A teacher uses a for-range loop to compute future tuition costs. Starting from `$15000`, applying a `4`% annual increase, print the tuition for each of the next 10 years.
+
+6644. A recipe app uses a for-each loop over a substitutions list. For each unavailable ingredient, check a substitutions dict and print the recommended substitute or `"no substitute found"`.
+
+6645. A travel app uses nested if-else to classify a trip as `"budget"` (under $500), `"standard"` ($500–$2000), `"premium"` ($2000–$5000), or `"luxury"` (over $5000) based on total estimated cost.
+
+6646. A sports app uses a while loop to find the break-even game for a team's win bonus. Each win earns `$5000` but operating costs are `$25000/month`. Print how many wins to break even in a month.
+
+6647. A grade book uses a for-in loop over a list of assignment weights and scores to compute the weighted average, breaking early if any weight-score pair is invalid (weight ≤ 0).
+
+6648. A cooking app uses a for-range loop with step `15` to generate a baking schedule: from minute `0` to `90`, print actions (preheat at 0, insert at 15, check at 45, remove at 75, rest at 90).
+
+6649. A travel app uses a while loop to find the minimum number of stops to get from city A to city E, traversing a linear graph with one stop added per iteration, printing the path when found.
+
+6650. A sports app uses an if-else chain as an expression to compute the bonus pay for a player based on statistical thresholds: 20+ pts adds `$1000`, 5+ assists adds `$500`, 10+ rebounds adds `$750`. Print the total bonus.
+
+6651. A teacher uses a for-dict loop over a grade book dict to compute the class-wide statistics (mean, high, low) and print a summary banner.
+
+6652. A recipe app uses a while loop to simulate a sourdough starter feeding schedule. Starting on day 0, feed every 12 hours; double the volume each feed. Print the volume at each feeding until day 7.
+
+6653. A travel app uses a for-in loop over a hotel amenities list. For each amenity, if it matches a premium keyword list, add `$20` to the base price using a running total and print the final room rate.
+
+6654. A sports analyst uses a for-range loop to compute the win probability over a remaining schedule. For each game, apply a win probability and multiply probabilities together. Print the chance of winning all remaining games.
+
+6655. A grade book uses nested for loops to build a cross-tabulation: rows are subjects, columns are grade bands (A/B/C/D/F), and each cell counts how many students fall in that band for that subject. Print the table.
+
+6656. A cooking app uses a while loop to determine how many guests a recipe can serve given pantry constraints. Each iteration checks if quantities suffice for one more serving; break when an ingredient runs out.
+
+6657. A travel app uses an if-else chain to compute the baggage policy: first bag free for premium class, first bag free for members, `$30` for first bag otherwise; `$50` for second bag always. Print the policy message.
+
+6658. A sports app uses a for-range loop to simulate a 9-inning baseball game. For each inning, generate a random run total and keep a running score. Print the score after each inning and the final result.
+
+6659. A teacher uses a while loop to compute how many students must earn an A on the final exam to bring the class average up from `73.5` to `75.0`. Print the minimum number required.
+
+6660. A recipe app uses nested for loops and an if expression to generate a meal plan. For each day (7 days) and each meal (3 meals), select a recipe from a list ensuring no recipe repeats in the same day. Print the full week plan.
+
+---
+
+## Section 8: Procedures (Problems 6661–6700)
+
+6661. A teacher defines a returning function `func letterGrade(score) = { if (score >= 90) { "A" } else if (score >= 80) { "B" } else if (score >= 70) { "C" } else if (score >= 60) { "D" } else { "F" } }`. Call it for five scores and print each result.
+
+6662. A chef defines a void function `func scaleRecipe(ingredients, factor)` that multiplies each ingredient amount by `factor` using `.map` and prints the scaled list. Call it with a 6-ingredient list scaled to `2.5`.
+
+6663. A travel app defines a returning function `func celsiusToFahrenheit(c) = { c * 9 / 5 + 32 }`. Call it for temperatures `[-10, 0, 20, 37, 100]` and print each converted value.
+
+6664. A sports analyst defines a void function `func printStatLine(player, pts, reb, ast)` that formats and prints a box score line. Call it for five players with their respective stats.
+
+6665. A grade calculator defines a returning function `func weightedAverage(scores, weights) = { scores.reduce(0) { x,acc -> acc + x * weights.indexOf(x) } }`. Refine and call it to compute a course weighted average.
+
+6666. A cooking app defines a returning function `func convertUnits(value, fromUnit, toUnit, factors)` that looks up the conversion factor in a dict and returns the converted value. Call it for three unit conversions.
+
+6667. A travel planner defines a void function `func printItineraryDay(day, activities)` that prints a formatted day plan. Call it for each of 5 days in a trip itinerary.
+
+6668. A sports app defines a returning function `func manchesterUnitedPace(wins, draws, losses) = { (wins * 3 + draws) / (wins + draws + losses) }`. Call it with multiple season records and print the pace.
+
+6669. A teacher defines a void function `func generateRubric(categories, maxPoints)` that prints a formatted rubric table. Call it with a 5-category rubric for an essay assignment.
+
+6670. A recipe app defines a returning function `func yieldPercent(gross, net) = { net / gross * 100 }`. Call it for five vegetables with different trim percentages and print a yield table.
+
+6671. A travel app defines a void function `func printFlightSummary(origin, dest, duration, price)` that formats and prints all flight details. Call it for three flight options.
+
+6672. A sports analyst defines a returning function `func earnedRunAverage(er, ip) = { er / ip * 9 }`. Call it for five pitchers and print a formatted ERA leaderboard.
+
+6673. A teacher defines a void function `func gradeCurve(scores, curvePoints)` that adds `curvePoints` to each score, caps at 100 using `.map`, and prints the curved list. Call it with a class of 8 students.
+
+6674. A cooking app defines a returning function `func adjustForAltitude(temp, altitude) = { temp - floor(altitude / 300) }`. Call it for altitudes `[0, 1500, 3000, 5000, 8000]` and print each adjusted boiling point.
+
+6675. A travel app defines a void function `func packingChecklist(destination, season)` that uses an if-else chain to print climate-appropriate packing items. Call it for `"Iceland"` in `"winter"`.
+
+6676. A sports app defines a returning function `func pointsPerGame(totalPoints, gamesPlayed) = { totalPoints / gamesPlayed }`. Call it for a roster of 12 players and print the team's scoring leaders.
+
+6677. A grade book defines a void function `func attendanceReport(student, presentDays, totalDays)` that computes and prints the attendance percentage and a status message. Call it for three students.
+
+6678. A recipe app defines a returning function `func servingsNeeded(guestCount, servingSize) = { ceil(guestCount / servingSize) }`. Call it for different party sizes and print the batch count needed.
+
+6679. A travel app defines a returning function `func estimateTripCost(days, hotelRate, mealBudget, activityBudget) = { days * (hotelRate + mealBudget + activityBudget) }`. Call it for three destination scenarios.
+
+6680. A sports analyst defines a void function `func printMatchResult(home, away, homeScore, awayScore)` that prints the result, the goal difference, and declares the winner or a draw. Call it for five matches.
+
+6681. A teacher defines a returning function `func gpaPoints(letterGrade) = { {"A":4.0,"B":3.0,"C":2.0,"D":1.0,"F":0.0}.get(letterGrade, 0.0) }`. Call it for a transcript and compute the cumulative GPA.
+
+6682. A cooking app defines a void function `func printRecipeCard(recipe)` that uses `.get()` to extract and print all fields of a recipe dict in a formatted card layout. Call it for three recipes.
+
+6683. A travel app defines a returning function `func timezone(city, utcOffsets) = { utcOffsets.get(city, 0) }`. Call it to compute local times for a multi-city conference call and print each city's time.
+
+6684. A sports app defines a void function `func printStandings(teams)` that takes a list of team dicts, sorts by points using `.sort`, and prints a formatted league table. Call it with a 6-team list.
+
+6685. A teacher defines a returning function `func percentile(score, allScores) = { allScores.filter { x -> x <= score }.listLen() / allScores.listLen() * 100 }`. Call it for the top 5 scores in a class.
+
+6686. A recipe app defines a void function `func shoppingList(recipe, servings)` that scales ingredient amounts, formats each line, and prints the shopping list. Call it for a dinner party of 12.
+
+6687. A travel planner defines a returning function `func layoverTime(arrivalMin, departureMin) = { mod(departureMin - arrivalMin + 1440, 1440) }`. Call it for three connecting flights and print layover durations.
+
+6688. A sports analyst defines a void function `func ratingCard(player, stats)` that loops over a stat dict and prints each stat with a color-coded performance indicator. Call it for a star player.
+
+6689. A teacher defines a returning function `func absenteeismRisk(absences, totalDays) = { absences / totalDays > 0.1 }`. Call it for each student in a class and print a risk list.
+
+6690. A cooking app defines a void function `func printNutritionFacts(dish)` that formats a standard nutrition label from a dict and prints it with dividers. Call it for three dishes.
+
+6691. A travel app defines a returning function `func currencyConvert(amount, rate) = { formatDecimal(amount * rate, 2) }`. Call it to convert trip expenses from five currencies to USD and print the total.
+
+6692. A sports app defines a void function `func simulateGame(teamA, teamB)` that generates random scores using `randInt` and prints the final result with a game summary line. Call it three times.
+
+6693. A teacher defines a returning function `func honorRoll(gpa, threshold) = { gpa >= threshold }`. Call it for a class list and print the names of all honor roll students.
+
+6694. A recipe app defines a void function `func mealPlanDay(breakfast, lunch, dinner)` that prints the daily meal plan with calorie totals for each meal and a daily total. Call it for a 3-day plan.
+
+6695. A travel planner defines a returning function `func totalTripCost(segments)` that uses `.reduce(0) { x,acc -> acc + x.get("cost",0) }` on a list of trip segment dicts to compute the total. Call it and print the result.
+
+6696. A sports analyst defines a void function `func printPerformanceTrend(player, scores)` that prints the season scoring trend with `"↑"` or `"↓"` indicators for each game compared to the previous. Call it for a player's 8-game streak.
+
+6697. A teacher defines a returning function `func missingAssignments(submitted, required) = { required.filter { x -> submitted.containsItem(x) === false } }`. Call it and print a list of missing assignments per student.
+
+6698. A recipe app defines a void function `func cookingTimeline(recipe)` that extracts step durations from a dict, computes start and end times for each step, and prints a Gantt-style timeline. Call it for a roast dinner recipe.
+
+6699. A travel app defines a returning function `func visaRequired(passport, destination, visaDB) = { visaDB.getAtPath([passport, destination], "check") }`. Call it for five passport-destination combinations and print requirements.
+
+6700. A sports app defines a void function `func seasonReport(team, gamesPlayed, wins, draws, losses, goalsFor, goalsAgainst)` that computes points, goal difference, goals-per-game, and win rate, then prints a complete end-of-season report card. Call it for three teams.

@@ -1,0 +1,525 @@
+# PROBLEM10: Combinatorics and Probability (Problems 4701–5200)
+
+## Section 1: Variables (Problems 4701–4745)
+
+4701. Declare globals `global n = 10` and `global r = 3` and compute C(n,r) = n!/(r!(n-r)!) storing the result in `global combo = 120`.
+4702. Store the number of permutations P(7,3) = 7!/(7-3)! = 210 in `global perm = 210`; verify by printing `this.perm`.
+4703. Declare `global trials = 10000` and `global successes = 0` to track a Monte Carlo simulation; print `this.successes / this.trials` after updating.
+4704. Declare `global prob = 0.5` and `global expected = 5` representing expected heads in 10 fair coin flips; verify `this.expected === (10 * this.prob)`.
+4705. Store the 6th Catalan number `global catalan6 = 132` and verify it equals C(12,6)/7 = 924/7 = 132 using integer division.
+4706. Declare `global fib10 = 55` for the 10th Fibonacci number, which counts tilings of a 1×10 board with 1×1 and 1×2 tiles; print `this.fib10`.
+4707. Store `global derangements4 = 9` for D(4), the number of derangements of 4 elements; verify using D(n) = (n-1)(D(n-1)+D(n-2)) with D(2)=1, D(3)=2.
+4708. Declare `global bellNum4 = 15` for the 4th Bell number (number of set partitions of {1,2,3,4}); print `this.bellNum4`.
+4709. Store `global stirling2_4_2 = 7` for the Stirling number of the second kind S(4,2); verify it equals the number of ways to partition 4 elements into 2 non-empty subsets.
+4710. Declare `global lucasNum7 = 29` for the 7th Lucas number (2,1,3,4,7,11,18,29,...); verify using the recurrence L(n) = L(n-1)+L(n-2).
+4711. Store `global motzkin4 = 9` for the 4th Motzkin number, which counts the number of ways to draw non-crossing chords on 4 points; print `this.motzkin4`.
+4712. Declare `global eulerian3 = 4` for the Eulerian number A(3,1) = 4 (permutations of {1,2,3} with exactly 1 ascent); verify by listing all 6 permutations and counting.
+4713. Store `global ballot3_1 = 5` representing the ballot number for sequences where candidate A always leads with 3 votes vs 1 vote; print `this.ballot3_1`.
+4714. Declare `global narayana3_2 = 3` for the Narayana number N(3,2) = 3; verify it counts Dyck paths of length 6 with exactly 2 peaks.
+4715. Store `global harmonic5 = 2.2833` (approx) for the 5th harmonic number H(5) = 1 + 1/2 + 1/3 + 1/4 + 1/5; print `formatDecimal(this.harmonic5, 4)`.
+4716. Declare `global schroeder4 = 90` for the 4th large Schröder number, counting paths from (0,0) to (4,4) with steps right, up, diagonal never going above y=x; print `this.schroeder4`.
+4717. Store `global partitions5 = 7` for p(5), the number of integer partitions of 5 ({5},{4,1},{3,2},{3,1,1},{2,2,1},{2,1,1,1},{1,1,1,1,1}); print `this.partitions5`.
+4718. Declare `global bernoulli2 = 0.1667` (approx 1/6) for the second Bernoulli number B(2); verify `formatDecimal(this.bernoulli2 * 6, 2) === "1.00"`.
+4719. Store `global tangentNum3 = 16` for the third tangent (Zag) number T(3) = 16; these count alternating permutations of odd length; print `this.tangentNum3`.
+4720. Declare `global secantNum2 = 5` for the second secant (Zig) number E(2) = 5; these count alternating permutations of even length 4; print `this.secantNum2`.
+4721. Store `global wobblyPerm4 = 2` for the number of "wobbly" permutations of length 4 that alternate up-down-up; print `this.wobblyPerm4`.
+4722. Declare `global menageNum4 = 2` for the 4th ménage number (arrangements of 4 male-female couples at a circular table no couple adjacent); print `this.menageNum4`.
+4723. Store `global landauG5 = 6` for Landau's function g(5) = max order of element in S_5 = lcm(2,3) = 6; print `this.landauG5`.
+4724. Declare `global ramseyR3_3 = 6` for the Ramsey number R(3,3) = 6; print `"R(3,3) = " _ this.ramseyR3_3`.
+4725. Store `global genocchi4 = -1` (the 4th Genocchi number G(4) = -1); print `"G4 = " _ this.genocchi4`.
+4726. Declare `global padovan7 = 5` for the 7th Padovan number (1,1,1,2,2,3,4,5,7,...); verify using P(n) = P(n-2)+P(n-3); print `this.padovan7`.
+4727. Store `global tribonacci6 = 13` for the 6th Tribonacci number T(6) where T(n)=T(n-1)+T(n-2)+T(n-3) with T(1)=T(2)=0, T(3)=1; verify `this.tribonacci6 === 13`.
+4728. Declare `global sylvester3 = 43` representing the 3rd Sylvester sequence element (2,3,7,43,...) defined as a(n)=a(n-1)^2-a(n-1)+1; print `this.sylvester3`.
+4729. Store `global fortuneNum4 = 7` for the 4th Fortunate number (smallest prime > primorial(4)/primorial(3)+1 candidates); print `this.fortuneNum4`.
+4730. Declare `global hofstadterG5 = 3` for the 5th Hofstadter G sequence value; G(0)=0, G(n)=n-G(G(n-1)); print `this.hofstadterG5`.
+4731. Store `global perrinSeq6 = 5` for the 6th Perrin number (3,0,2,3,2,5,...) with P(n)=P(n-2)+P(n-3); print `this.perrinSeq6`.
+4732. Declare `global pentagonal5 = 35` for the 5th pentagonal number p(5) = 5(3*5-1)/2 = 35; print `this.pentagonal5`.
+4733. Store `global jacobsthal6 = 21` for the 6th Jacobsthal number J(6) = J(n-1)+2*J(n-2), J(0)=0,J(1)=1; print `this.jacobsthal6`.
+4734. Declare `global pell6 = 70` for the 6th Pell number (0,1,2,5,12,29,70,...) via P(n)=2P(n-1)+P(n-2); print `this.pell6`.
+4735. Store `global woodallNum3 = 23` for the 3rd Woodall number W(3) = 3*2^3-1 = 23; print `this.woodallNum3`.
+4736. Declare `global cullenNum3 = 25` for the 3rd Cullen number C(3) = 3*2^3+1 = 25; print `this.cullenNum3`.
+4737. Store `global recamanSeq5 = 3` for the 5th term of the Recamán sequence (0,1,3,6,2,7,...); print `this.recamanSeq5`.
+4738. Declare `global golombSeq5 = 3` for the 5th Golomb sequence value (1,2,2,3,3,4,4,4,5,...); print `this.golombSeq5`.
+4739. Store `global rowlandSeq6 = 5` for the 6th distinct prime in the Rowland sequence; print `this.rowlandSeq6`.
+4740. Declare `global kolakoskiSeq6 = 2` for the 6th term of the Kolakoski sequence (1,2,2,1,1,2,1,2,2,...); print `this.kolakoskiSeq6`.
+4741. Store `global ulam8 = 18` for the 8th Ulam number (1,2,3,4,6,8,11,13,16,18,...); print `this.ulam8`.
+4742. Declare `global odious5 = 9` for the 5th odious number (positive integers with odd digit sum in base 2: 1,2,4,7,8,11,...); print `this.odious5`.
+4743. Store `global evilNum5 = 5` for the 5th evil number (positive integers with even digit sum in base 2: 0,3,5,6,9,...); print `this.evilNum5`.
+4744. Declare `global fibbinary5 = 8` for the 5th Fibbinary number (integers with no two adjacent 1-bits: 0,1,2,4,5,8,10,...); print `this.fibbinary5`.
+4745. Store `global zeckendorf10 = 8` as the largest Fibonacci number in the Zeckendorf representation of 10 (10 = 8+2); print `this.zeckendorf10`.
+
+## Section 2: Math (Problems 4746–4865)
+
+4746. Compute the factorial of 10 iteratively: start with `local f = 1`, loop `for (i: 1 .. 10 step 1)` multiplying `f = f * i`, and print `f` (expecting 3628800).
+4747. Write a recursive Falcon function `func factorial(n) = { if (n <= 1) { 1 } else { n * factorial(n-1) } }` and verify `factorial(7) === 5040`.
+4748. Compute C(15,5) using the formula `15! / (5! * 10!)` with a `factorial` helper; print the result (expecting 3003).
+4749. Compute P(10,4) = 10 * 9 * 8 * 7 using a loop, accumulating from 10 down to 10-4+1; print the result (expecting 5040).
+4750. Implement Pascal's triangle row 8 by starting with `[1]` and iteratively adding adjacent pairs plus boundary 1s; print the resulting list `[1,8,28,56,70,56,28,8,1]`.
+4751. Compute the sum of row 10 of Pascal's triangle by noting it equals 2^10; verify `2^10 === 1024` using `exp(10 * log(2))` and rounding.
+4752. Implement the multinomial coefficient `(n; k1,k2,k3)` = n!/(k1!k2!k3!) as a function and compute `(9;3,3,3)` = 9!/(3!^3) = 1680; print `1680`.
+4753. Compute the number of anagrams of "MISSISSIPPI" using `11! / (4! * 4! * 2!)` = 34650; print the result.
+4754. Use the recurrence C(n,k) = C(n-1,k-1) + C(n-1,k) to fill a 2D triangle stored as a list of lists, then extract C(12,5) = 792; print `792`.
+4755. Compute the number of ways to choose a committee of 3 from 20 people: C(20,3) = 1140; then filter those containing person #1 to get C(19,2) = 171; print `171`.
+4756. Write `func permWithRep(n, r) = { n^r }` and compute the number of 4-digit PINs from digits 0–9 as `10^4 = 10000`; print `10000`.
+4757. Compute C(n,r) for all r from 0 to n=6, storing results in a list, then sum them to verify the sum equals `2^6 = 64`; print the sum.
+4758. Implement the Leibniz triangle where L(n,k) = 1/(n * C(n-1,k-1)); compute L(5,3) = 1/(5*C(4,2)) = 1/30 ≈ 0.0333; print `formatDecimal(1.0/30, 4)`.
+4759. Compute the probability of getting exactly 3 heads in 8 fair coin flips: C(8,3) * (0.5)^8 = 56/256 ≈ 0.21875; print `formatDecimal(56.0/256, 5)`.
+4760. Compute the binomial CDF P(X≤3) for X~Binomial(8,0.5) by summing probabilities for k=0,1,2,3: (1+8+28+56)/256 = 93/256 ≈ 0.3633; print `formatDecimal(93.0/256,4)`.
+4761. Use the normal approximation to the binomial: for X~Bin(100,0.3), compute mean=30, variance=21, stddev≈4.583; print `formatDecimal(sqrt(21),3)` (expecting `"4.583"`).
+4762. Compute the Poisson probability P(X=3) for λ=2: e^(-2) * 2^3 / 3! = 8*e^(-2)/6 ≈ 0.1804; print `formatDecimal(8 * exp(-2) / 6, 4)`.
+4763. Compute the Poisson CDF P(X≤3) for λ=2 by summing k=0..3: sum of e^(-2)*2^k/k! for k 0,1,2,3 ≈ 0.8571; print `formatDecimal(result, 4)`.
+4764. Implement the geometric distribution PMF P(X=k) for p=0.4 as `(1-p)^(k-1) * p`; compute P(X=4) = 0.6^3 * 0.4 = 0.0864; print `formatDecimal(0.0864, 4)`.
+4765. Compute the expected value of X~Geometric(0.4) as 1/p = 2.5; verify numerically by computing sum k*P(X=k) for k=1..20; print `formatDecimal(result, 1)` expecting `"2.5"`.
+4766. Compute the negative binomial PMF P(X=k; r=3, p=0.5): C(k-1,r-1)*p^r*(1-p)^(k-r); for k=5: C(4,2)*(0.5)^5 = 6/32 = 0.1875; print `formatDecimal(0.1875,4)`.
+4767. Compute the hypergeometric probability of drawing exactly 2 red balls from a bag of 10 (6 red, 4 blue) when drawing 4: C(6,2)*C(4,2)/C(10,4) = 15*6/210 = 90/210 ≈ 0.4286; print `formatDecimal(90.0/210,4)`.
+4768. Write a function that computes the number of lattice paths from (0,0) to (m,n) using only right and up steps as C(m+n, n); compute paths to (5,4) = C(9,4) = 126; print `126`.
+4769. Compute lattice paths from (0,0) to (6,6) that never cross above the diagonal using Catalan number C(6) = C(12,6)/7 = 132; print `132`.
+4770. Implement the ballot problem: probability that candidate A (n=6 votes) is always strictly ahead of B (m=3 votes) = (n-m)/(n+m) = 3/9 = 1/3 ≈ 0.3333; print `formatDecimal(1.0/3, 4)`.
+4771. Compute the number of surjective functions from a 4-element set to a 3-element set using inclusion-exclusion: 3^4 - C(3,1)*2^4 + C(3,2)*1^4 = 81-48+3 = 36; print `36`.
+4772. Use inclusion-exclusion to count integers from 1 to 100 divisible by 2 or 3: 50+33-16 = 67; then use the formula |A∪B| = |A|+|B|-|A∩B|; print `67`.
+4773. Compute the number of derangements D(6) using D(n) = (n-1)*(D(n-1)+D(n-2)) with D(1)=0, D(2)=1; iterate to get D(6) = 265; print `265`.
+4774. Approximate D(n)/n! → 1/e as n→∞; compute `D(10)/10!` and verify it's close to `exp(-1) ≈ 0.3679`; print `formatDecimal(exp(-1),4)`.
+4775. Compute the number of ways to tile a 2×8 board with 2×1 dominoes using the Fibonacci-like recurrence T(n) = T(n-1)+T(n-2), T(1)=1, T(2)=2; reach T(8) = 34; print `34`.
+4776. Write a Falcon function to compute the partition function p(n) for small n using dynamic programming; compute p(7) = 15; print `15`.
+4777. Compute the number of compositions of 5 (ordered partitions): total is 2^(5-1) = 16; verify by noting each composition corresponds to a subset of {1,2,3,4}; print `16`.
+4778. Compute the number of compositions of 5 into exactly 3 parts: C(5-1, 3-1) = C(4,2) = 6; print `6`.
+4779. Compute the number of ways to distribute 10 identical balls into 4 distinct boxes (stars and bars): C(10+4-1, 4-1) = C(13,3) = 286; print `286`.
+4780. Compute the number of ways to distribute 10 identical balls into 4 distinct boxes with at least 1 ball each (stars and bars): C(10-1, 4-1) = C(9,3) = 84; print `84`.
+4781. Compute the permanent of a 3×3 matrix [[1,2,3],[4,5,6],[7,8,9]] by summing over all permutations of columns: 1*5*9+1*6*8+2*4*9+2*6*7+3*4*8+3*5*7 = 45+48+72+84+96+105 = 450; print `450`.
+4782. Compute the number of spanning trees of K_4 (complete graph on 4 vertices) using Cayley's formula n^(n-2) = 4^2 = 16; print `16`.
+4783. Use Cayley's formula n^(n-2) to compute labeled tree counts for n=6: 6^4 = 1296; print `1296`.
+4784. Compute the chromatic polynomial of the cycle graph C_4 evaluated at k=3: (k-1)^4 + (k-1) = 16+2 = 18 for k=3; verify `(3-1)^4 + (3-1) === 18`; print `18`.
+4785. Compute the number of Hamiltonian cycles in K_5: (5-1)!/2 = 24/2 = 12; print `12`.
+4786. Compute the probability of a random permutation of [1..6] being a derangement: D(6)/6! = 265/720 ≈ 0.3681; print `formatDecimal(265.0/720, 4)`.
+4787. Simulate the birthday paradox: compute the probability that at least 2 people share a birthday in a room of 23 by computing 1 - (365*364*...*343)/365^23; store and print result ≈ 0.5073.
+4788. Compute the exact birthday collision probability for n=10 people: 1 - (365!/355!)/365^10; use logarithms to avoid overflow; print `formatDecimal(result, 4)` ≈ `"0.1169"`.
+4789. Implement the coupon collector problem: expected draws to collect all n=6 coupons = 6*(1+1/2+1/3+1/4+1/5+1/6) = 6*H(6) ≈ 14.7; print `formatDecimal(6 * harmonic(6), 1)`.
+4790. Write a Falcon function `func harmonicSum(n) = { }` using a loop accumulating 1.0/k for k=1..n; compute harmonicSum(10) ≈ 2.9290 and print `formatDecimal(result, 4)`.
+4791. Compute the expected number of fixed points in a random permutation of n elements = 1 for all n≥1; verify numerically for n=4 by averaging fixedPoints over all 24 permutations; print `"1.0"`.
+4792. Compute the variance of the number of fixed points in a random permutation = 1; verify for n=4 using sum((k-1)^2 * count_k)/24 where k ranges over possible values; print `"1.0"`.
+4793. Implement a Monte Carlo estimate of π by generating `randFloat()` pairs (x,y) in [0,1]^2, counting those inside the quarter circle, and multiplying by 4; run 1000 trials and print result close to π.
+4794. Compute the probability of getting a full house in 5-card poker: C(13,1)*C(4,3)*C(12,1)*C(4,2) / C(52,5) = 3744/2598960 ≈ 0.00144; print `formatDecimal(3744.0/2598960, 5)`.
+4795. Compute the probability of a flush in 5-card poker: C(4,1)*C(13,5)/C(52,5) - 4 (royal+straight flushes) = (5148-40)/2598960 ≈ 0.00197; print `formatDecimal(5108.0/2598960, 5)`.
+4796. Compute the expected number of rolls to get a 6 on a fair die using geometric distribution mean = 1/p = 6; verify using sum of k*(5/6)^(k-1)*(1/6) for k=1..100; print `formatDecimal(result, 1)` expecting `"6.0"`.
+4797. Compute the variance of rolls to get a 6: (1-p)/p^2 = (5/6)/(1/36) = 30; print `30`.
+4798. Implement the negative hypergeometric distribution: probability of drawing the r-th success on the k-th draw from N=20 (K=8 successes); compute for r=3, k=7: C(6,2)*C(12,4)/C(19,6)*8/20... simplify and print result.
+4799. Compute the Stirling numbers S(5,k) for k=1..5 using S(n,k) = k*S(n-1,k)+S(n-1,k-1): [1,15,25,10,1]; sum them to get B(5)=52; print `52` (the 5th Bell number).
+4800. Compute the Stirling numbers of the first kind s(5,k) for k=1..5 (unsigned): [24,50,35,10,1]; verify sum = 5! = 120; print `120`.
+4801. Compute the number of labeled graphs on 4 vertices: 2^C(4,2) = 2^6 = 64; print `64`.
+4802. Compute the number of connected labeled graphs on 4 vertices = 64 - 1 (empty) - 4 (one isolated) - 3 (two components of size 2) - ... = 38; print `38`.
+4803. Implement the Polya enumeration theorem to count distinct necklaces with n=6 beads in k=3 colors: (1/6)*(3^6+3^3+2*3^2+...); compute result = 130; print `130`.
+4804. Compute the number of distinct binary necklaces of length 8 using Burnside's lemma: (1/8)*(2^8 + 2^4 + 2*2^2 + 2*2^4 + 2*2^1) considering rotation symmetries; result = 36; print `36`.
+4805. Compute the number of ways to seat 6 people at a round table: (6-1)! = 120; print `120`.
+4806. Compute the number of ways to seat 6 people at a round table with 2 fixed as neighbors: 2 * (5-1)! = 48; print `48`.
+4807. Compute the number of ways to distribute 5 distinct balls into 3 distinct boxes: 3^5 = 243; print `243`.
+4808. Compute the number of onto functions from {1..5} to {1,2,3}: 3^5 - C(3,1)*2^5 + C(3,2)*1^5 = 243-96+3 = 150; print `150`.
+4809. Compute the probability of a random bijection from {1..4} to {1..4} having no fixed point (derangement): D(4)/4! = 9/24 = 0.375; print `formatDecimal(9.0/24, 3)`.
+4810. Implement the inclusion-exclusion formula for the number of permutations with at least one fixed point: 4! - D(4) = 24 - 9 = 15; print `15`.
+4811. Compute the expected number of cycles in a random permutation of n=8 elements using H(n) = 1+1/2+...+1/n ≈ 2.7179; print `formatDecimal(harmonicSum(8), 4)`.
+4812. Compute the variance of cycle count in a random permutation: also H(n) - H2(n) where H2 = sum 1/k^2; for n=8, compute and print `formatDecimal(result, 4)`.
+4813. Compute the probability that a random permutation of [1..5] is a single 5-cycle: (5-1)!/5! = 24/120 = 0.2; print `"0.2"`.
+4814. Use the exponential formula relating cycles to permutations: the EGF for permutations is 1/(1-x); verify that d/dx[log(1/(1-x))] = 1/(1-x); compute coefficient of x^5/5! in EGF = 1; print `"1"`.
+4815. Compute the number of permutations of [1..6] with cycle type (3,2,1) using n!/(3*2*1*1!*1!*1!) = 720/6 = 120; print `120`.
+4816. Implement the multinomial distribution PMF: for (n=10, k1=3, k2=4, k3=3) with p1=0.2, p2=0.5, p3=0.3: C(10;3,4,3) * 0.2^3 * 0.5^4 * 0.3^3; compute and print result ≈ 0.0945.
+4817. Compute the Dirichlet distribution normalizing constant B(α1,α2,α3) = Γ(α1)*Γ(α2)*Γ(α3)/Γ(α1+α2+α3) for α=(2,3,1); use factorials since αi are integers; result = 1!*2!*0!/(5!) = 2/120 = 1/60; print `formatDecimal(1.0/60, 4)`.
+4818. Compute P(X=2,Y=3) for a bivariate Poisson with λ1=1, λ2=2, λ3=0.5 using the formula; for independent case (λ3=0): Poisson(1)(2) * Poisson(2)(3); result ≈ 0.0181; print `formatDecimal(result, 4)`.
+4819. Implement the Waring formula for power sums: p_k = e_1*p_{k-1} - e_2*p_{k-2} + ... where e_i are elementary symmetric polynomials; compute p_3 for roots 1,2,3 (e1=6,e2=11,e3=6): p_3 = 6*5 - 11*3 + 6*1*3 = wait, use Newton's identity to get 1^3+2^3+3^3 = 36; print `36`.
+4820. Compute the chromatic polynomial of the path graph P_4 evaluated at k=4: k*(k-1)^3 = 4*27 = 108; print `108`.
+4821. Compute the reliability polynomial of a series network of 3 components each with reliability p=0.9: p^3 = 0.729; print `formatDecimal(0.9^3, 3)` where `0.9^3 = exp(3*log(0.9))`.
+4822. Compute the reliability of a parallel network of 4 independent components each with p=0.7: 1-(1-0.7)^4 = 1-0.0081 = 0.9919; print `formatDecimal(1 - exp(4*log(0.3)), 4)`.
+4823. Compute the reliability of a bridge network (5 components in a bridge layout) with all p=0.5 using inclusion-exclusion over minimal paths; result = 0.6875 = 11/16; print `formatDecimal(11.0/16, 4)`.
+4824. Implement the transfer matrix method: count paths of length 4 in a 2-state Markov chain with transition matrix T=[[0.6,0.4],[0.3,0.7]]; compute T^4 entry [0][0]; result ≈ 0.5227; print `formatDecimal(result, 4)`.
+4825. Compute the stationary distribution of a 2-state Markov chain with p=0.4 (transition 0→1), q=0.3 (transition 1→0): π0 = q/(p+q) = 0.3/0.7 ≈ 0.4286; print `formatDecimal(0.3/0.7, 4)`.
+4826. Compute the expected absorption time in a random walk on {0,1,...,5} with absorbing barriers at 0 and 5, starting at position 3 with equal transition probabilities: t_3 = 3*(5-3) = 6; print `6`.
+4827. Implement the gambler's ruin problem: probability of reaching N=10 before 0 starting at k=4 with p=0.5 (fair game) = k/N = 0.4; print `"0.4"`.
+4828. Compute gambler's ruin probability with p≠0.5: for p=0.6, N=10, k=4: ((q/p)^k-1)/((q/p)^N-1) where q=0.4; compute `((0.4/0.6)^4 - 1) / ((0.4/0.6)^10 - 1)`; print result ≈ 0.7319.
+4829. Simulate a simple random walk for 100 steps using `randInt(0,1)` to decide +1 or -1; compute the mean absolute displacement after 100 trials; print `formatDecimal(result, 2)` (expected ≈ 8.0).
+4830. Implement the reflection principle: number of paths from (0,0) to (2n,0) = C(2n,n); for n=5 get C(10,5)=252; print `252`.
+4831. Compute the Catalan number C(7) = C(14,7)/8 = 429; verify it counts valid sequences of 7 pairs of parentheses; print `429`.
+4832. Implement a generating function approach: the GF for Catalan numbers is C(x) = (1-sqrt(1-4x))/(2x); verify [x^5] = C(5) = 42 by computing the coefficient via Taylor expansion; print `42`.
+4833. Compute the probability generating function of a Binomial(5,0.4) at z=2: sum C(5,k)*0.4^k*0.6^(5-k)*2^k for k=0..5 = (0.4*2+0.6)^5 = 1.4^5 ≈ 5.3782; print `formatDecimal(exp(5*log(1.4)), 4)`.
+4834. Compute the moment generating function M(t) of Poisson(3) at t=0.5: exp(3*(e^0.5-1)) = exp(3*0.6487) ≈ exp(1.9461) ≈ 7.0; print `formatDecimal(exp(3*(exp(0.5)-1)), 4)`.
+4835. Compute the characteristic function of Uniform(0,1) at t=5: (e^(5i)-1)/(5i); compute the modulus |CF(5)| = |sin(2.5)/2.5| = sin(2.5)/2.5 ≈ 0.2394; print `formatDecimal(abs(sin(2.5)/2.5), 4)`.
+4836. Compute the Laplace transform of the Exponential(2) density at s=3: 2/(2+3) = 0.4; print `"0.4"`.
+4837. Implement the Box-Muller transform to generate a standard normal sample: given u1=0.6, u2=0.3, compute z = sqrt(-2*log(u1)) * cos(2*π*u2); print `formatDecimal(result, 4)`.
+4838. Compute quantiles of the standard normal: the 95th percentile ≈ 1.645; verify using the approximation formula; print `formatDecimal(1.645, 3)`.
+4839. Compute the chi-squared distribution CDF at x=3.84 with 1 degree of freedom (≈ 0.95); relate to `(1+erf(sqrt(1.92)))/2`; compute and print result ≈ 0.95.
+4840. Compute the expected value of the maximum of n=5 i.i.d. Uniform(0,1) random variables: n/(n+1) = 5/6 ≈ 0.8333; print `formatDecimal(5.0/6, 4)`.
+4841. Compute the probability that the maximum of 3 i.i.d. Uniform(0,1) is less than 0.8: 0.8^3 = 0.512; print `formatDecimal(0.512, 3)`.
+4842. Compute the expected order statistics E[X_(k)] for Uniform(0,1): k/(n+1); for n=6, k=4: 4/7 ≈ 0.5714; print `formatDecimal(4.0/7, 4)`.
+4843. Implement the Erdős–Rényi random graph: probability that G(n=5, p=0.5) is connected; compute approximately using the formula 1 - C(5,1)*(1-p)^4*(1-p^(4))-...; print result ≈ 0.6563.
+4844. Compute the probability that a random 3-regular graph on 4 vertices exists: count 3-regular graphs on 4 vertices (exactly 1 up to isomorphism, K4); probability = 1.0; print `"1.0"`.
+4845. Implement the permanent of a 0-1 matrix to count perfect matchings: for a 4x4 bipartite graph adjacency matrix, use Ryser's formula; compute permanent of the all-1s 3x3 matrix = 3! = 6; print `6`.
+4846. Use Ryser's formula for permanent: perm(A) = (-1)^n * sum over subsets S of [n] of (-1)^|S| * product over rows of (sum over j in S of A[i][j]); implement for n=3 and print `6`.
+4847. Compute the probability of drawing a straight in 5-card poker: 10,240 straights / 2,598,960 = 0.003940; subtract straight flushes: (10240-40)/2598960 ≈ 0.003925; print `formatDecimal(10200.0/2598960, 6)`.
+4848. Compute P(two pair) in 5-card poker: C(13,2)*C(4,2)^2*44 / C(52,5) = 78*6^2*44/2598960 = 123552/2598960 ≈ 0.04754; print `formatDecimal(123552.0/2598960, 5)`.
+4849. Implement the Monty Hall problem simulation: after door switch, wins = 2/3 trials; set `global montyWin = 2.0/3`; print `formatDecimal(this.montyWin, 4)`.
+4850. Compute the expected number of comparisons in a random quicksort on n=8 distinct elements: 2*n*H(n) - 2*(n-1); compute for n=8: 2*8*H(8) - 14 ≈ 2*8*2.7179 - 14 ≈ 29.487; print `formatDecimal(result, 3)`.
+4851. Compute the probability that a random BST built from n=4 elements is balanced (height 2): 4 such trees / 24 permutations = 1/6 ≈ 0.1667; print `formatDecimal(1.0/6, 4)`.
+4852. Implement the negative binomial CDF: P(X≤5) for X~NegBin(r=2, p=0.4) = sum_{k=2}^{5} C(k-1,1)*(0.4)^2*(0.6)^(k-2); compute and print result ≈ 0.6630.
+4853. Compute the mode of a Binomial(n=10, p=0.3): floor((n+1)*p) = floor(3.3) = 3; verify P(X=3) > P(X=2) and P(X=3) > P(X=4); print `3`.
+4854. Compute the entropy of a Binomial(5,0.4) distribution: H = -sum P(k)*log2(P(k)) for k=0..5; compute and print `formatDecimal(result, 4)` ≈ `"2.0328"`.
+4855. Compute the Kullback-Leibler divergence D(P||Q) between Poisson(2) and Poisson(3): sum P(k)*log(P(k)/Q(k)) for k=0..20; result ≈ 0.1178; print `formatDecimal(result, 4)`.
+4856. Implement the law of total expectation: E[X] = E[E[X|Y]]; for a compound Poisson where N~Poisson(3) and each X_i~Uniform{1,2,3,4,5,6}, compute E[sum] = E[N]*E[X_i] = 3*3.5 = 10.5; print `"10.5"`.
+4857. Compute the variance using the law of total variance: Var(S) = E[N]*Var(X) + Var(N)*E[X]^2 for compound Poisson; Var(X)=35/12, Var(N)=3: Var(S) = 3*35/12 + 3*12.25 ≈ 8.75+36.75 = 45.5; print `formatDecimal(45.5, 1)`.
+4858. Implement the Markov inequality: P(X≥a) ≤ E[X]/a; for X~Poisson(2), a=8: bound = 2/8 = 0.25; exact P(X≥8) ≈ 0.0045; print `"Bound: 0.25"`.
+4859. Compute the Chebyshev bound: P(|X-μ|≥k*σ) ≤ 1/k^2; for k=2: bound ≤ 0.25; print `"0.25"`.
+4860. Compute the Chernoff bound for X~Binomial(100,0.5): P(X≥70) ≤ e^(-100*(0.7*log(0.7/0.5)+0.3*log(0.3/0.5))) ... compute the exponent; print result ≈ `"2.5e-5"`.
+4861. Compute the central moments of Uniform(0,1): mean=0.5, variance=1/12≈0.0833, skewness=0; print `formatDecimal(1.0/12, 4)`.
+4862. Compute the moment generating function of Exponential(λ=2) at t=0.5: λ/(λ-t) = 2/1.5 = 4/3 ≈ 1.3333; print `formatDecimal(4.0/3, 4)`.
+4863. Compute the probability of a Type I error in a two-tailed test at α=0.05: P(|Z|>1.96) ≈ 0.05; print `formatDecimal(0.05, 2)`.
+4864. Implement the Fisher exact test for a 2x2 contingency table [[3,1],[1,3]]: P = C(4,3)*C(4,1)/C(8,4) + C(4,4)*C(4,0)/C(8,4) = (16+1)/70 = 17/70 ≈ 0.2429; print `formatDecimal(17.0/70, 4)`.
+4865. Compute the Bonferroni correction for 10 simultaneous tests at α=0.05: corrected threshold = 0.05/10 = 0.005; print `formatDecimal(0.05/10, 3)`.
+
+## Section 3: Text (Problems 4866–4920)
+
+4866. Write a Falcon function that counts the number of distinct characters in a string by splitting into individual characters and tracking seen ones; for "MISSISSIPPI" print `4` (M,I,S,P).
+4867. Implement a function that returns the number of permutations of a string's characters, accounting for repetitions: for "MISSISSIPPI" compute 11!/(4!4!2!) = 34650; print `"34650"`.
+4868. Write a function that checks if two strings are anagrams by sorting their characters and comparing; `"listen"` and `"silent"` should return `true`; print `"true"`.
+4869. Implement a function that generates all anagrams of a 3-character string "abc" by listing all 6 permutations as a comma-separated text; print `"abc,acb,bac,bca,cab,cba"`.
+4870. Write a function that computes the probability that a random anagram of "ABCD" is alphabetically sorted: only "ABCD" out of 24 permutations = 1/24; print `formatDecimal(1.0/24, 4)`.
+4871. Implement a string hashing function that computes sum of character codes mod 101; for "hello" compute (104+101+108+108+111) mod 101 = 532 mod 101 = 27; print `"27"`.
+4872. Write a function that counts the number of ways to split a string of length n=5 into 2 non-empty parts: n-1 = 4; print `"4"`.
+4873. Implement a function that counts binary strings of length n=8 with exactly k=3 ones: C(8,3) = 56; print `"56"`.
+4874. Write a function that counts the number of binary strings of length 8 with no two consecutive 1s using a recurrence: f(n) = f(n-1)+f(n-2), f(1)=2, f(2)=3; f(8) = 55; print `"55"`.
+4875. Implement a function that returns the number of palindromes of length n=6 over a k=2 letter alphabet: 2^3 = 8 (determined by first half); print `"8"`.
+4876. Write a function that generates all palindromes of length 4 over {a,b} as a list; there are 4 palindromes: "aaaa","abba","baab","bbbb"; return `.join(",")` and print.
+4877. Implement the Levenshtein distance between "kitten" and "sitting" using dynamic programming; the edit distance = 3; print `"3"`.
+4878. Write a function that counts common subsequences of "ABCD" and "ACBD": use LCS dynamic programming, LCS length = 3 ("ABD" or "ACD"); print `"3"`.
+4879. Implement a function that counts the number of distinct subsequences of "AAB" that equal "AB": 2 (using first or second A); print `"2"`.
+4880. Write a function computing the number of distinct subsequences of string s in string t using DP: for s="ab", t="aabb" the count = 4; print `"4"`.
+4881. Implement a Falcon function that encodes a string using run-length encoding: "AAABBBCCDDDDEE" → "3A3B2C4D2E"; print `"3A3B2C4D2E"`.
+4882. Write a function that decodes run-length encoded text "3A3B2C4D2E" back to "AAABBBCCDDDDEE"; print the decoded string.
+4883. Implement a Caesar cipher with shift k=13 (ROT13): `"Hello"` → `"Uryyb"`; write the encoding function and print the result.
+4884. Write a Falcon function that computes the probability that a random shift Caesar cipher can be broken by frequency analysis for strings of length ≥ 20; print `"high"` as a text classification.
+4885. Implement a Vigenère cipher encode function with key "KEY": `"HELLO"` maps to `"RIJVS"` using shifts (10,4,24,...); print `"RIJVS"`.
+4886. Write a function that counts the number of n-bit strings with even parity (even number of 1s): 2^(n-1); for n=8: 128; print `"128"`.
+4887. Implement a Hamming distance function between two binary strings "10110100" and "11010110": count positions where they differ = 4; print `"4"`.
+4888. Write a function that counts binary strings of length n=10 at Hamming distance exactly 2 from a given string: C(10,2) = 45; print `"45"`.
+4889. Implement a function that finds all strings of length 3 over {a,b,c} sorted lexicographically, count them: 3^3 = 27; print the count `"27"`.
+4890. Write a Falcon function that formats a large combinatorial result with commas: `formatWithCommas(3628800)` should return `"3,628,800"`; implement using text manipulation.
+4891. Implement a function that converts a number to its factorial representation (factoradic): 463 in factoradic is "3:4:1:0:1:0" (reading from MSD); print the factoradic of 10 = `"1:2:0:0"`.
+4892. Write a function that encodes a permutation as its Lehmer code: for [3,1,4,2] the Lehmer code is [2,0,1,0]; print the code as `"2,0,1,0"`.
+4893. Implement a function that decodes a Lehmer code back to a permutation: [2,0,1,0] → [3,1,4,2]; print `"3,1,4,2"`.
+4894. Write a function that finds the k-th permutation of [1,2,3,4] in lexicographic order (0-indexed): for k=14, result = [4,1,2,3]... compute properly using factoradic; print `"4,1,2,3"`.
+4895. Implement a function that returns the rank (0-indexed position in lexicographic order) of permutation "dcba" among all permutations of "abcd": rank = 23; print `"23"`.
+4896. Write a Falcon function that counts the number of "lucky" strings of length 7 where digit sum = 7*4.5 using balanced digits; approximate and print the count using Central Limit Theorem approximation.
+4897. Implement a function that generates the n-th Gray code: for n=5, Gray code = n XOR (n >> 1); use bitwise operations via `decToBin`/`binToDec`; compute and print `"00111"` for n=5.
+4898. Write a function that converts a Gray code string back to binary and then to decimal: "00111" → binary "00101" = 5; print `"5"`.
+4899. Implement a function that counts the number of strings of length n=6 over {0,1,2} with no two adjacent identical characters: 3 * 2^5 = 96; print `"96"`.
+4900. Write a Falcon function that computes the expected length of a run of consecutive 1s in a random binary string of length n=10: use probability analysis to compute expected max run; print result ≈ `"3.4"`.
+4901. Implement a function that checks if a string represents a valid mathematical expression with balanced parentheses; count valid strings of length 6 (Catalan): C(3)=5; print `"5"`.
+4902. Write a function that counts the number of ways to parenthesize a product of n=5 factors: Catalan number C(4) = 14; print `"14"`.
+4903. Implement a simple string compression using LZ77 encoding indicators; for "abcabcabc" indicate the repeated pattern length 3 at positions 0,3,6; print `"Compression ratio: 3"`.
+4904. Write a Falcon function that computes the probability that two random strings of length n=5 over alphabet {a..z} are equal: (1/26)^5; compute `exp(-5*log(26))` and print `formatDecimal(result, 10)`.
+4905. Implement a function that finds all distinct substrings of "abab" and counts them: distinct substrings are "", "a","b","ab","ba","aba","bab","abab" — 7 non-empty; print `"7"`.
+4906. Write a function that computes the number of substrings of length k=3 in a string of length n=10: n-k+1 = 8; print `"8"`.
+4907. Implement string interleaving counting: number of ways to interleave "AB" and "CD" to get a length-4 string = C(4,2) = 6; print `"6"`.
+4908. Write a function that verifies the birthday paradox using text: generate random 3-character strings until a collision; run 10 trials, print the average collision position.
+4909. Implement a function that formats a probability as a percentage string: `probToPercent(0.1234)` → `"12.34%"`; print `"12.34%"`.
+4910. Write a function that parses a text representation of a fraction "3/7" and computes the decimal: split on "/", divide integers, print `formatDecimal(3.0/7, 6)`.
+4911. Implement a function that generates all binary representations of numbers 0–7 as a list of 3-character strings; join with comma and print `"000,001,010,011,100,101,110,111"`.
+4912. Write a function that counts the number of strings of length 4 over {0,1,2,3,4,5,6,7,8,9} that are valid BCD (binary-coded decimal) for numbers 0–9999: 10^4 = 10000; print `"10000"`.
+4913. Implement a function that converts a decimal integer to base-b representation as a text string; compute the base-3 representation of 100: "10201"; print `"10201"`.
+4914. Write a function that counts the number of integers from 1 to 100 whose decimal representation contains the digit 3: count using string `.contains()`; print `"19"`.
+4915. Implement a function that returns the number of distinct ways to write n=20 as an ordered sum of positive integers each ≤ 3: use DP; result = 351; print `"351"`.
+4916. Write a function that formats a permutation count with scientific notation: for 52! use Stirling's approximation to get ≈ 8.07 × 10^67; print `"8.07e67"`.
+4917. Implement the Soundex encoding function for English names to demonstrate phonetic equivalence classes; encode "Robert" as "R163"; print `"R163"`.
+4918. Write a function that converts a combinatorial expression like "C(10,3)" from text form to its computed value 120; parse the string, extract n and r, compute and print `"120"`.
+4919. Implement the de Bruijn sequence for alphabet {0,1} of order n=3: a circular sequence of length 2^n=8 where every binary string of length 3 appears exactly once; print `"00010111"`.
+4920. Write a function that verifies a de Bruijn sequence is valid by extracting all n=3 substrings of "00010111" cyclically and checking they are all distinct; print `"valid"`.
+
+## Section 4: Lists (Problems 4921–5010)
+
+4921. Write a Falcon function that generates Pascal's triangle as a list of lists up to row n=8; print the 8th row `[1,7,21,35,35,21,7,1]`.
+4922. Implement a function `func nCr(n, r)` using a list of size r+1 for space-efficient DP; compute C(20,10) = 184756; print `184756`.
+4923. Write a function that generates the first n=15 Fibonacci numbers as a list; verify the sum = F(17)-1 = 1596; print `1596`.
+4924. Implement a function that computes the convolution of two lists [1,2,3] and [4,5,6]: result = [4,13,28,27,18]; print the list.
+4925. Write a function that computes the dot product of two probability vectors [0.2,0.5,0.3] and [1,2,3]: 0.2+1+0.9 = 2.1; print `formatDecimal(2.1, 1)`.
+4926. Implement the Kaprekar routine starting from [1,7,4,2]: sort descending to get 7421, ascending 1247, subtract 7421-1247=6174 (Kaprekar constant); store steps as a list and print the number of steps to reach 6174.
+4927. Write a function that generates all binary strings of length 4 as a list of 16 strings, then filter those with exactly 2 ones using `.filter`; print the count `16` (total) and filtered count `6`.
+4928. Implement a function that generates all permutations of [1,2,3] using a recursive backtracking approach, storing them as a list of lists; print the count `6`.
+4929. Write a function that generates all subsets of [1,2,3,4] as a list of 16 lists using bitmask enumeration; verify the count and print `16`.
+4930. Implement the combination generator using a recursive approach: generate all 3-element subsets of [1,2,3,4,5] as a list; print the count C(5,3) = `10`.
+4931. Write a function that flattens a list of lists [[1,2],[3,4],[5]] into [1,2,3,4,5] using `.appendList()`; print the flattened list.
+4932. Implement a function that computes the prefix sums of a list [1,3,6,10,15] as a cumulative distribution: [1,4,10,20,35]; print the list.
+4933. Write a function that performs random sampling without replacement from [1..20], drawing 5 elements: use Fisher-Yates shuffle on first 5 elements; print the sample.
+4934. Implement Fisher-Yates shuffle for a list of 8 elements; after shuffling, verify all 8 original elements are present using `.sort()`; print `"shuffled correctly"`.
+4935. Write a function that computes the histogram of a list of 20 random die rolls (1–6), storing counts in a 6-element list; print the histogram list.
+4936. Implement reservoir sampling to sample k=3 items from a stream represented as a list of n=10 items; print the 3 selected items.
+4937. Write a function that computes the running mean of a list of numbers: for [2,4,4,4,5,5,7,9] the running means are [2,3,3.33,3.5,3.8,4,4.43,5]; print the last element `"5.0"`.
+4938. Implement a function that computes the empirical CDF of a list: for sorted [1,2,3,4,5], CDF values are [0.2,0.4,0.6,0.8,1.0]; print the list.
+4939. Write a function that computes the median absolute deviation (MAD) of a list [1,1,2,2,4,6,9]: sort, find median=2, compute deviations [1,1,0,0,2,4,7], find median deviation=1; print `"1"`.
+4940. Implement the quantile function for a sorted list: for [10,20,30,40,50], the 0.75 quantile is between 40 and 50 = 40; print `"40"`.
+4941. Write a Falcon function that computes the covariance of two lists [1,2,3,4,5] and [2,4,5,4,5]: cov = E[XY] - E[X]E[Y] = 42/5 - 3*4 = 8.4-12 = -3.6 → recalculate: ΣxiYi = 2+8+15+16+25=66, 66/5=13.2, 3*4=12, cov=1.2; print `formatDecimal(1.2, 1)`.
+4942. Implement Pearson correlation coefficient for [1,2,3,4,5] and [2,4,5,4,5]: cov/√(varX*varY); varX=2, compute varY; print result ≈ `"0.8"`.
+4943. Write a function that generates n=1000 Bernoulli trials with p=0.3 using `randFloat()`, storing results in a list; compute and print the sample mean ≈ `"0.3"`.
+4944. Implement the law of large numbers demonstration: compute cumulative means of a list of `randInt(1,6)` values and check convergence to 3.5; print the final mean of 500 rolls.
+4945. Write a function that computes the chi-squared statistic for a goodness-of-fit test: observed=[18,22,20,17,23] vs expected uniform=[20,20,20,20,20]; χ² = sum (O-E)^2/E; print `formatDecimal(result, 4)` ≈ `"1.1"`.
+4946. Implement a function that performs the two-sample t-test on lists [5,6,7,8,9] and [4,5,6,7,8]: means differ by 1, pooled variance ≈ 2.5; t = 1/sqrt(1) = 1; print `formatDecimal(1.0, 1)`.
+4947. Write a function that computes the product of all non-zero elements in a list using `.reduce(1) { x,acc -> if (x !== 0) { acc * x } else { acc } }`; for [0,2,0,3,4] print `24`.
+4948. Implement a function that finds the mode(s) of a list by counting frequencies using a dict; for [1,2,2,3,3,3] the mode is 3; print `"3"`.
+4949. Write a function that generates the list of prime numbers up to n=50 using the Sieve of Eratosthenes stored in a boolean list; print the primes: `[2,3,5,7,11,13,17,19,23,29,31,37,41,43,47]`.
+4950. Implement Wilson's theorem check: a number p is prime iff (p-1)! ≡ -1 (mod p); test for p=7: 6! = 720, 720 mod 7 = 6 = 7-1; print `"prime"`.
+4951. Write a function that computes Euler's totient function φ(n) for n=30: count integers 1..30 coprime to 30=2*3*5 using φ(n)=n*(1-1/p1)*(1-1/p2)...; φ(30)=8; print `"8"`.
+4952. Implement a sieve to compute φ(k) for all k from 1 to 20, storing results in a list; print the list.
+4953. Write a function that computes the Möbius function μ(n) for n=1..12: [1,-1,-1,0,-1,1,-1,0,0,1,-1,0]; print the list.
+4954. Implement a function that verifies the Möbius inversion formula: if g(n) = sum_{d|n} f(d), then f(n) = sum_{d|n} μ(n/d)*g(d); test with f(n)=1, g(n)=d(n) (divisor count); print `"verified"`.
+4955. Write a function that generates the first 10 terms of the Prouhet-Thue-Morse sequence [0,1,1,0,1,0,0,1,...] by counting 1-bits in each index; print the list.
+4956. Implement a function that generates Stern's diatomic sequence for n=0..15: [0,1,1,2,1,3,2,3,1,4,3,5,2,5,3,4]; print the list.
+4957. Write a function that computes the autocorrelation of a list [1,-1,1,-1,1,-1] at lag 1: sum(x[i]*x[i+1])/n = -5/6 ≈ -0.8333; print `formatDecimal(-5.0/6, 4)`.
+4958. Implement a function that generates a list of n=20 Poisson(3) random variables using the inverse CDF method; print the sample mean (should be ≈ 3).
+4959. Write a function that generates n=100 exponential random variables with λ=2 using `-log(randFloat())/λ`; print the sample mean (should be ≈ 0.5).
+4960. Implement a function that uses Monte Carlo integration to estimate ∫₀¹ x² dx = 1/3: generate random points, average their squares; print `formatDecimal(result, 3)` ≈ `"0.333"`.
+4961. Write a Monte Carlo function that estimates ∫₀^π sin(x) dx = 2: sample x uniformly in [0,π] and compute average of sin(x) * π; print result ≈ `"2.0"`.
+4962. Implement importance sampling for estimating E[X^4] where X~Uniform(0,1): simply average x^4 for random x; verify result ≈ 0.2 = 1/5; print `formatDecimal(result, 3)`.
+4963. Write a function that implements the rejection sampling algorithm to sample from f(x) = 2x on [0,1]: generate (x,u), accept if u ≤ 2x; print the sample mean (≈ 2/3).
+4964. Implement a function that performs bootstrap resampling of [2,4,6,8,10]: draw n=5 samples with replacement 100 times, compute mean of each bootstrap sample, then print the standard error ≈ `"1.414"`.
+4965. Write a function that simulates a Poisson process: generate arrival times as cumulative sum of Exp(λ=2) variates; count arrivals in [0,1] and verify it follows Poisson(2); print the sample.
+4966. Implement the Kolmogorov-Smirnov statistic for testing uniformity: for sorted sample [0.1,0.3,0.5,0.7,0.9], D = max|F_n(x)-x| = max|i/5 - x_i| = max(0,0.1) = 0.1; print `"0.1"`.
+4967. Write a function that computes the Gini coefficient for a list of incomes [1,2,3,4,10]: Gini = (2*sum of rank*value)/(n*total) - (n+1)/n; compute and print `formatDecimal(result, 4)`.
+4968. Implement a function that computes the entropy H = -sum(p*log2(p)) for a probability list [0.25,0.25,0.25,0.25]: H = 2 bits; print `"2.0"`.
+4969. Write a function that finds the entropy-minimizing prefix code using Huffman's algorithm for probabilities [0.4,0.3,0.2,0.1]; print the average code length = 1.8 bits.
+4970. Implement a function that generates all derangements of [1,2,3,4] and stores them in a list; verify the count = D(4) = 9; print `"9"`.
+4971. Write a function that verifies the inclusion-exclusion formula for intersections of 3 sets A=[1..4], B=[3..6], C=[5..8] by computing |A∪B∪C| directly and via formula; print `"8"`.
+4972. Implement a function that generates all 2-element subsets of [1..6] as a list of lists; verify count = C(6,2) = 15; print `"15"`.
+4973. Write a function that converts a list of subset indicators [1,0,1,0,1] to the corresponding subset of [a,b,c,d,e] = [a,c,e]; print `["a","c","e"]`.
+4974. Implement a function that performs the Cartesian product of [1,2,3] and [a,b] as a list of pairs; count = 6; print the pairs as `"[[1,a],[1,b],[2,a],[2,b],[3,a],[3,b]]"`.
+4975. Write a function that computes the symmetric difference of two sets represented as sorted lists: [1,2,3,4] and [2,4,6,8] → [1,3,6,8]; print the list.
+4976. Implement a function that generates the power set of [1,2,3] as a list of 8 lists; use bitmask from 0 to 7; print the list of subsets.
+4977. Write a function that computes the number of ways to triangulate a convex polygon with n=6 vertices: Catalan number C(4) = 14; print `"14"`.
+4978. Implement a function that generates all valid parenthesizations of a product a*b*c*d (n=4 factors) as text representations; count = C(3) = 5; print the count.
+4979. Write a function that computes the probability that a list of n=5 random elements from {1..5} contains no repetitions: 5!/5^5 = 120/3125 ≈ 0.0384; print `formatDecimal(120.0/3125, 4)`.
+4980. Implement the birthday paradox simulation using lists: generate random birthdays (1–365) one at a time, stopping when a duplicate is found; average the stopping time over 100 trials and print result ≈ `"24"`.
+4981. Write a function that computes the coupon collector simulation: draw uniformly from {1..n=6}, stopping when all coupons collected; average over 100 trials and print result ≈ `"14.7"`.
+4982. Implement a function that generates all k=2-element multisets from {1,2,3}: [1,1],[1,2],[1,3],[2,2],[2,3],[3,3] — count = C(3+2-1,2) = C(4,2) = 6; print `"6"`.
+4983. Write a function that computes the number of ways to place n=4 non-attacking rooks on a 4×4 chessboard: 4! = 24; print `"24"`.
+4984. Implement a function that counts non-attacking queen placements on a 4×4 board using backtracking, storing solutions in a list; verify count = 2; print `"2"`.
+4985. Write a function that computes the permanent of the n×n identity matrix = 1; and the permanent of J_n (all-ones matrix) = n!; for n=4 print `"24"`.
+4986. Implement a function that generates the Collatz sequence starting from 27, storing it in a list until reaching 1; print the sequence length.
+4987. Write a function that computes the Prüfer sequence of a labeled tree on 5 vertices with specific structure; for a star K_{1,4} the Prüfer sequence is [1,1,1,1]; print `"[1,1,1,1]"`.
+4988. Implement a function that converts a Prüfer sequence [1,1,1,1] back to a tree as an edge list; print the edges `"[[1,2],[1,3],[1,4],[1,5]]"`.
+4989. Write a function that counts the number of labeled forests on n=4 vertices with k=2 trees using Cayley's formula generalization: k/n * n^(n-k) * C(n,k) ... for k=2, n=4: 2*C(4,2)*4^2/4 = 2*6*16/4 = 48; print `"48"`.
+4990. Implement a function that generates a random permutation matrix as a list of column positions; verify it's a valid permutation by checking all positions are distinct; print `"valid"`.
+4991. Write a function that computes the sign of a permutation [3,1,4,2] by counting inversions: inversions are (3,1),(3,2),(4,2) = 3, so sign = (-1)^3 = -1; print `"-1"`.
+4992. Implement a function that counts inversions in a list using merge sort (O(n log n)); for [5,3,1,4,2] the inversion count = 6; print `"6"`.
+4993. Write a function that generates the next permutation in lexicographic order from [2,4,3,1]: find rightmost ascent, swap with next larger, reverse suffix → [3,1,2,4]; print `"[3,1,2,4]"`.
+4994. Implement a function that computes the longest increasing subsequence (LIS) of a list [10,9,2,5,3,7,101,18]; LIS length = 4 ([2,5,7,101] or [2,3,7,101]); print `"4"`.
+4995. Write a function that counts the number of increasing subsequences of [3,1,4,1,5,9,2,6]: use DP to count all (not just longest); compute and print the count.
+4996. Implement a function that computes the expected number of inversions in a random permutation of n=5: n*(n-1)/4 = 5; print `"5.0"`.
+4997. Write a function that generates and sorts 10000 values of `randInt(1,100)`, then computes the proportion in [40,60]: should be ≈ 0.21; print `formatDecimal(result, 2)`.
+4998. Implement a function that uses `.sort { a,b -> a << b }` to sort a list of strings by their numeric value: `["10","2","30","4"]` → `["2","4","10","30"]`; print the sorted list.
+4999. Write a function that generates a list of 20 exponential waiting times and computes the empirical hazard rate ≈ λ; for λ=3 the mean should be ≈ 0.333; print `formatDecimal(mean, 3)`.
+5000. Implement a function that simulates a 2D random walk for 100 steps and computes the squared distance from origin; average over 100 trials and verify the result ≈ 100 (for standard random walk, E[d²] = 2n in 2D... actually E[d²] = n in 1D, n in 2D); print `formatDecimal(result, 0)`.
+5001. Write a function that computes the number of ways to arrange n=4 red, 3 blue, 2 green balls in a row: (4+3+2)!/(4!3!2!) = 9!/(4!3!2!) = 1260; print `"1260"`.
+5002. Implement a function that counts the number of monotone lattice paths from (0,0) to (4,4) (only right/up): C(8,4) = 70; print `"70"`.
+5003. Write a function that counts Dyck paths of length 2n=8 (Catalan number): C(4) = 14; verify by generating all paths that never go below x-axis; print `"14"`.
+5004. Implement a function that generates all Dyck paths of length 6 (3 up-steps U and 3 down-steps D) that never go negative; store as list of strings and print count = 5.
+5005. Write a function that computes the number of ways to tile a 1×n=10 board with tiles of size 1, 2, and 3: use DP; f(10) = 274; print `"274"`.
+5006. Implement a function that computes the number of ways to tile a 2×n=6 board with 1×2 dominoes: f(6) = 13; print `"13"`.
+5007. Write a function that computes the number of non-crossing partitions of [1..4] (Catalan number C(4)=14); print `"14"`.
+5008. Implement a function that computes the number of ways to stack n=5 cubes in a staircase pattern (Young tableaux of staircase shape): use hook length formula; compute and print.
+5009. Write a function that generates all standard Young tableaux of shape (3,2): fill boxes 1..5 such that rows and columns increase; count = 5; print `"5"`.
+5010. Implement a function that computes the hook length of each cell in a Young diagram of shape (4,3,1) and verifies the number of standard Young tableaux = n! / product of hook lengths = 8!/(5*4*2*1*3*2*1*1) = 70; print `"70"`.
+
+## Section 5: Dictionaries (Problems 5011–5080)
+
+5011. Write a Falcon function that uses a dict to memoize computed binomial coefficients; implement `func memoC(n,k,memo)` and compute C(20,10) = 184756 without recomputation; print `184756`.
+5012. Implement a function that builds a frequency histogram dict from a list of outcomes; for `[1,2,2,3,3,3]` produce `{"1":1,"2":2,"3":3}`; print the dict.
+5013. Write a function that computes the entropy H = -sum(p*log2(p)) from a frequency dict; for equal frequencies {a:1,b:1,c:1,d:1} produce H=2; print `"2.0"`.
+5014. Implement a Markov chain using a dict of dicts for transition probabilities: `{"A":{"A":0.7,"B":0.3},"B":{"A":0.4,"B":0.6}}`; simulate 100 steps starting from A and print the fraction of time in state A ≈ `"0.57"`.
+5015. Write a function that builds the probability transition matrix of a random walk as a dict of dicts and computes the stationary distribution; for symmetric walk on {1,2,3,4,5} print stationary `"0.2"` for each state.
+5016. Implement a function that uses a dict to cache factorials up to n=20; verify `cache.get("20",0) === 2432902008176640000`; print the last 5 digits `"0000"`.
+5017. Write a function that builds a dict mapping each permutation of [1,2,3] (as string key) to its inversion count; print the dict.
+5018. Implement a function that computes the conditional probability P(A|B) using a joint probability dict `{"AB":0.3,"AB'":0.2,"A'B":0.1,"A'B'":0.4}`; P(A|B) = P(AB)/P(B) = 0.3/0.4 = 0.75; print `"0.75"`.
+5019. Write a function that builds a Bayesian network dict with priors and likelihoods; compute the posterior P(rain|wet) using Bayes: `P(rain|wet) = P(wet|rain)*P(rain) / P(wet)`; for P(wet|rain)=0.9, P(rain)=0.3, P(wet)=0.36: result ≈ 0.75; print `"0.75"`.
+5020. Implement a function that performs Bayesian updating: start with prior `{"H":0.5,"T":0.5}`, observe coin flip "H" (likelihood {"H":0.6,"T":0.4}), compute posterior; update dict in place and print `{"H":"0.6","T":"0.4"}`.
+5021. Write a function that uses a dict to represent a probability mass function and implements the `.get()` method for evaluating PMF at specific points; for Poisson(2), pmf.get("3",0) ≈ 0.18; print `formatDecimal(result, 2)`.
+5022. Implement a function that uses a dict to count distinct pairs (i,j) with i<j from a list [1,2,3,4,5] such that i+j=6: pairs are (1,5),(2,4) → 2 pairs; build frequency dict first, then count; print `"2"`.
+5023. Write a function that builds a dict mapping each sum to the count of ways to achieve it by rolling two dice (1–6): sum 7 has count 6, sum 2 has count 1; print the full dict.
+5024. Implement a function that computes the distribution of the sum of 3 dice using dict-based convolution; for triple die sum, mode = 10 or 11; print the count for sum=10: `"27"`.
+5025. Write a function that uses a dict to represent the state space of a Markov chain and computes the n-step transition probabilities using dict multiplication; after 5 steps from state A, print probability of being in B ≈ `"0.43"`.
+5026. Implement a function that identifies recurrent and transient states in a Markov chain defined by a dict; for a chain {A→B,B→C,C→A,D→D}, classify: {A:"recurrent",B:"recurrent",C:"recurrent",D:"recurrent"}; print.
+5027. Write a function that computes the hitting time probability distribution from state 1 to state 4 in a random walk using a dict of passage time probabilities; print the expected hitting time = 9.
+5028. Implement a function that counts the frequency of each digit in n=1000 random integers and stores in a dict; verify approximate uniformity (each digit ≈ 1/10); print the dict.
+5029. Write a function that uses a dict to implement a priority queue for Huffman coding; start with frequencies {a:0.4,b:0.3,c:0.2,d:0.1} and build the Huffman tree; print the code lengths `{a:1,b:2,c:3,d:3}`.
+5030. Implement a function that computes the average description length using the Huffman code dict: 1*0.4 + 2*0.3 + 3*0.2 + 3*0.1 = 0.4+0.6+0.6+0.3 = 1.9; print `"1.9"`.
+5031. Write a function that builds a dict representing the indicator random variables for each element of [1..6] being in a random 3-subset; print the marginal probability for each element = C(5,2)/C(6,3) = 10/20 = 0.5.
+5032. Implement a function that uses a dict to compute the number of paths of length k in a graph represented as adjacency dict; for a triangle with k=2, from each vertex there are 2 paths back to itself; print `"2"`.
+5033. Write a function that builds a transition probability dict for the Ehrenfest model with n=4 balls: from state k, go to k+1 with prob (4-k)/4 and k-1 with prob k/4; print the dict.
+5034. Implement a function that simulates the Ehrenfest model for 100 steps and computes the fraction of time in each state; store in dict and print the most visited state.
+5035. Write a function that builds a dict of the negative binomial distribution PMF for r=3, p=0.5, k=3..10; verify probabilities sum to ≥ 0.99; print the sum.
+5036. Implement a function that uses a dict to represent a two-player game payoff matrix and computes the Nash equilibrium mixed strategy; for rock-paper-scissors: each strategy = 1/3; print `"1/3"`.
+5037. Write a function that stores simulation results in a dict keyed by trial number and computes the empirical standard deviation; for 100 Bernoulli(0.5) trials, std ≈ 0.5; print `formatDecimal(result, 2)`.
+5038. Implement a function that builds a dict of pair correlation functions for a list of random variables; for independent variables, all off-diagonal entries ≈ 0; verify and print `"independent"`.
+5039. Write a function that uses a dict to compute the maximum likelihood estimate of p in a Binomial model: MLE = k/n; for k=7 successes in n=20 trials: MLE = 0.35; print `"0.35"`.
+5040. Implement a function that builds a sufficient statistic dict for the exponential family; for Poisson with observations [2,3,1,4,2], sufficient statistic = sum = 12; print `"12"`.
+5041. Write a function that uses a dict as a lookup table for the Fibonacci sequence, building it lazily up to F(30) = 832040; print `F30: 832040`.
+5042. Implement a function that builds a dict mapping integers 1..20 to their Euler totient values; print φ(12) = `"4"` and φ(18) = `"6"`.
+5043. Write a function that uses a dict to store the Stirling numbers S(n,k) for n,k ≤ 6; print S(6,3) = `"90"`.
+5044. Implement a function that builds a probability dict for the sum of 5 fair coin flips (binomial B(5,0.5)); print P(sum=3) = C(5,3)/32 = 10/32 = `"0.3125"`.
+5045. Write a function that uses a dict to record the transition counts in a text-generated Markov chain; analyze "abracadabra" for character transitions; print the transition from "a" → most common next character.
+5046. Implement a function that builds a dict of the waiting time distribution for a Poisson process: P(T>t) = e^(-λt); for λ=2, P(T>1) = e^(-2) ≈ 0.1353; print `formatDecimal(exp(-2), 4)`.
+5047. Write a function that stores Chi-squared critical values in a dict `{"1":3.84,"2":5.99,"3":7.81,"4":9.49,"5":11.07}` and looks up the critical value for df=3 at α=0.05; print `"7.81"`.
+5048. Implement a function that builds a dict of probability bounds using the Poisson approximation to binomial: for n=100, p=0.05, compare Bin(100,0.05) and Poisson(5) probabilities; print the maximum absolute difference.
+5049. Write a function that uses a dict to count the number of spanning trees of each connected graph on 4 vertices; for K4: 16, for cycle C4: 4, for path P4: 1; print `{"K4":16,"C4":4,"P4":1}`.
+5050. Implement a function that builds a dictionary of cumulative distribution function values for the Geometric(0.5) distribution at k=1..10; print CDF(5) = 1-(0.5)^5 = 0.96875; print `"0.96875"`.
+5051. Write a function that uses a dict to implement memoized computation of the number of restricted growth strings of length n=5; these correspond to set partitions and the count = B(5) = 52; print `"52"`.
+5052. Implement a function that builds a dict of the ordered Bell numbers (Fubini numbers) for n=0..6: [1,1,3,13,75,541,4683]; print the 5th value `"541"`.
+5053. Write a function that uses a dict to store the multinomial coefficients for (n=6; k1,k2,k3) with k1+k2+k3=6; print the maximum coefficient `"90"` (for k=(2,2,2)).
+5054. Implement a function that builds a dict of Fibonacci numbers modulo m=10 for n=0..60 to find the Pisano period; print the period length `"60"`.
+5055. Write a function that uses a dict to represent the state of a cellular automaton (Rule 90) and simulate 5 steps starting from a single central 1 in a width-11 grid; print the final state.
+5056. Implement a function that builds a probability generating function (PGF) as a dict from exponent to coefficient; for X~Poisson(2): PGF_dict = {0:e^(-2), 1:2e^(-2), 2:2e^(-2), ...}; evaluate at z=1 and verify sum = 1.
+5057. Write a function that uses dicts to implement the Viterbi algorithm on a simple HMM with 2 hidden states; print the most likely state sequence for observations [0,1,0].
+5058. Implement a function that builds a dict of the probability distribution of the absolute difference |X-Y| when X,Y are independent Uniform{1,2,3,4,5,6}; P(|X-Y|=k) for k=0..5; print P(|X-Y|=1) = 10/36 ≈ `"0.2778"`.
+5059. Write a function that uses a dict to count distinct values in repeated random sampling and estimate the number of distinct species using the Good-Turing estimator; print the estimate.
+5060. Implement a function that builds a transition probability dict for a birth-death chain with birth rates λk = (5-k)/5 and death rates μk = k/5 for k=0..5; print the stationary distribution.
+5061. Write a function that uses a dict to memoize the computation of Bell numbers B(0)..B(10) using the Bell triangle; print B(10) = `"115975"`.
+5062. Implement a function that builds a dict mapping each integer 1..30 to its partition number p(n); print p(10) = `"42"`.
+5063. Write a function that uses a dict to store and lookup precomputed Catalan numbers C(0)..C(15); print C(10) = `"16796"`.
+5064. Implement a function that builds a Bayesian confusion matrix as a dict-of-dicts from simulated classification results; print the precision for class 1.
+5065. Write a function that uses a dict to implement a skip list for efficient combinatorial lookup; for a sorted list of C(10,k) values, implement binary search using dict keys; print `"252"` for C(10,5).
+5066. Implement a function that builds a probability dict for the hypergeometric distribution H(N=52, K=26, n=5); print P(X=3) = C(26,3)*C(26,2)/C(52,5) ≈ `"0.3251"`.
+5067. Write a function that uses a dict to store simulation statistics (min, max, mean, variance) for 100 runs of a random variable; print the dict with computed values.
+5068. Implement a function that builds a dict of the Kolmogorov-Smirnov critical values for different sample sizes n and significance levels; look up n=20, α=0.05 ≈ 0.294; print `"0.294"`.
+5069. Write a function that uses a dict to compute the joint probability distribution of (X+Y, X-Y) where X,Y are independent Bernoulli(0.5); print the joint dict.
+5070. Implement a function that builds a dict of the distribution of the longest run in n=10 fair coin flips; print P(longest run ≥ 4) ≈ `"0.2266"`.
+5071. Write a function that uses a dict to store the sample space outcomes of rolling 3 dice and their sums; compute the variance of the sum = 3 * (35/12) ≈ 8.75; print `formatDecimal(8.75, 2)`.
+5072. Implement a function that builds a dict representing the Wright-Fisher model: allele frequencies over generations, with n=10 and p=0.5; simulate 5 generations and print final state.
+5073. Write a function that uses a dict to compute the Ewens sampling formula probability for a partition {3,2,1} of n=6 with θ=1: prod(θ/(θ+k-1)) * ... compute and print the result.
+5074. Implement a function that builds a dict of the Chinese restaurant process probabilities: for 5 customers, print the probability of partition {2,2,1} using θ=1 formula.
+5075. Write a function that uses a dict to simulate a Galton-Watson branching process with offspring distribution {0:0.3,1:0.4,2:0.3} for 5 generations; print the expected population size after 5 gens = μ^5 where μ=1.0: `"1.0"`.
+5076. Implement a function that builds a dict of the total variation distance between Binomial(n,p) and Poisson(np) for n=10..50, p=0.1; print the distance at n=10.
+5077. Write a function that uses a dict to implement the Lempel-Ziv complexity computation; for "0010110" compute the LZ complexity = 5; print `"5"`.
+5078. Implement a function that builds a probability dict for the number of empty bins when n=10 balls are thrown into k=5 bins; P(empty bins = 0) = 5!/5^10 * S(10,5); compute and print.
+5079. Write a function that uses a dict to track the convergence of a MCMC sampler; store samples in dict by rounded value and check if distribution matches target after 1000 steps; print `"converged"`.
+5080. Implement a function that builds a dict of Zeta function values ζ(s) = sum 1/n^s for s=2,3,4: ζ(2)=π²/6≈1.6449, ζ(3)≈1.202, ζ(4)=π⁴/90≈1.0823; print the dict.
+
+## Section 6: Colors (Problems 5081–5105)
+
+5081. Declare a list of 10 colors using `#RRGGBB` literals representing a probability gradient from blue (0% probability) to red (100% probability); print the list.
+5082. Write a function that maps a probability p∈[0,1] to a color by linearly interpolating from blue `#0000FF` to red `#FF0000`; compute the color for p=0.5 and print `"#7F007F"` (approximately).
+5083. Implement a function that uses `splitColor(color)` to extract the red channel and interpret it as a probability: red/255; for `#8000FF` print `formatDecimal(128.0/255, 4)`.
+5084. Write a function that generates a list of colors for a heatmap of a 5×5 probability matrix, where low values are blue and high values are red; use `makeColor([r,0,b])` with r+b=255; print the first color.
+5085. Implement a function that assigns a unique color to each of the 6 permutations of [1,2,3] by mapping rank (0–5) to a hue angle and computing RGB values; print the color for rank 3.
+5086. Write a function that visualizes the binomial distribution B(10,0.5) as a bar chart of colors where bar height maps to probability; for each k, compute the color brightness = round(P(k)*255) and store in a list; print the brightest color.
+5087. Implement a function that generates a color for each outcome in a 6-sided die roll by uniformly distributing hues: hue = k/6 * 360; compute the RGB for hue=180° (cyan): `makeColor([0,255,255])`... actually compute properly and print.
+5088. Write a function that encodes a probability distribution as colors using a CDF-based approach: color R channel = round(CDF(x)*255); for the uniform distribution the 5 quantiles give colors #000000, #3F0000, #7F0000, #BF0000, #FF0000; print the 3rd color `"#7F0000"`.
+5089. Implement a function that uses color blending to represent the probability of a mixture model: blend color A `#FF0000` (weight 0.3) and color B `#0000FF` (weight 0.7); mixed = `makeColor([77,0,179])`; print `"#4D00B3"`.
+5090. Write a function that computes the color distance between two probability distributions by treating their color encodings as points in 3D; for red and blue: distance = sqrt(255^2+255^2) = 255*sqrt(2) ≈ 360.6; print `formatDecimal(sqrt(255*255+255*255), 1)`.
+5091. Implement a function that generates the colors for a Sierpinski triangle visualization: cells at level n have brightness proportional to C(n,k) mod 2; print the color for a "1" cell: `"#FFFFFF"`.
+5092. Write a function that encodes the digits of π = 3.14159... as colors: digit d → `makeColor([d*28,d*28,d*28])`; for d=3: `makeColor([84,84,84])` = `#545454`; print `"#545454"`.
+5093. Implement a function that generates a rainbow of n=7 colors representing the 7 branches of a probability tree; each color has hue = i/7 * 360; print the list of approximate hex colors.
+5094. Write a function that uses `splitColor()` to decode a color-encoded probability and then uses it as input to a Bernoulli trial; for color `#80FF00`, p = 128/255 ≈ 0.502; print `formatDecimal(128.0/255, 3)`.
+5095. Implement a function that averages a list of colors to get a "mixture" color: average red, green, blue channels separately; for [`#FF0000`,`#00FF00`,`#0000FF`] the average is `#555555`; print `"#555555"`.
+5096. Write a function that generates a color sequence for visualizing a Markov chain trajectory: state 0 = blue, state 1 = green, state 2 = red; simulate 10 steps and print the color sequence as hex codes.
+5097. Implement a function that maps expected value (ranging from min to max) to a color gradient; for E[X]∈[0,6] mapping to hue, compute color for E=3.5 (fair die): hue ≈ 210°; print the approximate RGB.
+5098. Write a function that encodes a 2D probability density as a grid of colors; for a 4×4 grid with uniform probability 1/16 each, all cells have color `makeColor([64,64,64])` (intensity 1/16*255≈16 per channel... use 128 for 50%); print `"#404040"`.
+5099. Implement a function that generates colors for the 6 faces of a die: face k has color with R=k*42, G=255-k*42, B=128; print the color for face 3: `makeColor([126,129,128])` ≈ `"#7E8180"`.
+5100. Write a function that visualizes the convergence of a Monte Carlo estimate as a color sequence: early estimates (high variance) are yellow `#FFFF00` and converged estimates are green `#00FF00`; print a list of 5 colors transitioning from yellow to green.
+5101. Implement a function that uses colors to encode a binary matrix: 1 → `#000000` (black), 0 → `#FFFFFF` (white); encode the Pascal's triangle mod 2 (Sierpinski) for rows 0–4 as a color matrix; print row 4.
+5102. Write a function that generates a color heatmap for the correlation matrix of 3 random variables; positive correlation → red, zero → white, negative → blue; for identity matrix print `["#FF0000","#FFFFFF","#FFFFFF","#FFFFFF","#FF0000","#FFFFFF","#FFFFFF","#FFFFFF","#FF0000"]`.
+5103. Implement a function that assigns colors to nodes of a probability graph based on their stationary probability; higher probability → darker color; for uniform stationary distribution all nodes get `makeColor([128,128,128])`; print `"#808080"`.
+5104. Write a function that uses `splitColor()` on a list of colors to extract alpha channels; treat them as weights in a weighted average of other values; for uniform alpha `[255,255,255]` the weights are equal; print `"equal weights"`.
+5105. Implement a function that generates 25 colors forming a 5×5 grid where position (i,j) has color `makeColor([i*51, j*51, 128])`; print the color at position (3,4): `makeColor([153,204,128])` = approximately `"#99CC80"`.
+
+## Section 7: Controls (Problems 5106–5165)
+
+5106. Write a Falcon `while` loop that computes n! iteratively for n=12: `local f = 1`, `local i = 1`, while `i <= 12` multiply and increment; print f = 479001600.
+5107. Implement a `for (i: 1 .. n step 1)` loop to compute the sum of the first n=100 squares: sum = n*(n+1)*(2n+1)/6 = 338350; verify the loop result equals 338350; print `338350`.
+5108. Write a `for (i: 0 .. 9 step 1)` loop to compute 10^10 iteratively using multiplication; print `10000000000`.
+5109. Implement a loop that generates the first n=20 triangular numbers T(k) = k*(k+1)/2 and prints them; verify T(20) = 210.
+5110. Write a nested `for` loop to compute the number of pairs (i,j) with 1≤i<j≤10 where i+j is prime; count and print the result.
+5111. Implement a `while` loop that performs the Euclidean algorithm to find GCD(1071, 462): iterate `a=b, b=a mod b` until b=0; print GCD = `21`.
+5112. Write a `for (k in list)` loop over a list of probabilities `[0.1,0.2,0.3,0.4]` to verify they sum to 1.0; print `"probabilities valid"`.
+5113. Implement a `for (k,v in dict)` loop over a frequency dict to compute the weighted sum (expected value); for `{"1":0.2,"2":0.3,"3":0.5}` compute 1*0.2+2*0.3+3*0.5 = 2.3; print `"2.3"`.
+5114. Write a nested loop that constructs Pascal's triangle row by row up to row n=10, using `local prev = [1]` and building each row from the previous; print row 10.
+5115. Implement a loop that computes the partial sums of a geometric series: sum = (1-(0.5)^n)/(1-0.5) for n=10; verify loop gives 1023/512 ≈ 1.998; print `formatDecimal(1023.0/512, 4)`.
+5116. Write a `while` loop that implements the Collatz conjecture for n=27, counting steps until reaching 1; print the number of steps = 111.
+5117. Implement a `for` loop that generates the sequence of partial harmonic sums H(n) = 1+1/2+...+1/n for n=1..20; print H(20) ≈ 3.5977; print `formatDecimal(result, 4)`.
+5118. Write a nested loop that counts the number of pairs (i,j) with 1≤i≤j≤10 such that gcd(i,j)=1 (coprime pairs); print the count.
+5119. Implement a `for` loop that computes the product of first n=8 prime numbers: 2*3*5*7*11*13*17*19 = 9699690 (primorial); print `9699690`.
+5120. Write a `while` loop that implements the extended Euclidean algorithm to find integers x,y such that 35x+15y=5; print `x=1, y=-2` (or any valid solution).
+5121. Implement a `for (i: 1 .. 100 step 1)` loop that uses `if (mod(i,15)===0)` for FizzBuzz but counts only "FizzBuzz" entries (multiples of 15): 6; print `6`.
+5122. Write a loop that simulates rolling a die until getting 3 sixes in a row, counting the total rolls; run 100 simulations and print the mean ≈ `"258"` (theoretical ≈ 6+6^2+6^3=258).
+5123. Implement a `for` loop that computes the birthday paradox collision probability for n=1..30 people; print the smallest n where probability exceeds 0.5 = `23`.
+5124. Write a loop that uses binary search to find the binomial coefficient C(n,5) = 2002: iterate n from 5 upward until C(n,5)=2002; the answer is n=14; print `14`.
+5125. Implement a `for` loop that computes all partition numbers p(n) for n=0..12 using the pentagonal number recurrence: p(n) = p(n-1)+p(n-2)-p(n-5)-p(n-7)+...; print p(12) = `77`.
+5126. Write a `while` loop that generates terms of the sequence a(n) = 2*a(n-1)+1 with a(0)=1 until exceeding 1000: 1,3,7,15,31,63,127,255,511,1023; print the last term ≤ 1000 = `511`.
+5127. Implement a nested loop that counts lattice paths from (0,0) to (n,n) using DP: paths(i,j) = paths(i-1,j)+paths(i,j-1); for n=6 print `924`.
+5128. Write a `for` loop that computes the sum of Euler's totient φ(k) for k=1..n=10: equals n*(n+1)/2 - (totient sum correction)... actually sum = 1+1+2+2+4+2+6+4+6+4 = 32... compute correctly; print `32`.
+5129. Implement a `while` loop that generates Farey sequence F_n for n=5: fractions p/q with 0≤p≤q≤5 in lowest terms; count them and print = 23.
+5130. Write a `for` loop implementing the Sieve of Eratosthenes for primes up to 100; count and print the number of primes = `25`.
+5131. Implement a nested `for` loop that counts the number of solutions (x,y,z) to x+y+z=10 with 0≤x,y,z≤10: C(12,2) = 66; verify with the loop and print `66`.
+5132. Write a `for` loop that computes the Riemann zeta function ζ(2) ≈ π²/6 by summing 1/k² for k=1..10000; print `formatDecimal(result, 4)` ≈ `"1.6448"`.
+5133. Implement a loop that computes the number of prime gaps of each size for primes up to 100; print the count of gaps of size 2 (twin primes): `8`.
+5134. Write a `while` loop that finds the smallest n such that the sum 1²+2²+...+n² > 1000: n*(n+1)*(2n+1)/6 > 1000; solve iteratively; the answer is n=13 (1^2+...+13^2=819, n=14: 1015>1000); print `14`.
+5135. Implement a `for` loop that generates n=1000 uniform random numbers and counts how many fall in each decile; print the most populated decile (should be approximately 100 each).
+5136. Write a nested loop that computes the number of simple paths from node 0 to node 5 in a complete graph K6 of all lengths; use inclusion-exclusion or direct counting; print the total.
+5137. Implement a `for` loop that uses `if` expressions to classify each roll of two dice as "natural" (7 or 11), "craps" (2, 3, or 12), or "point" (other); simulate 100 games and print the fraction of naturals ≈ `"0.22"`.
+5138. Write a `while` loop that implements the Miller-Rabin primality test for n=97 with witness a=2; verify it correctly identifies 97 as prime; print `"prime"`.
+5139. Implement a `for` loop that computes the Euler product for ζ(2) = π²/6: ∏(1/(1-p^(-2))) over primes p≤100; print `formatDecimal(result, 4)` ≈ `"1.6333"`.
+5140. Write a loop that computes the expected value E[X^2] for X~Binomial(10,0.4) by summing k^2*P(k) for k=0..10; E[X^2] = Var(X) + (E[X])^2 = 2.4 + 16 = 18.4; print `"18.4"`.
+5141. Implement a `for` loop that generates n=10 steps of the random walk and tracks the running maximum; simulate 100 times and print the average maximum ≈ sqrt(10) ≈ 3.16; print `formatDecimal(result, 2)`.
+5142. Write a nested `for` loop that enumerates all 4-digit PINs (0000–9999) and counts those where the sum of digits = 20; use `if` to filter; print the count = `282`.
+5143. Implement a `for` loop that computes the number of strongly connected components in a directed graph on n=5 nodes represented as an adjacency list; use Tarjan's algorithm logic; print the count.
+5144. Write a `while` loop that implements the Babylonian method for computing sqrt(2) to 6 decimal places: x = (x + 2/x)/2 starting from x=1.5; print `formatDecimal(result, 6)` = `"1.414214"`.
+5145. Implement a `for` loop computing cumulative binomial probabilities for X~B(20,0.4): P(X≤k) for k=0..20; find the median (smallest k with CDF≥0.5); print `"8"`.
+5146. Write a loop that generates the Catalan numbers C(0)..C(10) using the recurrence C(n+1) = sum C(i)*C(n-i) for i=0..n; print C(10) = `16796`.
+5147. Implement a nested loop that counts lattice paths from (0,0) to (4,4) that stay below the diagonal y=x: C(4) = 14; verify with DP and print `14`.
+5148. Write a `for` loop that generates 50 samples from a geometric distribution (p=0.25) using the inverse CDF: k = ceil(log(u)/log(1-p)); print the sample mean ≈ `"4.0"`.
+5149. Implement a loop that computes the number of spanning trees of a random connected graph on n=5 vertices using the Matrix-Tree theorem; print the result for a specific graph.
+5150. Write a `for` loop that simulates the Polya urn model: start with 1 red and 1 blue ball, at each step draw a ball and return it with an extra ball of the same color; after 10 steps, print the fraction of red balls.
+5151. Implement a `while` loop that computes the prime factorization of n=360 by trial division, storing factors in a list; print `[2,2,2,3,3,5]`.
+5152. Write a nested loop that counts the number of Latin squares of order 3: start with first row [1,2,3] and count valid completions = 12; print `12`.
+5153. Implement a `for` loop that computes the number of involutions (self-inverse permutations) of {1..8} using the recurrence I(n)=I(n-1)+(n-1)*I(n-2): I(8)=764; print `764`.
+5154. Write a loop that simulates the secretary problem optimal strategy: reject first n/e ≈ 3 candidates, then select the next best; over 100 simulations with n=10, estimate the success probability ≈ 1/e ≈ 0.368; print `formatDecimal(result, 3)`.
+5155. Implement a `for` loop that generates all integers from 1 to 100 and labels each as "prime" or "composite" using an `if` expression with a primality check; print the count of primes = `25`.
+5156. Write a loop that uses the rejection method to sample from a Beta(2,3) distribution: generate (x,U) uniform in [0,1]^2, accept if U ≤ f(x)/M where M=2.074 (maximum of Beta(2,3)); print the sample mean ≈ `"0.4"`.
+5157. Implement a nested `for` loop that computes the convolution of Poisson(2) and Poisson(3) distributions: the result is Poisson(5); verify P_conv(k) ≈ P(Poisson(5)=k) for k=0..10; print the KL divergence ≈ `"0.0"`.
+5158. Write a `while` loop that implements the continued fraction expansion of e ≈ 2.71828: [2;1,2,1,1,4,1,1,6,...]; extract the first 8 partial quotients and print `[2,1,2,1,1,4,1,1]`.
+5159. Implement a `for` loop that computes partial products of the Wallis formula: π/2 = ∏(4k²/(4k²-1)) for k=1..n; for n=100 print `formatDecimal(result, 4)` ≈ `"1.5685"`.
+5160. Write a loop that counts the number of 5-card poker hands of each type by sampling 100000 random hands; print a dict-like summary of counts.
+5161. Implement a `for` loop generating the Josephus sequence for n=12 people (every 3rd person eliminated): print the order of elimination.
+5162. Write a `while` loop that finds the smallest prime greater than 1000 by trial division; print `1009`.
+5163. Implement a `for` loop that computes the number of ways to make change for n=50 cents using coins {1,5,10,25} using DP; print `49`.
+5164. Write a loop that generates 10000 samples of the sum of 3 dice and uses `if` to count the mode (most frequent sum); print `"10"` (or `"11"` — verify with simulation).
+5165. Implement a `for` loop that computes the variance of a hypergeometric distribution: Var = n*K*(N-K)*(N-n)/(N^2*(N-1)); for N=52, K=26, n=5: Var = 5*26*26*47/(52^2*51) ≈ 1.565; print `formatDecimal(result, 3)`.
+
+## Section 8: Procedures (Problems 5166–5200)
+
+5166. Write a Falcon function `func binomCoeff(n, r)` that computes C(n,r) iteratively using the multiplicative formula C(n,r) = n/1 * (n-1)/2 * ... * (n-r+1)/r; return the result and test with `binomCoeff(15,6) === 5005`; print `5005`.
+5167. Implement a function `func gcd(a, b)` using the Euclidean algorithm and `func lcm(a, b) = { a * b / gcd(a, b) }`; compute `lcm(12, 18) = 36`; print `36`.
+5168. Write a function `func isPrime(n)` that tests primality by trial division up to sqrt(n); test `isPrime(97) === true` and `isPrime(91) === false`; print both results.
+5169. Implement a function `func monteCarloPi(n)` that estimates π using n random points in the unit square; run with n=10000 and print the estimate.
+5170. Write a function `func derangement(n)` using the recurrence D(n) = (n-1)*(D(n-1)+D(n-2)) with base cases D(1)=0, D(2)=1; return D(8) = 14833; print `14833`.
+5171. Implement a function `func stirling2(n, k)` computing S(n,k) = k*S(n-1,k) + S(n-1,k-1) with base cases S(0,0)=1, S(n,0)=S(0,k)=0; return S(6,3) = 90; print `90`.
+5172. Write a function `func catalans(n)` computing C(n) = C(2n,n)/(n+1); return `catalans(8) === 1430`; print `1430`.
+5173. Implement a function `func partitionCount(n)` using the pentagonal number recurrence; return `partitionCount(10) = 42`; print `42`.
+5174. Write a function `func expectedCoupons(n)` that computes n*H(n) using the harmonic sum; return `expectedCoupons(10) ≈ 29.29`; print `formatDecimal(result, 2)`.
+5175. Implement a function `func permanentMat(matrix)` that computes the permanent of a square matrix using Ryser's formula; test with a 3x3 identity matrix returning 1; print `1`.
+5176. Write a function `func lehmerEncode(perm)` that takes a permutation list and returns its Lehmer code as a list; test `lehmerEncode([4,3,1,2]) = [3,2,0,0]`; print `[3,2,0,0]`.
+5177. Implement a function `func kthPermutation(n, k)` that returns the k-th (1-indexed) permutation of [1..n] in lexicographic order; test `kthPermutation(4, 15) = [4,1,2,3]`... verify and print.
+5178. Write a function `func randomPermutation(n)` that generates a uniformly random permutation of [1..n] using Fisher-Yates; verify it contains all values 1..n; print `"valid"`.
+5179. Implement a function `func inversionCount(list)` that counts the number of inversions using merge sort; test `inversionCount([5,3,2,4,1]) = 7`; print `7`.
+5180. Write a function `func simulateBirthday(n, trials)` that estimates the birthday collision probability for n people over many trials; test `simulateBirthday(23, 10000) ≈ 0.507`; print the estimate.
+5181. Implement a function `func bellNumber(n)` using the Bell triangle (a 2D dynamic programming approach); test `bellNumber(7) = 877`; print `877`.
+5182. Write a function `func eulerTotient(n)` that computes φ(n) using the prime factorization of n; test `eulerTotient(36) = 12`; print `12`.
+5183. Implement a function `func bernoulliTrial(n, p)` that performs n Bernoulli trials with success probability p and returns the count of successes; run `bernoulliTrial(100, 0.3)` and print the result (should be near 30).
+5184. Write a function `func geometricSample(p)` that returns a geometrically distributed sample (number of trials until first success) using `while (randFloat() > p)`; verify that 1000 samples have mean ≈ 1/p; print the mean.
+5185. Implement a function `func normalSample(mu, sigma)` using the Box-Muller transform; verify that 1000 samples have mean ≈ mu and stddev ≈ sigma; print both statistics.
+5186. Write a function `func kolmogorovSmirnovTest(sample, cdf)` that computes the KS statistic for testing if a sample comes from a given distribution; test against the uniform CDF; print the statistic.
+5187. Implement a function `func chiSquaredTest(observed, expected)` that computes the chi-squared statistic and compares to critical value; for equal expected counts and roughly uniform observed, print `"fail to reject"`.
+5188. Write a function `func hypergeometricPMF(N, K, n, k)` that returns C(K,k)*C(N-K,n-k)/C(N,n); test `hypergeometricPMF(52, 13, 5, 2) ≈ 0.2743`; print `formatDecimal(result, 4)`.
+5189. Implement a function `func poissonSample(lambda)` using the inverse CDF method or the product method: generate U uniform, return k where prod of exp(-1)*... ≤ U; test mean ≈ lambda; print mean.
+5190. Write a function `func gamblersRuin(p, k, N)` that returns the ruin probability starting at position k with p=probability of going up and N=absorbing barrier; test `gamblersRuin(0.5, 4, 10) = 0.6`; print `"0.6"`.
+5191. Implement a function `func birthdayProbability(n)` that exactly computes the probability that at least 2 of n people share a birthday; use `1 - prod((365-i)/365 for i=0..n-1)`; test `birthdayProbability(23) ≈ 0.5073`; print `formatDecimal(result, 4)`.
+5192. Write a function `func markovStationaryDist(T)` that computes the stationary distribution of a Markov chain by iterating T^n until convergence; test on a 2-state chain and print the stationary probabilities.
+5193. Implement a function `func monteCarloIntegral(f, a, b, n)` that estimates ∫_a^b f(x)dx using n random samples; test with f(x)=x^2, a=0, b=1, n=10000 expecting ≈ 0.333; print `formatDecimal(result, 3)`.
+5194. Write a function `func simplexSample(k)` that generates a uniform sample from the (k-1)-simplex using k Exponential(1) variables normalized by their sum; test k=3 and print the 3 values summing to 1.
+5195. Implement a function `func multinomialSample(n, p)` that generates a multinomial(n,p) sample given probability list p; test with n=10, p=[0.2,0.5,0.3] and print the 3 counts.
+5196. Write a function `func bootstrapCI(data, stat, B)` that computes a 95% bootstrap confidence interval for statistic stat applied to data; run B=200 bootstrap samples; print the interval for the mean of [1,2,3,4,5].
+5197. Implement a function `func permutationTest(group1, group2, n)` that performs a permutation test for equality of means, using n random permutations; test on [1,2,3] vs [4,5,6] and print `"significant"`.
+5198. Write a function `func powerLaw(x, alpha)` that evaluates the power law PDF: (alpha-1)*x^(-alpha) for x≥1; compute the normalization check ∫_1^∞ f(x)dx = 1; verify for alpha=3: `2*∫_1^10 (2)*x^(-3)dx ≈ 0.99`; print the integral.
+5199. Implement a function `func convolution(p, q)` that computes the convolution of two probability mass functions represented as lists; test with Binomial(3,0.5) convolved with itself giving Binomial(6,0.5); verify P(X=3) = C(6,3)/64 ≈ 0.3125; print `"0.3125"`.
+5200. Write a comprehensive Falcon function `func combinatorialStats(n)` that computes and prints a summary of combinatorial quantities for a given n: n!, C(2n,n), Catalan(n), Bell(n), and the derangement D(n); test with n=6 and print `"720, 924, 132, 203, 265"`.
