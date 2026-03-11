@@ -8,6 +8,7 @@ import (
 	"Falcon/code/lex"
 	blocklyParser "Falcon/code/parsers/blocklytomist"
 	mistParser "Falcon/code/parsers/mistparser"
+	"Falcon/code/runtime"
 	designAnalysis "Falcon/design"
 	"encoding/xml"
 	"os"
@@ -18,9 +19,28 @@ func main() {
 	println("Hello from Falcon!\n")
 
 	//diffTest()
-	analyzeSyntax()
+	//analyzeSyntax()
 	//xmlTest()
 	//designTest()
+	runProgram()
+}
+
+func runProgram() {
+	fileName := "run.mist"
+	filePath := "/home/kumaraswamy/Documents/falcon/testing/" + fileName
+	codeBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		panic(err)
+	}
+	sourceCode := string(codeBytes)
+	codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: fileName}
+
+	tokens := lex.NewLexer(codeContext).Lex()
+	langParser := mistParser.NewLangParser(false, tokens)
+	exprs := langParser.ParseAll()
+
+	interp := runtime.NewInterpreter()
+	interp.Run(exprs)
 }
 
 func designTest() {

@@ -1,0 +1,58 @@
+// Fibonacci (recursive)
+func fib(n) = {
+  if (n <= 1) {
+    n
+  } else {
+    fib(n - 1) + fib(n - 2)
+  }
+}
+
+println("fib(10) = " _ fib(10))
+
+// List lambdas
+local nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+local evens = nums.filter { n -> n % 2 == 0 }
+println("evens: " _ evens.join(", "))
+
+local doubled = evens.map { n -> n * 2 }
+println("doubled evens: " _ doubled.join(", "))
+
+local sum = nums.reduce(0) { x, acc -> x + acc }
+println("sum 1..10 = " _ sum)
+
+// While loop with break
+local x = 0
+while (true) {
+  x = x + 1
+  if (x == 5) {
+    break
+  }
+}
+println("x after break = " _ x)
+
+// For loop
+local total = 0
+for (i: 1 .. 5) {
+  total = total + i
+}
+println("total 1..5 = " _ total)
+
+// Dict operations
+local info = { "name": "Falcon", "version": "1.0" }
+println("lang = " _ info.get("name", "unknown"))
+info.set("author", "Kumaraswamy")
+println("author = " _ info.get("author", "?"))
+println("keys = " _ info.keys().join(", "))
+
+// Global variable
+global counter = 0
+
+func increment() {
+  this.counter = this.counter + 1
+}
+
+increment()
+increment()
+increment()
+println("counter = " _ this.counter)

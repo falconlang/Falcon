@@ -63,6 +63,13 @@ var signatures = map[string]*FuncCallSignature{
 	"geoMeanOf": makeSignature("geoMeanOf", 1, ast.SignNumb),
 	"stdDevOf":  makeSignature("stdDevOf", 1, ast.SignNumb),
 	"stdErrOf":  makeSignature("stdErrOf", 1, ast.SignNumb),
+	"modeOf":    makeSignature("modeOf", 1, ast.SignList),
+
+	"mod":            makeSignature("mod", 2, ast.SignNumb),
+	"rem":            makeSignature("rem", 2, ast.SignNumb),
+	"quot":           makeSignature("quot", 2, ast.SignNumb),
+	"atan2":          makeSignature("atan2", 2, ast.SignNumb),
+	"formatDecimal":  makeSignature("formatDecimal", 2, ast.SignText),
 
 	"println":              makeSignature("println", 1, ast.SignVoid),
 	"openScreen":           makeSignature("openScreen", 1, ast.SignVoid),

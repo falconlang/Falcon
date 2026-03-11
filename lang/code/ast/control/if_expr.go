@@ -17,6 +17,10 @@ type SimpleIf struct {
 	normalElse []ast.Expr
 }
 
+func (s *SimpleIf) Condition() ast.Expr    { return s.condition }
+func (s *SimpleIf) Then() []ast.Expr       { return s.normalThen }
+func (s *SimpleIf) Else() []ast.Expr       { return s.normalElse }
+
 func MakeSimpleIf(condition ast.Expr, then []ast.Expr, elze []ast.Expr) *SimpleIf {
 	return &SimpleIf{
 		condition:  condition,
