@@ -1,14 +1,22 @@
-@Button { Button1 }
-@Label { Label1 }
-
-func main() {
-  println("Hello, World!")
-  println("Counter is currently: " _ this.counter)
+func factorial(n) = {
+  if (n <= 1) {
+    1
+  } else {
+    n * factorial(n - 1)
+  }
 }
 
-global counter = 0
+func RamanujanPi(terms) = {
+  local sum = [0]
 
-when Button1.Click {
-  this.counter = this.counter + 1
-  Label1.Text = counter
+  for (k: 0 .. terms - 1) {
+    local num = factorial(4 * k) * (1103 + 26390 * k)
+    local den = factorial(k) ^ 4 * 396 ^ (4 * k)
+    sum[1] = sum[1] + num / den
+  }
+
+  local factor = (2 * sqrt(2)) / 9801
+  1 / (factor * sum[1])
 }
+
+println(RamanujanPi(3))

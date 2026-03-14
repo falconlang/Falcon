@@ -19,10 +19,10 @@ func main() {
 	println("Hello from Falcon!\n")
 
 	//diffTest()
-	//analyzeSyntax()
+	analyzeSyntax()
 	//xmlTest()
 	//designTest()
-	runProgram()
+	//runProgram()
 }
 
 func runProgram() {
@@ -83,7 +83,7 @@ func xmlTest() {
 
 func analyzeSyntax() {
 	fileName := "hi.mist"
-	filePath := "/home/kumaraswamy/Documents/Falcon/testing/" + fileName
+	filePath := "/home/kumaraswamy/Documents/falcon/testing/" + fileName
 	codeBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)

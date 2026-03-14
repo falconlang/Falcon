@@ -270,7 +270,11 @@ func (p *LangParser) varExpr() ast.Expr {
 		p.ScopeCursor.DefineVariable(name, value.Signature())
 	}
 	// we have to parse rest of the body here
-	return &variables.Var{Names: names, Values: values, Body: p.bodyUntilCurly()}
+	body := p.bodyUntilCurly()
+	if len(body) == 1 && body[0].Consumable() {
+		return &variables.VarResult{Names: names, Values: values, Result: body[0]}
+	}
+	return &variables.Var{Names: names, Values: values, Body: body}
 }
 
 func (p *LangParser) whileExpr() *control.While {

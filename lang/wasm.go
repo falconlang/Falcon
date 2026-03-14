@@ -9,7 +9,8 @@ import (
 	"Falcon/code/ast"
 	"Falcon/code/context"
 	"Falcon/code/lex"
-	"Falcon/code/parser"
+	blocklyParser "Falcon/code/parsers/blocklytomist"
+	"Falcon/code/parsers/mistparser"
 	"Falcon/design"
 	"encoding/xml"
 	"strings"
@@ -66,7 +67,7 @@ func mistToXml(this js.Value, p []js.Value) any {
 		codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "appinventor.live"}
 
 		tokens := lex.NewLexer(codeContext).Lex()
-		langParser := parser.NewLangParser(true, tokens)
+		langParser := mistparser.NewLangParser(true, tokens)
 		langParser.SetComponentDefinitions(componentContextMap, reverseComponentMap)
 		expressions := langParser.ParseAll()
 
@@ -94,7 +95,7 @@ func xmlToMist(this js.Value, p []js.Value) any {
 			return js.ValueOf("No XML content provided")
 		}
 		xmlContent := p[0].String()
-		exprs := parser.NewXMLParser(xmlContent).ParseBlockly()
+		exprs := blocklyParser.NewParser(xmlContent).GenerateAST()
 		var builder strings.Builder
 
 		for _, expr := range exprs {
