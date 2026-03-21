@@ -6,8 +6,6 @@ package runtime
 
 import (
 	"math"
-	"math/rand"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -154,17 +152,36 @@ func evalSplitColor(args []Value) Value {
 
 // --- Random ---
 
+// --- RNG (xorshift64) ---
+
+var rngState uint64 = 0x9e3779b97f4a7c15 // non-zero default seed
+
+func rngNext() uint64 {
+	rngState ^= rngState << 13
+	rngState ^= rngState >> 7
+	rngState ^= rngState << 17
+	return rngState
+}
+
+func rngIntn(n int) int {
+	return int(rngNext()>>1) % n
+}
+
 func evalRandInt(args []Value) Value {
 	lo, hi := int(args[0].AsNum()), int(args[1].AsNum())
-	return NumVal(float64(lo + rand.Intn(hi-lo+1)))
+	return NumVal(float64(lo + rngIntn(hi-lo+1)))
 }
 
 func evalRandFloat(_ []Value) Value {
-	return NumVal(rand.Float64())
+	return NumVal(float64(rngNext()) / (1 << 64))
 }
 
 func evalSetRandSeed(args []Value) Value {
-	rand.Seed(int64(args[0].AsNum()))
+	s := uint64(args[0].AsNum())
+	if s == 0 {
+		s = 1 // xorshift64 must not be zero
+	}
+	rngState = s
 	return NullVal()
 }
 
@@ -314,9 +331,18 @@ func sign(f float64) float64 {
 	return 1
 }
 
+// insertionSort performs a stable in-place sort using the provided less function.
+func insertionSort(n int, less func(i, j int) bool, swap func(i, j int)) {
+	for i := 1; i < n; i++ {
+		for j := i; j > 0 && less(j, j-1); j-- {
+			swap(j, j-1)
+		}
+	}
+}
+
 // sortValues sorts a slice of Values numerically if possible, else lexicographically.
 func sortValues(list []Value) {
-	sort.SliceStable(list, func(a, b int) bool {
+	insertionSort(len(list), func(a, b int) bool {
 		va, vb := list[a], list[b]
 		na, aOk := CoerceNum(va)
 		nb, bOk := CoerceNum(vb)
@@ -324,5 +350,5 @@ func sortValues(list []Value) {
 			return na < nb
 		}
 		return va.AsStr() < vb.AsStr()
-	})
+	}, func(a, b int) { list[a], list[b] = list[b], list[a] })
 }

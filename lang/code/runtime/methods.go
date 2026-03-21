@@ -3,14 +3,11 @@ package runtime
 import (
 	astlist "Falcon/code/ast/list"
 	astmethod "Falcon/code/ast/method"
-	"encoding/csv"
-	"math/rand"
-	"sort"
 	"strings"
 )
 
-// evalMethodCall dispatches method calls on text, list, and dict values.
-func (i *Interpreter) evalMethodCall(e *astmethod.Call) Value {
+// methodCall dispatches method calls on text, list, and dict values.
+func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 	on := i.Eval(e.On)
 	args := i.evalExprs(e.Args)
 
@@ -108,22 +105,14 @@ func (i *Interpreter) evalMethodCall(e *astmethod.Call) Value {
 		}
 		return StrVal(string(runes))
 	case "csvRowToList":
-		r := csv.NewReader(strings.NewReader(on.AsStr()))
-		records, err := r.Read()
-		if err != nil {
-			return ListVal(nil)
-		}
+		records := parseCSVRow(on.AsStr())
 		elems := make([]Value, len(records))
 		for k, rec := range records {
 			elems[k] = StrVal(rec)
 		}
 		return ListVal(elems)
 	case "csvTableToList":
-		r := csv.NewReader(strings.NewReader(on.AsStr()))
-		allRecords, err := r.ReadAll()
-		if err != nil {
-			return ListVal(nil)
-		}
+		allRecords := parseCSVTable(on.AsStr())
 		rows := make([]Value, len(allRecords))
 		for k, rec := range allRecords {
 			elems := make([]Value, len(rec))
@@ -161,7 +150,7 @@ func (i *Interpreter) evalMethodCall(e *astmethod.Call) Value {
 		for k, entry := range d.entries {
 			keys[k] = entry.Key
 		}
-		sort.Slice(keys, func(a, b int) bool { return len(keys[a]) > len(keys[b]) })
+		insertionSort(len(keys), func(a, b int) bool { return len(keys[a]) > len(keys[b]) }, func(a, b int) { keys[a], keys[b] = keys[b], keys[a] })
 		for _, key := range keys {
 			if val, ok := d.Get(key); ok {
 				result = strings.ReplaceAll(result, key, val.AsStr())
@@ -240,7 +229,7 @@ func (i *Interpreter) evalMethodCall(e *astmethod.Call) Value {
 		if len(list) == 0 {
 			panic("random: empty list")
 		}
-		return list[rand.Intn(len(list))]
+		return list[rngIntn(len(list))]
 	case "reverseList":
 		list := *on.AsList()
 		cp := make([]Value, len(list))
@@ -249,27 +238,26 @@ func (i *Interpreter) evalMethodCall(e *astmethod.Call) Value {
 		}
 		return ListVal(cp)
 	case "toCsvRow":
-		var sb strings.Builder
-		w := csv.NewWriter(&sb)
-		record := make([]string, len(*on.AsList()))
-		for k, v := range *on.AsList() {
-			record[k] = v.AsStr()
+		list := *on.AsList()
+		fields := make([]string, len(list))
+		for k, v := range list {
+			fields[k] = v.AsStr()
 		}
-		_ = w.Write(record)
-		w.Flush()
-		return StrVal(strings.TrimRight(sb.String(), "\n"))
+		return StrVal(formatCSVRow(fields))
 	case "toCsvTable":
 		var sb strings.Builder
-		w := csv.NewWriter(&sb)
-		for _, row := range *on.AsList() {
-			record := make([]string, len(*row.AsList()))
-			for k, v := range *row.AsList() {
-				record[k] = v.AsStr()
+		for k, row := range *on.AsList() {
+			rowList := *row.AsList()
+			fields := make([]string, len(rowList))
+			for j, v := range rowList {
+				fields[j] = v.AsStr()
 			}
-			_ = w.Write(record)
+			if k > 0 {
+				sb.WriteByte('\n')
+			}
+			sb.WriteString(formatCSVRow(fields))
 		}
-		w.Flush()
-		return StrVal(strings.TrimRight(sb.String(), "\n"))
+		return StrVal(sb.String())
 	case "sort":
 		list := *on.AsList()
 		cp := make([]Value, len(list))
@@ -444,19 +432,19 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer) Value {
 		varN := e.Names[1]
 		cp := make([]Value, len(*list))
 		copy(cp, *list)
-		sort.SliceStable(cp, func(a, b int) bool {
+		insertionSort(len(cp), func(a, b int) bool {
 			lambdaEnv := NewEnv(outerEnv)
 			lambdaEnv.Define(varM, cp[a])
 			lambdaEnv.Define(varN, cp[b])
 			return i.inEnv(lambdaEnv, func() Value { return i.Eval(e.Transformer) }).AsBool()
-		})
+		}, func(a, b int) { cp[a], cp[b] = cp[b], cp[a] })
 		return ListVal(cp)
 
 	case "sortByKey":
 		varName := e.Names[0]
 		cp := make([]Value, len(*list))
 		copy(cp, *list)
-		sort.SliceStable(cp, func(a, b int) bool {
+		insertionSort(len(cp), func(a, b int) bool {
 			envA := NewEnv(outerEnv)
 			envA.Define(varName, cp[a])
 			keyA := i.inEnv(envA, func() Value { return i.Eval(e.Transformer) })
@@ -469,7 +457,7 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer) Value {
 				return na < nb
 			}
 			return keyA.AsStr() < keyB.AsStr()
-		})
+		}, func(a, b int) { cp[a], cp[b] = cp[b], cp[a] })
 		return ListVal(cp)
 
 	case "min":

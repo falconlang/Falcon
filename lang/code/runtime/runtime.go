@@ -140,7 +140,7 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 	case *common.Question:
 		return i.question(e)
 	case *astmethod.Call:
-		return i.evalMethodCall(e)
+		return i.methodCall(e)
 
 	// Control blocks
 	case *control.If:
