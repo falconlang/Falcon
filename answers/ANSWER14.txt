@@ -1,0 +1,613 @@
+// 6872
+local labelStr = "dog=0,cat=1,bird=2"
+local pairs6872 = labelStr.split(",")
+for (pair in pairs6872) {
+  local kv = pair.split("=")
+  if (kv[1] === "cat") { println(kv[2]) }
+}
+
+// 6954
+local preds6954 = [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2]
+local labels6954 = [1,1,0,1,0,0,0,0]
+local prPoints = []
+for (i: 1 .. preds6954.listLen()) {
+  local tp = 0
+  local fp = 0
+  local fn = 0
+  for (j: 1 .. preds6954.listLen()) {
+    if (preds6954[j] >= preds6954[i]) {
+      if (labels6954[j] == 1) { tp = tp+1 } else { fp = fp+1 }
+    } else {
+      if (labels6954[j] == 1) { fn = fn+1 }
+    }
+  }
+  local prec = if (tp+fp > 0) tp/(tp+fp) else 1
+  local rec = if (tp+fn > 0) tp/(tp+fn) else 0
+  prPoints.add([rec, prec])
+}
+prPoints.sort { a, b -> a[1] < b[1] }
+local aucpr = 0
+for (i: 1 .. prPoints.listLen()-1) {
+  aucpr = aucpr + (prPoints[i+1][1]-prPoints[i][1]) * (prPoints[i][2]+prPoints[i+1][2]) / 2
+}
+println(formatDecimal(abs(aucpr), 4))
+
+// 7045
+local sampleWeights = {"sample_1":0.1,"sample_2":0.4,"sample_3":0.3,"sample_4":0.2}
+local wSum = sampleWeights.values().reduce(0) { x, acc -> acc+x }
+println(formatDecimal(wSum, 1))
+
+// 7065
+local d1 = {"f1":0.4,"f2":0.3}
+local d2 = {"f3":0.2,"f4":0.1}
+d1.mergeInto(d2)
+println(d1.dictLen())
+
+// 7008
+local stats7008 = {"mean":0.0,"std":1.0,"min":-2.0,"max":2.0}
+local x7008 = 1.5
+local zscore = (x7008 - stats7008.get("mean",0)) / stats7008.get("std",1)
+println(zscore)
+
+// 7188
+func computeAccuracy(predicted, actual) = {
+  local correct = 0
+  for (i: 1 .. predicted.listLen()) {
+    if (predicted[i] == actual[i]) { correct = correct+1 }
+  }
+  correct / predicted.listLen()
+}
+println(computeAccuracy([1,0,1,1],[1,1,1,0]))
+
+// 7181
+func printConfusionMatrix(tp, fp, fn, tn) {
+  println("Predicted:  1    0")
+  println("Actual 1: [ " _ tp _ "  | " _ fn _ " ]")
+  println("Actual 0: [ " _ fp _ "  | " _ tn _ " ]")
+}
+printConfusionMatrix(45, 5, 10, 40)
+
+// 7200
+func runMLPipeline(data, labels, modelType, epochs) {
+  println("Dataset: " _ data.listLen() _ " samples, " _ data[1].listLen() _ " features")
+  println("Model: " _ modelType)
+  for (e: 1 .. epochs) {
+    println("Epoch " _ e _ "/" _ epochs _ " — loss: " _ formatDecimal(1.0/e, 4))
+  }
+  println("Accuracy: 0.87 | F1: 0.85")
+}
+runMLPipeline([[1,2],[3,4],[5,6]], [0,1,0], "logistic", 5)
+
+// 6707
+global confusionMatrix = {"TP":0,"FP":0,"TN":0,"FN":0}
+println(this.confusionMatrix.get("TP",0))
+
+// 6729
+global residuals = []
+global rSquared = 0.0
+println(this.rSquared)
+
+// 6936
+local tree = [[0, 3.0], [1, 1.0]]
+local input = [3.5, 1.2]
+local node = 1
+for (split in tree) {
+  local feat = split[1]
+  local thresh = split[2]
+  if (input[feat] > thresh) { node = node + 1 } else { node = node }
+}
+println("Leaf: " _ node)
+
+// 6890
+local featureRow = "feature1 feature2 feature3"
+local feats = featureRow.splitAtSpaces()
+println(if (feats.listLen() == 3) "valid feature row" else "invalid")
+
+// 6906
+local dataset = [[1,2,3],[4,5,6],[7,8,9],[10,11,12]]
+local train = dataset.slice(1,3)
+local test = dataset.slice(4,4)
+println(train)
+println(test)
+
+// 6921
+local a6921 = [1,2,3]
+local b6921 = [4,5,6]
+local concat = copyList(a6921)
+concat.appendList(b6921)
+println(concat)
+
+// 7032
+local pipelineConfig = {"steps":["normalize","pca","classify"],"pca_components":10,"scaler":"standard"}
+println(pipelineConfig.get("steps",[]).containsItem("normalize"))
+
+// 6880
+local features6880 = ["petal length (cm)","sepal width (cm)","petal width (cm)"]
+local tokenized = features6880.map { x -> x.split(" ") }
+println(tokenized[1].listLen())
+
+// 6907
+local labels6907 = [0,1,0,1,1,0,1,0]
+println(labels6907.filter { x -> x == 1 }.listLen())
+
+// 6912
+local preds6912 = [0.8,0.3,0.9,0.4,0.7,0.2]
+println(preds6912.map { p -> if (p >= 0.5) 1 else 0 })
+
+// 6926
+local importance = [0.15,0.30,0.25,0.20,0.10]
+local sorted6926 = copyList(importance)
+sorted6926.sort { a, b -> a > b }
+println(sorted6926.slice(1,2))
+
+// 6941
+local encoded = [0,1,2,1,0,2,1,0]
+local classNames = ["dog","cat","bird"]
+println(encoded.map { x -> classNames[x+1] })
+
+// 6965
+local dataset6965 = [[1.0,2.0,3.0,0],[4.0,5.0,6.0,1],[7.0,8.0,9.0,0]]
+println(dataset6965.filter { row -> row[4] == 0 })
+
+// 6978
+local featureVals = [3.0,1.0,4.0,1.5]
+local thresholds = [2.0,1.5,3.5,2.0]
+local binary = []
+for (i: 1 .. featureVals.listLen()) {
+  binary.add(if (featureVals[i] > thresholds[i]) 1 else 0)
+}
+println(binary)
+
+// 7120
+for (k: 1 .. 5) {
+  println("Training fold " _ k _ " of 5")
+}
+
+// 6757
+local va = [1.0,2.0,3.0]
+local vb = [4.0,6.0,3.0]
+local sumSq = 0
+for (i: 1 .. va.listLen()) {
+  local d = va[i]-vb[i]
+  sumSq = sumSq + d*d
+}
+println(formatDecimal(sqrt(sumSq), 4))
+
+// 6876
+local stopWords = ["the","a","an","is","are"]
+local word6876 = "the"
+local isStop = false
+for (sw in stopWords) {
+  if (sw === word6876) { isStop = true }
+}
+println(if (isStop) "stop word" else "keep")
+
+// 7000
+local weights7000 = [0.5,0.3,-0.2,0.8,0.1]
+local updates = [0.01,-0.02,0.015,-0.005,0.008]
+local updated = []
+for (i: 1 .. weights7000.listLen()) {
+  updated.add(weights7000[i] + updates[i])
+}
+println(updated)
+
+// 7128
+local samples = [[[1,1],1],[[0,0],0],[[1,0],0]]
+local w7128 = [0.0,0.0]
+local bias = 0.0
+local lr7128 = 0.1
+for (sample in samples) {
+  local x = sample[1]
+  local y = sample[2]
+  local pred = if (w7128[1]*x[1]+w7128[2]*x[2]+bias >= 0.5) 1 else 0
+  if (pred != y) {
+    local err = y - pred
+    w7128[1] = w7128[1] + lr7128*err*x[1]
+    w7128[2] = w7128[2] + lr7128*err*x[2]
+    bias = bias + lr7128*err
+  }
+}
+println(w7128)
+
+// 7151
+local lo = 0.0
+local hi = 1.0
+for (i: 1 .. 10) {
+  local mid = (lo+hi)/2
+  if (mid > 0.5) { hi = mid } else { lo = mid }
+}
+println(formatDecimal((lo+hi)/2, 4))
+
+// 6782
+println(formatDecimal(log(100.0/5), 4))
+
+// 6838
+local n6838 = 5
+local sigma2 = 1.0
+local ssr = 2.5
+local pi6838 = 3.14159
+local ll = -(n6838/2)*log(2*pi6838*sigma2) - ssr/(2*sigma2)
+println(formatDecimal(ll, 4))
+
+// 6768
+local H = 0.9
+local Hleft = 0.4
+local Hright = 0.2
+println(H - (0.6*Hleft + 0.4*Hright))
+
+// 6801
+local x6801 = 2.0
+local w1 = 0.5
+local b1 = 0.1
+local w2 = 0.8
+local b2 = -0.2
+println(w2*(w1*x6801+b1)+b2)
+
+// 6827
+local R2 = 0.85
+local n6827 = 100
+local p6827 = 5
+println(formatDecimal(1-(1-R2)*(n6827-1)/(n6827-p6827-1), 4))
+
+// 6849
+local classWeights = [1.0,5.0]
+local correct6849 = [90,8]
+local totals = [100,10]
+local wAcc = 0
+local wSum6849 = 0
+for (i: 1 .. 2) {
+  wAcc = wAcc + classWeights[i] * correct6849[i]/totals[i]
+  wSum6849 = wSum6849 + classWeights[i]
+}
+println(formatDecimal(wAcc/wSum6849, 4))
+
+// 6861
+local predIdx = 2
+local classLabels = "class_0,class_1,class_2".split(",")
+println(classLabels[predIdx+1])
+
+// 6879
+local pred6879 = "positive"
+if (pred6879 ? text) { println("text type confirmed") }
+
+// 6897
+local lower = 1.234
+local upper = 5.678
+println("[" _ formatDecimal(lower,3) _ ", " _ formatDecimal(upper,3) _ "]")
+
+// 6945
+local votes = [1,0,1,1,0]
+local vote1 = votes.filter{x->x==1}.listLen()
+local vote0 = votes.filter{x->x==0}.listLen()
+println(if (vote1 > vote0) 1 else 0)
+
+// 6981
+local netWeights = [0.5,0.3,0.8,-0.2,0.1,-0.5]
+local l1 = netWeights.reduce(0){x,acc->acc+abs(x)}
+local l2 = sqrt(netWeights.reduce(0){x,acc->acc+x*x})
+println("L1: " _ formatDecimal(l1,4))
+println("L2: " _ formatDecimal(l2,4))
+
+// 7016
+local perfDict = {"accuracy":0.85,"precision":0.88,"recall":0.82,"f1":0.85}
+local bestMetric = ""
+local bestVal = -1
+for (k in perfDict.keys()) {
+  if (perfDict.get(k,0) > bestVal) { bestVal = perfDict.get(k,0) bestMetric = k }
+}
+println(bestMetric)
+
+// 7033
+local sparseFeats = {"feature_2":0.5,"feature_5":1.2,"feature_8":0.3}
+local l2sparse = sqrt(sparseFeats.values().reduce(0){x,acc->acc+x*x})
+println(formatDecimal(l2sparse,4))
+
+// 7051
+local svm = {"support_vectors":[[1,2],[3,4]],"dual_coef":[1.0,-1.0],"intercept":0.5}
+local qx = [2,3]
+local svs = svm.get("support_vectors",[])
+local dualCoef = svm.get("dual_coef",[])
+local decision = svm.get("intercept",0)
+for (i: 1 .. svs.listLen()) {
+  local dot = 0
+  for (j: 1 .. qx.listLen()) { dot = dot + svs[i][j]*qx[j] }
+  decision = decision + dualCoef[i]*dot
+}
+println(formatDecimal(decision,4))
+
+// 7068
+local predLabels = [0,1,2,0,1,2,0,1,2]
+local trueLabels = [0,1,2,1,0,2,0,2,1]
+local cm3 = {}
+for (i: 1 .. predLabels.listLen()) {
+  local key = trueLabels[i] _ "_" _ predLabels[i]
+  cm3.set(key, cm3.get(key,0)+1)
+}
+println(cm3)
+
+// 7081
+local probs = {"positive":0.75,"negative":0.25}
+local alpha7081 = 0.01
+local V = 2
+local totalCount = probs.values().reduce(0){x,acc->acc+x}
+local smoothPos = (probs.get("positive",0) + alpha7081) / (totalCount + alpha7081*V)
+println(formatDecimal(smoothPos,4))
+
+// 7099
+local epochColors = [#FF0000, #FF0000, #FF0000, #FF0000, #FFFF00, #FFFF00, #FFFF00, #FFFF00, #FFFF00, #00FF00]
+println(epochColors[5])
+
+// 7139
+local decisionVal = -0.5
+println(if (decisionVal >= 0) 1 else -1)
+
+// 6752
+local sumY = 30
+local sumX = 15
+local slope6752 = 2.0
+local n6752 = 5
+println((sumY - slope6752 * sumX) / n6752)
+
+// 6771
+local a6771 = [1.0,0.0,1.0]
+local b6771 = [0.0,1.0,1.0]
+local dot6771 = 0
+local magA = 0
+local magB = 0
+for (i: 1 .. 3) {
+  dot6771 = dot6771 + a6771[i]*b6771[i]
+  magA = magA + a6771[i]*a6771[i]
+  magB = magB + b6771[i]*b6771[i]
+}
+println(formatDecimal(dot6771/(sqrt(magA)*sqrt(magB)),4))
+
+// 6788
+local dists = [4.0,1.0,9.0,0.25]
+println(dists.reduce(0){x,acc->acc+x})
+
+// 6797
+local tp6797 = 50
+local fn6797 = 5
+println(formatDecimal(tp6797/(tp6797+fn6797),4))
+
+// 6808
+local a6808 = [1.0,2.0]
+local b6808 = [4.0,6.0]
+local minkowski = 0
+for (i: 1 .. 2) { minkowski = minkowski + abs(a6808[i]-b6808[i])^3 }
+println(formatDecimal(minkowski^(1.0/3),4))
+
+// 6825
+println(1 + (3-1) + (3-1))
+
+// 6834
+local r1 = [1,2,3,4,5]
+local r2 = [2,1,4,3,5]
+local sumD2 = 0
+local n6834 = 5
+for (i: 1 .. n6834) {
+  local d = r1[i]-r2[i]
+  sumD2 = sumD2 + d*d
+}
+println(formatDecimal(1 - 6*sumD2/(n6834*(n6834^2-1)), 4))
+
+// 6847
+local tp6847 = 45
+local fp6847 = 5
+local fn6847 = 10
+println(formatDecimal(2*tp6847/(2*tp6847+fp6847+fn6847),4))
+
+// 6871
+local foldScores = [0.85,0.87,0.83,0.88,0.86]
+local scoreStrs = foldScores.map { x -> formatDecimal(x,2) }
+println(scoreStrs.join(","))
+
+// 6893
+local docWords = ["the","cat","sat","on","the","mat"]
+local unique = []
+for (w in docWords) { if (!unique.containsItem(w)) { unique.add(w) } }
+println(formatDecimal(unique.listLen()/docWords.listLen(),4))
+
+// 6929
+local population = [1,2,3,4,5]
+local bootstrap = []
+for (i: 1 .. 5) { bootstrap.add(population.random()) }
+println(bootstrap)
+
+// 6940
+local colorLabels = ["red","green","blue","red","green"]
+local unique6940 = []
+for (l in colorLabels) { if (!unique6940.containsItem(l)) { unique6940.add(l) } }
+println(colorLabels.map { x -> unique6940.indexOf(x) - 1 })
+
+// 6968
+local binLabels = [1,0,1,1,0,1,0,0]
+local posIdx = []
+local negIdx = []
+for (i: 1 .. binLabels.listLen()) {
+  if (binLabels[i] == 1) { posIdx.add(i) } else { negIdx.add(i) }
+}
+println(posIdx)
+println(negIdx)
+
+// 6997
+local dataList = [1,2,3,4,5,6,7,8,9,10]
+local batchSize = 3
+local batches = []
+local i6997 = 1
+while (i6997 <= dataList.listLen()) {
+  local end = if (i6997+batchSize-1 > dataList.listLen()) dataList.listLen() else i6997+batchSize-1
+  batches.add(dataList.slice(i6997, end))
+  i6997 = i6997 + batchSize
+}
+println(batches)
+
+// 7018
+local layerConfig = {"type":"dense","input_size":128,"output_size":64,"activation":"relu"}
+local params = layerConfig.get("input_size",0) * layerConfig.get("output_size",0) + layerConfig.get("output_size",0)
+println(params)
+
+// 7041
+local embeddings = {"cat":[0.5,0.3,0.1],"dog":[0.4,0.6,0.2],"bird":[0.1,0.2,0.9]}
+local dogEmb = embeddings.get("dog",[])
+local dogL2 = sqrt(dogEmb.reduce(0){x,acc->acc+x*x})
+println(formatDecimal(dogL2,4))
+
+// 7060
+local vocab = {"the":0,"cat":1,"sat":2,"on":3,"mat":4}
+local invVocab = {}
+for (k in vocab.keys()) {
+  invVocab.set(vocab.get(k,0), k)
+}
+println(invVocab.get(2,""))
+
+// 7091
+local comp7091 = splitColor(#3A7FCC)
+println(comp7091[2])
+
+// 7097
+local r7097 = -0.7
+local corrColor = if (r7097 >= 0) makeColor([round(abs(r7097)*255),0,0]) else makeColor([0,0,round(abs(r7097)*255)])
+println(corrColor)
+
+// 7104
+local fpr = 0.1
+println(if (fpr < 0.5) #00FF00 else #FF0000)
+
+// 7149
+local maxLr = 0.001
+local warmupSteps = 10
+for (step: 1 .. 10) {
+  println("Step " _ step _ ": lr=" _ formatDecimal(maxLr * step / warmupSteps, 6))
+}
+
+// 7173
+func softmax(logits) = {
+  local exps = logits.map { x -> exp(x) }
+  local total = exps.reduce(0){x,acc->acc+x}
+  exps.map { e -> e/total }
+}
+println(softmax([1.0,2.0,3.0]))
+
+// 7198
+func applyTemperatureScaling(logits, temperature) = {
+  local scaled = logits.map { x -> x/temperature }
+  softmax(scaled)
+}
+println(applyTemperatureScaling([1.5,2.0,0.5], 2.0))
+
+// 6773
+local xs6773 = [1,2,3,4,5]
+local ys6773 = [2,3,5,4,6]
+local meanX = avgOf(xs6773)
+local meanY = avgOf(ys6773)
+local cov6773 = 0
+for (i: 1 .. xs6773.listLen()) {
+  cov6773 = cov6773 + (xs6773[i]-meanX)*(ys6773[i]-meanY)
+}
+println(formatDecimal(cov6773/xs6773.listLen(),4))
+
+// 6821
+local eigenvals = [3.2,1.8,0.5,0.1]
+local total6821 = eigenvals.reduce(0){x,acc->acc+x}
+local props = eigenvals.map{x->x/total6821}
+local cumVar = []
+local running6821 = 0
+for (p in props) { running6821 = running6821+p cumVar.add(formatDecimal(running6821,4)) }
+println(cumVar)
+
+// 6950
+local cvScores = [0.82,0.85,0.79,0.88,0.83]
+local mean6950 = avgOf(cvScores)
+local std6950 = stdDevOf(cvScores)
+println("Mean: " _ formatDecimal(mean6950,4))
+println("Std: " _ formatDecimal(std6950,4))
+println("95% CI: [" _ formatDecimal(mean6950-2*std6950,4) _ ", " _ formatDecimal(mean6950+2*std6950,4) _ "]")
+
+// 6995
+local predProbs = [0.7,0.4,0.9,0.2,0.6]
+local trueL = [1,0,1,0,1]
+local thresholds6995 = copyList(predProbs)
+thresholds6995.sort { a, b -> a > b }
+local ap = 0
+for (i: 1 .. thresholds6995.listLen()) {
+  local thresh = thresholds6995[i]
+  local tp = 0 local fp = 0 local fn = 0
+  for (j: 1 .. predProbs.listLen()) {
+    local pred = if (predProbs[j] >= thresh) 1 else 0
+    if (pred==1 && trueL[j]==1) { tp=tp+1 }
+    else if (pred==1 && trueL[j]==0) { fp=fp+1 }
+    else if (pred==0 && trueL[j]==1) { fn=fn+1 }
+  }
+  local prec = if (tp+fp>0) tp/(tp+fp) else 0
+  local rec = if (tp+fn>0) tp/(tp+fn) else 0
+  ap = ap + prec * (if (i==1) rec else rec - (if (i>1) {
+    local tp2=0 local fn2=0
+    for (j: 1 .. predProbs.listLen()) {
+      if (trueL[j]==1) {
+        if (predProbs[j] >= thresholds6995[i-1]) {tp2=tp2+1} else {fn2=fn2+1}
+      }
+    }
+    if (tp2+fn2>0) tp2/(tp2+fn2) else 0
+  } else 0))
+}
+println(formatDecimal(ap,4))
+
+// 7082
+local currStats = {"mean":1.5,"std":0.8}
+local refStats = {"mean":1.2,"std":0.7}
+local drift = abs(currStats.get("mean",0)-refStats.get("mean",0))/refStats.get("std",1)
+println(formatDecimal(drift,4))
+
+// 6851
+local featLabel = "sepal_length"
+println(featLabel.replace("_"," ").uppercase())
+
+// 6862
+local cmLabel = "TP"
+println(if (cmLabel.startsWith("T") && cmLabel.contains("P")) "true positive" else "other")
+
+// 6866
+local weightStr = "weights: [0.1, 0.2, 0.3, 0.4]"
+local bracket = weightStr.segment(11, weightStr.textLen()-11).replace("[","").replace("]","")
+local tokens = bracket.split(",")
+println(tokens.listLen())
+
+// 6875
+local featName = "feature_03"
+if (featName.contains("_")) {
+  local parts = featName.split("_")
+  println(parts[2])
+}
+
+// 6889
+local modelVer = "v2.3.1"
+local vparts = modelVer.replace("v","").split(".")
+println(vparts[1])
+
+// 6896
+local modelNames = ["KNN","SVM","RF","LR","NB"]
+local longest = ""
+for (m in modelNames) {
+  if (m.textLen() > longest.textLen()) { longest = m }
+}
+println(longest)
+
+// 6903
+local textFeat = "Hello World this is a test"
+local words6903 = textFeat.splitAtSpaces()
+local filtered = words6903.filter { w -> w.textLen() > 3 }
+println(filtered.join(" "))
+
+// 7192
+func computeGiniSplit(leftCounts, rightCounts) = {
+  local leftTotal = leftCounts.reduce(0){x,acc->acc+x}
+  local rightTotal = rightCounts.reduce(0){x,acc->acc+x}
+  local total = leftTotal + rightTotal
+  local giniLeft = 1
+  for (c in leftCounts) { if (leftTotal>0) { giniLeft = giniLeft - (c/leftTotal)^2 } }
+  local giniRight = 1
+  for (c in rightCounts) { if (rightTotal>0) { giniRight = giniRight - (c/rightTotal)^2 } }
+  (leftTotal/total)*giniLeft + (rightTotal/total)*giniRight
+}
+println(formatDecimal(computeGiniSplit([30,10],[5,55]),4))
