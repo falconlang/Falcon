@@ -1,0 +1,482 @@
+{
+  "6436": {
+    "problem": "A travel planner stores flight prices found across different searches: `[542, 489, 612, 467, 523, 498]`. Remove the highest price using `.sort()` and `.allButLast()` and print the remaining options.",
+    "answer": "local prices = [542, 489, 612, 467, 523, 498]\nprices.sort()\nprintln(prices.allButLast())"
+  },
+  "6360": {
+    "problem": "A cooking app normalizes ingredient names. Given `\"  all-purpose Flour  \"`, trim whitespace, convert to lowercase, and replace hyphens with spaces, then print the cleaned name.",
+    "answer": "local ingredient = \"  all-purpose Flour  \"\nprintln(ingredient.trim().lowercase().replace(\"-\", \" \"))"
+  },
+  "6507": {
+    "problem": "A sports app stores game statistics for multiple teams. Use `.mergeInto()` to combine two partial stats dicts and print the merged team record.",
+    "answer": "local stats1 = {\"wins\": 12, \"losses\": 5, \"points\": 324}\nlocal stats2 = {\"rebounds\": 210, \"assists\": 87, \"fouls\": 45}\nstats1.mergeInto(stats2)\nprintln(stats1)"
+  },
+  "6510": {
+    "problem": "A travel app stores airport codes mapped to city names. Use `.containsKey(\"CDG\")` to verify an airport exists and then `.get()` to print the full city name.",
+    "answer": "local airports = {\"CDG\": \"Paris Charles de Gaulle\", \"LHR\": \"London Heathrow\", \"JFK\": \"New York JFK\"}\nif (airports.containsKey(\"CDG\")) {\n  println(airports.get(\"CDG\", \"Unknown\"))\n}"
+  },
+  "6514": {
+    "problem": "A travel planner stores hotel amenities as a dict of boolean values. Use `.toPairs()` to list only the amenities that are `true` and print the available features.",
+    "answer": "local amenities = {\"pool\": true, \"gym\": true, \"spa\": false, \"parking\": true, \"breakfast\": false}\nlocal pairs6514 = amenities.toPairs()\nfor (pair in pairs6514) {\n  if (pair[2] == true) { println(pair[1]) }\n}"
+  },
+  "6516": {
+    "problem": "A recipe app stores cooking temperatures for different baked goods in a dict. Use `.delete(\"cookie\")` to remove an item, then use `.dictLen()` to verify the dict shrank and print the updated count.",
+    "answer": "local temps = {\"cookie\": 350, \"cake\": 325, \"bread\": 375, \"muffin\": 350}\ntemps.delete(\"cookie\")\nprintln(temps.dictLen())"
+  },
+  "6520": {
+    "problem": "A cooking app stores a dict of substitution ratios for baking ingredients. Use `.getAtPath([\"flour\",\"almond_flour\"], 0)` to find the ratio and compute the substitute amount needed.",
+    "answer": "local subRatios = {\"flour\": {\"almond_flour\": 0.75, \"oat_flour\": 1.0}, \"sugar\": {\"honey\": 0.75}}\nlocal ratio = subRatios.getAtPath([\"flour\", \"almond_flour\"], 0)\nlocal cupsNeeded = 2.5\nprintln(cupsNeeded * ratio _ \" cups of almond flour\")"
+  },
+  "6523": {
+    "problem": "A recipe app builds a nutrition facts dict. Use `.setAtPath([\"macros\",\"fat\"], 12)` to add fat grams to the nested structure and print the complete nutrition label.",
+    "answer": "local nutrition = {\"macros\": {\"protein\": 25, \"carbs\": 40}}\nnutrition.setAtPath([\"macros\", \"fat\"], 12)\nprintln(nutrition)"
+  },
+  "6525": {
+    "problem": "A sports analyst stores match results in a dict with match ID as key. Use `.delete(id)` to remove a postponed match and `.containsKey(id)` to confirm deletion, then print the updated count.",
+    "answer": "local matches = {\"M001\": \"TeamA vs TeamB\", \"M002\": \"TeamC vs TeamD\", \"M003\": \"TeamE vs TeamF\"}\nlocal postponedId = \"M002\"\nmatches.delete(postponedId)\nprintln(\"Deleted: \" _ !matches.containsKey(postponedId))\nprintln(matches.dictLen())"
+  },
+  "6528": {
+    "problem": "A travel app stores flight data in a dict with departure time, arrival time, airline, and price. Use `.toPairs()` to build a formatted summary string and print the flight details.",
+    "answer": "local flight = {\"departure\": \"08:30\", \"arrival\": \"14:45\", \"airline\": \"AirFly\", \"price\": 342}\nlocal summary = \"\"\nfor (pair in flight.toPairs()) {\n  summary = summary _ pair[1] _ \": \" _ pair[2] _ \" | \"\n}\nprintln(summary)"
+  },
+  "6531": {
+    "problem": "A cooking app stores spice inventory in a dict with quantities in grams. After cooking, subtract used amounts with `.set()` and use `.toPairs()` to list spices running low (under 20 g).",
+    "answer": "local spices = {\"cumin\": 45, \"paprika\": 18, \"turmeric\": 30, \"oregano\": 12, \"cinnamon\": 55}\nspices.set(\"cumin\", spices.get(\"cumin\",0) - 15)\nspices.set(\"paprika\", spices.get(\"paprika\",0) - 5)\nspices.set(\"oregano\", spices.get(\"oregano\",0) - 8)\nfor (pair in spices.toPairs()) {\n  if (pair[2] < 20) { println(pair[1] _ \": \" _ pair[2] _ \"g \u2014 reorder soon\") }\n}"
+  },
+  "6534": {
+    "problem": "A grade book stores assignment metadata in a dict including name, max points, due date, and weight. Use `.getAtPath([\"metadata\",\"weight\"], 0)` to retrieve the weight for grade calculation.",
+    "answer": "local assignment = {\"name\": \"Midterm\", \"maxPoints\": 100, \"dueDate\": \"2025-03-15\", \"metadata\": {\"weight\": 0.25, \"category\": \"exam\"}}\nlocal weight = assignment.getAtPath([\"metadata\", \"weight\"], 0)\nprintln(\"Assignment weight: \" _ weight * 100 _ \"%\")"
+  },
+  "6538": {
+    "problem": "A grade book creates a lookup dict from student names to their seat numbers. Use `.pairsToDict()` from a list of `[\"name\", seat_num]` pairs to build the dict, then look up a specific student.",
+    "answer": "local seatPairs = [[\"Alice\", 1], [\"Bob\", 2], [\"Carol\", 3], [\"Dave\", 4]]\nlocal seatDict = seatPairs.pairsToDict()\nprintln(seatDict.get(\"Carol\", \"Not found\"))"
+  },
+  "6544": {
+    "problem": "A travel app stores a layered nested dict for a trip: `{\"flights\": {...}, \"hotels\": {...}, \"activities\": {...}}`. Use `.keys()` to generate a trip summary and `.getAtPath` to pull key details.",
+    "answer": "local trip = {\"flights\": {\"outbound\": \"NYC->LAX\", \"return\": \"LAX->NYC\"}, \"hotels\": {\"name\": \"Grand Hotel\", \"nights\": 5}, \"activities\": {\"day1\": \"Museum\", \"day2\": \"Beach\"}}\nfor (k in trip.keys()) {\n  println(k _ \": \" _ trip.getAtPath([k], {}))\n}"
+  },
+  "6550": {
+    "problem": "A grade book stores term grades in a dict with terms as keys. Use `.getAtPath([\"Spring2025\", \"Math\"], 0)` to fetch a specific term-subject grade and print it.",
+    "answer": "local termGrades = {\"Fall2024\": {\"Math\": 88, \"English\": 91}, \"Spring2025\": {\"Math\": 94, \"Physics\": 87}}\nprintln(termGrades.getAtPath([\"Spring2025\", \"Math\"], 0))"
+  },
+  "6553": {
+    "problem": "A sports app stores a swimmer's personal bests by stroke and distance in a nested dict. Use `.getAtPath([\"freestyle\",\"100m\"], \"N/A\")` to retrieve a specific personal best.",
+    "answer": "local pbests = {\"freestyle\": {\"100m\": \"48.5s\", \"200m\": \"1:46.2\"}, \"backstroke\": {\"100m\": \"55.3s\"}}\nprintln(pbests.getAtPath([\"freestyle\", \"100m\"], \"N/A\"))"
+  },
+  "6561": {
+    "problem": "A sports app stores a team's all-time win-loss record by opponent. Use `.containsKey(opponent)` to check if a record exists and update it with `.set()`, or initialize if not found.",
+    "answer": "local records = {\"TeamA\": {\"wins\": 5, \"losses\": 3}, \"TeamC\": {\"wins\": 2, \"losses\": 6}}\nlocal opponent = \"TeamB\"\nif (records.containsKey(opponent)) {\n  local rec = records.get(opponent, {})\n  rec.set(\"wins\", rec.get(\"wins\",0) + 1)\n  records.set(opponent, rec)\n} else {\n  records.set(opponent, {\"wins\": 1, \"losses\": 0})\n}\nprintln(records)"
+  },
+  "6565": {
+    "problem": "A sports analyst stores weekly performance metrics in a dict. Use `.mergeInto()` to add this week's metrics and use `.toPairs()` to identify any metric that declined from last week.",
+    "answer": "local lastWeek = {\"points\": 22.5, \"rebounds\": 8.1, \"assists\": 5.3}\nlocal thisWeek = {\"points\": 19.2, \"rebounds\": 9.0, \"assists\": 4.8}\nlastWeek.mergeInto(thisWeek)\nfor (pair in lastWeek.toPairs()) {\n  local old = lastWeek.get(pair[1], 0)\n  if (thisWeek.containsKey(pair[1]) && thisWeek.get(pair[1],0) < old) {\n    println(pair[1] _ \" declined\")\n  }\n}"
+  },
+  "6567": {
+    "problem": "A cooking app stores the flavor profile of dishes: `{\"spicy\":3,\"sweet\":1,\"sour\":2,\"salty\":4,\"bitter\":1}`. Use `.toPairs()` to find the dominant flavor and print a pairing recommendation.",
+    "answer": "local flavors = {\"spicy\": 3, \"sweet\": 1, \"sour\": 2, \"salty\": 4, \"bitter\": 1}\nlocal maxFlavor = \"\"\nlocal maxVal = 0\nfor (pair in flavors.toPairs()) {\n  if (pair[2] > maxVal) { maxVal = pair[2] maxFlavor = pair[1] }\n}\nprintln(\"Dominant flavor: \" _ maxFlavor)\nif (maxFlavor === \"salty\") { println(\"Pairs well with: acidic or sweet elements\") }\nelse if (maxFlavor === \"spicy\") { println(\"Pairs well with: cooling dairy or sweet\") }\nelse { println(\"Pairs well with: complementary flavors\") }"
+  },
+  "6570": {
+    "problem": "A grade book stores a department's average grades by instructor. Use `.toPairs()` sorted by value descending to identify and print the top-performing instructor.",
+    "answer": "local instructorGrades = {\"Dr. Smith\": 88.5, \"Prof. Jones\": 91.2, \"Ms. Davis\": 85.0, \"Mr. Chen\": 93.1}\nlocal pairs6570 = instructorGrades.toPairs()\npairs6570.sort { a, b -> a[2] > b[2] }\nprintln(\"Top instructor: \" _ pairs6570[1][1] _ \" \u2014 avg: \" _ pairs6570[1][2])"
+  },
+  "6578": {
+    "problem": "A grade book stores a student's progress portfolio as a nested dict. Use `.setAtPath([\"Q3\",\"project\",\"score\"], 88)` to record a new score and print the updated portfolio.",
+    "answer": "local portfolio = {\"Q1\": {\"exam\": 85}, \"Q2\": {\"exam\": 88, \"project\": 92}}\nportfolio.setAtPath([\"Q3\", \"project\", \"score\"], 88)\nprintln(portfolio)"
+  },
+  "6580": {
+    "problem": "A travel app stores arrival and departure times for all flights in a trip as a dict. Use `.toPairs()` to compute the total time spent in transit vs. time at destinations and print both durations.",
+    "answer": "local flights6580 = {\"flight1\": {\"dep\": 480, \"arr\": 600}, \"flight2\": {\"dep\": 720, \"arr\": 900}}\nlocal transit = 0\nfor (id, f in flights6580) {\n  transit = transit + f.get(\"arr\",0) - f.get(\"dep\",0)\n}\nprintln(\"Total transit: \" _ transit _ \" min\")"
+  },
+  "6664": {
+    "problem": "A sports analyst defines a void function `func printStatLine(player, pts, reb, ast)` that formats and prints a box score line. Call it for five players with their respective stats.",
+    "answer": "func printStatLine(player, pts, reb, ast) {\n  println(player _ \" | PTS: \" _ pts _ \" | REB: \" _ reb _ \" | AST: \" _ ast)\n}\nprintStatLine(\"LeBron James\", 28, 8, 11)\nprintStatLine(\"Kevin Durant\", 32, 6, 4)\nprintStatLine(\"Steph Curry\", 25, 5, 9)\nprintStatLine(\"Giannis A.\", 30, 12, 5)\nprintStatLine(\"Luka Doncic\", 33, 9, 10)"
+  },
+  "6671": {
+    "problem": "A travel app defines a void function `func printFlightSummary(origin, dest, duration, price)` that formats and prints all flight details. Call it for three flight options.",
+    "answer": "func printFlightSummary(origin, dest, duration, price) {\n  println(origin _ \" \u2192 \" _ dest _ \" | Duration: \" _ duration _ \" | Price: $\" _ price)\n}\nprintFlightSummary(\"NYC\", \"LAX\", \"5h 30m\", 299)\nprintFlightSummary(\"NYC\", \"LAX\", \"8h 15m\", 189)\nprintFlightSummary(\"NYC\", \"LAX\", \"6h 00m\", 249)"
+  },
+  "6676": {
+    "problem": "A sports app defines a returning function `func pointsPerGame(totalPoints, gamesPlayed) = { totalPoints / gamesPlayed }`. Call it for a roster of 12 players and print the team's scoring leaders.",
+    "answer": "func pointsPerGame(totalPoints, gamesPlayed) = {\n  totalPoints / gamesPlayed\n}\nlocal roster = [[\"Curry\", 780, 30], [\"Durant\", 840, 28], [\"James\", 756, 28], [\"Doncic\", 900, 30]]\nfor (p in roster) {\n  println(p[1] _ \": \" _ formatDecimal(pointsPerGame(p[2], p[3]), 1) _ \" PPG\")\n}"
+  },
+  "6681": {
+    "problem": "A teacher defines a returning function `func gpaPoints(letterGrade) = { {\"A\":4.0,\"B\":3.0,\"C\":2.0,\"D\":1.0,\"F\":0.0}.get(letterGrade, 0.0) }`. Call it for a transcript and compute the cumulative GPA.",
+    "answer": "func gpaPoints(letterGrade) = {\n  {\"A\":4.0,\"B\":3.0,\"C\":2.0,\"D\":1.0,\"F\":0.0}.get(letterGrade, 0.0)\n}\nlocal transcript = [[\"Calculus\",\"A\",3],[\"History\",\"B\",3],[\"Chemistry\",\"C\",4],[\"English\",\"A\",3]]\nlocal totalPoints = 0\nlocal totalHours = 0\nfor (course in transcript) {\n  totalPoints = totalPoints + gpaPoints(course[2]) * course[3]\n  totalHours = totalHours + course[3]\n}\nprintln(\"GPA: \" _ formatDecimal(totalPoints/totalHours, 2))"
+  },
+  "6687": {
+    "problem": "A travel planner defines a returning function `func layoverTime(arrivalMin, departureMin) = { mod(departureMin - arrivalMin + 1440, 1440) }`. Call it for three connecting flights and print layover durations.",
+    "answer": "func layoverTime(arrivalMin, departureMin) = {\n  mod(departureMin - arrivalMin + 1440, 1440)\n}\nprintln(layoverTime(720, 780) _ \" min layover\")\nprintln(layoverTime(1380, 60) _ \" min layover\")\nprintln(layoverTime(600, 720) _ \" min layover\")"
+  },
+  "6693": {
+    "problem": "A teacher defines a returning function `func honorRoll(gpa, threshold) = { gpa >= threshold }`. Call it for a class list and print the names of all honor roll students.",
+    "answer": "func honorRoll(gpa, threshold) = {\n  gpa >= threshold\n}\nlocal classList = [[\"Alice\", 3.8], [\"Bob\", 3.2], [\"Carol\", 3.6], [\"Dave\", 3.9], [\"Eve\", 3.4]]\nfor (student in classList) {\n  if (honorRoll(student[2], 3.5)) {\n    println(student[1] _ \" made the honor roll!\")\n  }\n}"
+  },
+  "6319": {
+    "problem": "A sports analyst computes the adjusted OPS+ using the formula `100 * (OBP/lgOBP + SLG/lgSLG - 1)`. Given player OBP `0.370`, SLG `0.520`, league OBP `0.320`, league SLG `0.420`, print OPS+.",
+    "answer": "local obp = 0.370\nlocal slg = 0.520\nlocal lgObp = 0.320\nlocal lgSlg = 0.420\nlocal opsPlus = round(100 * (obp/lgObp + slg/lgSlg - 1))\nprintln(\"OPS+: \" _ opsPlus)"
+  },
+  "6404": {
+    "problem": "A sports app generates a fantasy sports trade proposal. Given two player names and their point values, build a trade offer string: `\"Offer: [PlayerA (25.3 pts)] for [PlayerB (22.1 pts)] \u2014 Net gain: +3.2 pts\"`.",
+    "answer": "local playerA = \"LeBron James\"\nlocal ptsA = 25.3\nlocal playerB = \"Kevin Durant\"\nlocal ptsB = 22.1\nlocal netGain = ptsA - ptsB\nprintln(\"Offer: [\" _ playerA _ \" (\" _ ptsA _ \" pts)] for [\" _ playerB _ \" (\" _ ptsB _ \" pts)] \u2014 Net gain: +\" _ formatDecimal(netGain,1) _ \" pts\")"
+  },
+  "6586": {
+    "problem": "A fitness app displays hydration level using a gradient. Use `makeColor([0, round(level * 2.55), 255])` where level is 0\u2013100 to compute a blue-intensity color and print its hex equivalent.",
+    "answer": "local level = 75\nlocal hydrationColor = makeColor([0, round(level * 2.55), 255])\nprintln(hydrationColor)"
+  },
+  "6438": {
+    "problem": "A grade book tracks a student's test scores over the semester. Use `.slice(1,5)` to extract the first marking period scores and compute the period average.",
+    "answer": "local scores = [88, 92, 75, 81, 95, 79, 83, 91, 87, 76]\nlocal period1 = scores.slice(1, 5)\nprintln(formatDecimal(avgOf(period1), 2))"
+  },
+  "6443": {
+    "problem": "A recipe app stores ingredients as a list. Use `.reverseList()` to print them in reverse order, simulating a prep checklist that starts with the last step's ingredients.",
+    "answer": "local ingredients = [\"flour\", \"eggs\", \"butter\", \"sugar\", \"vanilla\", \"baking powder\"]\ningredients.reverseList()\nprintln(ingredients)"
+  },
+  "6447": {
+    "problem": "A cooking app stores temperatures at different rack positions: `[325, 350, 375, 350, 325]`. Use `.indexOf(350)` to find the first standard position and print its index.",
+    "answer": "local rackTemps = [325, 350, 375, 350, 325]\nprintln(rackTemps.indexOf(350))"
+  },
+  "6453": {
+    "problem": "A sports app stores a relay race's split times: `[23.4, 22.8, 24.1, 23.7]`. Remove the slowest leg using `.sort()` and `.remove()` then compute the best-3-legs total.",
+    "answer": "local splitTimes = [23.4, 22.8, 24.1, 23.7]\nlocal sorted6453 = copyList(splitTimes)\nsorted6453.sort()\nlocal best3 = sorted6453.slice(1, 3)\nprintln(formatDecimal(best3.reduce(0) { x, acc -> acc+x }, 2))"
+  },
+  "6464": {
+    "problem": "A travel app stores a packing list. Use `.remove(2)` to delete an item at position 2, then use `.insert(2, \"power bank\")` to replace it with a different item and print the updated list.",
+    "answer": "local packing = [\"passport\", \"charger\", \"laptop\", \"headphones\", \"notebook\"]\npacking.remove(2)\npacking.insert(2, \"power bank\")\nprintln(packing)"
+  },
+  "6474": {
+    "problem": "A teacher stores quiz scores from two sections. Use `.appendList()` to merge both sections and compute a combined class average, then compare it to each section's individual average.",
+    "answer": "local section1 = [88, 92, 75, 81, 95]\nlocal section2 = [79, 83, 91, 87, 76]\nlocal combined = copyList(section1)\ncombined.appendList(section2)\nprintln(\"Section 1 avg: \" _ formatDecimal(avgOf(section1), 2))\nprintln(\"Section 2 avg: \" _ formatDecimal(avgOf(section2), 2))\nprintln(\"Combined avg: \" _ formatDecimal(avgOf(combined), 2))"
+  },
+  "6484": {
+    "problem": "A travel app stores per-day spending for a two-week trip. Use `.slice(1,7)` for week 1 and `.slice(8,14)` for week 2, compute each week's total, and print the comparison.",
+    "answer": "local spending = [45, 120, 33, 89, 65, 55, 42, 78, 95, 110, 38, 67, 82, 50]\nlocal week1 = spending.slice(1, 7)\nlocal week2 = spending.slice(8, 14)\nprintln(\"Week 1 total: $\" _ week1.reduce(0){x,acc->acc+x})\nprintln(\"Week 2 total: $\" _ week2.reduce(0){x,acc->acc+x})"
+  },
+  "6497": {
+    "problem": "A sports analyst stores a skier's gate times: `[1.42, 1.38, 1.51, 1.39, 1.44, 1.47]`. Remove the two slowest gates using `.sort()` and `.slice()`, then compute the adjusted total time.",
+    "answer": "local gateTimes = [1.42, 1.38, 1.51, 1.39, 1.44, 1.47]\nlocal sorted6497 = copyList(gateTimes)\nsorted6497.sort()\nlocal best4 = sorted6497.slice(1, 4)\nprintln(formatDecimal(best4.reduce(0){x,acc->acc+x}, 2))"
+  },
+  "6427": {
+    "problem": "A chef maintains a list of recipe ingredient amounts in grams. Use `.map { x -> x * 1.5 }` to scale all ingredients by 1.5x and print the new scaled list.",
+    "answer": "local amounts = [100, 250, 75, 150, 200, 50]\nprintln(amounts.map { x -> x * 1.5 })"
+  },
+  "6429": {
+    "problem": "A sports analyst stores a player's game-by-game points: `[18, 25, 12, 30, 22, 8, 27]`. Use `.filter { x -> x > 20 }` to find games where the player scored over 20 and print the count.",
+    "answer": "local gamePts = [18, 25, 12, 30, 22, 8, 27]\nprintln(gamePts.filter { x -> x > 20 }.listLen())"
+  },
+  "6433": {
+    "problem": "A sports app stores lap times in seconds: `[62.3, 61.8, 63.1, 60.5, 62.7]`. Find the fastest lap using `.min { a,b -> a < b }` and print the improvement from the first to the fastest lap.",
+    "answer": "local lapTimes = [62.3, 61.8, 63.1, 60.5, 62.7]\nlocal fastest = lapTimes.min { a, b -> a < b }\nprintln(\"Fastest: \" _ fastest _ \"s | Improvement: \" _ formatDecimal(lapTimes[1]-fastest, 1) _ \"s\")"
+  },
+  "6437": {
+    "problem": "A sports analyst stores team names and their win totals in two lists. Use `.sort { a,b -> a > b }` on the wins list along with index tracking to print the top-3 ranked teams.",
+    "answer": "local teams = [\"Lakers\", \"Celtics\", \"Warriors\", \"Bucks\", \"Nets\"]\nlocal wins = [48, 52, 45, 50, 38]\nlocal indices = [1,2,3,4,5]\nindices.sort { a, b -> wins[a] > wins[b] }\nfor (i: 1 .. 3) {\n  println(i _ \". \" _ teams[indices[i]] _ \" \u2014 \" _ wins[indices[i]] _ \" wins\")\n}"
+  },
+  "6442": {
+    "problem": "A teacher stores all student scores in a list and wants to apply a curve. Use `.map { x -> min(x + 5, 100) }` to add 5 points but cap at 100, then print the curved list.",
+    "answer": "local rawScores = [78, 65, 92, 55, 88, 71, 95, 60]\nprintln(rawScores.map { x -> if (x+5 > 100) 100 else x+5 })"
+  },
+  "6448": {
+    "problem": "A travel app stores passenger ages for a family trip: `[45, 42, 17, 15, 8]`. Use `.filter { x -> x < 12 }` to identify children, `.filter { x -> x >= 18 }` for adults, and print ticket prices.",
+    "answer": "local ages = [45, 42, 17, 15, 8]\nlocal children = ages.filter { x -> x < 12 }\nlocal adults = ages.filter { x -> x >= 18 }\nlocal teens = ages.filter { x -> x >= 12 && x < 18 }\nprintln(\"Adult tickets: \" _ adults.listLen() _ \" x $80 = $\" _ adults.listLen()*80)\nprintln(\"Teen tickets: \" _ teens.listLen() _ \" x $50 = $\" _ teens.listLen()*50)\nprintln(\"Child tickets: \" _ children.listLen() _ \" x $30 = $\" _ children.listLen()*30)"
+  },
+  "6455": {
+    "problem": "A cooking app stores yield percentages for vegetables: `[78, 82, 65, 90, 75]`. Use `.map { x -> x / 100.0 }` to convert to decimals and `.reduce` to compute the average yield.",
+    "answer": "local yields = [78, 82, 65, 90, 75]\nlocal decimals = yields.map { x -> x / 100.0 }\nprintln(formatDecimal(decimals.reduce(0){x,acc->acc+x}/decimals.listLen(), 3))"
+  },
+  "6458": {
+    "problem": "A teacher stores homework completion percentages per student. Use `.filter { x -> x < 50 }` to identify students at risk and print an intervention list.",
+    "answer": "local completions = [88, 42, 95, 31, 75, 48, 62, 25, 91, 55]\nprintln(completions.filter { x -> x < 50 })"
+  },
+  "6461": {
+    "problem": "A sports app stores a basketball player's assists per game over 10 games. Use `.reduce(0) { x,acc -> acc + x }` to compute total assists and divide by the list length to get the per-game average.",
+    "answer": "local assists = [7, 9, 5, 11, 8, 6, 10, 7, 9, 8]\nlocal total = assists.reduce(0) { x, acc -> acc + x }\nprintln(formatDecimal(total / assists.listLen(), 1) _ \" APG\")"
+  },
+  "6471": {
+    "problem": "A cooking app stores ingredient shelf-life in days: `[365, 180, 7, 30, 730, 14]`. Use `.filter { x -> x < 30 }` to find perishables and print a shopping priority list.",
+    "answer": "local shelfLife = [365, 180, 7, 30, 730, 14]\nprintln(shelfLife.filter { x -> x < 30 })"
+  },
+  "6479": {
+    "problem": "A cooking app stores measurements in tablespoons. Use `.map { x -> x / 16.0 }` to convert all to cups and print the converted list formatted to three decimal places.",
+    "answer": "local tablespoons = [4, 2, 6, 1, 3]\nlocal cups = tablespoons.map { x -> x / 16.0 }\nfor (c in cups) { println(formatDecimal(c, 3) _ \" cups\") }"
+  },
+  "6492": {
+    "problem": "A travel app stores baggage weights in kg: `[22.5, 18.0, 25.1, 19.8, 23.4]`. Use `.filter { x -> x > 23 }` to identify overweight bags and compute the total overage fees at `$15/kg` over 23 kg.",
+    "answer": "local bagWeights = [22.5, 18.0, 25.1, 19.8, 23.4]\nlocal overweight = bagWeights.filter { x -> x > 23 }\nlocal totalFees = overweight.reduce(0) { x, acc -> acc + (x - 23) * 15 }\nprintln(\"Overweight bags: \" _ overweight.listLen())\nprintln(\"Total fees: $\" _ formatDecimal(totalFees, 2))"
+  },
+  "6498": {
+    "problem": "A teacher stores the number of correct answers per student out of 20 questions. Use `.map { x -> x / 20.0 * 100 }` to convert to percentages and use `.filter { x -> x >= 70 }` to count passing students.",
+    "answer": "local correct = [15, 18, 12, 16, 19, 14, 17, 11, 18, 20]\nlocal percentages = correct.map { x -> x / 20.0 * 100 }\nprintln(\"Passing: \" _ percentages.filter { x -> x >= 70 }.listLen())"
+  },
+  "6519": {
+    "problem": "A grade book stores semester grades for multiple students. Use `.toPairs()` then `.sort { a,b -> a.get(1,0) > b.get(1,0) }` on the pairs to rank students by grade and print the ranking.",
+    "answer": "local semGrades = {\"Alice\": 91.5, \"Bob\": 78.2, \"Carol\": 88.0, \"Dave\": 95.1, \"Eve\": 82.7}\nlocal gradesPairs = semGrades.toPairs()\ngradesPairs.sort { a, b -> a[2] > b[2] }\nfor (i: 1 .. gradesPairs.listLen()) {\n  println(i _ \". \" _ gradesPairs[i][1] _ \": \" _ gradesPairs[i][2])\n}"
+  },
+  "6685": {
+    "problem": "A teacher defines a returning function `func percentile(score, allScores) = { allScores.filter { x -> x <= score }.listLen() / allScores.listLen() * 100 }`. Call it for the top 5 scores in a class.",
+    "answer": "func percentile(score, allScores) = {\n  allScores.filter { x -> x <= score }.listLen() / allScores.listLen() * 100\n}\nlocal allScores = [72, 68, 85, 91, 78, 88, 95, 62, 83, 90]\nallScores.sort()\nlocal top5 = allScores.slice(allScores.listLen()-4, allScores.listLen())\nfor (s in top5) {\n  println(s _ \" \u2192 \" _ formatDecimal(percentile(s, allScores), 1) _ \"th percentile\")\n}"
+  },
+  "6697": {
+    "problem": "A teacher defines a returning function `func missingAssignments(submitted, required) = { required.filter { x -> submitted.containsItem(x) === false } }`. Call it and print a list of missing assignments per student.",
+    "answer": "func missingAssignments(submitted, required) = {\n  required.filter { x -> !submitted.containsItem(x) }\n}\nlocal submitted = [\"HW1\",\"HW2\",\"HW4\",\"Quiz1\"]\nlocal required = [\"HW1\",\"HW2\",\"HW3\",\"HW4\",\"Quiz1\",\"Quiz2\"]\nprintln(missingAssignments(submitted, required))"
+  },
+  "6201": {
+    "problem": "A teacher needs to store the current school year as a global string (e.g., `\"2025-2026\"`) and a local variable for today's date as a formatted string `\"YYYY-MM-DD\"`. Print both variables to confirm they are set correctly.",
+    "answer": "global schoolYear = \"2025-2026\"\nlocal todayDate = \"2025-03-21\"\nprintln(this.schoolYear)\nprintln(todayDate)"
+  },
+  "6213": {
+    "problem": "A teacher records the passing grade threshold as a global (`60`). A local variable holds a student's raw score. Print whether the student passed or failed by comparing the two variables.",
+    "answer": "global passingGrade = 60\nlocal studentScore = 74\nprintln(if (studentScore >= passingGrade) \"Passed\" else \"Failed\")"
+  },
+  "6223": {
+    "problem": "A time-zone converter stores the UTC offset for two cities as global integers. A local variable holds the current time in city A as an hour (0\u201323). Compute and print the equivalent time in city B, wrapping around midnight using `mod`.",
+    "answer": "global utcCityA = 5\nglobal utcCityB = 9\nlocal hourCityA = 14\nprintln(\"Time in City B: \" _ mod(hourCityA + (this.utcCityB - this.utcCityA), 24) _ \":00\")"
+  },
+  "6235": {
+    "problem": "A student stores the number of credit hours per course and the grade points earned as local variables. A global accumulates total credit hours. After three courses, print the cumulative GPA.",
+    "answer": "global totalCreditHours = 0\nlocal creditHours1 = 3\nlocal gradePoints1 = 4.0\nlocal creditHours2 = 4\nlocal gradePoints2 = 3.0\nlocal creditHours3 = 3\nlocal gradePoints3 = 2.0\nthis.totalCreditHours = creditHours1 + creditHours2 + creditHours3\nlocal gpa = (creditHours1*gradePoints1 + creditHours2*gradePoints2 + creditHours3*gradePoints3) / this.totalCreditHours\nprintln(formatDecimal(gpa, 2))"
+  },
+  "6244": {
+    "problem": "A chef stores the alcohol content of wine (`12`%) as a global. A local variable holds the volume of wine in mL. Compute and print the number of standard drinks (one standard drink = `14` g = `17.7` mL pure alcohol).",
+    "answer": "global alcoholPct = 12\nlocal volumemL = 150\nlocal pureAlcohol = volumemL * this.alcoholPct / 100\nprintln(formatDecimal(pureAlcohol / 17.7, 2) _ \" standard drinks\")"
+  },
+  "6252": {
+    "problem": "A grade book stores the maximum number of absences allowed before failing (`5`) as a global. A local variable holds a student's absence count. Print a warning or pass notice accordingly.",
+    "answer": "global maxAbsences = 5\nlocal absences = 7\nprintln(if (absences > this.maxAbsences) \"Warning: too many absences\" else \"Attendance OK\")"
+  },
+  "6585": {
+    "problem": "A calendar app marks days with activity levels. Use `makeColor([255, 200 - intensity * 20, 200 - intensity * 20])` where intensity is 0\u20135 to generate a red-scale color for each activity level.",
+    "answer": "local levels = [0, 1, 2, 3, 4, 5]\nfor (intensity in levels) {\n  println(makeColor([255, 200 - intensity * 20, 200 - intensity * 20]))\n}"
+  },
+  "6698": {
+    "problem": "A recipe app defines a void function `func cookingTimeline(recipe)` that extracts step durations from a dict, computes start and end times for each step, and prints a Gantt-style timeline. Call it for a roast dinner recipe.",
+    "answer": "func cookingTimeline(recipe) {\n  local steps = recipe.get(\"steps\", {})\n  local time = 0\n  for (k in steps.keys()) {\n    local duration = steps.get(k, 0)\n    println(\"Step \" _ k _ \": \" _ time _ \"min \u2013 \" _ (time+duration) _ \"min\")\n    time = time + duration\n  }\n}\ncookingTimeline({\"name\":\"Roast Dinner\",\"steps\":{\"1\":15,\"2\":120,\"3\":30,\"4\":20,\"5\":10}})"
+  },
+  "6626": {
+    "problem": "A sports analyst uses a while loop to find the first game in a season where a team's cumulative point total exceeds `100`. Print the game number and the exact cumulative total.",
+    "answer": "local gamePts2 = [22, 18, 25, 31, 19, 28, 24]\nlocal cumTotal = 0\nlocal gameNum = 0\nlocal found = false\nwhile (!found && gameNum < gamePts2.listLen()) {\n  gameNum = gameNum + 1\n  cumTotal = cumTotal + gamePts2[gameNum]\n  if (cumTotal > 100) { found = true }\n}\nprintln(\"Game \" _ gameNum _ \" \u2014 cumulative: \" _ cumTotal)"
+  },
+  "6659": {
+    "problem": "A teacher uses a while loop to compute how many students must earn an A on the final exam to bring the class average up from `73.5` to `75.0`. Print the minimum number required.",
+    "answer": "local classAvg = 73.5\nlocal classSize = 30\nlocal targetAvg = 75.0\nlocal aScore = 95.0\nlocal needed = 0\nwhile ((classAvg * classSize + aScore * needed) / (classSize + needed) < targetAvg) {\n  needed = needed + 1\n}\nprintln(\"Minimum A students needed: \" _ needed)"
+  },
+  "6281": {
+    "problem": "A cooking app converts a recipe from volume to weight for flour. One cup of all-purpose flour weighs `125` g. A recipe needs `2.75` cups. Compute and print the weight in grams.",
+    "answer": "println(formatDecimal(2.75 * 125, 1) _ \" grams\")"
+  },
+  "6329": {
+    "problem": "A recipe app computes the yield percentage of vegetables after trimming. Starting with `1.5` kg of broccoli, trimming waste is `30`%. Compute and print the usable weight and the cost per usable kg if broccoli costs `$2.40/kg`.",
+    "answer": "local startKg = 1.5\nlocal wastePercent = 30\nlocal usable = startKg * (1 - wastePercent/100)\nlocal costPerKg = 2.40\nlocal costPerUsable = costPerKg / (1 - wastePercent/100)\nprintln(\"Usable weight: \" _ formatDecimal(usable, 2) _ \" kg\")\nprintln(\"Cost per usable kg: $\" _ formatDecimal(costPerUsable, 2))"
+  },
+  "6240": {
+    "problem": "A cooking app stores standard baking pan sizes (8-inch = `50.27` sq in, 9-inch = `63.62` sq in) as globals. A local scaling factor adjusts recipe amounts. Print the adjusted ingredient quantities.",
+    "answer": "global pan8 = 50.27\nglobal pan9 = 63.62\nlocal scaleFactor = pan9 / pan8\nlocal baseFlour = 2.0\nlocal baseSugar = 1.5\nprintln(\"Flour: \" _ formatDecimal(baseFlour * scaleFactor, 2) _ \" cups\")\nprintln(\"Sugar: \" _ formatDecimal(baseSugar * scaleFactor, 2) _ \" cups\")"
+  },
+  "6260": {
+    "problem": "A calendar app calculates how many days are between two dates. Given month, day, and year for two dates, compute the total day count using the formula for day-of-year and print the difference.",
+    "answer": "func dayOfYear(m, d, y) = {\n  local months = [31, if(mod(y,4)==0) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]\n  local doy = d\n  for (i: 1 .. m-1) { doy = doy + months[i] }\n  doy\n}\nlocal d1 = dayOfYear(1, 15, 2025)\nlocal d2 = dayOfYear(3, 21, 2025)\nprintln(\"Days between: \" _ (d2 - d1))"
+  },
+  "6266": {
+    "problem": "A cooking timer app calculates the total prep and cook time. If prep takes `15` min, marinating `120` min, and cooking `45` min, print the total time in hours and minutes.",
+    "answer": "local prep = 15\nlocal marinate = 120\nlocal cook = 45\nlocal totalMin = prep + marinate + cook\nprintln(floor(totalMin/60) _ \"h \" _ mod(totalMin,60) _ \"m\")"
+  },
+  "6270": {
+    "problem": "A recipe app converts ounces to grams (`1 oz = 28.3495 g`). Given a measurement of `3.5` oz of chocolate, print the equivalent in grams to one decimal place.",
+    "answer": "println(formatDecimal(3.5 * 28.3495, 1) _ \" grams\")"
+  },
+  "6275": {
+    "problem": "A travel app computes the total cost of a road trip. Fuel costs `$0.15/km`, tolls are `$12.50`, meals are `$45.00`, and lodging is `$89.99`. Print the total trip cost formatted to two decimal places.",
+    "answer": "local fuelCost = 250 * 0.15\nlocal tolls = 12.50\nlocal meals = 45.00\nlocal lodging = 89.99\nprintln(\"$\" _ formatDecimal(fuelCost + tolls + meals + lodging, 2))"
+  },
+  "6286": {
+    "problem": "A chef computes the total recipe cost. Ingredients cost `$1.20`, `$0.85`, `$2.30`, `$0.45`, and `$3.10`. Print the total and the cost per serving for a recipe that serves `8`.",
+    "answer": "local ingredients6286 = [1.20, 0.85, 2.30, 0.45, 3.10]\nlocal total6286 = ingredients6286.reduce(0) { x, acc -> acc+x }\nprintln(\"Total: $\" _ formatDecimal(total6286, 2))\nprintln(\"Per serving: $\" _ formatDecimal(total6286/8, 2))"
+  },
+  "6291": {
+    "problem": "A recipe app calculates the sugar concentration of a syrup. Dissolving `200` g of sugar in `300` mL of water gives a total volume of `450` mL. Compute and print the concentration in g/mL to three decimal places.",
+    "answer": "println(formatDecimal(200.0/450, 3) _ \" g/mL\")"
+  },
+  "6300": {
+    "problem": "A recipe app uses Beer-Lambert law to estimate coffee strength: `A = e * c * l`. Given extinction coefficient `0.025`, concentration `0.05` mol/L, and path length `1` cm, compute and print absorbance.",
+    "answer": "println(0.025 * 0.05 * 1)"
+  },
+  "6307": {
+    "problem": "A cooking app converts a recipe's baking time when changing pan size. Using the formula `t2 = t1 * (area1 / area2)^0.9`, given an 8-inch pan at `35` minutes and switching to a 9-inch pan, print the adjusted time.",
+    "answer": "local t1 = 35\nlocal area1 = 3.14159 * 4 * 4\nlocal area2 = 3.14159 * 4.5 * 4.5\nlocal t2 = t1 * (area1/area2) ^ 0.9\nprintln(formatDecimal(t2, 1) _ \" minutes\")"
+  },
+  "6313": {
+    "problem": "A travel planner computes the savings from taking a direct flight vs. connecting. Direct is `$485`, connection is `$312` but adds `4h 30m` of travel time. If time is valued at `$25/hr`, print the true cost of each option.",
+    "answer": "local direct = 485\nlocal connection = 312\nlocal timeValue = 4.5 * 25\nprintln(\"Direct true cost: $\" _ direct)\nprintln(\"Connection true cost: $\" _ formatDecimal(connection + timeValue, 2))"
+  },
+  "6318": {
+    "problem": "A cooking app determines the number of calories from each macronutrient in a meal. Fat `22` g, protein `35` g, carbs `60` g, using `9`, `4`, `4` cal/g respectively. Print total calories and each macro's percentage.",
+    "answer": "local fat = 22\nlocal protein = 35\nlocal carbs = 60\nlocal totalCal = fat*9 + protein*4 + carbs*4\nprintln(\"Total calories: \" _ totalCal)\nprintln(\"Fat: \" _ formatDecimal(fat*9/totalCal*100, 1) _ \"%\")\nprintln(\"Protein: \" _ formatDecimal(protein*4/totalCal*100, 1) _ \"%\")\nprintln(\"Carbs: \" _ formatDecimal(carbs*4/totalCal*100, 1) _ \"%\")"
+  },
+  "6325": {
+    "problem": "A travel planner computes the cost-effectiveness of a rail pass. A 7-day pass costs `$299`. Individual ticket prices for planned trips are `$45`, `$62`, `$38`, `$55`, `$70`. Print whether the pass saves money.",
+    "answer": "local pass = 299\nlocal tickets = [45, 62, 38, 55, 70]\nlocal ticketTotal = tickets.reduce(0) { x, acc -> acc+x }\nprintln(if (pass < ticketTotal) \"Pass saves $\" _ (ticketTotal-pass) else \"Individual tickets cheaper by $\" _ (pass-ticketTotal))"
+  },
+  "6333": {
+    "problem": "A grade calculator implements the plus/minus grading system. A score of `88` earns a `B+`. Define the boundaries and print the plus/minus letter grade for scores `93`, `87`, `79`, `72`, `68`.",
+    "answer": "func plusMinusGrade(score) = {\n  if (score >= 93) \"A\" else if (score >= 90) \"A-\" else if (score >= 87) \"B+\" else if (score >= 83) \"B\" else if (score >= 80) \"B-\" else if (score >= 77) \"C+\" else if (score >= 73) \"C\" else if (score >= 70) \"C-\" else if (score >= 67) \"D+\" else if (score >= 63) \"D\" else if (score >= 60) \"D-\" else \"F\"\n}\nfor (s in [93, 87, 79, 72, 68]) {\n  println(s _ \" \u2192 \" _ plusMinusGrade(s))\n}"
+  },
+  "6339": {
+    "problem": "A sports analyst needs to parse a box score string `\"PTS:28 REB:11 AST:7\"`. Split by spaces and then by `\":\"` to extract each stat label and value, printing them on separate lines.",
+    "answer": "local boxScore = \"PTS:28 REB:11 AST:7\"\nfor (stat in boxScore.split(\" \")) {\n  local parts = stat.split(\":\")\n  println(parts[1] _ \": \" _ parts[2])\n}"
+  },
+  "6344": {
+    "problem": "A grade book generates student ID codes. Given a student's first name `\"Alexander\"`, last name `\"Brown\"`, and year `2025`, extract the first 3 letters of each name and append the last 2 digits of the year to form the ID.",
+    "answer": "local firstName = \"Alexander\"\nlocal lastName = \"Brown\"\nlocal year = 2025\nlocal id = firstName.segment(1,3).uppercase() _ lastName.segment(1,3).uppercase() _ (\"\" _ year).segment(3,2)\nprintln(id)"
+  },
+  "6352": {
+    "problem": "A chef needs to parse a recipe instruction that uses abbreviated units. Replace `\"tsp\"` with `\"teaspoon\"`, `\"tbsp\"` with `\"tablespoon\"`, and `\"oz\"` with `\"ounce\"` in a given instruction string.",
+    "answer": "local instruction = \"Add 2 tsp salt, 1 tbsp butter, and 3 oz cream\"\nprintln(instruction.replace(\"tsp\",\"teaspoon\").replace(\"tbsp\",\"tablespoon\").replace(\"oz\",\"ounce\"))"
+  },
+  "6359": {
+    "problem": "A grade book generates a histogram bar. Given a score `78` out of `100`, print a bar made of `\"#\"` characters proportional to the score, followed by the numeric value.",
+    "answer": "local score6359 = 78\nlocal bar = \"\"\nfor (i: 1 .. score6359) { bar = bar _ \"#\" }\nprintln(bar _ \" \" _ score6359)"
+  },
+  "6364": {
+    "problem": "A sports app parses a game clock string `\"Q3 08:42\"`. Split to extract the quarter number and the remaining time, then print `\"Third quarter, 8 minutes 42 seconds remaining\"`.",
+    "answer": "local clock = \"Q3 08:42\"\nlocal parts6364 = clock.split(\" \")\nlocal quarter = parts6364[1].segment(2,1)\nlocal time6364 = parts6364[2].split(\":\")\nlocal quarters = [\"First\",\"Second\",\"Third\",\"Fourth\"]\nprintln(quarters[quarter] _ \" quarter, \" _ time6364[1] _ \" minutes \" _ time6364[2] _ \" seconds remaining\")"
+  },
+  "6368": {
+    "problem": "A travel app validates a date string format. Given a string like `\"2025-13-45\"`, split by `\"-\"` and check that the month is 1\u201312 and day is 1\u201331, printing `\"valid\"` or `\"invalid\"`.",
+    "answer": "local dateStr = \"2025-13-45\"\nlocal dateParts = dateStr.split(\"-\")\nlocal month = dateParts[2]\nlocal day = dateParts[3]\nprintln(if (month >= 1 && month <= 12 && day >= 1 && day <= 31) \"valid\" else \"invalid\")"
+  },
+  "6377": {
+    "problem": "A teacher builds a grade feedback message. Given a score `85` and max `100`, print `\"You scored 85/100 (85.0%). Well done!\"` with appropriate encouragement based on the grade range.",
+    "answer": "local score6377 = 85\nlocal msg = if (score6377 >= 90) \"Excellent!\" else if (score6377 >= 80) \"Well done!\" else if (score6377 >= 70) \"Good effort.\" else \"Keep practicing.\"\nprintln(\"You scored \" _ score6377 _ \"/100 (\" _ formatDecimal(score6377 * 1.0, 1) _ \"%). \" _ msg)"
+  },
+  "6383": {
+    "problem": "A travel app generates a timezone display string. Given a city name and UTC offset (e.g., `\"Tokyo\"`, `+9`), format as `\"Tokyo (UTC+9)\"` handling both positive and negative offsets.",
+    "answer": "func timezoneStr(city, offset) = {\n  if (offset >= 0) { city _ \" (UTC+\" _ offset _ \")\" }\n  else { city _ \" (UTC\" _ offset _ \")\" }\n}\nprintln(timezoneStr(\"Tokyo\", 9))\nprintln(timezoneStr(\"New York\", -5))"
+  },
+  "6388": {
+    "problem": "A sports app generates a sports ticker message. Given scores for three simultaneous games, format each as `\"TM1 N - N TM2\"` and join with `\" | \"` to create a single ticker string.",
+    "answer": "local games = [[\"LAL\", 105, 98, \"BOS\"], [\"GSW\", 118, 112, \"MIA\"], [\"NYK\", 95, 101, \"CHI\"]]\nlocal tickers = []\nfor (g in games) {\n  tickers.add(g[1] _ \" \" _ g[2] _ \" - \" _ g[3] _ \" \" _ g[4])\n}\nprintln(tickers.join(\" | \"))"
+  },
+  "6394": {
+    "problem": "A recipe app generates an ingredient substitution note. Given `\"buttermilk\"` as the ingredient, print `\"Substitute: 1 cup buttermilk = 1 cup milk + 1 tbsp lemon juice or white vinegar\"` and similar for common substitutions.",
+    "answer": "local subs = {\"buttermilk\": \"1 cup milk + 1 tbsp lemon juice or white vinegar\", \"butter\": \"7/8 cup vegetable oil\", \"eggs\": \"1/4 cup applesauce per egg\"}\nfor (ing, sub in subs) {\n  println(\"Substitute: 1 cup \" _ ing _ \" = \" _ sub)\n}"
+  },
+  "6398": {
+    "problem": "A cooking app generates step-by-step instructions. Given a list of instruction strings, number them from `1` and print each on a new line as `\"Step 1: Preheat the oven to 375\u00b0F.\"`.",
+    "answer": "local steps6398 = [\"Preheat the oven to 375\u00b0F.\", \"Mix dry ingredients.\", \"Add wet ingredients.\", \"Pour into pan.\", \"Bake for 30 minutes.\"]\nfor (i: 1 .. steps6398.listLen()) {\n  println(\"Step \" _ i _ \": \" _ steps6398[i])\n}"
+  },
+  "6405": {
+    "problem": "A grade book formats a GPA for a transcript. Given a GPA `3.7` and scale `4.0`, print `\"Cumulative GPA: 3.70 / 4.00 \u2014 Magna Cum Laude\"` based on honor thresholds (3.5 = Cum Laude, 3.7 = Magna, 3.9 = Summa).",
+    "answer": "local gpa6405 = 3.7\nlocal honor = if (gpa6405 >= 3.9) \"Summa Cum Laude\" else if (gpa6405 >= 3.7) \"Magna Cum Laude\" else if (gpa6405 >= 3.5) \"Cum Laude\" else \"\"\nprintln(\"Cumulative GPA: \" _ formatDecimal(gpa6405, 2) _ \" / 4.00\" _ if (honor !== \"\") \" \u2014 \" _ honor else \"\")"
+  },
+  "6410": {
+    "problem": "A cooking app formats a substitution ratio. Given original ingredient `\"all-purpose flour\"` and substitute `\"almond flour\"` with ratio `0.75`, print `\"Replace 1 cup all-purpose flour with 3/4 cup almond flour\"`.",
+    "answer": "println(\"Replace 1 cup all-purpose flour with 3/4 cup almond flour\")"
+  },
+  "6415": {
+    "problem": "A travel app generates a luggage tag. Given name `\"Dr. Sarah Chen\"`, address `\"42 Maple Ave, Boston MA 02101\"`, and phone `\"617-555-0132\"`, format and print a compact luggage tag string.",
+    "answer": "println(\"Name: Dr. Sarah Chen | Address: 42 Maple Ave, Boston MA 02101 | Tel: 617-555-0132\")"
+  },
+  "6421": {
+    "problem": "A teacher generates a seating chart label. Given student name, row `3`, seat `2`, and any notes like `\"near board\"`, print a formatted seating label with all information included.",
+    "answer": "local sName = \"Jordan Lee\"\nlocal row = 3\nlocal seat = 2\nlocal notes = \"near board\"\nprintln(sName _ \" | Row \" _ row _ \", Seat \" _ seat _ \" | \" _ notes)"
+  },
+  "6432": {
+    "problem": "A travel app tracks daily expenses as a list: `[45.50, 120.00, 33.75, 89.20, 65.00]`. Compute the running total at each day and print the cumulative expense list.",
+    "answer": "local expenses = [45.50, 120.00, 33.75, 89.20, 65.00]\nlocal cumulative = []\nlocal running = 0\nfor (e in expenses) {\n  running = running + e\n  cumulative.add(running)\n}\nprintln(cumulative)"
+  },
+  "6480": {
+    "problem": "A travel app stores a list of city names visited. Use `.random()` to select a random city as the destination for the next trip and print a travel message.",
+    "answer": "local cities = [\"Paris\", \"Tokyo\", \"New York\", \"Sydney\", \"Cape Town\", \"Lisbon\"]\nlocal picked = cities.random()\nprintln(\"Next destination: \" _ picked _ \"! Bon voyage!\")"
+  },
+  "6487": {
+    "problem": "A cooking app stores calorie counts per serving for all dishes in a meal plan. Use `.reduce` to compute daily totals and print a weekly calorie chart.",
+    "answer": "local mealPlan = [[2100, 1950, 2200, 1800, 2050, 2300, 1900], [2000, 1850, 2150, 2100, 1950, 2400, 2000]]\nfor (i: 1 .. mealPlan.listLen()) {\n  local weekly = mealPlan[i].reduce(0){x,acc->acc+x}\n  println(\"Week \" _ i _ \": \" _ weekly _ \" calories\")\n}"
+  },
+  "6501": {
+    "problem": "A chef builds a recipe dictionary with keys `\"name\"`, `\"servings\"`, `\"prepTime\"`, `\"cookTime\"`, and `\"ingredients\"`. Use `.set()` to add a `\"difficulty\"` key after creation and print the complete recipe card.",
+    "answer": "local recipe6501 = {\"name\": \"Chocolate Cake\", \"servings\": 8, \"prepTime\": 20, \"cookTime\": 35, \"ingredients\": [\"flour\",\"cocoa\",\"eggs\",\"butter\"]}\nrecipe6501.set(\"difficulty\", \"medium\")\nprintln(recipe6501)"
+  },
+  "6509": {
+    "problem": "A recipe app stores ingredient quantities per serving in a dict. Use a `.keys()` loop to scale every value by a factor of `2.5` using `.set()` and print the scaled recipe.",
+    "answer": "local ingredientQty = {\"flour\": 2.0, \"sugar\": 1.5, \"butter\": 0.5, \"eggs\": 2}\nfor (k in ingredientQty.keys()) {\n  ingredientQty.set(k, ingredientQty.get(k,0) * 2.5)\n}\nprintln(ingredientQty)"
+  },
+  "6539": {
+    "problem": "A cooking app stores recipe step durations in a dict keyed by step number. Use `.keys()` to iterate in order and compute a cumulative timeline, printing each step's start and end time.",
+    "answer": "local stepDurations = {\"1\": 5, \"2\": 15, \"3\": 10, \"4\": 25, \"5\": 10}\nlocal timeElapsed = 0\nfor (k in stepDurations.keys()) {\n  local dur = stepDurations.get(k, 0)\n  println(\"Step \" _ k _ \": \" _ timeElapsed _ \" \u2013 \" _ (timeElapsed+dur) _ \" min\")\n  timeElapsed = timeElapsed + dur\n}"
+  },
+  "6549": {
+    "problem": "A sports analyst stores a team's draft picks by round in a dict. Use `.set(\"round7\", \"undrafted_FA\")` to add a late addition and print the full draft class.",
+    "answer": "local draftPicks = {\"round1\": \"QB_Johnson\", \"round2\": \"WR_Smith\", \"round3\": \"OL_Davis\", \"round4\": \"CB_Wilson\"}\ndraftPicks.set(\"round7\", \"undrafted_FA\")\nprintln(draftPicks)"
+  },
+  "6558": {
+    "problem": "A grade book computes the GPA from a dict of course grades (letter to points: A=4, B=3, C=2, D=1, F=0). Use a lookup dict and `.get()` to convert grades to points and compute GPA.",
+    "answer": "local courseGrades = {\"Math\": \"A\", \"English\": \"B\", \"Science\": \"A\", \"History\": \"C\", \"PE\": \"B\"}\nlocal gradeMap = {\"A\":4,\"B\":3,\"C\":2,\"D\":1,\"F\":0}\nlocal totalPts = 0\nlocal numCourses = 0\nfor (course, grade in courseGrades) {\n  totalPts = totalPts + gradeMap.get(grade, 0)\n  numCourses = numCourses + 1\n}\nprintln(formatDecimal(totalPts / numCourses, 2))"
+  },
+  "6572": {
+    "problem": "A travel app stores hotel loyalty points balances. After a stay earning `500` points, use `.set()` to update the balance and print the new total and whether the user reached a reward threshold.",
+    "answer": "local loyalty = {\"balance\": 2800, \"tier\": \"Gold\"}\nloyalty.set(\"balance\", loyalty.get(\"balance\",0) + 500)\nlocal newBalance = loyalty.get(\"balance\", 0)\nprintln(\"New balance: \" _ newBalance)\nprintln(if (newBalance >= 5000) \"Reward unlocked!\" else \"Keep earning \u2014 \" _ (5000-newBalance) _ \" pts to reward\")"
+  },
+  "6581": {
+    "problem": "A cooking app uses color to indicate food safety: `#00CC00` for safe, `#FFAA00` for use soon, `#CC0000` for expired. Given an expiry status string, print the corresponding hex color code.",
+    "answer": "func foodSafetyColor(status) = {\n  if (status === \"safe\") { \"#00CC00\" }\n  else if (status === \"use soon\") { \"#FFAA00\" }\n  else { \"#CC0000\" }\n}\nprintln(foodSafetyColor(\"safe\"))\nprintln(foodSafetyColor(\"use soon\"))\nprintln(foodSafetyColor(\"expired\"))"
+  },
+  "6588": {
+    "problem": "A travel app needs to overlay two semi-transparent route colors. Given colors `#FF6600` and `#0066FF` with alpha values `128` each, use `splitColor` to extract components and compute the blended RGB values.",
+    "answer": "local c1 = splitColor(makeColor([255, 102, 0]))\nlocal c2 = splitColor(makeColor([0, 102, 255]))\nlocal alpha = 128 / 255.0\nlocal r = round(c1[2]*alpha + c2[2]*(1-alpha))\nlocal g = round(c1[3]*alpha + c2[3]*(1-alpha))\nlocal b = round(c1[4]*alpha + c2[4]*(1-alpha))\nprintln(makeColor([r, g, b]))"
+  },
+  "6593": {
+    "problem": "A cooking app generates a spice heat indicator color. For Scoville units, map 0\u20131000 to `#FFFF99`, 1001\u201310000 to `#FFAA00`, 10001\u2013100000 to `#FF4400`, over 100000 to `#880000`. Print the heat color.",
+    "answer": "func scovilleColor(shu) = {\n  if (shu <= 1000) \"#FFFF99\"\n  else if (shu <= 10000) \"#FFAA00\"\n  else if (shu <= 100000) \"#FF4400\"\n  else \"#880000\"\n}\nprintln(scovilleColor(500))\nprintln(scovilleColor(5000))\nprintln(scovilleColor(50000))\nprintln(scovilleColor(500000))"
+  },
+  "6597": {
+    "problem": "A recipe app needs a color-coded timer. Print `#00CC00` for over 5 minutes remaining, `#FFCC00` for 2\u20135 minutes, `#FF4400` for under 2 minutes, based on seconds remaining input.",
+    "answer": "func timerColor(seconds) = {\n  if (seconds > 300) \"#00CC00\"\n  else if (seconds >= 120) \"#FFCC00\"\n  else \"#FF4400\"\n}\nprintln(timerColor(400))\nprintln(timerColor(180))\nprintln(timerColor(60))"
+  },
+  "6603": {
+    "problem": "A cooking app visualizes oil smoke points with color. Below 160\u00b0C: `#FFFFE0`, 160\u2013200\u00b0C: `#FFD700`, 200\u2013230\u00b0C: `#FF8C00`, above 230\u00b0C: `#FF0000`. Print the color for a given temperature.",
+    "answer": "func smokePointColor(temp) = {\n  if (temp < 160) \"#FFFFE0\"\n  else if (temp <= 200) \"#FFD700\"\n  else if (temp <= 230) \"#FF8C00\"\n  else \"#FF0000\"\n}\nprintln(smokePointColor(150))\nprintln(smokePointColor(180))\nprintln(smokePointColor(215))\nprintln(smokePointColor(250))"
+  },
+  "6609": {
+    "problem": "A travel app computes an accessibility contrast ratio. Given foreground and background colors, use `splitColor` to get luminances, compute the ratio `(L1+0.05)/(L2+0.05)`, and print whether WCAG AA contrast (4.5:1) is met.",
+    "answer": "func wcagLuminance(color) = {\n  local c = splitColor(color)\n  0.2126*(c[2]/255) + 0.7152*(c[3]/255) + 0.0722*(c[4]/255)\n}\nlocal fg = makeColor([0, 0, 0])\nlocal bg = makeColor([255, 255, 255])\nlocal L1 = wcagLuminance(bg)\nlocal L2 = wcagLuminance(fg)\nlocal ratio = (L1+0.05)/(L2+0.05)\nprintln(\"Contrast ratio: \" _ formatDecimal(ratio, 2))\nprintln(if (ratio >= 4.5) \"WCAG AA passed\" else \"WCAG AA failed\")"
+  },
+  "6619": {
+    "problem": "A teacher uses a for-range loop with step `5` to generate grade thresholds from `60` to `100` and print a grading scale table.",
+    "answer": "for (t: 60 .. 100 step 5) {\n  local grade = if (t >= 90) \"A\" else if (t >= 80) \"B\" else if (t >= 70) \"C\" else if (t >= 65) \"D+\" else \"D\"\n  println(t _ \" \u2014 \" _ grade)\n}"
+  },
+  "6627": {
+    "problem": "A teacher uses nested if-else to determine a student's academic standing: GPA thresholds combined with credit hours determine `\"Freshman\"`, `\"Sophomore\"`, `\"Junior\"`, or `\"Senior\"` standing.",
+    "answer": "local gpa6627 = 2.8\nlocal credits = 75\nlocal standing = if (credits >= 90) \"Senior\" else if (credits >= 60) \"Junior\" else if (credits >= 30) \"Sophomore\" else \"Freshman\"\nprintln(standing)"
+  },
+  "6645": {
+    "problem": "A travel app uses nested if-else to classify a trip as `\"budget\"` (under $500), `\"standard\"` ($500\u2013$2000), `\"premium\"` ($2000\u2013$5000), or `\"luxury\"` (over $5000) based on total estimated cost.",
+    "answer": "local tripCost = 3200\nlocal classification = if (tripCost < 500) \"budget\" else if (tripCost <= 2000) \"standard\" else if (tripCost <= 5000) \"premium\" else \"luxury\"\nprintln(classification)"
+  },
+  "6316": {
+    "problem": "A sports app computes a diver's score. Five judges give scores `7.5`, `8.0`, `7.0`, `8.5`, `7.5`; the highest and lowest are dropped, and the average of the remaining three is multiplied by the degree of difficulty `2.8`. Print the final score.",
+    "answer": "local judgeScores = [7.5, 8.0, 7.0, 8.5, 7.5]\njudgeScores.sort()\nlocal middle3 = judgeScores.slice(2, 4)\nlocal avg = middle3.reduce(0){x,acc->acc+x}/3\nprintln(formatDecimal(avg * 2.8, 2))"
+  },
+  "6450": {
+    "problem": "A teacher builds a class frequency distribution. Given scores list, use `.filter` with ranges to count how many fall in A/B/C/D/F bands and print the distribution.",
+    "answer": "local scores6450 = [95, 82, 73, 68, 91, 55, 77, 88, 61, 84]\nprintln(\"A (90+): \" _ scores6450.filter{x->x>=90}.listLen())\nprintln(\"B (80-89): \" _ scores6450.filter{x->x>=80&&x<90}.listLen())\nprintln(\"C (70-79): \" _ scores6450.filter{x->x>=70&&x<80}.listLen())\nprintln(\"D (60-69): \" _ scores6450.filter{x->x>=60&&x<70}.listLen())\nprintln(\"F (<60): \" _ scores6450.filter{x->x<60}.listLen())"
+  },
+  "6494": {
+    "problem": "A grade book stores individual question scores for an essay: `[8,7,9,6,8,7,8,9,7,8]` out of 10 per question. Use `avgOf` and `stdDevOf` on the question score list and print the essay analytics.",
+    "answer": "local essayScores = [8,7,9,6,8,7,8,9,7,8]\nprintln(\"Mean: \" _ formatDecimal(avgOf(essayScores), 2))\nprintln(\"StdDev: \" _ formatDecimal(stdDevOf(essayScores), 2))"
+  },
+  "6346": {
+    "problem": "A travel app needs to check if a destination name contains a space (indicating a multi-word city). Use `.contains(\" \")` and print either the full name or just the first word.",
+    "answer": "local destination = \"New York\"\nif (destination.contains(\" \")) {\n  println(destination)\n} else {\n  println(destination.split(\" \")[1])\n}"
+  },
+  "6350": {
+    "problem": "A travel app validates airport codes. Given a code string, check that it has exactly 3 characters using `.textLen()`, that it is uppercase using `.uppercase()` comparison, and print whether it is valid.",
+    "answer": "local airportCode = \"LAX\"\nlocal isValid = airportCode.textLen() == 3 && airportCode === airportCode.uppercase()\nprintln(if (isValid) \"Valid airport code\" else \"Invalid airport code\")"
+  },
+  "6371": {
+    "problem": "A recipe app extracts allergen information from ingredient descriptions. Given a string containing `\"(contains gluten)\"`, use `.contains()` to check for common allergens and print a warning list.",
+    "answer": "local ingredientDesc = \"Wheat flour (contains gluten), milk powder (contains dairy), peanut oil (contains nuts)\"\nlocal allergens = [\"gluten\", \"dairy\", \"nuts\", \"eggs\", \"soy\"]\nfor (a in allergens) {\n  if (ingredientDesc.contains(a)) { println(\"Warning: contains \" _ a) }\n}"
+  },
+  "6403": {
+    "problem": "A travel app validates a passport number format. Given a string, check it starts with two uppercase letters followed by seven digits using `.segment()` and `.split()`, and print `\"valid\"` or `\"invalid\"`.",
+    "answer": "local passport = \"AB1234567\"\nlocal isValidPassport = passport.textLen() == 9\nif (isValidPassport) {\n  local letters = passport.segment(1,2)\n  local nums = passport.segment(3,7)\n  isValidPassport = letters === letters.uppercase() && nums ? number\n}\nprintln(if (isValidPassport) \"valid\" else \"invalid\")"
+  }
+}
