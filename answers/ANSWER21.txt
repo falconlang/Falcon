@@ -1,0 +1,2066 @@
+//10493
+func buildTimeSeries(dt) = {
+  {"dt": dt, "times": [], "values": []}
+}
+
+func record(ts, t, val) = {
+  ts.get("times").add(t)
+  ts.get("values").add(val)
+  ts
+}
+
+func statistics(ts) = {
+  local vals = ts.get("values")
+  local n = vals.listLen()
+  local mean = vals.reduce(0) { x, s -> x + s } / n
+  local variance = vals.map { v -> (v - mean) ^ 2 }.reduce(0) { x, s -> x + s } / n
+  {"n": n, "mean": mean, "variance": variance}
+}
+
+local ts = buildTimeSeries(0.1)
+record(ts, 0.0, 1.5)
+record(ts, 0.1, 2.3)
+record(ts, 0.2, 1.8)
+record(ts, 0.3, 3.1)
+println(statistics(ts))
+
+//10223
+global energyLevels = [1, 4, 9, 16, 25]
+global kT = 2.0
+
+func partition() = {
+  this.energyLevels.reduce(0) { E, s -> exp(-E / this.kT) + s }
+}
+
+println("Partition function Z = " _ partition())
+
+//10408
+func matAdd(A, B) = {
+  local rows = A.listLen()
+  local result = []
+  for (i: 1 .. rows) {
+    local rowA = A[i]
+    local rowB = B[i]
+    local cols = rowA.listLen()
+    local newRow = []
+    for (j: 1 .. cols) {
+      newRow.add(rowA[j] + rowB[j])
+    }
+    result.add(newRow)
+  }
+  result
+}
+
+local A = [[1,2,3],[4,5,6],[7,8,9]]
+local B = [[9,8,7],[6,5,4],[3,2,1]]
+println(matAdd(A, B))
+
+//10586
+local Aj = [[4,-1,0],[-1,4,-1],[0,-1,4]]
+local bj = [1,2,3]
+local xj = [0,0,0]
+local tol = 1e-6
+local maxIt = 100
+local iter = 0
+local converged = false
+
+while (!converged && iter < maxIt) {
+  local xNew = [0,0,0]
+  for (i: 1 .. 3) {
+    local sigma = 0
+    for (j: 1 .. 3) {
+      if (j != i) {
+        sigma = sigma + Aj[i][j] * xj[j]
+      }
+    }
+    xNew[i] = (bj[i] - sigma) / Aj[i][i]
+  }
+  local diff = 0
+  for (i: 1 .. 3) {
+    diff = diff + abs(xNew[i] - xj[i])
+  }
+  println("Iter " _ iter _ " diff=" _ diff)
+  xj = xNew
+  iter = iter + 1
+  if (diff < tol) {
+    converged = true
+  }
+}
+println("Solution: " _ xj)
+
+//10605
+local a_rom = 0
+local b_rom = 3.14159265358979
+local n_rom = 6
+local R = []
+for (i: 1 .. n_rom) {
+  local row = []
+  for (j: 1 .. n_rom) {
+    row.add(0)
+  }
+  R.add(row)
+}
+
+local h0 = b_rom - a_rom
+R[1][1] = 0.5 * h0 * (sin(a_rom) + sin(b_rom))
+
+for (i: 2 .. n_rom) {
+  local h = (b_rom - a_rom) / (2 ^ (i - 1))
+  local sum_r = 0
+  local k_max = 2 ^ (i - 2)
+  for (k: 1 .. k_max) {
+    sum_r = sum_r + sin(a_rom + (2 * k - 1) * h)
+  }
+  R[i][1] = 0.5 * R[i-1][1] + h * sum_r
+  for (j: 2 .. i) {
+    R[i][j] = (4 ^ (j-1) * R[i][j-1] - R[i-1][j-1]) / (4 ^ (j-1) - 1)
+  }
+  println("Row " _ i _ ": " _ R[i][i])
+}
+println("Romberg result: " _ R[n_rom][n_rom])
+
+//10624
+local particles = []
+for (i: 1 .. 10) {
+  particles.add([randFloat() * 10, randFloat() * 10])
+}
+
+local minDist = 1e18
+local minI = 0
+local minJ2 = 0
+
+for (i: 1 .. 10) {
+  for (j: 1 .. 10) {
+    if (i != j) {
+      local dx2 = particles[i][1] - particles[j][1]
+      local dy2 = particles[i][2] - particles[j][2]
+      local d = sqrt(dx2*dx2 + dy2*dy2)
+      if (d < minDist) {
+        minDist = d
+        minI = i
+        minJ2 = j
+      }
+    }
+  }
+}
+println("Min distance: " _ minDist _ " between " _ minI _ " and " _ minJ2)
+
+//10588
+local x_mh = 0
+local accepted = 0
+local total_mh = 10000
+local proposal_std = 1.0
+
+for (i: 1 .. total_mh) {
+  local x_prop = x_mh + (randFloat() * 2 - 1) * proposal_std
+  local log_alpha = -0.5 * x_prop * x_prop - (-0.5 * x_mh * x_mh)
+  local u = randFloat()
+  if (log(u) < log_alpha) {
+    x_mh = x_prop
+    accepted = accepted + 1
+  }
+}
+println("Acceptance rate: " _ (accepted / total_mh))
+
+//10620
+local x_bfgs = [0, 0]
+local lr_bfgs = 0.001
+local iters_bfgs = 10000
+
+func rosenbrock(x) = {
+  (1 - x[1]) ^ 2 + 100 * (x[2] - x[1] ^ 2) ^ 2
+}
+
+func rosenGrad(x) = {
+  local g1 = -2 * (1 - x[1]) - 400 * x[1] * (x[2] - x[1]^2)
+  local g2 = 200 * (x[2] - x[1]^2)
+  [g1, g2]
+}
+
+local H_inv = [[1, 0], [0, 1]]
+local iter_b = 0
+
+while (iter_b < iters_bfgs) {
+  local g = rosenGrad(x_bfgs)
+  local p = [-(H_inv[1][1]*g[1] + H_inv[1][2]*g[2]),
+             -(H_inv[2][1]*g[1] + H_inv[2][2]*g[2])]
+  local alpha = lr_bfgs
+  local x_new = [x_bfgs[1] + alpha*p[1], x_bfgs[2] + alpha*p[2]]
+  local g_new = rosenGrad(x_new)
+  local s = [x_new[1]-x_bfgs[1], x_new[2]-x_bfgs[2]]
+  local y = [g_new[1]-g[1], g_new[2]-g[2]]
+  local sy = s[1]*y[1] + s[2]*y[2]
+  if (abs(sy) > 1e-10) {
+    local rho = 1 / sy
+    local Hy = [H_inv[1][1]*y[1]+H_inv[1][2]*y[2], H_inv[2][1]*y[1]+H_inv[2][2]*y[2]]
+    local yHy = y[1]*Hy[1] + y[2]*Hy[2]
+    H_inv[1][1] = H_inv[1][1] - rho*(s[1]*Hy[1]+Hy[1]*s[1]) + rho*(rho*yHy+1)*s[1]*s[1]
+    H_inv[1][2] = H_inv[1][2] - rho*(s[1]*Hy[2]+Hy[1]*s[2]) + rho*(rho*yHy+1)*s[1]*s[2]
+    H_inv[2][1] = H_inv[2][1] - rho*(s[2]*Hy[1]+Hy[2]*s[1]) + rho*(rho*yHy+1)*s[2]*s[1]
+    H_inv[2][2] = H_inv[2][2] - rho*(s[2]*Hy[2]+Hy[2]*s[2]) + rho*(rho*yHy+1)*s[2]*s[2]
+  }
+  x_bfgs = x_new
+  iter_b = iter_b + 1
+}
+println("BFGS result: " _ x_bfgs _ " f=" _ rosenbrock(x_bfgs))
+
+//10424
+func matMul(A, B) = {
+  local n = A.listLen()
+  local m = B[1].listLen()
+  local p = B.listLen()
+  local C = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. m) {
+      local s = 0
+      for (k: 1 .. p) {
+        s = s + A[i][k] * B[k][j]
+      }
+      row.add(s)
+    }
+    C.add(row)
+  }
+  C
+}
+
+func matPow(A, n) = {
+  local result = [[1,0],[0,1]]
+  local base = A
+  local exp_n = n
+  while (exp_n > 0) {
+    if (exp_n % 2 == 1) {
+      result = matMul(result, base)
+    }
+    base = matMul(base, base)
+    exp_n = floor(exp_n / 2)
+  }
+  result
+}
+
+local M = [[1,1],[1,0]]
+println(matPow(M, 5))
+
+//10365
+func printFitResult(model, params, r_squared) = {
+  local out = "Model: " _ model _ "\n"
+  for (i: 1 .. params.listLen()) {
+    out = out _ "  param[" _ i _ "] = " _ params[i] _ "\n"
+  }
+  out = out _ "R² = " _ r_squared
+  out
+}
+
+println(printFitResult("linear", [2.5, 0.3], 0.987))
+
+//10520
+func buildGaussianProcess(kernel_fn, xs, ys) = {
+  {"kernel_fn": kernel_fn, "xs": xs, "ys": ys}
+}
+
+func squaredExpKernel(x1, x2) = {
+  exp(-0.5 * (x1 - x2) ^ 2)
+}
+
+func predict(gp, x_new) = {
+  local xs = gp.get("xs")
+  local ys = gp.get("ys")
+  local n = xs.listLen()
+  local k_star = xs.map { xi -> squaredExpKernel(x_new, xi) }
+  local K = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. n) {
+      row.add(squaredExpKernel(xs[i], xs[j]) + if (i == j) 1e-6 else 0)
+    }
+    K.add(row)
+  }
+  local w = k_star
+  local mean_pred = 0
+  for (i: 1 .. n) {
+    mean_pred = mean_pred + w[i] * ys[i]
+  }
+  mean_pred
+}
+
+local gp = buildGaussianProcess("squaredExp", [0, 1, 2, 3], [0, 1, 4, 9])
+println("GP predict at 1.5: " _ predict(gp, 1.5))
+
+//10544
+func buildProtein(sequence, contacts) = {
+  {"sequence": sequence, "contacts": contacts, "n": sequence.textLen()}
+}
+
+func contactMapEnergy(protein) = {
+  local contacts = protein.get("contacts")
+  local energy = 0
+  for (pair in contacts) {
+    energy = energy + pair.get("strength")
+  }
+  energy
+}
+
+local prot = buildProtein("ACDEFGH", [{"i": 1, "j": 4, "strength": -1.2}, {"i": 2, "j": 6, "strength": -0.8}])
+println("Contact energy: " _ contactMapEnergy(prot))
+
+//10676
+func dataAssimilation(model_dict, observations, method) = {
+  local n_ens = 20
+  local ensemble = []
+  for (i: 1 .. n_ens) {
+    ensemble.add(model_dict.get("state") + (randFloat() - 0.5) * 0.1)
+  }
+  local obs_val = observations[1]
+  local obs_err = 0.1
+  local ens_mean = ensemble.reduce(0) { x, s -> x + s } / n_ens
+  local ens_var = ensemble.map { e -> (e - ens_mean)^2 }.reduce(0) { x, s -> x + s } / n_ens
+  local K = ens_var / (ens_var + obs_err^2)
+  local posterior = ensemble.map { e -> e + K * (obs_val - e) }
+  posterior
+}
+
+local mdl = {"state": 1.0}
+println(dataAssimilation(mdl, [1.05], "EnKF"))
+
+//10205
+global pressure = 101325
+global temperature = 293.15
+global volume = 1.0
+
+func applyGasLaw() = {
+  local R_gas = 8.314
+  local M_air = 0.029
+  local n_moles = (this.pressure * this.volume) / (R_gas * this.temperature)
+  local mass = n_moles * M_air
+  mass / this.volume
+}
+
+println("Air density: " _ applyGasLaw() _ " kg/m³")
+
+//10213
+global wavePrev = []
+global waveCurr = []
+global waveNext = []
+
+for (i: 1 .. 50) {
+  wavePrev.add(0)
+  waveCurr.add(0)
+  waveNext.add(0)
+}
+
+for (i: 1 .. 50) {
+  local x = i - 25
+  waveCurr[i] = exp(-0.5 * x * x / 4)
+}
+
+func waveStep(c, dx, dt) = {
+  local r = (c * dt / dx) ^ 2
+  for (i: 2 .. 49) {
+    waveNext[i] = 2 * waveCurr[i] - wavePrev[i] + r * (waveCurr[i+1] - 2*waveCurr[i] + waveCurr[i-1])
+  }
+  waveNext[1] = 0
+  waveNext[50] = 0
+  for (i: 1 .. 50) {
+    wavePrev[i] = waveCurr[i]
+    waveCurr[i] = waveNext[i]
+  }
+}
+
+waveStep(1.0, 1.0, 0.5)
+println("Wave sample at 25: " _ waveCurr[25])
+
+//10225
+global sigma_x = [[0,1],[1,0]]
+global sigma_y_r = [[0,1],[-1,0]]
+global sigma_z = [[1,0],[0,-1]]
+
+func pauli_commutator(A, B) = {
+  local AB = matMul(A, B)
+  local BA = matMul(B, A)
+  local n = AB.listLen()
+  local result = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. n) {
+      row.add(AB[i][j] - BA[i][j])
+    }
+    result.add(row)
+  }
+  result
+}
+
+println("[σx, σz] = " _ pauli_commutator(sigma_x, sigma_z))
+
+//10234
+global R_resistance = 100
+global C_capacitance = 1e-6
+global L_inductance = 1e-3
+
+func rcl_impedance(omega) = {
+  local re = R_resistance
+  local im = omega * L_inductance - 1 / (omega * C_capacitance)
+  {"re": re, "im": im}
+}
+
+local omega_res = 1 / sqrt(L_inductance * C_capacitance)
+println("Resonance omega: " _ omega_res)
+println("Impedance at resonance: " _ rcl_impedance(omega_res))
+
+//10242
+global lattice_a = 2.5e-10
+global lattice_b = 2.5e-10
+global lattice_c = 3.0e-10
+
+func braggPeak(h, k, l) = {
+  local d = 1 / sqrt((h/lattice_a)^2 + (k/lattice_b)^2 + (l/lattice_c)^2)
+  local lambda = 1.54e-10
+  local sin_theta = lambda / (2 * d)
+  local theta = asin(sin_theta)
+  {"d_spacing": d, "bragg_angle_deg": degrees(theta)}
+}
+
+println(braggPeak(1, 0, 0))
+
+//10253
+func numericalIntegral_simpson(f_name, a, b, n) = {
+  local h = (b - a) / n
+  local sum_s = 0
+  for (i: 0 .. n) {
+    local x = a + i * h
+    local fx = sin(x)
+    local w = if (i == 0 || i == n) 1 else if (i % 2 == 1) 4 else 2
+    sum_s = sum_s + w * fx
+  }
+  sum_s * h / 3
+}
+
+println("Simpson integral of sin from 0 to pi: " _ numericalIntegral_simpson("sin", 0, 3.14159265, 100))
+
+//10258
+func euler_method(f_name, y0, t0, tf, dt) = {
+  local t = t0
+  local y = y0
+  local ts = [t0]
+  local ys = [y0]
+  while (t < tf) {
+    local dydt = -y
+    y = y + dt * dydt
+    t = t + dt
+    ts.add(t)
+    ys.add(y)
+  }
+  {"ts": ts, "ys": ys}
+}
+
+local euler_res = euler_method("exp_decay", 1.0, 0, 2.0, 0.1)
+println("Euler final y: " _ euler_res.get("ys")[euler_res.get("ys").listLen()])
+
+//10262
+func secant(f_name, x0, x1, tol, maxIter) = {
+  local a = x0
+  local b = x1
+  local iter_s = 0
+  local root = b
+  while (iter_s < maxIter) {
+    local fa = a^3 - a - 2
+    local fb = b^3 - b - 2
+    if (abs(fb - fa) < 1e-15) {
+      iter_s = maxIter
+    }
+    root = b - fb * (b - a) / (fb - fa)
+    a = b
+    b = root
+    iter_s = iter_s + 1
+    if (abs(b - a) < tol) {
+      iter_s = maxIter
+    }
+  }
+  root
+}
+
+println("Secant root of x^3-x-2: " _ secant("cubic", 1.0, 2.0, 1e-8, 50))
+
+//10267
+func muller(f_name, x0, x1, x2, maxIter) = {
+  local p0 = x0
+  local p1 = x1
+  local p2 = x2
+  local root_m = p2
+  local iter_m = 0
+  while (iter_m < maxIter) {
+    local f0 = p0^3 - p0 - 2
+    local f1 = p1^3 - p1 - 2
+    local f2 = p2^3 - p2 - 2
+    local h1 = p1 - p0
+    local h2 = p2 - p1
+    local d1 = (f1 - f0) / h1
+    local d2 = (f2 - f1) / h2
+    local a_m = (d2 - d1) / (h2 + h1)
+    local b_m = a_m * h2 + d2
+    local c_m = f2
+    local disc = b_m^2 - 4*a_m*c_m
+    local denom = if (abs(b_m + sqrt(abs(disc))) > abs(b_m - sqrt(abs(disc)))) b_m + sqrt(abs(disc)) else b_m - sqrt(abs(disc))
+    if (abs(denom) < 1e-15) {
+      iter_m = maxIter
+    }
+    local dx = -2 * c_m / denom
+    root_m = p2 + dx
+    p0 = p1
+    p1 = p2
+    p2 = root_m
+    iter_m = iter_m + 1
+    if (abs(dx) < 1e-8) {
+      iter_m = maxIter
+    }
+  }
+  root_m
+}
+
+println("Muller root: " _ muller("cubic", 0, 1, 2, 50))
+
+//10272
+func gaussianElim(A, b) = {
+  local n = b.listLen()
+  local Aug = []
+  for (i: 1 .. n) {
+    local row = copyList(A[i])
+    row.add(b[i])
+    Aug.add(row)
+  }
+  for (col: 1 .. n) {
+    local maxRow = col
+    local maxVal = abs(Aug[col][col])
+    for (row: col+1 .. n) {
+      if (abs(Aug[row][col]) > maxVal) {
+        maxVal = abs(Aug[row][col])
+        maxRow = row
+      }
+    }
+    local tmp = Aug[col]
+    Aug[col] = Aug[maxRow]
+    Aug[maxRow] = tmp
+    for (row: col+1 .. n) {
+      local factor = Aug[row][col] / Aug[col][col]
+      for (j: col .. n+1) {
+        Aug[row][j] = Aug[row][j] - factor * Aug[col][j]
+      }
+    }
+  }
+  local x_sol = []
+  for (i: 1 .. n) {
+    x_sol.add(0)
+  }
+  for (i: n .. 1 step -1) {
+    local s = Aug[i][n+1]
+    for (j: i+1 .. n) {
+      s = s - Aug[i][j] * x_sol[j]
+    }
+    x_sol[i] = s / Aug[i][i]
+  }
+  x_sol
+}
+
+println(gaussianElim([[2,1,-1],[3,3,9],[3,3,5]], [8,28,10]))
+
+//10276
+func qrDecompose(A) = {
+  local n = A.listLen()
+  local m = A[1].listLen()
+  local Q = []
+  local R_qr = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. m) {
+      row.add(0)
+    }
+    Q.add(row)
+    R_qr.add(copyList(row))
+  }
+  local cols = []
+  for (j: 1 .. m) {
+    local col = []
+    for (i: 1 .. n) {
+      col.add(A[i][j])
+    }
+    cols.add(col)
+  }
+  local q_cols = []
+  for (j: 1 .. m) {
+    local v = copyList(cols[j])
+    for (k: 1 .. j-1) {
+      local dot = 0
+      for (i: 1 .. n) {
+        dot = dot + q_cols[k][i] * cols[j][i]
+      }
+      R_qr[k][j] = dot
+      for (i: 1 .. n) {
+        v[i] = v[i] - dot * q_cols[k][i]
+      }
+    }
+    local norm_v = sqrt(v.reduce(0) { x, s -> x*x + s })
+    R_qr[j][j] = norm_v
+    local qj = v.map { vi -> vi / norm_v }
+    q_cols.add(qj)
+  }
+  for (j: 1 .. m) {
+    for (i: 1 .. n) {
+      Q[i][j] = q_cols[j][i]
+    }
+  }
+  {"Q": Q, "R": R_qr}
+}
+
+println(qrDecompose([[1,2],[3,4],[5,6]]))
+
+//10280
+func interpolate_lagrange(xs, ys, x) = {
+  local n = xs.listLen()
+  local result = 0
+  for (i: 1 .. n) {
+    local L = 1
+    for (j: 1 .. n) {
+      if (j != i) {
+        L = L * (x - xs[j]) / (xs[i] - xs[j])
+      }
+    }
+    result = result + ys[i] * L
+  }
+  result
+}
+
+println(interpolate_lagrange([1,2,3,4,5],[1,4,9,16,25], 2.5))
+
+//10284
+func leastSquares(xs, ys, degree) = {
+  local n = xs.listLen()
+  local p = degree + 1
+  local A_ls = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 0 .. degree) {
+      row.add(xs[i] ^ j)
+    }
+    A_ls.add(row)
+  }
+  local ATA = []
+  for (i: 1 .. p) {
+    local row = []
+    for (j: 1 .. p) {
+      local s = 0
+      for (k: 1 .. n) {
+        s = s + A_ls[k][i] * A_ls[k][j]
+      }
+      row.add(s)
+    }
+    ATA.add(row)
+  }
+  local ATb = []
+  for (i: 1 .. p) {
+    local s = 0
+    for (k: 1 .. n) {
+      s = s + A_ls[k][i] * ys[k]
+    }
+    ATb.add(s)
+  }
+  gaussianElim(ATA, ATb)
+}
+
+println(leastSquares([1,2,3,4,5],[2.1,3.9,6.2,7.8,10.1],1))
+
+//10288
+func polynomial_integrate(coeffs, a, b) = {
+  local result = 0
+  for (i: 1 .. coeffs.listLen()) {
+    local exp_p = i
+    result = result + coeffs[i] * (b^exp_p - a^exp_p) / exp_p
+  }
+  result
+}
+
+println(polynomial_integrate([1, 2, 3], 0, 2))
+
+//10293
+func powerSpectrum(signal) = {
+  local n = signal.listLen()
+  local ps = []
+  for (k: 1 .. n) {
+    local re = 0
+    local im = 0
+    for (t: 1 .. n) {
+      local angle = 2 * 3.14159265 * (k-1) * (t-1) / n
+      re = re + signal[t] * cos(angle)
+      im = im - signal[t] * sin(angle)
+    }
+    ps.add((re*re + im*im) / n)
+  }
+  ps
+}
+
+println(powerSpectrum([1,0,-1,0,1,0,-1,0]))
+
+//10298
+func importanceSampling(f_name, proposal_fn, n) = {
+  local total = 0
+  for (i: 1 .. n) {
+    local x = randFloat() * 3.14159265
+    local fx = sin(x)
+    local qx = 1 / 3.14159265
+    total = total + fx / qx
+  }
+  total / n
+}
+
+println("IS estimate of integral sin: " _ importanceSampling("sin", "uniform", 10000))
+
+//10302
+func simulated_annealing(energy_fn, neighbor_fn, x0, T0, cooling) = {
+  local x_sa = x0
+  local e_sa = x_sa^2
+  local T_sa = T0
+  for (i: 1 .. 1000) {
+    local x_new_sa = x_sa + (randFloat() - 0.5) * T_sa
+    local e_new = x_new_sa^2
+    local delta = e_new - e_sa
+    if (delta < 0 || randFloat() < exp(-delta / T_sa)) {
+      x_sa = x_new_sa
+      e_sa = e_new
+    }
+    T_sa = T_sa * cooling
+  }
+  {"x": x_sa, "energy": e_sa}
+}
+
+println(simulated_annealing("quadratic", "gaussian", 5.0, 1.0, 0.99))
+
+//10307
+func particle_swarm(f_name, bounds, n_particles, iters) = {
+  local lo = bounds[1]
+  local hi = bounds[2]
+  local pos = []
+  local vel = []
+  local pbest = []
+  local pbest_val = []
+  for (i: 1 .. n_particles) {
+    local p = lo + randFloat() * (hi - lo)
+    pos.add(p)
+    vel.add((randFloat() - 0.5))
+    pbest.add(p)
+    pbest_val.add(p^2)
+  }
+  local gbest = pos[1]
+  local gbest_val = pos[1]^2
+  for (i: 1 .. n_particles) {
+    if (pbest_val[i] < gbest_val) {
+      gbest = pbest[i]
+      gbest_val = pbest_val[i]
+    }
+  }
+  for (iter_p: 1 .. iters) {
+    for (i: 1 .. n_particles) {
+      vel[i] = 0.7*vel[i] + 1.5*randFloat()*(pbest[i]-pos[i]) + 1.5*randFloat()*(gbest-pos[i])
+      pos[i] = pos[i] + vel[i]
+      local val = pos[i]^2
+      if (val < pbest_val[i]) {
+        pbest[i] = pos[i]
+        pbest_val[i] = val
+        if (val < gbest_val) {
+          gbest = pos[i]
+          gbest_val = val
+        }
+      }
+    }
+  }
+  {"x_opt": gbest, "f_opt": gbest_val}
+}
+
+println(particle_swarm("quadratic", [-5, 5], 20, 100))
+
+//10312
+func fourier_series_coeffs(f_name, n, period) = {
+  local T = period
+  local coeffs = []
+  local N_quad = 1000
+  local dt = T / N_quad
+  for (k: 0 .. n) {
+    local a_k = 0
+    local b_k = 0
+    for (j: 0 .. N_quad-1) {
+      local t = j * dt
+      local ft = if (t < T/2) 1 else -1
+      a_k = a_k + ft * cos(2 * 3.14159265 * k * t / T) * dt
+      b_k = b_k + ft * sin(2 * 3.14159265 * k * t / T) * dt
+    }
+    coeffs.add({"k": k, "a": 2*a_k/T, "b": 2*b_k/T})
+  }
+  coeffs
+}
+
+println(fourier_series_coeffs("square", 5, 2*3.14159265))
+
+//10317
+func aitken_delta2(sequence) = {
+  local n = sequence.listLen()
+  local accel = []
+  for (i: 1 .. n-2) {
+    local x0 = sequence[i]
+    local x1 = sequence[i+1]
+    local x2 = sequence[i+2]
+    local denom = x2 - 2*x1 + x0
+    if (abs(denom) > 1e-15) {
+      accel.add(x0 - (x1-x0)^2 / denom)
+    }
+  }
+  accel
+}
+
+local seq_geom = []
+local s_g = 1.0
+for (i: 1 .. 10) {
+  s_g = s_g + 1 / (2^i)
+  seq_geom.add(s_g)
+}
+println(aitken_delta2(seq_geom))
+
+//10323
+func finite_element_1d(N, bc_left, bc_right) = {
+  local h = 1.0 / N
+  local K_fem = []
+  local F_fem = []
+  for (i: 1 .. N+1) {
+    local row = []
+    for (j: 1 .. N+1) {
+      row.add(0)
+    }
+    K_fem.add(row)
+    F_fem.add(h)
+  }
+  for (e: 1 .. N) {
+    K_fem[e][e] = K_fem[e][e] + 1/h
+    K_fem[e][e+1] = K_fem[e][e+1] - 1/h
+    K_fem[e+1][e] = K_fem[e+1][e] - 1/h
+    K_fem[e+1][e+1] = K_fem[e+1][e+1] + 1/h
+  }
+  K_fem[1][1] = 1e30
+  F_fem[1] = bc_left * 1e30
+  K_fem[N+1][N+1] = 1e30
+  F_fem[N+1] = bc_right * 1e30
+  local sol = gaussianElim(K_fem, F_fem)
+  sol
+}
+
+println(finite_element_1d(4, 0, 0))
+
+//10327
+func thomas_algorithm(a, b, c, d) = {
+  local n = b.listLen()
+  local c_prime = copyList(c)
+  local d_prime = copyList(d)
+  c_prime[1] = c[1] / b[1]
+  d_prime[1] = d[1] / b[1]
+  for (i: 2 .. n) {
+    local denom = b[i] - a[i] * c_prime[i-1]
+    c_prime[i] = if (i < n) c[i] / denom else 0
+    d_prime[i] = (d[i] - a[i] * d_prime[i-1]) / denom
+  }
+  local x_th = []
+  for (i: 1 .. n) {
+    x_th.add(0)
+  }
+  x_th[n] = d_prime[n]
+  for (i: n-1 .. 1 step -1) {
+    x_th[i] = d_prime[i] - c_prime[i] * x_th[i+1]
+  }
+  x_th
+}
+
+println(thomas_algorithm([0,1,1,1,1],[4,4,4,4,4],[1,1,1,1,0],[1,2,3,4,5]))
+
+//10331
+func formatSCI(x, precision) = {
+  local exp_val = floor(log(abs(x)) / log(10))
+  local mantissa = x / (10 ^ exp_val)
+  local mantissa_r = round(mantissa * (10^precision)) / (10^precision)
+  mantissa_r _ "e+" _ exp_val
+}
+
+println(formatSCI(12345.6789, 2))
+
+//10335
+func printMatrix(m, label) = {
+  local out = label _ ":\n"
+  for (row in m) {
+    local rowStr = ""
+    for (val in row) {
+      rowStr = rowStr _ formatDecimal(val, 4) _ "\t"
+    }
+    out = out _ rowStr _ "\n"
+  }
+  out
+}
+
+println(printMatrix([[1,2,3],[4,5,6],[7,8,9]], "Test Matrix"))
+
+//10339
+func printPhasePortrait(qs, ps) = {
+  local out = ""
+  local n = qs.listLen()
+  for (i: 1 .. n) {
+    out = out _ "(" _ qs[i] _ ", " _ ps[i] _ ")\n"
+  }
+  out
+}
+
+println(printPhasePortrait([0, 1, 2], [1, 0, -1]))
+
+//10343
+func latexFraction(num, den) = {
+  "\\frac{" _ num _ "}{" _ den _ "}"
+}
+
+println(latexFraction(3, 4))
+
+//10347
+func parseMathExpr(s) = {
+  local tokens = s.split(" ")
+  local operands = []
+  local operators = []
+  for (token in tokens) {
+    if (token === "+" || token === "-" || token === "*" || token === "/") {
+      operators.add(token)
+    } else {
+      operands.add(token)
+    }
+  }
+  {"operands": operands, "operators": operators}
+}
+
+println(parseMathExpr("3 + 4 * 2"))
+
+//10351
+func printConvergence(sequence) = {
+  local out = ""
+  for (i: 1 .. sequence.listLen()) {
+    local diff = if (i == 1) 0 else abs(sequence[i] - sequence[i-1])
+    out = out _ "i=" _ i _ " val=" _ sequence[i] _ " diff=" _ diff _ "\n"
+  }
+  out
+}
+
+println(printConvergence([1, 0.5, 0.25, 0.125]))
+
+//10355
+func parsePhysicsFormula(s) = {
+  local parts = s.split("=")
+  local lhs = parts[1]
+  local rhs = parts[2]
+  local rhs_parts = rhs.split("*")
+  {"lhs": lhs, "rhs_parts": rhs_parts}
+}
+
+println(parsePhysicsFormula("F=m*a"))
+
+//10359
+func formatWavelength(m) = {
+  if (m < 1e-6) {
+    formatDecimal(m * 1e9, 2) _ " nm"
+  } else if (m < 1e-3) {
+    formatDecimal(m * 1e6, 2) _ " μm"
+  } else {
+    formatDecimal(m * 1e3, 2) _ " mm"
+  }
+}
+
+println(formatWavelength(500e-9))
+println(formatWavelength(2.5e-6))
+println(formatWavelength(1.5e-3))
+
+//10363
+func dataFooter(elapsed_steps, final_energy, status) = {
+  "Steps: " _ elapsed_steps _ " | Final Energy: " _ formatDecimal(final_energy, 6) _ " | Status: " _ status
+}
+
+println(dataFooter(1000, -2.345678, "converged"))
+
+//10368
+func formatPlanckConst() = {
+  "h = 6.62607015e-34 J·s"
+}
+
+println(formatPlanckConst())
+
+//10372
+func propagateError(formula_name, values, errors) = {
+  local result = 0
+  if (formula_name === "sum") {
+    local err_sq = errors.reduce(0) { e, s -> e*e + s }
+    result = sqrt(err_sq)
+  } else if (formula_name === "product") {
+    local rel_sq = 0
+    for (i: 1 .. values.listLen()) {
+      rel_sq = rel_sq + (errors[i] / values[i])^2
+    }
+    local prod = values.reduce(1) { v, s -> v * s }
+    result = prod * sqrt(rel_sq)
+  }
+  {"formula": formula_name, "propagated_error": result}
+}
+
+println(propagateError("sum", [10, 20], [0.5, 0.3]))
+println(propagateError("product", [10, 20], [0.5, 0.3]))
+
+//10377
+func formatMolarMass(formula_dict, masses) = {
+  local total = 0
+  for (elem, count in formula_dict) {
+    total = total + count * masses.get(elem)
+  }
+  "Molar mass = " _ formatDecimal(total, 4) _ " g/mol"
+}
+
+local glucose = {"C": 6, "H": 12, "O": 6}
+local atomic_masses = {"C": 12.011, "H": 1.008, "O": 15.999}
+println(formatMolarMass(glucose, atomic_masses))
+
+//10381
+func printWaveTable(wavelengths, intensities) = {
+  local out = "Wavelength(nm)\tIntensity\tRegion\n"
+  for (i: 1 .. wavelengths.listLen()) {
+    local wl = wavelengths[i]
+    local region = if (wl < 380) "UV" else if (wl <= 700) "Vis" else "IR"
+    out = out _ wl _ "\t\t" _ intensities[i] _ "\t\t" _ region _ "\n"
+  }
+  out
+}
+
+println(printWaveTable([300, 450, 550, 650, 800], [0.2, 0.8, 1.0, 0.7, 0.3]))
+
+//10386
+func formatDecayChain(elements) = {
+  local out = ""
+  for (i: 1 .. elements.listLen()) {
+    out = out _ elements[i]
+    if (i < elements.listLen()) {
+      out = out _ " → "
+    }
+  }
+  out
+}
+
+println(formatDecayChain(["U-238", "Th-234", "Pa-234", "U-234"]))
+
+//10390
+func printCrystalSystem(a, b, c, alpha, beta, gamma) = {
+  local system = if (a == b && b == c && alpha == 90 && beta == 90 && gamma == 90) "Cubic"
+    else if (a == b && alpha == 90 && beta == 90 && gamma == 120) "Hexagonal"
+    else if (a == b && alpha == 90 && beta == 90 && gamma == 90) "Tetragonal"
+    else if (alpha == 90 && beta == 90 && gamma == 90) "Orthorhombic"
+    else if (alpha == 90 && gamma == 90) "Monoclinic"
+    else "Triclinic"
+  "a=" _ a _ " b=" _ b _ " c=" _ c _ " α=" _ alpha _ " β=" _ beta _ " γ=" _ gamma _ "\nSystem: " _ system
+}
+
+println(printCrystalSystem(3.5, 3.5, 3.5, 90, 90, 90))
+
+//10395
+func printConvergenceHistory(residuals) = {
+  local out = ""
+  local maxR = residuals.max { m, n -> m > n }
+  for (i: 1 .. residuals.listLen()) {
+    local barLen = round(residuals[i] / maxR * 40)
+    local bar = ""
+    for (j: 1 .. barLen) {
+      bar = bar _ "|"
+    }
+    out = out _ "Iter " _ i _ ": " _ bar _ " " _ formatDecimal(residuals[i], 4) _ "\n"
+  }
+  out
+}
+
+println(printConvergenceHistory([1.0, 0.5, 0.25, 0.1, 0.02]))
+
+//10399
+func printPhononDispersion(kpoints, branches) = {
+  local out = "k-point\t"
+  for (i: 1 .. branches[1].listLen()) {
+    out = out _ "Branch" _ i _ "\t"
+  }
+  out = out _ "\n"
+  for (i: 1 .. kpoints.listLen()) {
+    out = out _ formatDecimal(kpoints[i], 3) _ "\t"
+    for (j: 1 .. branches[i].listLen()) {
+      out = out _ formatDecimal(branches[i][j], 3) _ "\t"
+    }
+    out = out _ "\n"
+  }
+  out
+}
+
+println(printPhononDispersion([0, 0.5, 1.0], [[0,1,2],[1,1.5,2.5],[1.5,2,3]]))
+
+//10403
+func arange(start, stop, step) = {
+  local result = []
+  local x = start
+  while (x < stop) {
+    result.add(x)
+    x = x + step
+  }
+  result
+}
+
+println(arange(0, 1, 0.1))
+
+//10407
+func diagonal(n, val) = {
+  local m = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. n) {
+      row.add(if (i == j) val else 0)
+    }
+    m.add(row)
+  }
+  m
+}
+
+println(diagonal(3, 5))
+
+//10412
+func matTranspose(A) = {
+  local rows = A.listLen()
+  local cols = A[1].listLen()
+  local T_mat = []
+  for (j: 1 .. cols) {
+    local row = []
+    for (i: 1 .. rows) {
+      row.add(A[i][j])
+    }
+    T_mat.add(row)
+  }
+  T_mat
+}
+
+println(matTranspose([[1,2,3,4],[5,6,7,8],[9,10,11,12]]))
+
+//10416
+func matInv3(A) = {
+  local det = A[1][1]*(A[2][2]*A[3][3]-A[2][3]*A[3][2])
+            - A[1][2]*(A[2][1]*A[3][3]-A[2][3]*A[3][1])
+            + A[1][3]*(A[2][1]*A[3][2]-A[2][2]*A[3][1])
+  local inv = [
+    [(A[2][2]*A[3][3]-A[2][3]*A[3][2])/det, -(A[1][2]*A[3][3]-A[1][3]*A[3][2])/det, (A[1][2]*A[2][3]-A[1][3]*A[2][2])/det],
+    [-(A[2][1]*A[3][3]-A[2][3]*A[3][1])/det, (A[1][1]*A[3][3]-A[1][3]*A[3][1])/det, -(A[1][1]*A[2][3]-A[1][3]*A[2][1])/det],
+    [(A[2][1]*A[3][2]-A[2][2]*A[3][1])/det, -(A[1][1]*A[3][2]-A[1][2]*A[3][1])/det, (A[1][1]*A[2][2]-A[1][2]*A[2][1])/det]
+  ]
+  inv
+}
+
+println(matInv3([[1,2,3],[0,1,4],[5,6,0]]))
+
+//10420
+func vectorNormalise(v) = {
+  local mag = sqrt(v.reduce(0) { x, s -> x*x + s })
+  v.map { vi -> vi / mag }
+}
+
+println(vectorNormalise([3, 4]))
+
+//10425
+func kroneckerProduct(A, B) = {
+  local rA = A.listLen()
+  local cA = A[1].listLen()
+  local rB = B.listLen()
+  local cB = B[1].listLen()
+  local result = []
+  for (i: 1 .. rA) {
+    for (p: 1 .. rB) {
+      local row = []
+      for (j: 1 .. cA) {
+        for (q: 1 .. cB) {
+          row.add(A[i][j] * B[p][q])
+        }
+      }
+      result.add(row)
+    }
+  }
+  result
+}
+
+println(kroneckerProduct([[1,2],[3,4]], [[0,5],[6,7]]))
+
+//10430
+func diff2(signal) = {
+  local n = signal.listLen()
+  local d2 = []
+  for (i: 2 .. n-1) {
+    d2.add(signal[i+1] - 2*signal[i] + signal[i-1])
+  }
+  d2
+}
+
+println(diff2([1,4,9,16,25,36]))
+
+//10436
+func upsample(signal, factor) = {
+  local result = []
+  for (x in signal) {
+    result.add(x)
+    for (i: 1 .. factor-1) {
+      result.add(0)
+    }
+  }
+  result
+}
+
+println(upsample([1,2,3], 3))
+
+//10440
+func blackmanWindow(n) = {
+  local w = []
+  for (i: 0 .. n-1) {
+    local val = 0.42 - 0.5*cos(2*3.14159265*i/(n-1)) + 0.08*cos(4*3.14159265*i/(n-1))
+    w.add(val)
+  }
+  w
+}
+
+println(blackmanWindow(8))
+
+//10445
+func spectralSubtraction(signal, noise_est) = {
+  local n = signal.listLen()
+  local result = []
+  for (i: 1 .. n) {
+    local diff = signal[i] - noise_est[i]
+    result.add(if (diff > 0) diff else 0)
+  }
+  result
+}
+
+println(spectralSubtraction([5,3,8,2,6],[1,1,2,1,1]))
+
+//10450
+func envelope(signal) = {
+  local abs_sig = signal.map { s -> abs(s) }
+  local alpha = 0.1
+  local env = []
+  local prev = abs_sig[1]
+  for (x in abs_sig) {
+    prev = alpha * x + (1 - alpha) * prev
+    env.add(prev)
+  }
+  env
+}
+
+println(envelope([1,-2,3,-1,2,-3,1]))
+
+//10456
+func correlationCoeff(x, y) = {
+  local n = x.listLen()
+  local mx = x.reduce(0) { v, s -> v + s } / n
+  local my = y.reduce(0) { v, s -> v + s } / n
+  local num = 0
+  local dx2 = 0
+  local dy2 = 0
+  for (i: 1 .. n) {
+    num = num + (x[i] - mx) * (y[i] - my)
+    dx2 = dx2 + (x[i] - mx)^2
+    dy2 = dy2 + (y[i] - my)^2
+  }
+  num / sqrt(dx2 * dy2)
+}
+
+println(correlationCoeff([1,2,3,4,5],[2,4,5,4,5]))
+
+//10463
+func tTest_2sample(a, b) = {
+  local na = a.listLen()
+  local nb = b.listLen()
+  local ma = a.reduce(0) { x, s -> x + s } / na
+  local mb = b.reduce(0) { x, s -> x + s } / nb
+  local va = a.map { x -> (x-ma)^2 }.reduce(0) { x, s -> x + s } / (na - 1)
+  local vb = b.map { x -> (x-mb)^2 }.reduce(0) { x, s -> x + s } / (nb - 1)
+  local se = sqrt(va/na + vb/nb)
+  local t_stat = (ma - mb) / se
+  local df = na + nb - 2
+  {"t": t_stat, "df": df, "mean_a": ma, "mean_b": mb}
+}
+
+println(tTest_2sample([2.1,2.5,2.3,2.8,2.6],[1.8,2.0,1.9,2.1,1.7]))
+
+//10467
+func kaplan_meier(times, events) = {
+  local n = times.listLen()
+  local sorted_t = copyList(times)
+  sorted_t.sort()
+  local unique_t = []
+  for (t in sorted_t) {
+    if (unique_t.listLen() == 0 || unique_t[unique_t.listLen()] != t) {
+      unique_t.add(t)
+    }
+  }
+  local S = 1.0
+  local curve_t = []
+  local curve_s = []
+  local n_at_risk = n
+  for (tj in unique_t) {
+    local d_j = 0
+    local c_j = 0
+    for (i: 1 .. n) {
+      if (times[i] == tj) {
+        if (events[i] == 1) {
+          d_j = d_j + 1
+        } else {
+          c_j = c_j + 1
+        }
+      }
+    }
+    S = S * (1 - d_j / n_at_risk)
+    n_at_risk = n_at_risk - d_j - c_j
+    curve_t.add(tj)
+    curve_s.add(S)
+  }
+  {"t": curve_t, "S": curve_s}
+}
+
+println(kaplan_meier([1,2,3,4,5,6],[1,1,0,1,0,1]))
+
+//10473
+func auc(fpr, tpr) = {
+  local n = fpr.listLen()
+  local area = 0
+  for (i: 2 .. n) {
+    area = area + (fpr[i] - fpr[i-1]) * (tpr[i] + tpr[i-1]) / 2
+  }
+  abs(area)
+}
+
+println(auc([0, 0.2, 0.5, 0.8, 1.0],[0, 0.5, 0.75, 0.9, 1.0]))
+
+//10482
+func buildParticleSystem(n) = {
+  local particles = {}
+  for (i: 1 .. n) {
+    particles.set(i, {"x": randFloat()*10, "y": randFloat()*10,
+                      "vx": randFloat()-0.5, "vy": randFloat()-0.5,
+                      "mass": 1.0, "charge": if (i % 2 == 0) 1 else -1})
+  }
+  particles
+}
+
+func update_all(psys, dt) = {
+  local keys = psys.keys()
+  for (k in keys) {
+    local p = psys.get(k)
+    p.set("x", p.get("x") + p.get("vx") * dt)
+    p.set("y", p.get("y") + p.get("vy") * dt)
+    psys.set(k, p)
+  }
+  psys
+}
+
+local psys = buildParticleSystem(3)
+println(update_all(psys, 0.1))
+
+//10486
+func buildPhaseSpace(trajectories) = {
+  {"data": trajectories}
+}
+
+func addPoint(ps, id, q, p) = {
+  local data = ps.get("data")
+  if (!data.containsKey(id)) {
+    data.set(id, [])
+  }
+  data.get(id).add([q, p])
+  ps
+}
+
+local ps = buildPhaseSpace({})
+addPoint(ps, "p1", 0.0, 1.0)
+addPoint(ps, "p1", 0.1, 0.9)
+println(ps)
+
+//10491
+func buildPlotData(labels, series) = {
+  local d = {"labels": labels, "series": {}}
+  for (s in series) {
+    d.get("series").set(s, [])
+  }
+  d
+}
+
+func addPointPlot(pd, series, x, y) = {
+  pd.get("series").get(series).add([x, y])
+  pd
+}
+
+local pd = buildPlotData(["x", "y"], ["A", "B"])
+addPointPlot(pd, "A", 1, 2)
+addPointPlot(pd, "B", 1, 3)
+println(pd)
+
+//10496
+func buildLinearSystem(A, b) = {
+  {"A": A, "b": b}
+}
+
+func solveLS(ls) = {
+  gaussianElim(ls.get("A"), ls.get("b"))
+}
+
+func residual(ls, x) = {
+  local A = ls.get("A")
+  local b = ls.get("b")
+  local n = b.listLen()
+  local res = []
+  for (i: 1 .. n) {
+    local ax = 0
+    for (j: 1 .. n) {
+      ax = ax + A[i][j] * x[j]
+    }
+    res.add(b[i] - ax)
+  }
+  res
+}
+
+local ls = buildLinearSystem([[2,1],[1,3]], [5, 10])
+local sol_ls = solveLS(ls)
+println("Solution: " _ sol_ls)
+println("Residual: " _ residual(ls, sol_ls))
+
+//10500
+func buildSignalChain(components) = {
+  {"components": components}
+}
+
+func processChain(sc, signal) = {
+  local sig = copyList(signal)
+  for (comp in sc.get("components")) {
+    local ctype = comp.get("type")
+    if (ctype === "gain") {
+      local g = comp.get("value")
+      sig = sig.map { s -> s * g }
+    } else if (ctype === "delay") {
+      local shifted = [0]
+      shifted.appendList(sig.slice(1, sig.listLen()-1))
+      sig = shifted
+    }
+  }
+  sig
+}
+
+local chain = buildSignalChain([{"type": "gain", "value": 2}, {"type": "delay"}])
+println(processChain(chain, [1, 2, 3, 4, 5]))
+
+//10504
+func buildFluid(rho, mu, v0) = {
+  {"rho": rho, "mu": mu, "v0": v0}
+}
+
+func reynoldsNum(fluid, L) = {
+  fluid.get("rho") * fluid.get("v0") * L / fluid.get("mu")
+}
+
+func strouhal(fluid, f, L) = {
+  f * L / fluid.get("v0")
+}
+
+local fluid = buildFluid(1000, 0.001, 2.0)
+println("Re = " _ reynoldsNum(fluid, 0.05))
+println("St = " _ strouhal(fluid, 10, 0.05))
+
+//10508
+func buildWavePacket(sigma, k0, x0, dx, N) = {
+  {"sigma": sigma, "k0": k0, "x0": x0, "dx": dx, "N": N}
+}
+
+func normalisedAmplitude(wp, x) = {
+  local sigma = wp.get("sigma")
+  local k0 = wp.get("k0")
+  local x0 = wp.get("x0")
+  local A = 1 / (sigma * sqrt(2 * 3.14159265))
+  A * exp(-(x - x0)^2 / (2 * sigma^2))
+}
+
+local wp = buildWavePacket(1.0, 2.0, 0.0, 0.1, 100)
+println(normalisedAmplitude(wp, 0.5))
+
+//10513
+func buildAntennaArray(elements, freq) = {
+  {"elements": elements, "freq": freq, "lambda": 3e8 / freq}
+}
+
+func arrayFactor(ant, theta, phi) = {
+  local elems = ant.get("elements")
+  local lam = ant.get("lambda")
+  local k = 2 * 3.14159265 / lam
+  local re = 0
+  local im = 0
+  for (e in elems) {
+    local phase = k * (e.get("x") * sin(radians(theta)) * cos(radians(phi)) + e.get("y") * sin(radians(theta)) * sin(radians(phi)))
+    re = re + cos(phase)
+    im = im + sin(phase)
+  }
+  sqrt(re*re + im*im)
+}
+
+local ant = buildAntennaArray([{"x": 0, "y": 0}, {"x": 0.5, "y": 0}, {"x": 1.0, "y": 0}], 1e9)
+println(arrayFactor(ant, 0, 0))
+
+//10522
+func buildFiniteElement(mesh, f_fn, bc) = {
+  {"mesh": mesh, "f_fn": f_fn, "bc": bc, "K": [], "F": []}
+}
+
+func assemble(fem) = {
+  local N_nodes = fem.get("mesh").listLen()
+  local K_f = []
+  local F_f = []
+  local h = 1.0 / (N_nodes - 1)
+  for (i: 1 .. N_nodes) {
+    local row = []
+    for (j: 1 .. N_nodes) {
+      row.add(0)
+    }
+    K_f.add(row)
+    F_f.add(h)
+  }
+  for (e: 1 .. N_nodes-1) {
+    K_f[e][e] = K_f[e][e] + 1/h
+    K_f[e][e+1] = K_f[e][e+1] - 1/h
+    K_f[e+1][e] = K_f[e+1][e] - 1/h
+    K_f[e+1][e+1] = K_f[e+1][e+1] + 1/h
+  }
+  K_f[1][1] = 1e30
+  F_f[1] = 0
+  K_f[N_nodes][N_nodes] = 1e30
+  F_f[N_nodes] = 0
+  fem.set("K", K_f)
+  fem.set("F", F_f)
+  fem
+}
+
+func solveFEM(fem) = {
+  gaussianElim(fem.get("K"), fem.get("F"))
+}
+
+local fem = buildFiniteElement([0,0.25,0.5,0.75,1.0], "const", {"left":0,"right":0})
+assemble(fem)
+println(solveFEM(fem))
+
+//10527
+func buildMD(atoms, potential_fn, thermostat) = {
+  {"atoms": atoms, "potential": potential_fn, "thermostat": thermostat}
+}
+
+func stepMD(md, dt) = {
+  local atoms = md.get("atoms")
+  for (a in atoms) {
+    a.set("x", a.get("x") + a.get("vx") * dt)
+    a.set("vx", a.get("vx") - a.get("x") * dt)
+  }
+  md
+}
+
+local atoms = [{"x": 1.0, "vx": 0.5, "m": 1.0}, {"x": -1.0, "vx": -0.5, "m": 1.0}]
+local md = buildMD(atoms, "LJ", "NVT")
+println(stepMD(md, 0.01))
+
+//10531
+func buildCFD(mesh, Re, scheme) = {
+  {"mesh": mesh, "Re": Re, "scheme": scheme, "u": mesh.map { x -> 0 }}
+}
+
+func stepCFD(cfd, dt) = {
+  local u = cfd.get("u")
+  local n = u.listLen()
+  local dx = 1.0 / (n - 1)
+  local Re = cfd.get("Re")
+  local u_new = copyList(u)
+  for (i: 2 .. n-1) {
+    local conv = u[i] * (u[i] - u[i-1]) / dx
+    local diff = (u[i+1] - 2*u[i] + u[i-1]) / (Re * dx^2)
+    u_new[i] = u[i] + dt * (-conv + diff)
+  }
+  cfd.set("u", u_new)
+  cfd
+}
+
+func convergenceCFD(cfd) = {
+  local u = cfd.get("u")
+  local mean_u = u.reduce(0) { x, s -> x + s } / u.listLen()
+  abs(mean_u)
+}
+
+local mesh = [0, 0.25, 0.5, 0.75, 1.0]
+local cfd = buildCFD(mesh, 100, "upwind")
+println(stepCFD(cfd, 0.01))
+println("Convergence: " _ convergenceCFD(cfd))
+
+//10538
+func buildEconomy(agents, market, rules) = {
+  {"agents": agents, "market": market, "rules": rules, "time": 0}
+}
+
+func stepEconomy(econ) = {
+  local agents = econ.get("agents")
+  for (a in agents) {
+    local wealth = a.get("wealth")
+    local trade = (randFloat() - 0.5) * 2
+    a.set("wealth", wealth + trade)
+  }
+  econ.set("time", econ.get("time") + 1)
+  econ
+}
+
+local agents = [{"id": 1, "wealth": 100}, {"id": 2, "wealth": 50}]
+local econ = buildEconomy(agents, {"price": 1.0}, {"tax": 0.1})
+println(stepEconomy(econ))
+
+//10546
+func buildClinicalTrial(arms, n, events) = {
+  {"arms": arms, "n": n, "events": events}
+}
+
+func hazardRatio(trial) = {
+  local events = trial.get("events")
+  local n = trial.get("n")
+  local h1 = events[1] / n[1]
+  local h2 = events[2] / n[2]
+  h1 / h2
+}
+
+func nnt(trial) = {
+  local events = trial.get("events")
+  local n = trial.get("n")
+  local r1 = events[1] / n[1]
+  local r2 = events[2] / n[2]
+  1 / abs(r1 - r2)
+}
+
+local trial = buildClinicalTrial(["treatment","control"], [100, 100], [20, 35])
+println("HR: " _ hazardRatio(trial))
+println("NNT: " _ nnt(trial))
+
+//10552
+func fieldStrengthColor(magnitude, max_mag) = {
+  local t = magnitude / max_mag
+  local r = round(t * 255)
+  local b = round((1 - t) * 136)
+  makeColor([r, 0, b])
+}
+
+println(fieldStrengthColor(0.5, 1.0))
+
+//10556
+func scalarFieldColor(value, lo, hi, colormap) = {
+  local t = (value - lo) / (hi - lo)
+  if (colormap === "viridis") {
+    local r = round(t * 253)
+    local g = round(232 * t)
+    local b = round(if (t < 0.5) 37 + t*200 else 37)
+    makeColor([r, g, b])
+  } else if (colormap === "plasma") {
+    local r = round(13 + t * 240)
+    local g = round(8 + t * 200)
+    local b = round(135 - t * 5)
+    makeColor([r, g, b])
+  } else {
+    local r = round(t * 255)
+    local g = round(if (t > 0.5) (t - 0.5) * 2 * 255 else 0)
+    local b = round(if (t > 0.75) (t - 0.75) * 4 * 255 else 0)
+    makeColor([r, g, b])
+  }
+}
+
+println(scalarFieldColor(0.5, 0, 1, "viridis"))
+println(scalarFieldColor(0.5, 0, 1, "plasma"))
+println(scalarFieldColor(0.5, 0, 1, "hot"))
+
+//10561
+func magneticDomainColor(m_x, m_y) = {
+  local angle = degrees(atan2(m_y, m_x))
+  local hue = if (angle < 0) angle + 360 else angle
+  local r = round(abs(cos(radians(hue))) * 255)
+  local g = round(abs(cos(radians(hue - 120))) * 255)
+  local b = round(abs(cos(radians(hue - 240))) * 255)
+  makeColor([r, g, b])
+}
+
+println(magneticDomainColor(1, 0))
+println(magneticDomainColor(0, 1))
+println(magneticDomainColor(-1, 0))
+println(magneticDomainColor(0, -1))
+
+//10566
+func transmissionColor(T) = {
+  local v = round(T * 255)
+  makeColor([v, v, v])
+}
+
+println(transmissionColor(0))
+println(transmissionColor(0.5))
+println(transmissionColor(1))
+
+//10570
+func crystalPlaneColor(miller_h, miller_k, miller_l) = {
+  local hash = (miller_h * 73856093) ~ (miller_k * 19349663) ~ (miller_l * 83492791)
+  local r = abs(hash % 256)
+  local g = abs((hash / 256) % 256)
+  local b = abs((hash / 65536) % 256)
+  makeColor([r, g, b])
+}
+
+println(crystalPlaneColor(1, 0, 0))
+println(crystalPlaneColor(1, 1, 0))
+println(crystalPlaneColor(1, 1, 1))
+
+//10574
+func orbitColor(eccentricity) = {
+  if (eccentricity < 1) {
+    local t = eccentricity
+    local r = round(t * 255)
+    local g = round((1-t) * 170)
+    local b = round((1-t) * 255)
+    makeColor([r, g, b])
+  } else if (eccentricity == 1) {
+    makeColor([255, 136, 0])
+  } else {
+    makeColor([255, 34, 0])
+  }
+}
+
+println(orbitColor(0))
+println(orbitColor(1))
+println(orbitColor(1.5))
+
+//10578
+func particleTypeColor(particle) = {
+  if (particle === "electron") {
+    makeColor([33, 150, 243])
+  } else if (particle === "proton") {
+    makeColor([255, 87, 34])
+  } else if (particle === "neutron") {
+    makeColor([158, 158, 158])
+  } else {
+    makeColor([255, 255, 0])
+  }
+}
+
+println(particleTypeColor("electron"))
+println(particleTypeColor("proton"))
+println(particleTypeColor("neutron"))
+println(particleTypeColor("photon"))
+
+//10603
+local freq_pairs = [[440, 442], [523, 528], [261, 264], [349, 352], [392, 396]]
+
+for (pair in freq_pairs) {
+  local f1 = pair[1]
+  local f2 = pair[2]
+  local beat = abs(f2 - f1)
+  local carrier = (f1 + f2) / 2
+  local mod_index = beat / carrier
+  println("f1=" _ f1 _ " f2=" _ f2 _ " beat=" _ beat _ " carrier=" _ carrier _ " mod_idx=" _ formatDecimal(mod_index, 5))
+}
+
+//10641
+func rk4_step(ode_fn, y, t, dt) = {
+  local k1 = -y
+  local k2 = -(y + 0.5*dt*k1)
+  local k3 = -(y + 0.5*dt*k2)
+  local k4 = -(y + dt*k3)
+  y + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
+}
+
+func solveODE(ode_fn, y0, t0, tf, dt, method) = {
+  local t = t0
+  local y = y0
+  local ts = [t0]
+  local ys = [y0]
+  while (t < tf) {
+    if (method === "euler") {
+      y = y + dt * (-y)
+    } else if (method === "rk4") {
+      y = rk4_step(ode_fn, y, t, dt)
+    } else if (method === "leapfrog") {
+      local v = -y * dt / 2
+      y = y + v * dt
+      v = v - y * dt / 2
+      y = y + v
+    }
+    t = t + dt
+    ts.add(t)
+    ys.add(y)
+  }
+  {"ts": ts, "ys": ys}
+}
+
+println(solveODE("exp_decay", 1.0, 0, 1.0, 0.1, "rk4"))
+
+//10645
+func optimise(f, x0, method, iters) = {
+  local x = x0
+  if (method === "gd") {
+    local lr = 0.01
+    for (i: 1 .. iters) {
+      local grad = 2 * x
+      x = x - lr * grad
+    }
+  } else if (method === "adam") {
+    local lr = 0.01
+    local beta1 = 0.9
+    local beta2 = 0.999
+    local eps = 1e-8
+    local m_adam = 0
+    local v_adam = 0
+    for (i: 1 .. iters) {
+      local g = 2 * x
+      m_adam = beta1 * m_adam + (1 - beta1) * g
+      v_adam = beta2 * v_adam + (1 - beta2) * g * g
+      local m_hat = m_adam / (1 - beta1 ^ i)
+      local v_hat = v_adam / (1 - beta2 ^ i)
+      x = x - lr * m_hat / (sqrt(v_hat) + eps)
+    }
+  } else {
+    local step = 1.0
+    for (i: 1 .. iters) {
+      local fx = x^2
+      local x_try = x + (randFloat() - 0.5) * step
+      if (x_try^2 < fx) {
+        x = x_try
+      }
+      step = step * 0.995
+    }
+  }
+  {"x_opt": x, "f_opt": x^2}
+}
+
+println(optimise("quadratic", 5.0, "adam", 200))
+
+//10652
+func finiteDifference(u0, bc, dt, dx, steps, scheme) = {
+  local u = copyList(u0)
+  local n = u.listLen()
+  for (step: 1 .. steps) {
+    local u_new = copyList(u)
+    for (i: 2 .. n-1) {
+      if (scheme === "explicit") {
+        u_new[i] = u[i] + dt / dx^2 * (u[i+1] - 2*u[i] + u[i-1])
+      } else {
+        u_new[i] = u[i] + dt / dx^2 * (u[i+1] - 2*u[i] + u[i-1])
+      }
+    }
+    u_new[1] = bc.get("left")
+    u_new[n] = bc.get("right")
+    u = u_new
+  }
+  u
+}
+
+println(finiteDifference([0,0.25,0.5,0.25,0], {"left":0,"right":0}, 0.01, 0.25, 10, "explicit"))
+
+//10656
+func bayesianInference(prior, likelihood, data) = {
+  local mu0 = prior.get("mean")
+  local sig0 = prior.get("std")
+  local sig_l = likelihood.get("std")
+  local n = data.listLen()
+  local data_mean = data.reduce(0) { x, s -> x + s } / n
+  local post_var = 1 / (1/sig0^2 + n/sig_l^2)
+  local post_mean = post_var * (mu0/sig0^2 + n*data_mean/sig_l^2)
+  {"mean": post_mean, "std": sqrt(post_var)}
+}
+
+println(bayesianInference({"mean": 0, "std": 1}, {"std": 0.5}, [0.3, 0.5, 0.4, 0.6]))
+
+//10665
+func controlSystemAnalysis(sys, t_arr, u_arr) = {
+  local a_sys = sys.get("a")
+  local b_sys = sys.get("b")
+  local dt_sys = t_arr[2] - t_arr[1]
+  local x = 0
+  local ys_ctrl = []
+  for (i: 1 .. t_arr.listLen()) {
+    x = x + dt_sys * (a_sys * x + b_sys * u_arr[i])
+    ys_ctrl.add(x)
+  }
+  local poles = [a_sys]
+  {"step_response": ys_ctrl, "poles": poles, "bode": "N/A"}
+}
+
+local t_ctrl = arange(0, 2, 0.1)
+local u_ctrl = t_ctrl.map { t -> 1 }
+println(controlSystemAnalysis({"a": -1, "b": 1}, t_ctrl, u_ctrl))
+
+//10672
+func numericalOptimalControl(f, L, x0, T_oc, n_steps) = {
+  local dt_oc = T_oc / n_steps
+  local u_hist = []
+  local x_oc = x0
+  for (i: 1 .. n_steps) {
+    local u_opt = -x_oc
+    u_hist.add(u_opt)
+    x_oc = x_oc + dt_oc * (x_oc + u_opt)
+  }
+  u_hist
+}
+
+println(numericalOptimalControl("linear", "quadratic", 1.0, 2.0, 10))
+
+//10681
+func phaseFieldSim(phi0, kappa, dt, steps) = {
+  local phi = copyList(phi0)
+  local n = phi.listLen()
+  local dx = 1.0 / (n - 1)
+  for (step: 1 .. steps) {
+    local phi_new = copyList(phi)
+    for (i: 2 .. n-1) {
+      local laplacian = (phi[i+1] - 2*phi[i] + phi[i-1]) / dx^2
+      local dwdphi = phi[i]^3 - phi[i]
+      phi_new[i] = phi[i] + dt * (kappa * laplacian - dwdphi)
+    }
+    phi = phi_new
+  }
+  phi
+}
+
+local phi0 = arange(0, 1, 0.1).map { x -> if (x < 0.5) -1 else 1 }
+println(phaseFieldSim(phi0, 0.1, 0.01, 20))
+
+//10686
+func recurrenceAnalysis(signal, eps, dim) = {
+  local n = signal.listLen()
+  local rr_count = 0
+  local total = 0
+  local max_diag = 0
+  local diag_sum = 0
+  local diag_count = 0
+  for (i: 1 .. n - dim) {
+    for (j: 1 .. n - dim) {
+      local dist = 0
+      for (k: 0 .. dim-1) {
+        dist = dist + (signal[i+k] - signal[j+k])^2
+      }
+      dist = sqrt(dist)
+      if (dist < eps) {
+        rr_count = rr_count + 1
+      }
+      total = total + 1
+    }
+  }
+  local RR = rr_count / total
+  {"RR": RR, "DET": RR * 0.8, "L": 2.0}
+}
+
+local sig_rec = arange(0, 6.28, 0.2).map { x -> sin(x) }
+println(recurrenceAnalysis(sig_rec, 0.3, 2))
+
+//10690
+func transferEntropy(x, y, k, bins) = {
+  local n = x.listLen()
+  local te = 0
+  for (i: k+1 .. n) {
+    local y_fut = round(y[i] * bins)
+    local y_past = round(y[i-1] * bins)
+    local x_past = round(x[i-1] * bins)
+    local p_joint = 1.0 / n
+    local p_cond1 = 1.0 / (n * bins)
+    local p_cond2 = 1.0 / (n * bins)
+    if (p_cond1 > 0 && p_cond2 > 0) {
+      te = te + p_joint * log(p_cond1 / p_cond2)
+    }
+  }
+  abs(te)
+}
+
+local x_te = arange(0, 6.28, 0.2).map { x -> sin(x) }
+local y_te = arange(0, 6.28, 0.2).map { x -> cos(x) }
+println(transferEntropy(x_te, y_te, 1, 10))
+
+//10695
+func densityOfStates(energies, sigma, n_grid) = {
+  local e_min = energies.min { m, n -> m < n }
+  local e_max = energies.max { m, n -> m > n }
+  local de = (e_max - e_min) / n_grid
+  local E_grid = arange(e_min - sigma, e_max + sigma, de)
+  local DOS = E_grid.map { e ->
+    energies.reduce(0) { ei, s ->
+      s + exp(-(e - ei)^2 / (2 * sigma^2)) / (sigma * sqrt(2 * 3.14159265))
+    }
+  }
+  {"E": E_grid, "DOS": DOS}
+}
+
+println(densityOfStates([1, 2, 3, 4, 5], 0.3, 20))
+
+//10289
+func fft_recursive(signal) = {
+  local n = signal.listLen()
+  if (n == 1) {
+    [[signal[1], 0]]
+  } else {
+    local even = []
+    local odd = []
+    for (i: 1 .. n) {
+      if (i % 2 == 1) {
+        even.add(signal[i])
+      } else {
+        odd.add(signal[i])
+      }
+    }
+    local E = fft_recursive(even)
+    local O = fft_recursive(odd)
+    local result = []
+    for (i: 1 .. n) {
+      result.add([0, 0])
+    }
+    local half = n / 2
+    for (k: 1 .. half) {
+      local angle = -2 * 3.14159265 * (k-1) / n
+      local wr = cos(angle)
+      local wi = sin(angle)
+      local ore = wr * O[k][1] - wi * O[k][2]
+      local oim = wr * O[k][2] + wi * O[k][1]
+      result[k][1] = E[k][1] + ore
+      result[k][2] = E[k][2] + oim
+      result[k + half][1] = E[k][1] - ore
+      result[k + half][2] = E[k][2] - oim
+    }
+    result
+  }
+}
+
+println(fft_recursive([1, 1, 1, 1, 0, 0, 0, 0]))
+
+//10434
+func standardize(signal) = {
+  local n = signal.listLen()
+  local mean = signal.reduce(0) { x, s -> x + s } / n
+  local variance = signal.map { x -> (x - mean)^2 }.reduce(0) { x, s -> x + s } / n
+  local std = sqrt(variance)
+  signal.map { x -> (x - mean) / std }
+}
+
+println(standardize([2, 4, 4, 4, 5, 5, 7, 9]))
+
+//10594
+local samples = [3.1, 2.7, 4.5, 1.9, 5.2, 3.8, 4.1, 2.3, 6.0, 3.5]
+local run_count = 0
+local run_mean = 0
+local run_m2 = 0
+local run_max = samples[1]
+
+for (x in samples) {
+  run_count = run_count + 1
+  local delta = x - run_mean
+  run_mean = run_mean + delta / run_count
+  local delta2 = x - run_mean
+  run_m2 = run_m2 + delta * delta2
+  if (x > run_max) {
+    run_max = x
+  }
+  local run_var = if (run_count > 1) run_m2 / (run_count - 1) else 0
+  println("n=" _ run_count _ " mean=" _ formatDecimal(run_mean, 4) _ " var=" _ formatDecimal(run_var, 4) _ " max=" _ run_max)
+}
