@@ -12,6 +12,47 @@ import (
 	"strings"
 )
 
+// --- Base-format predicates (used by the ? questionnaire operator) ---
+
+func isBase10(s string) bool {
+	s = strings.TrimSpace(s)
+	if len(s) == 0 {
+		return false
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func isHex(s string) bool {
+	s = strings.TrimSpace(strings.ToLower(s))
+	if len(s) == 0 {
+		return false
+	}
+	for _, c := range s {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+			return false
+		}
+	}
+	return true
+}
+
+func isBinary(s string) bool {
+	s = strings.TrimSpace(s)
+	if len(s) == 0 {
+		return false
+	}
+	for _, c := range s {
+		if c != '0' && c != '1' {
+			return false
+		}
+	}
+	return true
+}
+
 // --- Base conversions ---
 
 func evalDecToHex(args []Value) Value {

@@ -11,7 +11,7 @@ import (
 func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 	args := make([]Value, len(e.Args))
 	for k, a := range e.Args {
-		args[k] = i.eval(a)
+		args[k] = i.Eval(a)
 	}
 
 	switch e.Name {

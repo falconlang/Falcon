@@ -130,6 +130,8 @@ func (l *Lexer) parse() {
 	case '.':
 		if l.consume('.') {
 			l.createOp("..")
+		} else if l.isDigit() {
+			l.numericFraction()
 		} else {
 			l.createOp(".")
 		}
@@ -288,6 +290,20 @@ func (l *Lexer) numeric() {
 
 func (l *Lexer) appendToken(token *Token) {
 	l.Tokens = append(l.Tokens, token)
+}
+
+// numericFraction handles decimal literals that start with '.' (e.g. .5, .123).
+// The leading '.' has already been consumed by the dispatch switch.
+func (l *Lexer) numericFraction() {
+	content := "0." + l.readNumeric()
+	l.appendToken(&Token{
+		Context: l.ctx,
+		Row:     l.currRow,
+		Column:  l.currColumn,
+		Type:    Number,
+		Content: &content,
+		Flags:   []Flag{Value, ConstantValue},
+	})
 }
 
 func (l *Lexer) readNumeric() string {

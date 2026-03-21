@@ -16,26 +16,25 @@ import (
 	"strings"
 )
 
-// storedProc holds a parsed procedure definition for later invocation.
-type storedProc struct {
+type Procedure struct {
 	params   []string
-	voidBody []ast.Expr // set for void procedures
-	retExpr  ast.Expr   // set for returning procedures
+	voidBody []ast.Expr // for void procedures
+	retExpr  ast.Expr   // for returning procedures
 }
 
 // Interpreter implements Visitor and holds the runtime state.
 type Interpreter struct {
-	globalEnv *Env
-	currEnv   *Env
-	procs     map[string]*storedProc
+	globalEnv  *Env
+	currEnv    *Env
+	procedures map[string]*Procedure
 }
 
 func NewInterpreter() *Interpreter {
 	env := NewEnv(nil)
 	return &Interpreter{
-		globalEnv: env,
-		currEnv:   env,
-		procs:     make(map[string]*storedProc),
+		globalEnv:  env,
+		currEnv:    env,
+		procedures: make(map[string]*Procedure),
 	}
 }
 
@@ -54,11 +53,11 @@ func (i *Interpreter) RunGetLast(exprs []ast.Expr) Value {
 	for _, e := range exprs {
 		switch n := e.(type) {
 		case *procedures.VoidProcedure:
-			i.procs[n.Name] = &storedProc{params: n.Parameters, voidBody: n.Body}
+			i.procedures[n.Name] = &Procedure{params: n.Parameters, voidBody: n.Body}
 		case *procedures.RetProcedure:
-			i.procs[n.Name] = &storedProc{params: n.Parameters, retExpr: n.Result}
+			i.procedures[n.Name] = &Procedure{params: n.Parameters, retExpr: n.Result}
 		case *variables.Global:
-			val := i.eval(n.Value)
+			val := i.Eval(n.Value)
 			i.globalEnv.Define(n.Name, val)
 		}
 	}
@@ -67,7 +66,7 @@ func (i *Interpreter) RunGetLast(exprs []ast.Expr) Value {
 		switch e.(type) {
 		case *procedures.VoidProcedure, *procedures.RetProcedure, *variables.Global:
 		default:
-			last = i.eval(e)
+			last = i.Eval(e)
 		}
 	}
 	return last
@@ -79,11 +78,11 @@ func (i *Interpreter) Run(exprs []ast.Expr) {
 	for _, e := range exprs {
 		switch n := e.(type) {
 		case *procedures.VoidProcedure:
-			i.procs[n.Name] = &storedProc{params: n.Parameters, voidBody: n.Body}
+			i.procedures[n.Name] = &Procedure{params: n.Parameters, voidBody: n.Body}
 		case *procedures.RetProcedure:
-			i.procs[n.Name] = &storedProc{params: n.Parameters, retExpr: n.Result}
+			i.procedures[n.Name] = &Procedure{params: n.Parameters, retExpr: n.Result}
 		case *variables.Global:
-			val := i.eval(n.Value)
+			val := i.Eval(n.Value)
 			i.globalEnv.Define(n.Name, val)
 		}
 	}
@@ -93,23 +92,18 @@ func (i *Interpreter) Run(exprs []ast.Expr) {
 		case *procedures.VoidProcedure, *procedures.RetProcedure, *variables.Global:
 			// already handled above
 		default:
-			i.eval(e)
+			i.Eval(e)
 		}
 	}
 }
 
-// Eval is the public entry point for evaluating a single expression.
 func (i *Interpreter) Eval(expr ast.Expr) Value {
-	return i.eval(expr)
-}
-
-func (i *Interpreter) eval(expr ast.Expr) Value {
 	switch e := expr.(type) {
-	// --- Fundamentals ---
+	// fundamentals
 	case *fundamentals.Boolean:
 		return BoolVal(e.Value)
 	case *fundamentals.Not:
-		return BoolVal(!i.eval(e.Expr).AsBool())
+		return BoolVal(!i.Eval(e.Expr).AsBool())
 	case *fundamentals.Number:
 		f, err := strconv.ParseFloat(e.Content, 64)
 		if err != nil {
@@ -121,36 +115,34 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 	case *fundamentals.Color:
 		return ColorVal(e.Hex)
 	case *fundamentals.List:
-		elems := make([]Value, len(e.Elements))
-		for k, el := range e.Elements {
-			elems[k] = i.eval(el)
-		}
-		return ListVal(elems)
+		return ListVal(i.evalExprs(e.Elements))
 	case *fundamentals.Dictionary:
-		return i.evalDictionary(e)
+		return i.makeDictionary(e)
 	case *fundamentals.Pair:
 		// Bare pair evaluates to a two-element list [key, value].
-		return ListVal([]Value{i.eval(e.Key), i.eval(e.Value)})
+		return ListVal([]Value{i.Eval(e.Key), i.Eval(e.Value)})
 	case *fundamentals.SmartBody:
 		return i.execBody(e.Body)
 	case *fundamentals.Component:
 		stub("component reference @" + e.Name + " (" + e.Type + ")")
 		return NullVal()
 
+	// falcon specific features
 	case *common.EmptySocket:
 		return NumVal(0)
 	case *common.Transform:
-		return i.eval(e.On)
+		return i.Eval(e.On) // for "obfuscate" unwrapping
 
-	// --- Common ---
 	case *common.BinaryExpr:
 		return i.evalBinary(e)
 	case *common.FuncCall:
 		return i.evalFuncCall(e)
 	case *common.Question:
 		return i.evalQuestion(e)
+	case *astmethod.Call:
+		return i.evalMethodCall(e)
 
-	// --- Control ---
+	// Control blocks
 	case *control.If:
 		return i.evalIf(e)
 	case *control.SimpleIf:
@@ -167,16 +159,16 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 		panic(BreakSignal{})
 	case *control.Do:
 		i.execBody(e.Body)
-		return i.eval(e.Result)
+		return i.Eval(e.Result)
 
-	// --- Variables ---
+	// Variable blocks
 	case *variables.Get:
 		if e.Global {
 			return i.currEnv.GetGlobal(e.Name)
 		}
 		return i.currEnv.Get(e.Name)
 	case *variables.Set:
-		val := i.eval(e.Expr)
+		val := i.Eval(e.Expr)
 		if e.Global {
 			i.currEnv.SetGlobal(e.Name, val)
 		} else {
@@ -184,7 +176,7 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 		}
 		return NullVal()
 	case *variables.Global:
-		val := i.eval(e.Value)
+		val := i.Eval(e.Value)
 		i.currEnv.root().Define(e.Name, val)
 		return NullVal()
 	case *variables.Var:
@@ -194,32 +186,28 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 	case *variables.VarResult:
 		return i.evalVarResult(e)
 
-	// --- Procedures ---
+	// Procedure definitions
 	case *procedures.VoidProcedure:
-		i.procs[e.Name] = &storedProc{params: e.Parameters, voidBody: e.Body}
+		i.procedures[e.Name] = &Procedure{params: e.Parameters, voidBody: e.Body}
 		return NullVal()
 	case *procedures.RetProcedure:
-		i.procs[e.Name] = &storedProc{params: e.Parameters, retExpr: e.Result}
+		i.procedures[e.Name] = &Procedure{params: e.Parameters, retExpr: e.Result}
 		return NullVal()
 	case *procedures.Call:
 		return i.evalProcedureCall(e)
 
-	// --- Methods ---
-	case *astmethod.Call:
-		return i.evalMethodCall(e)
-
-	// --- List indexing ---
+	// List manipulation
 	case *astlist.Get:
-		list := i.eval(e.List).AsList()
-		idx := int(i.eval(e.Index).AsNum())
+		list := i.Eval(e.List).AsList()
+		idx := int(i.Eval(e.Index).AsNum())
 		if idx < 1 || idx > len(*list) {
 			panic("list index " + strconv.Itoa(idx) + " out of bounds (len=" + strconv.Itoa(len(*list)) + ")")
 		}
 		return (*list)[idx-1]
 	case *astlist.Set:
-		list := i.eval(e.List).AsList()
-		idx := int(i.eval(e.Index).AsNum())
-		val := i.eval(e.Value)
+		list := i.Eval(e.List).AsList()
+		idx := int(i.Eval(e.Index).AsNum())
+		val := i.Eval(e.Value)
 		if idx < 1 || idx > len(*list) {
 			panic("list index " + strconv.Itoa(idx) + " out of bounds (len=" + strconv.Itoa(len(*list)) + ")")
 		}
@@ -228,7 +216,7 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 	case *astlist.Transformer:
 		return i.evalTransformer(e)
 
-	// --- App Inventor component stubs ---
+	// Component blocks
 	case *components.Event:
 		stub("event handler " + e.ComponentName + "." + e.Event)
 		return NullVal()
@@ -262,71 +250,45 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 	}
 }
 
-// --- Dictionary literal ---
-
-func (i *Interpreter) evalDictionary(e *fundamentals.Dictionary) Value {
+func (i *Interpreter) makeDictionary(e *fundamentals.Dictionary) Value {
 	d := NewOrderedDict()
 	for _, el := range e.Elements {
-		pair, ok := el.(*fundamentals.Pair)
-		if !ok {
-			panic("dictionary element is not a Pair")
+		pair := i.Eval(el).AsList()
+		if len(*pair) < 2 {
+			panic("dictionary entry must be a pair (two-element list)")
 		}
-		key := i.eval(pair.Key).AsStr()
-		val := i.eval(pair.Value)
-		d.Set(key, val)
+		d.Set((*pair)[0].AsStr(), (*pair)[1])
 	}
 	return DictVal(d)
 }
-
-// --- Binary expressions ---
 
 func (i *Interpreter) evalBinary(e *common.BinaryExpr) Value {
 	// Short-circuit logical operators
 	switch e.Operator {
 	case lex.LogicAnd:
 		for _, op := range e.Operands {
-			if !i.eval(op).AsBool() {
+			if !i.Eval(op).AsBool() {
 				return BoolVal(false)
 			}
 		}
 		return BoolVal(true)
 	case lex.LogicOr:
 		for _, op := range e.Operands {
-			if i.eval(op).AsBool() {
+			if i.Eval(op).AsBool() {
 				return BoolVal(true)
 			}
 		}
 		return BoolVal(false)
 	}
 
-	vals := make([]Value, len(e.Operands))
-	for k, op := range e.Operands {
-		vals[k] = i.eval(op)
-	}
-
+	vals := i.evalExprs(e.Operands)
 	switch e.Operator {
 	case lex.Plus:
-		// If all operands are numeric-coercible, add as numbers; otherwise join as strings
-		allNum := true
-		for _, v := range vals {
-			if _, ok := TryNum(v); !ok {
-				allNum = false
-				break
-			}
+		result := vals[0].AsNum()
+		for _, v := range vals[1:] {
+			result += v.AsNum()
 		}
-		if allNum {
-			result := vals[0].AsNum()
-			for _, v := range vals[1:] {
-				result += v.AsNum()
-			}
-			return NumVal(result)
-		}
-		// Fall back to text join
-		var sb strings.Builder
-		for _, v := range vals {
-			sb.WriteString(v.AsStr())
-		}
-		return StrVal(sb.String())
+		return NumVal(result)
 	case lex.Dash:
 		return NumVal(vals[0].AsNum() - vals[1].AsNum())
 	case lex.Times:
@@ -400,35 +362,17 @@ func (i *Interpreter) evalBinary(e *common.BinaryExpr) Value {
 // --- Question (? operator) ---
 
 func (i *Interpreter) evalQuestion(e *common.Question) Value {
-	v := i.eval(e.On)
+	v := i.Eval(e.On)
 	switch e.Question {
 	case "number":
 		_, ok := TryNum(v)
 		return BoolVal(ok)
 	case "base10":
-		s := strings.TrimSpace(v.AsStr())
-		for _, c := range s {
-			if c < '0' || c > '9' {
-				return BoolVal(false)
-			}
-		}
-		return BoolVal(len(s) > 0)
+		return BoolVal(isBase10(v.AsStr()))
 	case "hexa":
-		s := strings.TrimSpace(strings.ToLower(v.AsStr()))
-		for _, c := range s {
-			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-				return BoolVal(false)
-			}
-		}
-		return BoolVal(len(s) > 0)
+		return BoolVal(isHex(v.AsStr()))
 	case "bin":
-		s := strings.TrimSpace(v.AsStr())
-		for _, c := range s {
-			if c != '0' && c != '1' {
-				return BoolVal(false)
-			}
-		}
-		return BoolVal(len(s) > 0)
+		return BoolVal(isBinary(v.AsStr()))
 	case "text":
 		return BoolVal(v.Type() == String)
 	case "list":
@@ -452,7 +396,7 @@ func (i *Interpreter) evalQuestion(e *common.Question) Value {
 
 func (i *Interpreter) evalIf(e *control.If) Value {
 	for k, cond := range e.Conditions {
-		if i.eval(cond).AsBool() {
+		if i.Eval(cond).AsBool() {
 			return i.execBody(e.Bodies[k])
 		}
 	}
@@ -463,7 +407,7 @@ func (i *Interpreter) evalIf(e *control.If) Value {
 }
 
 func (i *Interpreter) evalSimpleIf(e *control.SimpleIf) Value {
-	if i.eval(e.Condition()).AsBool() {
+	if i.Eval(e.Condition()).AsBool() {
 		return i.execBody(e.Then())
 	}
 	if els := e.Else(); len(els) > 0 {
@@ -473,9 +417,9 @@ func (i *Interpreter) evalSimpleIf(e *control.SimpleIf) Value {
 }
 
 func (i *Interpreter) evalFor(e *control.For) Value {
-	from := i.eval(e.From).AsNum()
-	to := i.eval(e.To).AsNum()
-	by := i.eval(e.By).AsNum()
+	from := i.Eval(e.From).AsNum()
+	to := i.Eval(e.To).AsNum()
+	by := i.Eval(e.By).AsNum()
 	if by == 0 {
 		panic("for loop step cannot be 0")
 	}
@@ -510,7 +454,7 @@ func (i *Interpreter) evalWhile(e *control.While) Value {
 				}
 			}
 		}()
-		for i.eval(e.Condition).AsBool() {
+		for i.Eval(e.Condition).AsBool() {
 			last = i.execBody(e.Body)
 		}
 	}()
@@ -518,7 +462,7 @@ func (i *Interpreter) evalWhile(e *control.While) Value {
 }
 
 func (i *Interpreter) evalEach(e *control.Each) Value {
-	list := i.eval(e.Iterable).AsList()
+	list := i.Eval(e.Iterable).AsList()
 	loopEnv := NewEnv(i.currEnv)
 	loopEnv.Define(e.IName, NullVal())
 	var last Value = NullVal()
@@ -542,7 +486,7 @@ func (i *Interpreter) evalEach(e *control.Each) Value {
 }
 
 func (i *Interpreter) evalEachPair(e *control.EachPair) Value {
-	d := i.eval(e.Iterable).AsDict()
+	d := i.Eval(e.Iterable).AsDict()
 	loopEnv := NewEnv(i.currEnv)
 	loopEnv.Define(e.KeyName, NullVal())
 	loopEnv.Define(e.ValueName, NullVal())
@@ -572,14 +516,14 @@ func (i *Interpreter) evalEachPair(e *control.EachPair) Value {
 func (i *Interpreter) evalVar(e *variables.Var) Value {
 	childEnv := NewEnv(i.currEnv)
 	for k, name := range e.Names {
-		val := i.eval(e.Values[k]) // values evaluated in parent scope
+		val := i.Eval(e.Values[k]) // values evaluated in parent scope
 		childEnv.Define(name, val)
 	}
 	return i.inEnv(childEnv, func() Value { return i.execBody(e.Body) })
 }
 
 func (i *Interpreter) evalSimpleVar(e *variables.SimpleVar) Value {
-	val := i.eval(e.Value)
+	val := i.Eval(e.Value)
 	childEnv := NewEnv(i.currEnv)
 	childEnv.Define(e.Name, val)
 	return i.inEnv(childEnv, func() Value { return i.execBody(e.Body) })
@@ -588,23 +532,23 @@ func (i *Interpreter) evalSimpleVar(e *variables.SimpleVar) Value {
 func (i *Interpreter) evalVarResult(e *variables.VarResult) Value {
 	childEnv := NewEnv(i.currEnv)
 	for k, name := range e.Names {
-		val := i.eval(e.Values[k])
+		val := i.Eval(e.Values[k])
 		childEnv.Define(name, val)
 	}
-	return i.inEnv(childEnv, func() Value { return i.eval(e.Result) })
+	return i.inEnv(childEnv, func() Value { return i.Eval(e.Result) })
 }
 
 // --- Procedure calls ---
 
 func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
-	proc, ok := i.procs[e.Name]
+	proc, ok := i.procedures[e.Name]
 	if !ok {
 		panic("undefined procedure: " + e.Name)
 	}
 	// Evaluate arguments in the current (caller) env before switching scope.
 	argVals := make([]Value, len(proc.params))
 	for k := range proc.params {
-		argVals[k] = i.eval(e.Arguments[k])
+		argVals[k] = i.Eval(e.Arguments[k])
 	}
 	callEnv := NewEnv(i.globalEnv)
 	for k, param := range proc.params {
@@ -624,7 +568,7 @@ func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
 						}
 					}
 				}()
-				result = i.eval(proc.retExpr)
+				result = i.Eval(proc.retExpr)
 			}()
 			return result
 		}
@@ -655,7 +599,16 @@ func (i *Interpreter) execBody(body []ast.Expr) Value {
 	}
 	var last Value
 	for _, expr := range body {
-		last = i.eval(expr)
+		last = i.Eval(expr)
 	}
 	return last
+}
+
+// evalExprs evaluates each expression in exprs and returns the results as a []Value slice.
+func (i *Interpreter) evalExprs(exprs []ast.Expr) []Value {
+	vals := make([]Value, len(exprs))
+	for k, expr := range exprs {
+		vals[k] = i.Eval(expr)
+	}
+	return vals
 }
