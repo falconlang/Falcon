@@ -1,0 +1,989 @@
+// 9429
+func aStarPath(grid, size, startR, startC, goalR, goalC) = {
+  local open = [[0 + abs(goalR-startR) + abs(goalC-startC), 0, startR, startC, []]]
+  local visited = {}
+  local result = []
+  local found = false
+  while (open.listLen() > 0 && !found) {
+    open.sort()
+    local cur = open[1]
+    open.remove(1)
+    local f = cur[1]
+    local g = cur[2]
+    local r = cur[3]
+    local c = cur[4]
+    local path = cur[5]
+    local key = r _ "," _ c
+    if (!visited.containsKey(key)) {
+      visited.set(key, true)
+      local newPath = copyList(path)
+      newPath.add([r,c])
+      if (r == goalR && c == goalC) {
+        result = newPath
+        found = true
+      } else {
+        local dirs = [[-1,0],[1,0],[0,-1],[0,1]]
+        for (d in dirs) {
+          local nr = r+d[1]
+          local nc = c+d[2]
+          local nk = nr _ "," _ nc
+          if (nr>=1 && nr<=size && nc>=1 && nc<=size && grid[nr][nc]==0 && !visited.containsKey(nk)) {
+            local ng = g+1
+            local nh = abs(goalR-nr)+abs(goalC-nc)
+            open.add([ng+nh, ng, nr, nc, newPath])
+          }
+        }
+      }
+    }
+  }
+  result
+}
+local testGrid = [[0,0,0,0,0],[0,1,1,0,0],[0,0,1,0,0],[0,0,0,0,0],[0,0,0,0,0]]
+println(aStarPath(testGrid, 5, 1, 1, 5, 5))
+
+// 9520
+func rankLeaderboard(entries) = {
+  local sorted = copyList(entries)
+  sorted.sort { a, b -> a.get("score",0) > b.get("score",0) }
+  for (i: 1 .. sorted.listLen()) {
+    sorted[i].set("rank", i)
+  }
+  sorted
+}
+local board = [{"name":"Alice","score":1500},{"name":"Bob","score":2000},{"name":"Carol","score":1750}]
+println(rankLeaderboard(board))
+
+// 9267
+func expToNextLevel(level) = {
+  floor(100 * level^1.5)
+}
+println(expToNextLevel(1))
+println(expToNextLevel(5))
+println(expToNextLevel(10))
+
+// 9293
+func treasureRarity(roll) = {
+  if (roll <= 50) "common"
+  else if (roll <= 80) "uncommon"
+  else if (roll <= 95) "rare"
+  else "legendary"
+}
+println(treasureRarity(25))
+println(treasureRarity(65))
+println(treasureRarity(90))
+println(treasureRarity(98))
+
+// 9334
+func statusBarText(current, maximum, label) = {
+  label _ ": " _ current _ "/" _ maximum
+}
+println(statusBarText(75, 100, "HP"))
+println(statusBarText(50, 80, "MP"))
+
+// 9361
+func countdownText(secondsLeft) = {
+  local mins = floor(secondsLeft/60)
+  local secs = mod(secondsLeft, 60)
+  local secStr = if (secs < 10) "0" _ secs else "" _ secs
+  "Time: " _ mins _ ":" _ secStr
+}
+println(countdownText(45))
+println(countdownText(125))
+
+// 9395
+func buildMapKey(tileTypes) = {
+  local parts = []
+  for (i: 1 .. tileTypes.listLen()) {
+    parts.add(i _ "=" _ tileTypes[i])
+  }
+  parts.join(" ")
+}
+println(buildMapKey(["Wall","Floor","Door"]))
+
+// 9426
+func chessBoardInit() = {
+  local board = []
+  local back = ["R","N","B","Q","K","B","N","R"]
+  board.add(copyList(back))
+  local pawns = []
+  for (i: 1 .. 8) { pawns.add("P") }
+  board.add(pawns)
+  for (r: 3 .. 6) {
+    local empty = []
+    for (c: 1 .. 8) { empty.add(".") }
+    board.add(empty)
+  }
+  local bpawns = []
+  for (i: 1 .. 8) { bpawns.add("p") }
+  board.add(bpawns)
+  local bback = ["r","n","b","q","k","b","n","r"]
+  board.add(bback)
+  board
+}
+println(chessBoardInit())
+
+// 9450
+func pawnMoves(row, col, color, boardSize) = {
+  local moves = []
+  if (color === "white") {
+    if (row+1 <= boardSize) { moves.add([row+1, col]) }
+    if (row == 2 && row+2 <= boardSize) { moves.add([row+2, col]) }
+  } else {
+    if (row-1 >= 1) { moves.add([row-1, col]) }
+    if (row == 7 && row-2 >= 1) { moves.add([row-2, col]) }
+  }
+  moves
+}
+println(pawnMoves(2, 4, "white", 8))
+println(pawnMoves(7, 4, "black", 8))
+
+// 9482
+func generateCheckerboard(size) = {
+  local result = []
+  for (r: 1 .. size) {
+    for (c: 1 .. size) {
+      result.add(mod(r+c, 2))
+    }
+  }
+  result
+}
+println(generateCheckerboard(4))
+
+// 9505
+func playerStats(name, classType) = {
+  {"name":name,"class":classType,"str":10,"dex":10,"int":10,"wis":10,"con":10,"cha":10}
+}
+println(playerStats("Aria", "Ranger"))
+
+// 9557
+func buildCombatLog(maxEntries) = {
+  {"entries":[],"max":maxEntries}
+}
+println(buildCombatLog(50))
+
+// 9591
+func manaBarColor(mp, maxMp) = {
+  local pct = mp / maxMp
+  if (pct > 0.5) #3399FF
+  else if (pct > 0.2) #6666FF
+  else #9999FF
+}
+println(manaBarColor(60, 100))
+println(manaBarColor(30, 100))
+println(manaBarColor(10, 100))
+
+// 9610
+func timeOfDayTint(hour) = {
+  if (hour >= 5 && hour < 8) { makeColor([255, 180, 100]) }
+  else if (hour >= 8 && hour < 17) { makeColor([255, 255, 255]) }
+  else if (hour >= 17 && hour < 20) { makeColor([255, 160, 80]) }
+  else { makeColor([30, 30, 80]) }
+}
+println(timeOfDayTint(6))
+println(timeOfDayTint(12))
+println(timeOfDayTint(18))
+println(timeOfDayTint(22))
+
+// 9697
+func checkVictoryConditions(state) = {
+  local victory = false
+  local reason = ""
+  if (state.get("bossDefeated", false)) {
+    victory = true
+    reason = "Boss defeated!"
+  } else if (state.get("objectivesComplete", false)) {
+    victory = true
+    reason = "All objectives complete!"
+  } else if (state.get("score", 0) >= state.get("scoreGoal", 999999)) {
+    victory = true
+    reason = "Score goal reached!"
+  }
+  {"victory": victory, "reason": reason}
+}
+println(checkVictoryConditions({"bossDefeated":true,"score":500,"scoreGoal":1000}))
+println(checkVictoryConditions({"bossDefeated":false,"objectivesComplete":true}))
+
+// 9676
+func renderMinimap(grid, size, playerR, playerC) {
+  local symbols = {"0":".", "1":"#", "2":"D"}
+  for (r: 1 .. size) {
+    local row = ""
+    for (c: 1 .. size) {
+      if (r == playerR && c == playerC) { row = row _ "@" }
+      else { row = row _ symbols.get("" _ grid[r][c], "?") }
+    }
+    println(row)
+  }
+}
+local mm = [[0,1,0,0],[0,0,0,1],[1,0,2,0],[0,0,0,0]]
+renderMinimap(mm, 4, 2, 2)
+
+// 9690
+global savedPlayerName = ""
+global savedPlayerHp = 0
+global savedPlayerGold = 0
+func decodeAndApplyState(saveString) {
+  local parts = saveString.split("|")
+  for (part in parts) {
+    local kv = part.split("=")
+    if (kv[1] === "name") { this.savedPlayerName = kv[2] }
+    else if (kv[1] === "hp") { this.savedPlayerHp = kv[2] }
+    else if (kv[1] === "gold") { this.savedPlayerGold = kv[2] }
+  }
+  println("Restored: " _ this.savedPlayerName _ " HP=" _ this.savedPlayerHp _ " Gold=" _ this.savedPlayerGold)
+}
+decodeAndApplyState("name=Hero|hp=85|gold=250")
+
+// 9210
+global gold = 0
+global experience = 0
+func rewardPlayer(g, xp) {
+  this.gold = this.gold + g
+  this.experience = this.experience + xp
+  println("Gold: " _ this.gold _ " XP: " _ this.experience)
+}
+rewardPlayer(50, 120)
+
+// 9282
+func aimAngle(px, py, tx, ty) = {
+  local dx = tx - px
+  local dy = ty - py
+  degrees(atan2(dy, dx))
+}
+println(formatDecimal(aimAngle(0, 0, 1, 1), 2))
+
+// 9300
+func levelScore(timeLeft, enemiesKilled, diffMult) = {
+  floor((timeLeft * 10 + enemiesKilled * 50) * diffMult)
+}
+println(levelScore(30, 10, 1.5))
+
+// 9328
+func buildingCost(type, level) = {
+  if (type === "tower") { round(100 * level^2) }
+  else if (type === "wall") { round(50 * level^2) }
+  else if (type === "castle") { round(200 * level^2) }
+  else { 0 }
+}
+println(buildingCost("tower", 3))
+println(buildingCost("castle", 2))
+
+// 9370
+func perkDescription(perkName, effect, value) = {
+  "[" _ perkName _ "] " _ effect _ " +" _ value _ "%"
+}
+println(perkDescription("Blood Fury", "Deal", 25) _ " attack damage")
+
+// 9454
+func mergeWaveLists(wave1, wave2) = {
+  local result = copyList(wave1)
+  for (enemy in wave2) {
+    local eid = enemy.get("id","")
+    local found = false
+    for (i: 1 .. result.listLen()) {
+      if (result[i].get("id","") === eid) {
+        result[i] = enemy
+        found = true
+      }
+    }
+    if (!found) { result.add(enemy) }
+  }
+  result
+}
+println(mergeWaveLists([{"id":"e1","hp":10},{"id":"e2","hp":20}],[{"id":"e2","hp":30},{"id":"e3","hp":15}]))
+
+// 9525
+func aggregateDamage(logs, entityId) = {
+  local total = 0
+  for (entry in logs) {
+    if (entry.get("attackerId","") === entityId) {
+      total = total + entry.get("damage",0)
+    }
+  }
+  total
+}
+println(aggregateDamage([{"attackerId":"p1","damage":25},{"attackerId":"p2","damage":10},{"attackerId":"p1","damage":30}], "p1"))
+
+// 9601
+func playerTeamTint(playerIndex, baseColor) = {
+  local comp = splitColor(baseColor)
+  local r = comp[2]
+  local g = comp[3]
+  local b = comp[4]
+  local ch = mod(playerIndex, 4)
+  if (ch == 0) { r = if (r+50>255) 255 else r+50 }
+  else if (ch == 1) { g = if (g+50>255) 255 else g+50 }
+  else if (ch == 2) { b = if (b+50>255) 255 else b+50 }
+  else { r = if (r+30>255) 255 else r+30 g = if (g+30>255) 255 else g+30 }
+  makeColor([r,g,b])
+}
+println(playerTeamTint(0, makeColor([100,100,100])))
+println(playerTeamTint(1, makeColor([100,100,100])))
+
+// 9643
+func dungeonCrawlLoop(player, floors) {
+  local p = copyDict(player)
+  for (floor: 1 .. floors) {
+    local enemies = floor * 2
+    println("Floor " _ floor _ ": " _ enemies _ " enemies")
+    local dmg = enemies * 5
+    p.set("hp", p.get("hp",100) - dmg)
+    println("After combat: HP=" _ p.get("hp",0))
+    p.set("hp", if (p.get("hp",0)+20>p.get("maxHp",100)) p.get("maxHp",100) else p.get("hp",0)+20)
+    println("After heal: HP=" _ p.get("hp",0))
+  }
+}
+dungeonCrawlLoop({"hp":100,"maxHp":100}, 3)
+
+// 9664
+func processTileEffects(player, tileEffectMap) = {
+  local tile = player.get("currentTile","")
+  local effect = tileEffectMap.get(tile,"")
+  local p = copyDict(player)
+  if (tile === "fire") {
+    p.set("hp", p.get("hp",0) - 10)
+    println("Fire burns! -10 HP")
+  } else if (tile === "ice") {
+    p.set("speed", p.get("speed",5) - 2)
+    println("Ice slows! -2 speed")
+  } else if (tile === "heal") {
+    p.set("hp", p.get("hp",0) + 15)
+    println("Healing tile! +15 HP")
+  } else if (tile === "warp") {
+    p.set("currentTile", "entrance")
+    println("Warped to entrance!")
+  }
+  p
+}
+println(processTileEffects({"hp":80,"currentTile":"fire"}, {}))
+
+// 9201
+global gameState = "menu"
+global score = 0
+func startGame() {
+  this.gameState = "playing"
+  this.score = 0
+  println("Game started: state=" _ this.gameState _ " score=" _ this.score)
+}
+startGame()
+
+// 9226
+global levelUpThreshold = 100
+global currentLevel = 1
+func checkLevelUp() {
+  if (this.experience >= this.levelUpThreshold) {
+    this.currentLevel = this.currentLevel + 1
+    this.experience = this.experience - this.levelUpThreshold
+    this.levelUpThreshold = this.levelUpThreshold + 50
+    println("Level up! Now level " _ this.currentLevel)
+  }
+}
+this.experience = 150
+checkLevelUp()
+
+// 9251
+global activeBuffs = []
+func addBuff(buff) {
+  if (!this.activeBuffs.containsItem(buff)) {
+    this.activeBuffs.add(buff)
+  }
+}
+func hasBuff(buff) = {
+  this.activeBuffs.containsItem(buff)
+}
+addBuff("strength")
+addBuff("speed")
+addBuff("strength")
+println(this.activeBuffs)
+println(hasBuff("speed"))
+println(hasBuff("flying"))
+
+// 9634
+func buildPathWithBFS(grid, size, sR, sC, eR, eC) = {
+  local queue = [[sR, sC]]
+  local visited = {}
+  local cameFrom = {}
+  visited.set(sR _ "," _ sC, true)
+  local found = false
+  while (queue.listLen() > 0 && !found) {
+    local cur = queue[1]
+    queue.remove(1)
+    local r = cur[1]
+    local c = cur[2]
+    if (r == eR && c == eC) { found = true }
+    else {
+      local dirs = [[-1,0],[1,0],[0,-1],[0,1]]
+      for (d in dirs) {
+        local nr = r+d[1]
+        local nc = c+d[2]
+        local nk = nr _ "," _ nc
+        if (nr>=1 && nr<=size && nc>=1 && nc<=size && grid[nr][nc]==0 && !visited.containsKey(nk)) {
+          visited.set(nk, true)
+          cameFrom.set(nk, [r,c])
+          queue.add([nr,nc])
+        }
+      }
+    }
+  }
+  local path = []
+  if (found) {
+    local cur = [eR,eC]
+    while (!(cur[1]==sR && cur[2]==sC)) {
+      path.add(cur)
+      cur = cameFrom.get(cur[1] _ "," _ cur[2], [sR,sC])
+    }
+    path.add([sR,sC])
+    path.reverseList()
+  }
+  path
+}
+local bfsGrid = [[0,0,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]]
+println(buildPathWithBFS(bfsGrid, 4, 1, 1, 4, 4))
+
+// 9421
+func inventoryAdd(inventory, item, maxSize) = {
+  if (inventory.listLen() < maxSize) {
+    inventory.add(item)
+    true
+  } else {
+    false
+  }
+}
+local inv = ["sword","shield"]
+println(inventoryAdd(inv, "potion", 5))
+println(inv)
+
+// 9473
+func generateTreasureRooms(rooms, fraction) = {
+  local count = floor(rooms.listLen() * fraction)
+  local result = copyList(rooms)
+  local indices = []
+  for (i: 1 .. result.listLen()) { indices.add(i) }
+  for (i: result.listLen() .. 2 step -1) {
+    local j = randInt(1,i)
+    local tmp = indices[i]
+    indices[i] = indices[j]
+    indices[j] = tmp
+  }
+  for (i: 1 .. count) {
+    result[indices[i]].set("treasure", true)
+  }
+  result
+}
+local rooms9473 = [{"id":1},{"id":2},{"id":3},{"id":4},{"id":5}]
+println(generateTreasureRooms(rooms9473, 0.4))
+
+// 9412
+func removeDeadEntities(entities) = {
+  entities.filter { e -> e.get("hp",0) > 0 }
+}
+println(removeDeadEntities([{"name":"Goblin","hp":10},{"name":"Orc","hp":0},{"name":"Troll","hp":25}]))
+
+// 9542
+func buildShopInventory(itemList, priceList) = {
+  local shop = {}
+  for (i: 1 .. itemList.listLen()) {
+    shop.set(itemList[i], {"price":priceList[i],"stock":10})
+  }
+  shop
+}
+println(buildShopInventory(["Potion","Sword","Shield"],[50,200,150]))
+
+// 9682
+func printQuestLog(quests) {
+  for (q in quests) {
+    local title = q.get("title","Unknown")
+    local status = q.get("status","inactive")
+    local progress = q.get("progress","0/0")
+    println("[" _ status.uppercase() _ "] " _ title _ " — " _ progress)
+  }
+}
+printQuestLog([{"title":"Slay the Dragon","status":"active","progress":"0/1"},{"title":"Collect Herbs","status":"complete","progress":"5/5"}])
+
+// 9310
+func dropRate(baseRate, floor) = {
+  local rate = baseRate * (1 + floor * 0.05)
+  if (rate > 1.0) { 1.0 } else { rate }
+}
+println(dropRate(0.1, 10))
+println(dropRate(0.3, 20))
+
+// 9270
+func diamondArea(r) = {
+  2 * r^2 + 2 * r + 1
+}
+println(diamondArea(3))
+
+// 9281
+func pixelToTile(pixelX, pixelY, tileSize) = {
+  [floor(pixelX/tileSize) + 1, floor(pixelY/tileSize) + 1]
+}
+println(pixelToTile(150, 200, 32))
+
+// 9294
+func deathXpPenalty(currentXp, penaltyPct) = {
+  local result = floor(currentXp - currentXp * penaltyPct / 100)
+  if (result < 0) { 0 } else { result }
+}
+println(deathXpPenalty(500, 20))
+println(deathXpPenalty(50, 80))
+
+// 9304
+func heatDecay(currentHeat, coolRate) = {
+  local result = currentHeat - coolRate
+  if (result < 0) { 0 } else { result }
+}
+println(heatDecay(75, 10))
+println(heatDecay(5, 10))
+
+// 9311
+func handValue(cardValues) = {
+  local total = cardValues.reduce(0){x,acc->acc+x}
+  local adjusted = total
+  for (v in cardValues) {
+    if (v == 11 && adjusted > 21) { adjusted = adjusted - 10 }
+  }
+  adjusted
+}
+println(handValue([11, 7]))
+println(handValue([11, 11, 5]))
+
+// 9321
+func movesRemaining(movePts, terrainCostList) = {
+  local remaining = movePts
+  local count = 0
+  for (cost in terrainCostList) {
+    if (remaining - cost >= 0) {
+      remaining = remaining - cost
+      count = count + 1
+    }
+  }
+  count
+}
+println(movesRemaining(10, [2,3,2,4,1,5]))
+
+// 9332
+func chessPieceNotation(piece, fromRow, fromCol, toRow, toCol) = {
+  local cols = "abcdefgh"
+  piece _ cols.segment(fromCol,1) _ fromRow _ cols.segment(toCol,1) _ toRow
+}
+println(chessPieceNotation("N", 1, 2, 3, 3))
+
+// 9342
+func inventorySlotText(item, quantity) = {
+  if (item === "") { "Empty" } else { item _ " x" _ quantity }
+}
+println(inventorySlotText("Potion", 3))
+println(inventorySlotText("", 0))
+
+// 9352
+func achievementUnlocked(achievName, points) = {
+  "Achievement Unlocked: " _ achievName _ " (+" _ points _ " pts)"
+}
+println(achievementUnlocked("Dragon Slayer", 500))
+
+// 9362
+func parseItemCode(code) = {
+  local cat = code.segment(1,3)
+  local typ = code.segment(4,3)
+  local val = code.segment(7, code.textLen()-6)
+  {"category":cat,"type":typ,"value":val}
+}
+println(parseItemCode("WPNSWD015"))
+
+// 9369
+func mapCoordToChess(row, col) = {
+  local cols = "abcdefgh"
+  cols.segment(col,1) _ row
+}
+println(mapCoordToChess(4, 5))
+
+// 9378
+func buildRoomLabel(roomId, roomType, cleared) = {
+  local base = "[Room #" _ roomId _ " - " _ roomType _ "]"
+  if (cleared) { base _ " (cleared)" } else { base }
+}
+println(buildRoomLabel(4, "Armory", true))
+println(buildRoomLabel(2, "Library", false))
+
+// 9386
+func floorMessage(floor, isBossFloor) = {
+  local base = "Entering Floor " _ floor _ "..."
+  if (isBossFloor) { base _ " BOSS AWAITS" } else { base }
+}
+println(floorMessage(5, true))
+println(floorMessage(3, false))
+
+// 9390
+func directionArrow(direction) = {
+  if (direction === "up") "^"
+  else if (direction === "down") "v"
+  else if (direction === "left") "<"
+  else if (direction === "right") ">"
+  else "?"
+}
+println(directionArrow("up"))
+println(directionArrow("left"))
+println(directionArrow("diagonal"))
+
+// 9398
+func setCell(board, row, col, val) {
+  if (row >= 1 && row <= board.listLen() && col >= 1 && col <= board[1].listLen()) {
+    board[row][col] = val
+  }
+}
+local b9398 = [[0,0,0],[0,0,0],[0,0,0]]
+setCell(b9398, 2, 2, 5)
+println(b9398)
+
+// 9406
+func floodFill(board, row, col, oldVal, newVal) = {
+  if (board[row][col] != oldVal) { board }
+  else {
+    local stack = [[row,col]]
+    local rows = board.listLen()
+    local cols = board[1].listLen()
+    while (stack.listLen() > 0) {
+      local cur = stack[stack.listLen()]
+      stack.remove(stack.listLen())
+      local r = cur[1]
+      local c = cur[2]
+      if (r>=1 && r<=rows && c>=1 && c<=cols && board[r][c]==oldVal) {
+        board[r][c] = newVal
+        stack.add([r+1,c]) stack.add([r-1,c])
+        stack.add([r,c+1]) stack.add([r,c-1])
+      }
+    }
+    board
+  }
+}
+local fb9406 = [[0,0,0,1],[0,0,1,1],[0,0,0,0],[1,0,0,0]]
+println(floodFill(fb9406, 1, 1, 0, 2))
+
+// 9423
+func deckCut(deck, cutPoint) = {
+  local second = deck.slice(cutPoint+1, deck.listLen())
+  local first = deck.slice(1, cutPoint)
+  local result = copyList(second)
+  result.appendList(first)
+  result
+}
+println(deckCut([1,2,3,4,5,6,7,8], 3))
+
+// 9431
+func tileLine(r1, c1, r2, c2) = {
+  local points = []
+  local dr = abs(r2-r1)
+  local dc = abs(c2-c1)
+  local sr = if (r1<r2) 1 else -1
+  local sc = if (c1<c2) 1 else -1
+  local err = dr - dc
+  local r = r1
+  local c = c1
+  while (true) {
+    points.add([r,c])
+    if (r==r2 && c==c2) { r = r2+1 }
+    else {
+      local e2 = 2*err
+      if (e2 > -dc) { err=err-dc r=r+sr }
+      if (e2 < dr) { err=err+dr c=c+sc }
+    }
+  }
+  points
+}
+println(tileLine(1,1,4,5))
+
+// 9442
+func dungeonGenRooms(mapW, mapH, count) = {
+  local rooms = []
+  local attempts = 0
+  while (rooms.listLen() < count && attempts < 200) {
+    attempts = attempts + 1
+    local rw = randInt(3,6)
+    local rh = randInt(3,5)
+    local rc = randInt(1, mapH-rh)
+    local rr = randInt(1, mapW-rw)
+    local overlap = false
+    for (existing in rooms) {
+      if (rr < existing.get("row",0)+existing.get("h",0)+1 &&
+          rr+rh > existing.get("row",0)-1 &&
+          rc < existing.get("col",0)+existing.get("w",0)+1 &&
+          rc+rw > existing.get("col",0)-1) {
+        overlap = true
+      }
+    }
+    if (!overlap) { rooms.add({"row":rr,"col":rc,"w":rw,"h":rh}) }
+  }
+  rooms
+}
+println(dungeonGenRooms(20, 20, 5).listLen())
+
+// 9458
+func timedEventList(events, currentTime) = {
+  events.filter { e -> e.get("time",0) <= currentTime }
+}
+println(timedEventList([{"time":5,"name":"Spawn"},{"time":10,"name":"Boss"},{"time":3,"name":"Alert"}], 6))
+
+// 9467
+func chunkList(lst, chunkSize) = {
+  local result = []
+  local i = 1
+  while (i <= lst.listLen()) {
+    local end = if (i+chunkSize-1 > lst.listLen()) lst.listLen() else i+chunkSize-1
+    result.add(lst.slice(i, end))
+    i = i + chunkSize
+  }
+  result
+}
+println(chunkList([1,2,3,4,5,6,7,8,9,10], 3))
+
+// 9474
+func buildEntitySnapshot(entities) = {
+  entities.map { e -> copyDict(e) }
+}
+local ents = [{"name":"Goblin","hp":30},{"name":"Orc","hp":50}]
+local snap = buildEntitySnapshot(ents)
+ents[1].set("hp", 0)
+println(snap)
+
+// 9481
+func initStatusEffects(effectNames) = {
+  effectNames.map { name -> {"name":name,"active":false,"duration":0} }
+}
+println(initStatusEffects(["poison","burn","freeze","stun"]))
+
+// 9493
+func applyStatusToEntity(entity, statusName, duration) {
+  entity.set(statusName, {"active":true,"duration":duration})
+}
+local ent9493 = {"name":"Player","hp":100}
+applyStatusToEntity(ent9493, "poison", 3)
+println(ent9493)
+
+// 9499
+func clearRoom(room) {
+  room.set("cleared", true)
+  room.set("entities", [])
+}
+local room9499 = {"id":1,"cleared":false,"entities":["goblin","orc"]}
+clearRoom(room9499)
+println(room9499)
+
+// 9511
+func craftItem(recipe, inventory) = {
+  local canCraft = true
+  for (item, qty in recipe) {
+    if (inventory.get(item,0) < qty) { canCraft = false }
+  }
+  canCraft
+}
+println(craftItem({"wood":3,"stone":2},{"wood":5,"stone":2,"iron":1}))
+println(craftItem({"wood":3,"stone":5},{"wood":5,"stone":2}))
+
+// 9515
+func createChessPiece(type, color, row, col) = {
+  {"type":type,"color":color,"row":row,"col":col,"hasMoved":false}
+}
+println(createChessPiece("knight","white",1,2))
+
+// 9521
+func createPowerup(type, duration, effect) = {
+  {"type":type,"duration":duration,"effect":effect,"active":false,"remainingTime":duration}
+}
+println(createPowerup("speed_boost", 10, "speed+5"))
+
+// 9527
+func getMapTile(mapDict, row, col) = {
+  mapDict.get(row _ "_" _ col, 1)
+}
+local mapD = {"1_1":0,"1_2":0,"2_1":1,"2_2":0}
+println(getMapTile(mapD, 1, 2))
+println(getMapTile(mapD, 3, 3))
+
+// 9540
+func createBoss(name, phase) = {
+  local mult = 1 + (phase-1) * 0.5
+  {"name":name,"phase":phase,"hp":round(200*mult),"atk":round(30*mult),"def":round(20*mult),"speed":round(10*mult)}
+}
+println(createBoss("Dragon King", 1))
+println(createBoss("Dragon King", 3))
+
+// 9547
+func buildEquipmentSlots() = {
+  {"head":0,"chest":0,"legs":0,"feet":0,"mainHand":0,"offHand":0}
+}
+println(buildEquipmentSlots())
+
+// 9551
+func unlockAchievement(map, id) {
+  if (map.containsKey(id)) {
+    map.get(id,{}).set("unlocked", true)
+  }
+}
+local achMap = {"slayer":{"name":"Dragon Slayer","unlocked":false},"explorer":{"name":"Explorer","unlocked":false}}
+unlockAchievement(achMap, "slayer")
+println(achMap)
+
+// 9558
+func addCombatEntry(log, entry) {
+  log.get("entries",[]).add(entry)
+  while (log.get("entries",[]).listLen() > log.get("max",100)) {
+    log.get("entries",[]).remove(1)
+  }
+}
+local clog = buildCombatLog(3)
+addCombatEntry(clog, "Goblin hit for 5")
+addCombatEntry(clog, "Player hit for 12")
+addCombatEntry(clog, "Orc blocked")
+addCombatEntry(clog, "Player healed 20")
+println(clog)
+
+// 9563
+func buildStatusEffectRegistry(effects) = {
+  local reg = {}
+  for (e in effects) { reg.set(e.get("name",""), e) }
+  reg
+}
+println(buildStatusEffectRegistry([{"name":"poison","type":"dot","power":5},{"name":"freeze","type":"cc","power":0}]))
+
+// 9568
+func buildBuffRegistry(buffs) = {
+  local reg = {}
+  for (b in buffs) { reg.set(b.get("name",""), b) }
+  reg
+}
+println(buildBuffRegistry([{"name":"strength","effect":"atk+10"},{"name":"haste","effect":"spd+5"}]))
+
+// 9572
+func buildTrapDict(trapList) = {
+  local result = {}
+  for (trap in trapList) {
+    local key = trap.get("row",0) _ "," _ trap.get("col",0)
+    result.set(key, trap)
+  }
+  result
+}
+println(buildTrapDict([{"row":2,"col":3,"type":"spike","damage":10,"triggered":false},{"row":4,"col":1,"type":"pit","damage":20,"triggered":false}]))
+
+// 9584
+func blendColors(color1, color2, t) = {
+  local c1 = splitColor(color1)
+  local c2 = splitColor(color2)
+  local r = round(c1[2]*(1-t)+c2[2]*t)
+  local g = round(c1[3]*(1-t)+c2[3]*t)
+  local b = round(c1[4]*(1-t)+c2[4]*t)
+  makeColor([r,g,b])
+}
+println(blendColors(makeColor([255,0,0]),makeColor([0,0,255]),0.5))
+
+// 9596
+func mapRegionColor(regionType) = {
+  if (regionType === "forest") #33AA33
+  else if (regionType === "desert") #DDDD55
+  else if (regionType === "ocean") #6699FF
+  else if (regionType === "mountain") #AAAAAA
+  else if (regionType === "swamp") #885522
+  else makeColor([128,128,128])
+}
+println(mapRegionColor("forest"))
+println(mapRegionColor("desert"))
+
+// 9604
+func spellChargeColor(charge, maxCharge) = {
+  local t = charge / maxCharge
+  local v = round(50 + t * 205)
+  makeColor([v,v,v])
+}
+println(spellChargeColor(0, 100))
+println(spellChargeColor(50, 100))
+println(spellChargeColor(100, 100))
+
+// 9615
+func dungeonAmbientColor(floor) = {
+  local r = if (255 - floor*5 < 50) 50 else 255 - floor*5
+  local g = if (238 - floor*8 < 20) 20 else 238 - floor*8
+  local b = if (204 - floor*10 < 10) 10 else 204 - floor*10
+  makeColor([r,g,b])
+}
+println(dungeonAmbientColor(1))
+println(dungeonAmbientColor(10))
+
+// 9624
+func clearFullRows(board, size) = {
+  local b = copyList(board)
+  local changed = true
+  while (changed) {
+    changed = false
+    for (r: 1 .. b.listLen()) {
+      local full = true
+      for (c: 1 .. size) {
+        if (b[r][c] == 0) { full = false }
+      }
+      if (full) {
+        b.remove(r)
+        local emptyRow = []
+        for (c: 1 .. size) { emptyRow.add(0) }
+        b.insert(1, emptyRow)
+        changed = true
+      }
+    }
+  }
+  b
+}
+local tetris = [[1,1,1,1],[0,1,0,0],[1,1,1,1],[0,0,1,0]]
+println(clearFullRows(tetris, 4))
+
+// 9632
+func applyAreaEffect(grid, centerR, centerC, radius, effectFn, size) {
+  for (r: 1 .. size) {
+    for (c: 1 .. size) {
+      if (abs(r-centerR)+abs(c-centerC) <= radius) {
+        grid[r][c] = effectFn(grid[r][c])
+      }
+    }
+  }
+}
+local aGrid = [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]]
+applyAreaEffect(aGrid, 3, 3, 2, func(v)={1}, 5)
+println(aGrid)
+
+// 9642
+func timerCountdown(seconds) {
+  local tick = seconds
+  while (tick > 0) {
+    if (mod(tick, 10) == 0) { println("Event at tick " _ tick) }
+    tick = tick - 1
+  }
+  println("Timer done!")
+}
+timerCountdown(30)
+
+// 9652
+func generateRandomMap(width, height, wallPct) = {
+  local grid = []
+  for (r: 1 .. height) {
+    local row = []
+    for (c: 1 .. width) {
+      row.add(if (randFloat() < wallPct) 1 else 0)
+    }
+    grid.add(row)
+  }
+  grid
+}
+local rmap = generateRandomMap(8, 5, 0.3)
+for (row in rmap) { println(row) }
+
+// 9661
+func buildTileTransitions(tileList) = {
+  local result = {}
+  for (name, tile in tileList) {
+    result.set(name, {})
+    for (name2, tile2 in tileList) {
+      local cost = tile.get("moveCost",1) + tile2.get("moveCost",1)
+      result.get(name,{}).set(name2, cost)
+    }
+  }
+  result
+}
+local tiles9661 = {"grass":{"moveCost":1},"forest":{"moveCost":2},"mountain":{"moveCost":3}}
+println(buildTileTransitions(tiles9661))
