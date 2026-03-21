@@ -1,0 +1,402 @@
+{
+  "3317": {
+    "problem": "Write `anagramGroups(words)` that takes a list of words and groups anagrams together. Sort each word's characters to form a key, then group words with the same key. Return a list of groups (each group is a list).",
+    "answer": "func anagramGroups(words) = {\n  local groups = {}\n  for (word in words) {\n    local chars = word.split(\"\")\n    chars.sort()\n    local key = chars.join(\"\")\n    if (!groups.containsKey(key)) {\n      groups.set(key, [])\n    }\n    groups.get(key, []).add(word)\n  }\n  groups.values()\n}\nprintln(anagramGroups([\"eat\",\"tea\",\"tan\",\"ate\",\"nat\",\"bat\"]))"
+  },
+  "3358": {
+    "problem": "Implement `stringPermutations(s)` returning all distinct permutations of the characters in `s` as a sorted list. For `\"abc\"` return `[\"abc\",\"acb\",\"bac\",\"bca\",\"cab\",\"cba\"]`. Handle duplicates by checking before adding.",
+    "answer": "func stringPermutations(s) = {\n  local results = []\n  func permute(current, remaining) {\n    if (remaining.textLen() == 0) {\n      if (!results.containsItem(current)) {\n        results.add(current)\n      }\n    } else {\n      for (i: 1 .. remaining.textLen()) {\n        local ch = remaining.segment(i, 1)\n        local rest = remaining.segment(1, i-1) _ remaining.segment(i+1, remaining.textLen()-i)\n        permute(current _ ch, rest)\n      }\n    }\n  }\n  permute(\"\", s)\n  results.sort()\n  results\n}\nprintln(stringPermutations(\"abc\"))"
+  },
+  "3382": {
+    "problem": "Implement `substringSearch(text, patterns)` where `patterns` is a list. Return a dict mapping each pattern to its list of start positions (1-based) in `text`. Handle multiple patterns efficiently.",
+    "answer": "func substringSearch(text, patterns) = {\n  local result = {}\n  for (pattern in patterns) {\n    local positions = []\n    local plen = pattern.textLen()\n    local tlen = text.textLen()\n    for (i: 1 .. tlen - plen + 1) {\n      if (text.segment(i, plen) === pattern) {\n        positions.add(i)\n      }\n    }\n    result.set(pattern, positions)\n  }\n  result\n}\nprintln(substringSearch(\"abcabcabc\", [\"abc\",\"ab\",\"bc\"]))"
+  },
+  "3401": {
+    "problem": "Write `inverseBWT(transformed)` that inverts the Burrows-Wheeler Transform by repeatedly sorting and using the first/last column relationship to reconstruct the original string.",
+    "answer": "func inverseBWT(transformed) = {\n  local n = transformed.textLen()\n  local table = []\n  for (i: 1 .. n) { table.add(\"\") }\n  for (iter: 1 .. n) {\n    for (i: 1 .. n) {\n      table[i] = transformed.segment(i, 1) _ table[i]\n    }\n    table.sort()\n  }\n  local result = \"\"\n  for (row in table) {\n    if (row.segment(row.textLen(), 1) === \"$\") {\n      result = row\n    }\n  }\n  result\n}\nprintln(inverseBWT(\"BNN$AA\"))"
+  },
+  "3456": {
+    "problem": "Implement `kmpSearchList(text_chars, pattern_chars)` performing KMP search on lists of characters. Return all 1-based starting positions of matches.",
+    "answer": "func kmpSearchList(text_chars, pattern_chars) = {\n  local m = pattern_chars.listLen()\n  local n = text_chars.listLen()\n  local fail = []\n  for (i: 1 .. m) { fail.add(0) }\n  local k = 0\n  for (i: 2 .. m) {\n    while (k > 0 && pattern_chars[k+1] !== pattern_chars[i]) {\n      k = fail[k]\n    }\n    if (pattern_chars[k+1] === pattern_chars[i]) { k = k + 1 }\n    fail[i] = k\n  }\n  local matches = []\n  k = 0\n  for (i: 1 .. n) {\n    while (k > 0 && pattern_chars[k+1] !== text_chars[i]) {\n      k = fail[k]\n    }\n    if (pattern_chars[k+1] === text_chars[i]) { k = k + 1 }\n    if (k == m) {\n      matches.add(i - m + 1)\n      k = fail[k]\n    }\n  }\n  matches\n}\nprintln(kmpSearchList(\"abcabcabc\".split(\"\"), \"abc\".split(\"\")))"
+  },
+  "3518": {
+    "problem": "Implement `topNEntries(freqDict, n)` returning a list of the top `n` `[key, count]` pairs from `freqDict`, sorted by count descending, then by key alphabetically for ties.",
+    "answer": "func topNEntries(freqDict, n) = {\n  local pairs = []\n  for (k, v in freqDict) {\n    pairs.add([k, v])\n  }\n  pairs.sort { a, b ->\n    if (a[2] != b[2]) a[2] > b[2] else a[1] << b[1]\n  }\n  pairs.slice(1, n)\n}\nprintln(topNEntries({\"apple\":5,\"banana\":3,\"cherry\":5,\"date\":1}, 2))"
+  },
+  "3569": {
+    "problem": "Write `buildKeyPhraseDict(text, stopWords)` extracting key phrases: 2\u20133 word sequences where no word is a stop word, counting frequency. Return dict of phrase\u2192count, sorted by count.",
+    "answer": "func buildKeyPhraseDict(text, stopWords) = {\n  local words = text.lowercase().splitAtSpaces()\n  local phrases = {}\n  for (i: 1 .. words.listLen() - 1) {\n    if (!stopWords.containsItem(words[i]) && !stopWords.containsItem(words[i+1])) {\n      local phrase = words[i] _ \" \" _ words[i+1]\n      phrases.set(phrase, phrases.get(phrase, 0) + 1)\n    }\n    if (i <= words.listLen() - 2 && !stopWords.containsItem(words[i]) && !stopWords.containsItem(words[i+1]) && !stopWords.containsItem(words[i+2])) {\n      local phrase3 = words[i] _ \" \" _ words[i+1] _ \" \" _ words[i+2]\n      phrases.set(phrase3, phrases.get(phrase3, 0) + 1)\n    }\n  }\n  phrases\n}\nprintln(buildKeyPhraseDict(\"the quick brown fox jumps over the lazy dog\", [\"the\",\"over\"]))"
+  },
+  "3618": {
+    "problem": "Write a nested `for` loop over all pairs `(i, j)` with `1 <= i < j <= len(s)` for `s = \"abcd\"` to print all substrings `s[i..j]` in lexicographic order without generating them first (sort after collecting).",
+    "answer": "local s = \"abcd\"\nlocal subs = []\nfor (i: 1 .. s.textLen()) {\n  for (j: i .. s.textLen()) {\n    subs.add(s.segment(i, j - i + 1))\n  }\n}\nsubs.sort()\nfor (sub in subs) {\n  println(sub)\n}"
+  },
+  "3656": {
+    "problem": "Write a program using `while` to implement a two-pointer approach finding all pairs of words in `[\"a\",\"bb\",\"ccc\",\"dd\",\"e\"]` whose combined length equals 4. Track `left` and `right` pointers on the length-sorted list.",
+    "answer": "local wlist = [\"a\",\"bb\",\"ccc\",\"dd\",\"e\"]\nlocal lens = wlist.map { w -> w.textLen() }\nlocal sorted = copyList(wlist)\nsorted.sort { a, b -> a.textLen() < b.textLen() }\nlocal left = 1\nlocal right = sorted.listLen()\nwhile (left < right) {\n  local combined = sorted[left].textLen() + sorted[right].textLen()\n  if (combined == 4) {\n    println(sorted[left] _ \" + \" _ sorted[right])\n    left = left + 1\n    right = right - 1\n  } else if (combined < 4) {\n    left = left + 1\n  } else {\n    right = right - 1\n  }\n}"
+  },
+  "3376": {
+    "problem": "Implement `rot13(s)` that applies ROT13 to all letters in `s` (shifts by 13 positions, wrapping within alphabet, preserving case). Non-letters unchanged. Note `rot13(rot13(s)) === s`.",
+    "answer": "func rot13(s) = {\n  local lowers = \"abcdefghijklmnopqrstuvwxyz\"\n  local uppers = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n  local result = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i, 1)\n    local li = lowers.indexOf(ch) - 1\n    local ui = uppers.indexOf(ch) - 1\n    if (li >= 0) {\n      result = result _ lowers.segment((li + 13) % 26 + 1, 1)\n    } else if (ui >= 0) {\n      result = result _ uppers.segment((ui + 13) % 26 + 1, 1)\n    } else {\n      result = result _ ch\n    }\n  }\n  result\n}\nprintln(rot13(\"Hello, World!\"))\nprintln(rot13(rot13(\"Hello, World!\")))"
+  },
+  "3528": {
+    "problem": "Implement `buildSubstitutionKey(key)` generating a substitution cipher key: given a keyword like `\"KEYWORD\"`, build a dict mapping each plaintext letter to a ciphertext letter using the keyword-based alphabet.",
+    "answer": "func buildSubstitutionKey(key) = {\n  local alpha = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n  local seen = []\n  local keyAlpha = \"\"\n  local kup = key.uppercase()\n  for (i: 1 .. kup.textLen()) {\n    local ch = kup.segment(i, 1)\n    if (!seen.containsItem(ch) && alpha.contains(ch)) {\n      seen.add(ch)\n      keyAlpha = keyAlpha _ ch\n    }\n  }\n  for (i: 1 .. 26) {\n    local ch = alpha.segment(i, 1)\n    if (!seen.containsItem(ch)) {\n      keyAlpha = keyAlpha _ ch\n    }\n  }\n  local dict = {}\n  for (i: 1 .. 26) {\n    dict.set(alpha.segment(i, 1), keyAlpha.segment(i, 1))\n  }\n  dict\n}\nprintln(buildSubstitutionKey(\"KEYWORD\"))"
+  },
+  "3653": {
+    "problem": "Implement a `for` loop simulating a Vigen\u00e8re autokey cipher on `\"HELLO\"` with initial key character `\"K\"`: use the plaintext itself to extend the key after the initial character.",
+    "answer": "local vtext = \"HELLO\"\nlocal vkey = \"K\"\nlocal vresult = \"\"\nlocal alpha = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"\nlocal fullKey = vkey\nfor (i: 1 .. vtext.textLen() - 1) {\n  fullKey = fullKey _ vtext.segment(i, 1)\n}\nfor (i: 1 .. vtext.textLen()) {\n  local p = alpha.indexOf(vtext.segment(i, 1)) - 1\n  local k = alpha.indexOf(fullKey.segment(i, 1)) - 1\n  vresult = vresult _ alpha.segment((p + k) % 26 + 1, 1)\n}\nprintln(vresult)"
+  },
+  "3452": {
+    "problem": "Implement `generateFromMarkov(matrix, start, length)` using the normalized transition matrix. At each step, choose the most probable next character (argmax), building a string of `length` characters starting from `start`.",
+    "answer": "func generateFromMarkov(matrix, start, length) = {\n  local result = start\n  local cur = start\n  for (i: 2 .. length) {\n    local row = matrix.get(cur, {})\n    local bestProb = -1\n    local nextChar = cur\n    for (ch, prob in row) {\n      if (prob > bestProb) {\n        bestProb = prob\n        nextChar = ch\n      }\n    }\n    result = result _ nextChar\n    cur = nextChar\n  }\n  result\n}\nlocal mm = {\"a\":{\"b\":0.7,\"c\":0.3},\"b\":{\"a\":0.4,\"c\":0.6},\"c\":{\"a\":0.9,\"b\":0.1}}\nprintln(generateFromMarkov(mm, \"a\", 8))"
+  },
+  "3359": {
+    "problem": "Write `nextPermutation(s)` that returns the lexicographically next permutation of string `s`. Find the rightmost character smaller than its successor, swap with the smallest larger character to its right, then reverse the suffix.",
+    "answer": "func nextPermutation(s) = {\n  local chars = []\n  for (i: 1 .. s.textLen()) { chars.add(s.segment(i, 1)) }\n  local n = chars.listLen()\n  local i = n - 1\n  while (i >= 1 && chars[i] >= chars[i+1]) {\n    i = i - 1\n  }\n  if (i < 1) {\n    chars.reverseList()\n  } else {\n    local j = n\n    while (chars[j] <= chars[i]) { j = j - 1 }\n    local tmp = chars[i]\n    chars[i] = chars[j]\n    chars[j] = tmp\n    local suffix = []\n    for (k: i+1 .. n) { suffix.add(chars[k]) }\n    suffix.reverseList()\n    for (k: 1 .. suffix.listLen()) { chars[i+k] = suffix[k] }\n  }\n  chars.join(\"\")\n}\nprintln(nextPermutation(\"abc\"))\nprintln(nextPermutation(\"bca\"))\nprintln(nextPermutation(\"cba\"))"
+  },
+  "3548": {
+    "problem": "Implement `dfaMatch(dfa, text)` that runs `text` through the DFA dict and returns `true` if the text is accepted (reaches the accept state), `false` otherwise.",
+    "answer": "func dfaMatch(dfa, text) = {\n  local state = dfa.get(\"start\", 0)\n  for (i: 1 .. text.textLen()) {\n    local ch = text.segment(i, 1)\n    local transitions = dfa.get(\"transitions\", {}).get(state, {})\n    state = transitions.get(ch, -1)\n    if (state == -1) {\n      state = -1\n      i = text.textLen() + 1\n    }\n  }\n  local accepts = dfa.get(\"accept\", [])\n  accepts.containsItem(state)\n}\nlocal dfa = {\"start\": 0, \"accept\": [2], \"transitions\": {0: {\"a\": 1}, 1: {\"b\": 2}, 2: {}}}\nprintln(dfaMatch(dfa, \"ab\"))\nprintln(dfaMatch(dfa, \"abc\"))"
+  },
+  "3671": {
+    "problem": "Implement `func longestPalindrome(s) = { ... }` using Manacher's algorithm to return the longest palindromic substring in O(n). Use the transformed string approach with `\"#\"` separators.",
+    "answer": "func longestPalindrome(s) = {\n  local t = \"#\"\n  for (i: 1 .. s.textLen()) {\n    t = t _ s.segment(i, 1) _ \"#\"\n  }\n  local n = t.textLen()\n  local p = []\n  for (i: 1 .. n) { p.add(0) }\n  local c = 1\n  local r = 1\n  for (i: 2 .. n) {\n    local mirror = 2 * c - i\n    if (i < r && mirror >= 1) {\n      p[i] = if (r - i < p[mirror]) r - i else p[mirror]\n    }\n    local a = i - (p[i] + 1)\n    local b = i + (p[i] + 1)\n    while (a >= 1 && b <= n && t.segment(a, 1) === t.segment(b, 1)) {\n      p[i] = p[i] + 1\n      a = a - 1\n      b = b + 1\n    }\n    if (i + p[i] > r) {\n      c = i\n      r = i + p[i]\n    }\n  }\n  local maxLen = 0\n  local center = 1\n  for (i: 1 .. n) {\n    if (p[i] > maxLen) {\n      maxLen = p[i]\n      center = i\n    }\n  }\n  local start = floor((center - maxLen) / 2) + 1\n  s.segment(start, maxLen)\n}\nprintln(longestPalindrome(\"babad\"))\nprintln(longestPalindrome(\"cbbd\"))\nprintln(longestPalindrome(\"racecar\"))"
+  },
+  "3676": {
+    "problem": "Write `func jaroWinkler(s1, s2) = { ... }` computing the Jaro-Winkler similarity as a float in `[0,1]`. Then write `func findMostSimilar(word, candidates) = { ... }` returning the candidate with highest Jaro-Winkler score.",
+    "answer": "func jaroWinkler(s1, s2) = {\n  local l1 = s1.textLen()\n  local l2 = s2.textLen()\n  if (l1 == 0 && l2 == 0) {\n    1\n  } else {\n    local matchWindow = floor(if (l1 > l2) l1 else l2) / 2 - 1\n    local s1matched = []\n    local s2matched = []\n    for (i: 1 .. l1) { s1matched.add(false) }\n    for (i: 1 .. l2) { s2matched.add(false) }\n    local matches = 0\n    for (i: 1 .. l1) {\n      local start = if (i - matchWindow > 1) round(i - matchWindow) else 1\n      local end = if (i + matchWindow < l2) round(i + matchWindow) else l2\n      for (j: start .. end) {\n        if (!s2matched[j] && s1.segment(i,1) === s2.segment(j,1)) {\n          s1matched[i] = true\n          s2matched[j] = true\n          matches = matches + 1\n          j = end + 1\n        }\n      }\n    }\n    if (matches == 0) {\n      0\n    } else {\n      local trans = 0\n      local k = 1\n      for (i: 1 .. l1) {\n        if (s1matched[i]) {\n          while (!s2matched[k]) { k = k + 1 }\n          if (s1.segment(i,1) !== s2.segment(k,1)) { trans = trans + 1 }\n          k = k + 1\n        }\n      }\n      local jaro = (matches/l1 + matches/l2 + (matches - trans/2)/matches) / 3\n      local prefix = 0\n      for (i: 1 .. 4) {\n        if (i <= l1 && i <= l2 && s1.segment(i,1) === s2.segment(i,1)) {\n          prefix = prefix + 1\n        }\n      }\n      jaro + prefix * 0.1 * (1 - jaro)\n    }\n  }\n}\nfunc findMostSimilar(word, candidates) = {\n  local best = -1\n  local bestWord = \"\"\n  for (c in candidates) {\n    local score = jaroWinkler(word, c)\n    if (score > best) {\n      best = score\n      bestWord = c\n    }\n  }\n  bestWord\n}\nprintln(jaroWinkler(\"MARTHA\", \"MARHTA\"))\nprintln(findMostSimilar(\"helo\", [\"hello\",\"world\",\"help\",\"hero\"]))"
+  },
+  "3682": {
+    "problem": "Write `func wordLadder(start, end, vocabulary) = { ... }` finding the shortest word ladder using BFS. Return the path list or `[]` if impossible. Test `wordLadder(\"hit\",\"cog\",[\"hot\",\"dot\",\"dog\",\"lot\",\"log\",\"cog\"])`.",
+    "answer": "func wordLadder(start, end, vocabulary) = {\n  local queue = [[start, [start]]]\n  local visited = [start]\n  while (queue.listLen() > 0) {\n    local cur = queue[1]\n    queue.remove(1)\n    local word = cur[1]\n    local path = cur[2]\n    if (word === end) {\n      path\n    } else {\n      local vocab = copyList(vocabulary)\n      for (candidate in vocab) {\n        if (!visited.containsItem(candidate)) {\n          local diffs = 0\n          if (candidate.textLen() == word.textLen()) {\n            for (i: 1 .. word.textLen()) {\n              if (word.segment(i,1) !== candidate.segment(i,1)) {\n                diffs = diffs + 1\n              }\n            }\n            if (diffs == 1) {\n              visited.add(candidate)\n              local newPath = copyList(path)\n              newPath.add(candidate)\n              queue.add([candidate, newPath])\n            }\n          }\n        }\n      }\n      if (queue.listLen() == 0) { [] }\n    }\n  }\n}\nprintln(wordLadder(\"hit\", \"cog\", [\"hot\",\"dot\",\"dog\",\"lot\",\"log\",\"cog\"]))"
+  },
+  "3688": {
+    "problem": "Write `func decompressString(s) = { ... }` for a nested run-length encoding like `\"3[a2[b]]\"`. Use a stack: push counts and partial results on `[`, pop and repeat on `]`. Return the fully expanded string.",
+    "answer": "func decompressString(s) = {\n  local stack = []\n  local currentStr = \"\"\n  local currentNum = 0\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i, 1)\n    if (ch ? number) {\n      currentNum = currentNum * 10 + ch\n    } else if (ch === \"[\") {\n      stack.add([currentNum, currentStr])\n      currentStr = \"\"\n      currentNum = 0\n    } else if (ch === \"]\") {\n      local top = stack[stack.listLen()]\n      stack.remove(stack.listLen())\n      local times = top[1]\n      local prev = top[2]\n      local repeated = \"\"\n      for (k: 1 .. times) { repeated = repeated _ currentStr }\n      currentStr = prev _ repeated\n    } else {\n      currentStr = currentStr _ ch\n    }\n  }\n  currentStr\n}\nprintln(decompressString(\"3[a2[b]]\"))\nprintln(decompressString(\"2[abc]3[d]\"))"
+  },
+  "3696": {
+    "problem": "Write `func detectAnomalousWords(text, languageModel) = { ... }` identifying words whose bigram probability given context is below a threshold. Return a list of `{\"word\":w,\"position\":i,\"prob\":p}` dicts.",
+    "answer": "func detectAnomalousWords(text, languageModel) = {\n  local words = text.splitAtSpaces()\n  local result = []\n  local threshold = 0.01\n  for (i: 2 .. words.listLen()) {\n    local prev = words[i-1]\n    local word = words[i]\n    local bigrams = languageModel.get(\"bigrams\", {})\n    local unigrams = languageModel.get(\"unigrams\", {})\n    local total = languageModel.get(\"total\", 1)\n    local pPrev = unigrams.get(prev, 0) / total\n    local pWord = unigrams.get(word, 0) / total\n    local pBigram = bigrams.get(prev _ \" \" _ word, 0) / total\n    local prob = if (pPrev > 0) pBigram / pPrev else 0\n    if (prob < threshold) {\n      result.add({\"word\": word, \"position\": i, \"prob\": prob})\n    }\n  }\n  result\n}\nlocal lm = {\"unigrams\":{\"the\":10,\"cat\":5,\"sat\":4,\"on\":3},\"bigrams\":{\"the cat\":4,\"cat sat\":3},\"total\":50}\nprintln(detectAnomalousWords(\"the cat sat on mars\", lm))"
+  },
+  "3517": {
+    "problem": "Write `buildNGramDict(text, n)` creating a dict of all n-gram frequencies from character-level scanning of `text`. Keys are n-character strings, values are counts.",
+    "answer": "func buildNGramDict(text, n) = {\n  local result = {}\n  for (i: 1 .. text.textLen() - n + 1) {\n    local gram = text.segment(i, n)\n    result.set(gram, result.get(gram, 0) + 1)\n  }\n  result\n}\nprintln(buildNGramDict(\"abracadabra\", 2))"
+  },
+  "3219": {
+    "problem": "Declare a global `camelCase` initialized to `\"\"`. Given `\"convert this to camel case\"` split by spaces, concatenate the first word as-is then capitalize the first letter of each subsequent word, appending lowercase remainder.",
+    "answer": "global camelCase = \"\"\nlocal phrase = \"convert this to camel case\"\nlocal parts = phrase.splitAtSpaces()\nthis.camelCase = parts[1]\nfor (i: 2 .. parts.listLen()) {\n  local word = parts[i]\n  this.camelCase = this.camelCase _ word.segment(1,1).uppercase() _ word.segment(2, word.textLen()-1).lowercase()\n}\nprintln(this.camelCase)"
+  },
+  "3366": {
+    "problem": "Implement `autocomplete(trie, prefix)` where `trie` is a dict-based trie (each node is a dict with character keys and a special `\"$\"` key for word-end). Return all words in the trie that start with `prefix`.",
+    "answer": "func autocomplete(trie, prefix) = {\n  local node = trie\n  for (i: 1 .. prefix.textLen()) {\n    local ch = prefix.segment(i, 1)\n    if (!node.containsKey(ch)) {\n      []\n    }\n    node = node.get(ch, {})\n  }\n  local results = []\n  func collect(n, current) {\n    if (n.containsKey(\"$\")) { results.add(current) }\n    for (key, val in n) {\n      if (key !== \"$\") {\n        collect(val, current _ key)\n      }\n    }\n  }\n  collect(node, prefix)\n  results\n}\nlocal trie = {}\nfunc ti(w) {\n  local node = trie\n  for (i: 1 .. w.textLen()) {\n    local ch = w.segment(i, 1)\n    if (!node.containsKey(ch)) { node.set(ch, {}) }\n    node = node.get(ch, {})\n  }\n  node.set(\"$\", true)\n}\nti(\"apple\") ti(\"app\") ti(\"application\") ti(\"bat\") ti(\"ball\")\nprintln(autocomplete(trie, \"app\"))"
+  },
+  "3639": {
+    "problem": "Implement a program with nested `while` loops computing the Aho-Corasick failure links for patterns `[\"he\",\"she\",\"his\",\"hers\"]`. Build the trie, then BFS to compute failure and output links.",
+    "answer": "local acPatterns = [\"he\",\"she\",\"his\",\"hers\"]\nlocal acTrie = {\"root\":{}}\nfor (pat in acPatterns) {\n  local node = acTrie.get(\"root\", {})\n  for (i: 1 .. pat.textLen()) {\n    local ch = pat.segment(i, 1)\n    if (!node.containsKey(ch)) { node.set(ch, {}) }\n    node = node.get(ch, {})\n  }\n  node.set(\"$\", pat)\n}\nlocal failLinks = {}\nlocal bfsQueue = []\nfor (key, val in acTrie.get(\"root\", {})) {\n  if (key !== \"$\") {\n    failLinks.set(key, \"root\")\n    bfsQueue.add([key, val])\n  }\n}\nlocal qi = 1\nwhile (qi <= bfsQueue.listLen()) {\n  local cur = bfsQueue[qi]\n  local curKey = cur[1]\n  local curNode = cur[2]\n  for (ch, child in curNode) {\n    if (ch !== \"$\") {\n      local fail = failLinks.get(curKey, \"root\")\n      local failNode = acTrie.get(\"root\", {})\n      if (failNode.containsKey(ch)) {\n        failLinks.set(curKey _ ch, ch)\n      } else {\n        failLinks.set(curKey _ ch, \"root\")\n      }\n      bfsQueue.add([curKey _ ch, child])\n    }\n  }\n  qi = qi + 1\n}\nprintln(failLinks)"
+  },
+  "3469": {
+    "problem": "Write `jaccardSimilarityLists(list1, list2)` computing Jaccard similarity between two lists treated as sets: `|intersection| / |union|`. Use `.containsItem()` to build intersection and union sets.",
+    "answer": "func jaccardSimilarityLists(list1, list2) = {\n  local intersection = []\n  local union = copyList(list1)\n  for (item in list1) {\n    if (list2.containsItem(item)) {\n      intersection.add(item)\n    }\n  }\n  for (item in list2) {\n    if (!union.containsItem(item)) {\n      union.add(item)\n    }\n  }\n  if (union.listLen() == 0) { 0 } else { intersection.listLen() / union.listLen() }\n}\nprintln(jaccardSimilarityLists([\"a\",\"b\",\"c\",\"d\"],[\"b\",\"c\",\"d\",\"e\"]))"
+  },
+  "3516": {
+    "problem": "Implement `subtractDicts(d1, d2)` computing the difference of two frequency dicts: for each key in `d1`, subtract the count in `d2` (or 0 if absent). Remove keys with zero or negative result.",
+    "answer": "func subtractDicts(d1, d2) = {\n  local result = {}\n  for (k, v in d1) {\n    local diff = v - d2.get(k, 0)\n    if (diff > 0) {\n      result.set(k, diff)\n    }\n  }\n  result\n}\nprintln(subtractDicts({\"a\":5,\"b\":3,\"c\":2},{\"a\":2,\"b\":3,\"d\":1}))"
+  },
+  "3692": {
+    "problem": "Write `func buildBloomFilter(words, size) = { ... }` creating a Bloom filter as a list of `size` booleans. Use two hash functions (polynomial with different bases) to set bits for each word. Return the filter.",
+    "answer": "func buildBloomFilter(words, size) = {\n  local filter = []\n  for (i: 1 .. size) { filter.add(false) }\n  for (word in words) {\n    local h1 = 0\n    local h2 = 0\n    for (i: 1 .. word.textLen()) {\n      local c = word.segment(i,1)\n      local code = \"abcdefghijklmnopqrstuvwxyz\".indexOf(c)\n      h1 = (h1 * 31 + code) % size\n      h2 = (h2 * 37 + code) % size\n    }\n    filter[h1 + 1] = true\n    filter[h2 + 1] = true\n  }\n  filter\n}\nprintln(buildBloomFilter([\"hello\",\"world\",\"foo\"], 16))"
+  },
+  "3465": {
+    "problem": "Write `buildPointwiseMutualInfo(wordList)` computing PMI for all bigrams: `PMI(a,b) = log(P(a,b) / (P(a)*P(b)))` where probabilities come from unigram and bigram counts. Return a dict of dicts.",
+    "answer": "func buildPointwiseMutualInfo(wordList) = {\n  local n = wordList.listLen()\n  local unigrams = {}\n  local bigrams = {}\n  for (w in wordList) {\n    unigrams.set(w, unigrams.get(w, 0) + 1)\n  }\n  for (i: 1 .. n - 1) {\n    local bg = wordList[i] _ \" \" _ wordList[i+1]\n    bigrams.set(bg, bigrams.get(bg, 0) + 1)\n  }\n  local pmi = {}\n  for (bg, cnt in bigrams) {\n    local parts = bg.splitAtFirst(\" \")\n    local a = parts[1]\n    local b = parts[2]\n    local pab = cnt / n\n    local pa = unigrams.get(a, 1) / n\n    local pb = unigrams.get(b, 1) / n\n    if (!pmi.containsKey(a)) { pmi.set(a, {}) }\n    pmi.get(a, {}).set(b, log(pab / (pa * pb)))\n  }\n  pmi\n}\nprintln(buildPointwiseMutualInfo([\"the\",\"cat\",\"sat\",\"on\",\"the\",\"cat\",\"ate\",\"the\",\"rat\"]))"
+  },
+  "3352": {
+    "problem": "Implement `predictNextWord(model, context)` that uses the ngram model dict from the previous problem to return the most frequent next word given `context` (the previous n-1 words joined by space).",
+    "answer": "func predictNextWord(model, context) = {\n  local options = model.get(context, {})\n  local best = -1\n  local bestWord = \"\"\n  for (w, cnt in options) {\n    if (cnt > best) {\n      best = cnt\n      bestWord = w\n    }\n  }\n  bestWord\n}\nlocal ngm = {\"the cat\":{\"sat\":3,\"ate\":1},\"cat sat\":{\"on\":2}}\nprintln(predictNextWord(ngm, \"the cat\"))"
+  },
+  "3580": {
+    "problem": "Implement `buildLanguageModelDict(corpus)` combining unigram, bigram, and trigram frequency dicts into a single nested dict structure: `{\"unigrams\":u, \"bigrams\":b, \"trigrams\":t, \"vocabSize\":n}`.",
+    "answer": "func buildLanguageModelDict(corpus) = {\n  local words = corpus.splitAtSpaces()\n  local unigrams = {}\n  local bigrams = {}\n  local trigrams = {}\n  local vocab = []\n  for (w in words) {\n    unigrams.set(w, unigrams.get(w, 0) + 1)\n    if (!vocab.containsItem(w)) { vocab.add(w) }\n  }\n  for (i: 1 .. words.listLen() - 1) {\n    local bg = words[i] _ \" \" _ words[i+1]\n    bigrams.set(bg, bigrams.get(bg, 0) + 1)\n  }\n  for (i: 1 .. words.listLen() - 2) {\n    local tg = words[i] _ \" \" _ words[i+1] _ \" \" _ words[i+2]\n    trigrams.set(tg, trigrams.get(tg, 0) + 1)\n  }\n  {\"unigrams\": unigrams, \"bigrams\": bigrams, \"trigrams\": trigrams, \"vocabSize\": vocab.listLen()}\n}\nprintln(buildLanguageModelDict(\"the cat sat on the mat the cat ate\"))"
+  },
+  "3245": {
+    "problem": "Count the number of palindromic substrings in `\"abacaba\"` by checking every possible substring for palindromicity. Print the total count (each occurrence counted separately; expected: 13 including single characters).",
+    "answer": "local pal = \"abacaba\"\nlocal count = 0\nfor (i: 1 .. pal.textLen()) {\n  for (j: i .. pal.textLen()) {\n    local sub = pal.segment(i, j - i + 1)\n    local rev = sub.reverse()\n    if (sub === rev) { count = count + 1 }\n  }\n}\nprintln(count)"
+  },
+  "3252": {
+    "problem": "Given `n = 8` and a string `\"GCATGCU\"`, find the longest common subsequence with `\"GXTXCXU\"` using DP. Print the length of the LCS (expected: 4).",
+    "answer": "local s1 = \"GCATGCU\"\nlocal s2 = \"GXTXCXU\"\nlocal m = s1.textLen()\nlocal n = s2.textLen()\nlocal dp3252 = []\nfor (i: 0 .. m) {\n  local row = []\n  for (j: 0 .. n) { row.add(0) }\n  dp3252.add(row)\n}\nfor (i: 1 .. m) {\n  for (j: 1 .. n) {\n    if (s1.segment(i,1) === s2.segment(j,1)) {\n      dp3252[i][j] = dp3252[i-1][j-1] + 1\n    } else {\n      dp3252[i][j] = if (dp3252[i-1][j] > dp3252[i][j-1]) dp3252[i-1][j] else dp3252[i][j-1]\n    }\n  }\n}\nprintln(dp3252[m][n])"
+  },
+  "3260": {
+    "problem": "For `\"abcbdab\"` and `\"bdcaba\"`, compute the length of the longest common subsequence using the standard DP recurrence. Print `4` as the expected answer and verify by also printing the actual LCS string.",
+    "answer": "local a = \"abcbdab\"\nlocal b = \"bdcaba\"\nlocal ma = a.textLen()\nlocal mb = b.textLen()\nlocal dp3260 = []\nfor (i: 0 .. ma) {\n  local row = []\n  for (j: 0 .. mb) { row.add(0) }\n  dp3260.add(row)\n}\nfor (i: 1 .. ma) {\n  for (j: 1 .. mb) {\n    if (a.segment(i,1) === b.segment(j,1)) {\n      dp3260[i][j] = dp3260[i-1][j-1] + 1\n    } else {\n      dp3260[i][j] = if (dp3260[i-1][j] > dp3260[i][j-1]) dp3260[i-1][j] else dp3260[i][j-1]\n    }\n  }\n}\nprintln(dp3260[ma][mb])\nlocal lcs = \"\"\nlocal ci = ma\nlocal cj = mb\nwhile (ci > 0 && cj > 0) {\n  if (a.segment(ci,1) === b.segment(cj,1)) {\n    lcs = a.segment(ci,1) _ lcs\n    ci = ci - 1\n    cj = cj - 1\n  } else if (dp3260[ci-1][cj] > dp3260[ci][cj-1]) {\n    ci = ci - 1\n  } else {\n    cj = cj - 1\n  }\n}\nprintln(lcs)"
+  },
+  "3265": {
+    "problem": "Given a base-26 encoded string `\"AZ\"` (where `A=0`, `Z=25`), decode it to a decimal integer by treating it as a base-26 number. For `\"AZ\"`, compute `0*26 + 25 = 25`. Print the result for `\"BCZ\"`.",
+    "answer": "local b26 = \"BCZ\"\nlocal alpha26 = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"\nlocal decoded = 0\nfor (i: 1 .. b26.textLen()) {\n  local val = alpha26.indexOf(b26.segment(i,1)) - 1\n  decoded = decoded * 26 + val\n}\nprintln(decoded)"
+  },
+  "3270": {
+    "problem": "Given the string `\"ATCGATCG\"`, compute the GC-content (percentage of `G` and `C` characters). Split into a list of characters, count `G` and `C`, divide by total length, multiply by 100, and print with 1 decimal place.",
+    "answer": "local dna = \"ATCGATCG\"\nlocal gcCount = 0\nfor (i: 1 .. dna.textLen()) {\n  local ch = dna.segment(i,1)\n  if (ch === \"G\" || ch === \"C\") { gcCount = gcCount + 1 }\n}\nprintln(formatDecimal(gcCount / dna.textLen() * 100, 1))"
+  },
+  "3276": {
+    "problem": "For the Morse code `\"... --- ...\"`, count the total number of dots and dashes separately after splitting by space. Compute the dot-to-dash ratio and print with 2 decimal places.",
+    "answer": "local morse = \"... --- ...\"\nlocal mparts = morse.split(\" \")\nlocal dots = 0\nlocal dashes = 0\nfor (part in mparts) {\n  for (i: 1 .. part.textLen()) {\n    if (part.segment(i,1) === \".\") { dots = dots + 1 }\n    if (part.segment(i,1) === \"-\") { dashes = dashes + 1 }\n  }\n}\nprintln(formatDecimal(dots / dashes, 2))"
+  },
+  "3280": {
+    "problem": "Given two strings `\"ABCBDAB\"` and `\"BDCAB\"`, compute the length of the shortest common supersequence using the formula `len(s1) + len(s2) - LCS_length`. Print the length (expected: 9).",
+    "answer": "local su1 = \"ABCBDAB\"\nlocal su2 = \"BDCAB\"\nlocal sm = su1.textLen()\nlocal sn = su2.textLen()\nlocal dpS = []\nfor (i: 0 .. sm) {\n  local row = []\n  for (j: 0 .. sn) { row.add(0) }\n  dpS.add(row)\n}\nfor (i: 1 .. sm) {\n  for (j: 1 .. sn) {\n    if (su1.segment(i,1) === su2.segment(j,1)) {\n      dpS[i][j] = dpS[i-1][j-1] + 1\n    } else {\n      dpS[i][j] = if (dpS[i-1][j] > dpS[i][j-1]) dpS[i-1][j] else dpS[i][j-1]\n    }\n  }\n}\nlocal lcsLen = dpS[sm][sn]\nprintln(sm + sn - lcsLen)"
+  },
+  "3284": {
+    "problem": "For `\"aababab\"`, find the longest substring that starts and ends with the same character (excluding trivial single-character substrings). Try all pairs of positions with the same character and track the maximum length.",
+    "answer": "local str3284 = \"aababab\"\nlocal maxLen3284 = 0\nfor (i: 1 .. str3284.textLen()) {\n  for (j: i + 2 .. str3284.textLen()) {\n    if (str3284.segment(i,1) === str3284.segment(j,1)) {\n      local len = j - i + 1\n      if (len > maxLen3284) { maxLen3284 = len }\n    }\n  }\n}\nprintln(maxLen3284)"
+  },
+  "3289": {
+    "problem": "Given the base-2 string `\"11010110\"`, apply a bitwise NOT (flip each `0` to `1` and vice versa) using string manipulation, then convert both original and flipped strings to decimal using `binToDec` and verify they sum to 255.",
+    "answer": "local bits = \"11010110\"\nlocal flipped = \"\"\nfor (i: 1 .. bits.textLen()) {\n  if (bits.segment(i,1) === \"1\") { flipped = flipped _ \"0\" } else { flipped = flipped _ \"1\" }\n}\nprintln(binToDec(bits) _ \" + \" _ binToDec(flipped) _ \" = \" _ (binToDec(bits) + binToDec(flipped)))"
+  },
+  "3295": {
+    "problem": "Implement string similarity using cosine similarity on character bigram vectors: compute bigrams for `\"hello\"` and `\"helo\"`, build frequency vectors, and compute cosine similarity. Print with 4 decimal places.",
+    "answer": "local h1 = \"hello\"\nlocal h2 = \"helo\"\nfunc getBigrams(s) = {\n  local bg = {}\n  for (i: 1 .. s.textLen() - 1) {\n    local gram = s.segment(i,2)\n    bg.set(gram, bg.get(gram, 0) + 1)\n  }\n  bg\n}\nlocal bg1 = getBigrams(h1)\nlocal bg2 = getBigrams(h2)\nlocal allKeys = []\nfor (k, v in bg1) { if (!allKeys.containsItem(k)) { allKeys.add(k) } }\nfor (k, v in bg2) { if (!allKeys.containsItem(k)) { allKeys.add(k) } }\nlocal dot = 0\nlocal mag1 = 0\nlocal mag2 = 0\nfor (k in allKeys) {\n  local v1 = bg1.get(k, 0)\n  local v2 = bg2.get(k, 0)\n  dot = dot + v1 * v2\n  mag1 = mag1 + v1 * v1\n  mag2 = mag2 + v2 * v2\n}\nlocal cosim = if (mag1 > 0 && mag2 > 0) dot / (sqrt(mag1) * sqrt(mag2)) else 0\nprintln(formatDecimal(cosim, 4))"
+  },
+  "3303": {
+    "problem": "Implement `titleCase(s)` that converts a string to title case: the first letter of each word uppercase, remaining letters lowercase. Test with `\"the quick BROWN fox\"` expecting `\"The Quick Brown Fox\"`.",
+    "answer": "func titleCase(s) = {\n  local words = s.splitAtSpaces()\n  local result = []\n  for (word in words) {\n    result.add(word.segment(1,1).uppercase() _ word.segment(2, word.textLen()-1).lowercase())\n  }\n  result.join(\" \")\n}\nprintln(titleCase(\"the quick BROWN fox\"))"
+  },
+  "3309": {
+    "problem": "Write `countOccurrences(text, pattern)` returning the number of times `pattern` appears in `text` as a substring (non-overlapping). Test with `text = \"abababab\"`, `pattern = \"aba\"` expecting `2`.",
+    "answer": "func countOccurrences(text, pattern) = {\n  local count = 0\n  local plen = pattern.textLen()\n  local i = 1\n  while (i <= text.textLen() - plen + 1) {\n    if (text.segment(i, plen) === pattern) {\n      count = count + 1\n      i = i + plen\n    } else {\n      i = i + 1\n    }\n  }\n  count\n}\nprintln(countOccurrences(\"abababab\", \"aba\"))"
+  },
+  "3314": {
+    "problem": "Implement `zigzagEncode(s, rows)` that encodes string `s` in a zigzag pattern across `rows` rows. For `s = \"PAYPALISHIRING\"` and `rows = 3`, return `\"PAHNAPLSIIGYIR\"`.",
+    "answer": "func zigzagEncode(s, rows) = {\n  local rowStrs = []\n  for (i: 1 .. rows) { rowStrs.add(\"\") }\n  local row = 1\n  local dir = 1\n  for (i: 1 .. s.textLen()) {\n    rowStrs[row] = rowStrs[row] _ s.segment(i,1)\n    if (row == rows) { dir = -1 }\n    if (row == 1) { dir = 1 }\n    row = row + dir\n  }\n  rowStrs.join(\"\")\n}\nprintln(zigzagEncode(\"PAYPALISHIRING\", 3))"
+  },
+  "3320": {
+    "problem": "Implement `mostFrequentChar(s)` returning the character that appears most often in `s`. Ignore spaces. If there's a tie, return the one that appears first in the string.",
+    "answer": "func mostFrequentChar(s) = {\n  local freq = {}\n  local order = []\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i,1)\n    if (ch !== \" \") {\n      freq.set(ch, freq.get(ch, 0) + 1)\n      if (!order.containsItem(ch)) { order.add(ch) }\n    }\n  }\n  local best = 0\n  local bestCh = \"\"\n  for (ch in order) {\n    if (freq.get(ch, 0) > best) {\n      best = freq.get(ch, 0)\n      bestCh = ch\n    }\n  }\n  bestCh\n}\nprintln(mostFrequentChar(\"aabbccdddee\"))"
+  },
+  "3324": {
+    "problem": "Implement `countDistinctSubstrings(s)` that counts all distinct substrings (excluding empty string). For `\"abc\"` return `6`. Use a dict to track seen substrings.",
+    "answer": "func countDistinctSubstrings(s) = {\n  local seen = {}\n  for (i: 1 .. s.textLen()) {\n    for (j: i .. s.textLen()) {\n      seen.set(s.segment(i, j-i+1), true)\n    }\n  }\n  seen.dictLen()\n}\nprintln(countDistinctSubstrings(\"abc\"))"
+  },
+  "3332": {
+    "problem": "Implement `slugify(text)` that converts a title into a URL slug: lowercase all characters, replace spaces with `\"-\"`, and remove any characters that are not alphanumeric or hyphens.",
+    "answer": "func slugify(text) = {\n  local s = text.lowercase()\n  local result = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i,1)\n    local alphanums = \"abcdefghijklmnopqrstuvwxyz0123456789\"\n    if (ch === \" \") {\n      result = result _ \"-\"\n    } else if (alphanums.contains(ch)) {\n      result = result _ ch\n    }\n  }\n  result\n}\nprintln(slugify(\"Hello World! This is a Test.\"))"
+  },
+  "3338": {
+    "problem": "Implement `longestPalindromicSubstring(s)` using the expand-around-center approach. For `\"babad\"` return `\"bab\"`. For `\"cbbd\"` return `\"bb\"`.",
+    "answer": "func longestPalindromicSubstring(s) = {\n  local start = 1\n  local maxLen = 1\n  func expand(l, r) {\n    while (l >= 1 && r <= s.textLen() && s.segment(l,1) === s.segment(r,1)) {\n      if (r - l + 1 > maxLen) {\n        maxLen = r - l + 1\n        start = l\n      }\n      l = l - 1\n      r = r + 1\n    }\n  }\n  for (i: 1 .. s.textLen()) {\n    expand(i, i)\n    expand(i, i+1)\n  }\n  s.segment(start, maxLen)\n}\nprintln(longestPalindromicSubstring(\"babad\"))\nprintln(longestPalindromicSubstring(\"cbbd\"))"
+  },
+  "3342": {
+    "problem": "Implement `encodeStringURL(s)` that replaces spaces with `\"%20\"` and characters from `[\"!\",\"@\",\"#\",\"$\",\"%\"]` with their percent-encoded equivalents (`%21`, `%40`, etc.). Process character by character.",
+    "answer": "func encodeStringURL(s) = {\n  local map = {\" \": \"%20\", \"!\": \"%21\", \"@\": \"%40\", \"#\": \"%23\", \"$\": \"%24\", \"%\": \"%25\"}\n  local result = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i,1)\n    result = result _ map.get(ch, ch)\n  }\n  result\n}\nprintln(encodeStringURL(\"Hello World! Price is $100 #tag\"))"
+  },
+  "3348": {
+    "problem": "Implement `boyerMooreHeuristic(text, pattern)` using a simplified bad-character heuristic: build a dict of last occurrence of each character in `pattern`, then scan right-to-left in the window, shifting by the bad-character rule.",
+    "answer": "func boyerMooreHeuristic(text, pattern) = {\n  local plen = pattern.textLen()\n  local tlen = text.textLen()\n  local badChar = {}\n  for (i: 1 .. plen) {\n    badChar.set(pattern.segment(i,1), i)\n  }\n  local matches = []\n  local s = 1\n  while (s <= tlen - plen + 1) {\n    local j = plen\n    while (j >= 1 && pattern.segment(j,1) === text.segment(s+j-1,1)) {\n      j = j - 1\n    }\n    if (j == 0) {\n      matches.add(s)\n      s = s + 1\n    } else {\n      local bc = badChar.get(text.segment(s+j-1,1), 0)\n      local shift = j - bc\n      s = s + if (shift > 1) shift else 1\n    }\n  }\n  matches\n}\nprintln(boyerMooreHeuristic(\"ABCABCABC\",\"ABC\"))"
+  },
+  "3363": {
+    "problem": "Write `parseCSVLine(line)` that parses a single CSV line respecting quoted fields. Fields enclosed in `\"...\"` may contain commas; the function should return a list of field strings with quotes removed.",
+    "answer": "func parseCSVLine(line) = {\n  local fields = []\n  local current = \"\"\n  local inQuotes = false\n  for (i: 1 .. line.textLen()) {\n    local ch = line.segment(i,1)\n    if (ch === \"\\\"\") {\n      inQuotes = !inQuotes\n    } else if (ch === \",\" && !inQuotes) {\n      fields.add(current)\n      current = \"\"\n    } else {\n      current = current _ ch\n    }\n  }\n  fields.add(current)\n  fields\n}\nprintln(parseCSVLine(\"name,\\\"Smith, John\\\",age,\\\"30\\\"\"))"
+  },
+  "3380": {
+    "problem": "Implement `findRepeatingPattern(s)` that finds the shortest string `p` such that `s` is formed by repeating `p` some number of times. For `\"ababab\"` return `\"ab\"`. For `\"abcabc\"` return `\"abc\"`. For `\"abcd\"` return `\"abcd\"`.",
+    "answer": "func findRepeatingPattern(s) = {\n  local n = s.textLen()\n  local result = s\n  for (len: 1 .. n / 2) {\n    if (n % len == 0) {\n      local pat = s.segment(1, len)\n      local repeated = \"\"\n      for (k: 1 .. n / len) { repeated = repeated _ pat }\n      if (repeated === s) {\n        result = pat\n        len = n\n      }\n    }\n  }\n  result\n}\nprintln(findRepeatingPattern(\"ababab\"))\nprintln(findRepeatingPattern(\"abcabc\"))\nprintln(findRepeatingPattern(\"abcd\"))"
+  },
+  "3386": {
+    "problem": "Implement `jaroSimilarity(s1, s2)` computing the Jaro similarity. Find matching characters (within `floor(max(len)/2) - 1` window) and transpositions, then apply the Jaro formula. Print for `\"MARTHA\"` vs `\"MARHTA\"`.",
+    "answer": "func jaroSimilarity(s1, s2) = {\n  local l1 = s1.textLen()\n  local l2 = s2.textLen()\n  local matchWindow = floor((if (l1 > l2) l1 else l2) / 2) - 1\n  local s1matched = []\n  local s2matched = []\n  for (i: 1 .. l1) { s1matched.add(false) }\n  for (i: 1 .. l2) { s2matched.add(false) }\n  local matches = 0\n  for (i: 1 .. l1) {\n    local lo = if (i - matchWindow > 1) i - matchWindow else 1\n    local hi = if (i + matchWindow < l2) i + matchWindow else l2\n    for (j: lo .. hi) {\n      if (!s2matched[j] && !s1matched[i] && s1.segment(i,1) === s2.segment(j,1)) {\n        s1matched[i] = true\n        s2matched[j] = true\n        matches = matches + 1\n      }\n    }\n  }\n  if (matches == 0) {\n    0\n  } else {\n    local trans = 0\n    local k = 1\n    for (i: 1 .. l1) {\n      if (s1matched[i]) {\n        while (k <= l2 && !s2matched[k]) { k = k + 1 }\n        if (k <= l2 && s1.segment(i,1) !== s2.segment(k,1)) { trans = trans + 1 }\n        k = k + 1\n      }\n    }\n    (matches/l1 + matches/l2 + (matches - trans/2)/matches) / 3\n  }\n}\nprintln(jaroSimilarity(\"MARTHA\",\"MARHTA\"))"
+  },
+  "3391": {
+    "problem": "Write `longestSubstringKDistinct(s, k)` returning the length of the longest substring containing at most `k` distinct characters. Use a sliding window and a character count dict.",
+    "answer": "func longestSubstringKDistinct(s, k) = {\n  local freq = {}\n  local left = 1\n  local maxLen = 0\n  for (right: 1 .. s.textLen()) {\n    local ch = s.segment(right,1)\n    freq.set(ch, freq.get(ch, 0) + 1)\n    while (freq.dictLen() > k) {\n      local lch = s.segment(left,1)\n      freq.set(lch, freq.get(lch, 0) - 1)\n      if (freq.get(lch, 0) == 0) { freq.delete(lch) }\n      left = left + 1\n    }\n    if (right - left + 1 > maxLen) { maxLen = right - left + 1 }\n  }\n  maxLen\n}\nprintln(longestSubstringKDistinct(\"eceba\", 2))"
+  },
+  "3396": {
+    "problem": "Implement `compressZlib(s)` using LZ77-style compression: scan left to right, replacing repeated substrings with `(offset, length)` back-references. Return a list alternating between literal characters and reference tuples.",
+    "answer": "func compressZlib(s) = {\n  local result = []\n  local i = 1\n  while (i <= s.textLen()) {\n    local bestLen = 0\n    local bestOff = 0\n    for (j: 1 .. i - 1) {\n      local len = 0\n      while (i + len <= s.textLen() && s.segment(j+len,1) === s.segment(i+len,1) && len < 10) {\n        len = len + 1\n      }\n      if (len > bestLen) {\n        bestLen = len\n        bestOff = i - j\n      }\n    }\n    if (bestLen >= 3) {\n      result.add([bestOff, bestLen])\n      i = i + bestLen\n    } else {\n      result.add(s.segment(i,1))\n      i = i + 1\n    }\n  }\n  result\n}\nprintln(compressZlib(\"abcabcabc\"))"
+  },
+  "3405": {
+    "problem": "Write `extractMarkdown(text)` that parses simple Markdown: detect `**bold**` (wrap in `[BOLD]`), `_italic_` (wrap in `[ITALIC]`), and `# Heading` (wrap in `[H1]`). Return the converted text.",
+    "answer": "func extractMarkdown(text) = {\n  local result = text\n  local i = 1\n  local out = \"\"\n  while (i <= result.textLen()) {\n    if (i <= result.textLen() - 1 && result.segment(i,2) === \"**\") {\n      local end = i + 2\n      local content = \"\"\n      while (end <= result.textLen() - 1 && result.segment(end,2) !== \"**\") {\n        content = content _ result.segment(end,1)\n        end = end + 1\n      }\n      out = out _ \"[BOLD]\" _ content _ \"[/BOLD]\"\n      i = end + 2\n    } else if (result.segment(i,1) === \"_\") {\n      local end = i + 1\n      local content = \"\"\n      while (end <= result.textLen() && result.segment(end,1) !== \"_\") {\n        content = content _ result.segment(end,1)\n        end = end + 1\n      }\n      out = out _ \"[ITALIC]\" _ content _ \"[/ITALIC]\"\n      i = end + 1\n    } else if (i == 1 && result.segment(i,2) === \"# \") {\n      out = \"[H1]\" _ result.segment(3, result.textLen()-2) _ \"[/H1]\"\n      i = result.textLen() + 1\n    } else {\n      out = out _ result.segment(i,1)\n      i = i + 1\n    }\n  }\n  out\n}\nprintln(extractMarkdown(\"**bold** and _italic_ text\"))\nprintln(extractMarkdown(\"# Heading\"))"
+  },
+  "3410": {
+    "problem": "Implement `countSyllables(word)` estimating syllable count: count vowel groups (consecutive vowels count as one), subtract 1 if the word ends in silent `e`, with minimum of 1. Test `\"beautiful\"` \u2192 3, `\"cake\"` \u2192 1.",
+    "answer": "func countSyllables(word) = {\n  local vowels = \"aeiouAEIOU\"\n  local count = 0\n  local prevVowel = false\n  local w = word.lowercase()\n  for (i: 1 .. w.textLen()) {\n    local isVowel = vowels.contains(w.segment(i,1))\n    if (isVowel && !prevVowel) { count = count + 1 }\n    prevVowel = isVowel\n  }\n  if (w.textLen() > 1 && w.segment(w.textLen(),1) === \"e\") {\n    count = count - 1\n  }\n  if (count < 1) { 1 } else { count }\n}\nprintln(countSyllables(\"beautiful\"))\nprintln(countSyllables(\"cake\"))"
+  },
+  "3414": {
+    "problem": "Implement `stemWord(word)` applying basic Porter stemmer rules: remove trailing `\"ing\"`, `\"ed\"`, `\"ly\"`, `\"er\"` suffixes if the remaining stem is at least 3 characters. Return the stemmed word.",
+    "answer": "func stemWord(word) = {\n  local suffixes = [\"ing\",\"ed\",\"ly\",\"er\"]\n  local result = word\n  for (suf in suffixes) {\n    local slen = suf.textLen()\n    local wlen = word.textLen()\n    if (wlen > slen + 3 && word.segment(wlen - slen + 1, slen) === suf) {\n      result = word.segment(1, wlen - slen)\n      suf = suffixes[suffixes.listLen()]\n    }\n  }\n  result\n}\nprintln(stemWord(\"running\"))\nprintln(stemWord(\"jumped\"))\nprintln(stemWord(\"quickly\"))"
+  },
+  "3419": {
+    "problem": "Write `detectEncoding(s)` that checks if a string appears to be base64 (only contains base64 characters and length divisible by 4), hexadecimal (only 0-9a-f), or plain ASCII. Return `\"base64\"`, `\"hex\"`, or `\"ascii\"`.",
+    "answer": "func detectEncoding(s) = {\n  local b64chars = \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\"\n  local hexchars = \"0123456789abcdefABCDEF\"\n  local isB64 = s.textLen() % 4 == 0\n  local isHex = true\n  local isB64Valid = true\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i,1)\n    if (!b64chars.contains(ch)) { isB64Valid = false }\n    if (!hexchars.contains(ch)) { isHex = false }\n  }\n  if (isB64 && isB64Valid) {\n    \"base64\"\n  } else if (isHex) {\n    \"hex\"\n  } else {\n    \"ascii\"\n  }\n}\nprintln(detectEncoding(\"SGVsbG8=\"))\nprintln(detectEncoding(\"1a2b3c\"))\nprintln(detectEncoding(\"Hello World\"))"
+  },
+  "3424": {
+    "problem": "Implement `intToRoman(n)` converting a positive integer to a Roman numeral. Use a list of `(value, symbol)` pairs including all subtraction pairs. Test `n = 3749` \u2192 `\"MMMDCCXLIX\"`.",
+    "answer": "func intToRoman(n) = {\n  local vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1]\n  local syms = [\"M\",\"CM\",\"D\",\"CD\",\"C\",\"XC\",\"L\",\"XL\",\"X\",\"IX\",\"V\",\"IV\",\"I\"]\n  local result = \"\"\n  local num = n\n  for (i: 1 .. vals.listLen()) {\n    while (num >= vals[i]) {\n      result = result _ syms[i]\n      num = num - vals[i]\n    }\n  }\n  result\n}\nprintln(intToRoman(3749))"
+  },
+  "3428": {
+    "problem": "Implement `expandCamelCase(s)` that converts a camelCase string to space-separated words. For `\"camelCaseString\"` return `\"camel Case String\"` and for `\"XMLParser\"` return `\"X M L Parser\"`.",
+    "answer": "func expandCamelCase(s) = {\n  local result = s.segment(1,1)\n  local uppers = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n  for (i: 2 .. s.textLen()) {\n    local ch = s.segment(i,1)\n    if (uppers.contains(ch)) {\n      result = result _ \" \" _ ch\n    } else {\n      result = result _ ch\n    }\n  }\n  result\n}\nprintln(expandCamelCase(\"camelCaseString\"))\nprintln(expandCamelCase(\"XMLParser\"))"
+  },
+  "3435": {
+    "problem": "Write `topKFrequent(words, k)` taking a list of words and returning the `k` most frequent ones. Use a frequency dict, then select top `k` by count. Return only the words (not counts).",
+    "answer": "func topKFrequent(words, k) = {\n  local freq = {}\n  for (w in words) {\n    freq.set(w, freq.get(w, 0) + 1)\n  }\n  local pairs = []\n  for (w, c in freq) { pairs.add([c, w]) }\n  pairs.sort()\n  pairs.reverseList()\n  local result = []\n  for (i: 1 .. k) {\n    if (i <= pairs.listLen()) { result.add(pairs[i][2]) }\n  }\n  result\n}\nprintln(topKFrequent([\"apple\",\"banana\",\"apple\",\"cherry\",\"banana\",\"apple\"], 2))"
+  },
+  "3441": {
+    "problem": "Write `groupByFirstChar(words)` taking a list of words and returning a dict mapping each first character to the list of words starting with that character. Preserve original order within each group.",
+    "answer": "func groupByFirstChar(words) = {\n  local result = {}\n  for (word in words) {\n    local fc = word.segment(1,1)\n    if (!result.containsKey(fc)) { result.set(fc, []) }\n    result.get(fc, []).add(word)\n  }\n  result\n}\nprintln(groupByFirstChar([\"apple\",\"ant\",\"banana\",\"bear\",\"cherry\",\"cat\"]))"
+  },
+  "3447": {
+    "problem": "Write `buildWordIndex(sentences)` where `sentences` is a list of strings. Return a dict mapping each word to a list of `[sentenceIndex, wordPosition]` pairs (both 1-based).",
+    "answer": "func buildWordIndex(sentences) = {\n  local index = {}\n  for (si: 1 .. sentences.listLen()) {\n    local words = sentences[si].splitAtSpaces()\n    for (wi: 1 .. words.listLen()) {\n      local w = words[wi]\n      if (!index.containsKey(w)) { index.set(w, []) }\n      index.get(w, []).add([si, wi])\n    }\n  }\n  index\n}\nprintln(buildWordIndex([\"the cat sat\",\"the cat ate\",\"a cat napped\"]))"
+  },
+  "3453": {
+    "problem": "Write `longestNonRepeatingList(words)` finding the longest sublist of `words` containing all distinct strings. Use a sliding window with a dict tracking current window contents.",
+    "answer": "func longestNonRepeatingList(words) = {\n  local freq = {}\n  local left = 1\n  local maxLen = 0\n  for (right: 1 .. words.listLen()) {\n    local w = words[right]\n    freq.set(w, freq.get(w, 0) + 1)\n    while (freq.get(w, 0) > 1) {\n      local lw = words[left]\n      freq.set(lw, freq.get(lw, 0) - 1)\n      if (freq.get(lw, 0) == 0) { freq.delete(lw) }\n      left = left + 1\n    }\n    if (right - left + 1 > maxLen) { maxLen = right - left + 1 }\n  }\n  maxLen\n}\nprintln(longestNonRepeatingList([\"a\",\"b\",\"c\",\"a\",\"b\",\"d\",\"e\"]))"
+  },
+  "3459": {
+    "problem": "Write `countUniqueSubstrings(chars, suffixArr, lcpArr)` using the formula `n*(n+1)/2 - sum(lcpArr)` to count distinct non-empty substrings of the character list.",
+    "answer": "func countUniqueSubstrings(chars, suffixArr, lcpArr) = {\n  local n = chars.listLen()\n  local total = n * (n + 1) / 2\n  local lcpSum = lcpArr.reduce(0) { x, acc -> x + acc }\n  total - lcpSum\n}\nprintln(countUniqueSubstrings(\"abc\".split(\"\"), [1,2,3], [0,0,1]))"
+  },
+  "3464": {
+    "problem": "Implement `buildSkipBigrams(wordList, k)` generating skip-k bigrams: all pairs `[w1, w2]` where `w2` appears exactly `k` positions after `w1` in `wordList`.",
+    "answer": "func buildSkipBigrams(wordList, k) = {\n  local result = []\n  for (i: 1 .. wordList.listLen() - k) {\n    result.add([wordList[i], wordList[i+k]])\n  }\n  result\n}\nprintln(buildSkipBigrams([\"the\",\"quick\",\"brown\",\"fox\",\"jumps\"], 2))"
+  },
+  "3475": {
+    "problem": "Write `buildBagOfWords(sentences)` where `sentences` is a list of strings. Return a dict mapping each unique word (across all sentences) to a list of per-sentence counts.",
+    "answer": "func buildBagOfWords(sentences) = {\n  local allWords = []\n  local tokenized = []\n  for (s in sentences) {\n    local words = s.splitAtSpaces()\n    tokenized.add(words)\n    for (w in words) {\n      if (!allWords.containsItem(w)) { allWords.add(w) }\n    }\n  }\n  local result = {}\n  for (w in allWords) {\n    local counts = []\n    for (ws in tokenized) {\n      local cnt = 0\n      for (tw in ws) { if (tw === w) { cnt = cnt + 1 } }\n      counts.add(cnt)\n    }\n    result.set(w, counts)\n  }\n  result\n}\nprintln(buildBagOfWords([\"the cat sat\",\"the dog ran\",\"cat and dog\"]))"
+  },
+  "3481": {
+    "problem": "Write `buildAnagramBuckets(words)` returning a list of lists where each inner list contains all anagrams of each other from `words`. Words not sharing anagrams with anyone else are in singleton lists.",
+    "answer": "func buildAnagramBuckets(words) = {\n  local groups = {}\n  for (word in words) {\n    local chars = word.split(\"\")\n    chars.sort()\n    local key = chars.join(\"\")\n    if (!groups.containsKey(key)) { groups.set(key, []) }\n    groups.get(key, []).add(word)\n  }\n  groups.values()\n}\nprintln(buildAnagramBuckets([\"eat\",\"tea\",\"tan\",\"ate\",\"nat\",\"bat\",\"cat\"]))"
+  },
+  "3489": {
+    "problem": "Write `detectPatternList(chars, pattern)` where both `chars` and `pattern` are lists of characters. Return all 1-based starting positions of `pattern` in `chars` using naive matching.",
+    "answer": "func detectPatternList(chars, pattern) = {\n  local plen = pattern.listLen()\n  local clen = chars.listLen()\n  local matches = []\n  for (i: 1 .. clen - plen + 1) {\n    local ok = true\n    for (j: 1 .. plen) {\n      if (chars[i+j-1] !== pattern[j]) { ok = false }\n    }\n    if (ok) { matches.add(i) }\n  }\n  matches\n}\nprintln(detectPatternList(\"abcabcabc\".split(\"\"), \"abc\".split(\"\")))"
+  },
+  "3493": {
+    "problem": "Write `getAllMatchesMultiPattern(text, patternList)` returning a dict mapping each pattern to its list of match positions in `text`. Process each pattern independently.",
+    "answer": "func getAllMatchesMultiPattern(text, patternList) = {\n  local result = {}\n  for (pattern in patternList) {\n    local positions = []\n    local plen = pattern.textLen()\n    for (i: 1 .. text.textLen() - plen + 1) {\n      if (text.segment(i, plen) === pattern) { positions.add(i) }\n    }\n    result.set(pattern, positions)\n  }\n  result\n}\nprintln(getAllMatchesMultiPattern(\"abcabcabc\", [\"abc\",\"ab\",\"c\"]))"
+  },
+  "3500": {
+    "problem": "Implement `buildStringStats(words)` returning a dict with keys `\"minLen\"`, `\"maxLen\"`, `\"avgLen\"`, `\"totalChars\"`, `\"uniqueChars\"` (count of distinct characters across all words), and `\"mostCommonWord\"`.",
+    "answer": "func buildStringStats(words) = {\n  local minLen = 999999\n  local maxLen = 0\n  local totalChars = 0\n  local allChars = {}\n  local freqW = {}\n  for (w in words) {\n    local l = w.textLen()\n    if (l < minLen) { minLen = l }\n    if (l > maxLen) { maxLen = l }\n    totalChars = totalChars + l\n    freqW.set(w, freqW.get(w, 0) + 1)\n    for (i: 1 .. l) { allChars.set(w.segment(i,1), true) }\n  }\n  local best = 0\n  local bestWord = \"\"\n  for (w, c in freqW) {\n    if (c > best) { best = c bestWord = w }\n  }\n  {\"minLen\": minLen, \"maxLen\": maxLen, \"avgLen\": totalChars / words.listLen(), \"totalChars\": totalChars, \"uniqueChars\": allChars.dictLen(), \"mostCommonWord\": bestWord}\n}\nprintln(buildStringStats([\"apple\",\"banana\",\"apple\",\"cherry\",\"banana\",\"apple\"]))"
+  },
+  "3507": {
+    "problem": "Write `buildCharAlignmentMatrix(s1, s2)` for needleman-wunsch alignment: initialize with gap penalties along borders, fill with match/mismatch/gap scores, return the score matrix and the aligned strings.",
+    "answer": "func buildCharAlignmentMatrix(s1, s2) = {\n  local m = s1.textLen()\n  local n = s2.textLen()\n  local match = 1\n  local mismatch = -1\n  local gap = -2\n  local dp = []\n  for (i: 0 .. m) {\n    local row = []\n    for (j: 0 .. n) { row.add(0) }\n    dp.add(row)\n  }\n  for (i: 0 .. m) { dp[i][1] = i * gap }\n  for (j: 0 .. n) { dp[1][j] = j * gap }\n  for (i: 2 .. m + 1) {\n    for (j: 2 .. n + 1) {\n      local score = if (s1.segment(i-1,1) === s2.segment(j-1,1)) match else mismatch\n      local diag = dp[i-1][j-1] + score\n      local up = dp[i-1][j] + gap\n      local left = dp[i][j-1] + gap\n      dp[i][j] = if (diag > up && diag > left) diag else if (up > left) up else left\n    }\n  }\n  dp\n}\nprintln(buildCharAlignmentMatrix(\"ACGT\",\"AGT\"))"
+  },
+  "3511": {
+    "problem": "Write `buildCharToIndex(alphabet)` that maps each character in `alphabet` string to its 0-based position. For `\"abcde\"` return `{\"a\":0,\"b\":1,\"c\":2,\"d\":3,\"e\":4}`.",
+    "answer": "func buildCharToIndex(alphabet) = {\n  local result = {}\n  for (i: 1 .. alphabet.textLen()) {\n    result.set(alphabet.segment(i,1), i - 1)\n  }\n  result\n}\nprintln(buildCharToIndex(\"abcde\"))"
+  },
+  "3519": {
+    "problem": "Write `invertDict(d)` inverting a dict: values become keys mapping to lists of original keys with that value. For `{\"a\":1,\"b\":2,\"c\":1}` return `{1:[\"a\",\"c\"],2:[\"b\"]}`.",
+    "answer": "func invertDict(d) = {\n  local result = {}\n  for (k, v in d) {\n    if (!result.containsKey(v)) { result.set(v, []) }\n    result.get(v, []).add(k)\n  }\n  result\n}\nprintln(invertDict({\"a\":1,\"b\":2,\"c\":1}))"
+  },
+  "3526": {
+    "problem": "Implement `findDictKeys(d, predicate_str)` that filters keys of dict `d` where a criterion holds \u2014 specifically, return all keys whose character length equals the integer associated with a `\"targetLen\"` key in a separate params dict.",
+    "answer": "func findDictKeys(d, params) = {\n  local targetLen = params.get(\"targetLen\", 0)\n  local result = []\n  for (k, v in d) {\n    if (k.textLen() == targetLen) { result.add(k) }\n  }\n  result\n}\nprintln(findDictKeys({\"apple\":1,\"cat\":2,\"dog\":3,\"elephant\":4,\"at\":5}, {\"targetLen\":3}))"
+  },
+  "3535": {
+    "problem": "Write `buildDictionaryIndex(entries)` where `entries` is a list of `{\"word\":w,\"definition\":d}` dicts. Build and return an inverted index mapping each word in definitions to the list of dictionary words whose definitions contain it.",
+    "answer": "func buildDictionaryIndex(entries) = {\n  local index = {}\n  for (entry in entries) {\n    local word = entry.get(\"word\",\"\")\n    local def = entry.get(\"definition\",\"\")\n    local defWords = def.splitAtSpaces()\n    for (dw in defWords) {\n      local dw2 = dw.lowercase()\n      if (!index.containsKey(dw2)) { index.set(dw2, []) }\n      if (!index.get(dw2, []).containsItem(word)) {\n        index.get(dw2, []).add(word)\n      }\n    }\n  }\n  index\n}\nprintln(buildDictionaryIndex([{\"word\":\"cat\",\"definition\":\"a small furry animal\"},{\"word\":\"dog\",\"definition\":\"a loyal furry pet\"}]))"
+  },
+  "3540": {
+    "problem": "Implement `reverseAbbreviation(abbr, abbrevDict)` looking up an abbreviation in the dict built by the previous function. Return the matching phrase or `\"Unknown\"` if not found.",
+    "answer": "func reverseAbbreviation(abbr, abbrevDict) = {\n  abbrevDict.get(abbr, \"Unknown\")\n}\nlocal abbrevDict = {\"ASAP\":\"As Soon As Possible\",\"FYI\":\"For Your Information\"}\nprintln(reverseAbbreviation(\"ASAP\", abbrevDict))\nprintln(reverseAbbreviation(\"LOL\", abbrevDict))"
+  },
+  "3547": {
+    "problem": "Write `buildRegexDFA(pattern)` for patterns with only `a-z` literals and `?` wildcard. Return a dict-based DFA (states and transitions) for the pattern `\"a?c\"`. Represent states as integers with dict of char\u2192next_state transitions.",
+    "answer": "func buildRegexDFA(pattern) = {\n  local states = {}\n  local n = pattern.textLen()\n  for (i: 0 .. n) { states.set(i, {}) }\n  for (i: 1 .. n) {\n    local ch = pattern.segment(i,1)\n    if (ch === \"?\") {\n      local alpha = \"abcdefghijklmnopqrstuvwxyz\"\n      for (j: 1 .. 26) {\n        states.get(i-1, {}).set(alpha.segment(j,1), i)\n      }\n    } else {\n      states.get(i-1, {}).set(ch, i)\n    }\n  }\n  {\"start\": 0, \"accept\": [n], \"transitions\": states}\n}\nprintln(buildRegexDFA(\"a?c\"))"
+  },
+  "3556": {
+    "problem": "Implement `buildDependencyDict(text)` for a simple rule-based parser: map each noun to the verb it's closest to in the sentence, creating a dict of noun\u2192verb dependency pairs.",
+    "answer": "func buildDependencyDict(text) = {\n  local words = text.splitAtSpaces()\n  local verbs = [\"is\",\"are\",\"was\",\"were\",\"run\",\"runs\",\"eat\",\"eats\",\"sits\",\"sat\",\"jumped\",\"sees\"]\n  local result = {}\n  for (i: 1 .. words.listLen()) {\n    local w = words[i].lowercase()\n    if (!verbs.containsItem(w)) {\n      local closestVerb = \"\"\n      local closestDist = 999999\n      for (j: 1 .. words.listLen()) {\n        local v = words[j].lowercase()\n        if (verbs.containsItem(v)) {\n          local dist = abs(i - j)\n          if (dist < closestDist) {\n            closestDist = dist\n            closestVerb = v\n          }\n        }\n      }\n      if (closestVerb !== \"\") { result.set(w, closestVerb) }\n    }\n  }\n  result\n}\nprintln(buildDependencyDict(\"The cat sits on the mat\"))"
+  },
+  "3565": {
+    "problem": "Write `buildTypoVariants(word)` generating common typo variants: insertions (insert each letter at each position), deletions (delete each character), substitutions (replace each char with each letter), transpositions. Return a dict of type\u2192list of variants.",
+    "answer": "func buildTypoVariants(word) = {\n  local alpha = \"abcdefghijklmnopqrstuvwxyz\"\n  local insertions = []\n  local deletions = []\n  local substitutions = []\n  local transpositions = []\n  for (i: 1 .. word.textLen() + 1) {\n    for (j: 1 .. 26) {\n      local ch = alpha.segment(j,1)\n      local before = word.segment(1, i-1)\n      local after = if (i <= word.textLen()) word.segment(i, word.textLen()-i+1) else \"\"\n      insertions.add(before _ ch _ after)\n    }\n  }\n  for (i: 1 .. word.textLen()) {\n    deletions.add(word.segment(1,i-1) _ word.segment(i+1, word.textLen()-i))\n  }\n  for (i: 1 .. word.textLen()) {\n    for (j: 1 .. 26) {\n      local ch = alpha.segment(j,1)\n      substitutions.add(word.segment(1,i-1) _ ch _ word.segment(i+1, word.textLen()-i))\n    }\n  }\n  for (i: 1 .. word.textLen() - 1) {\n    transpositions.add(word.segment(1,i-1) _ word.segment(i+1,1) _ word.segment(i,1) _ word.segment(i+2, word.textLen()-i-1))\n  }\n  {\"insertions\": insertions, \"deletions\": deletions, \"substitutions\": substitutions, \"transpositions\": transpositions}\n}\nlocal tv = buildTypoVariants(\"cat\")\nprintln(tv.get(\"deletions\",\"\"))\nprintln(tv.get(\"transpositions\",\"\"))"
+  },
+  "3573": {
+    "problem": "Write `buildStringMetricsDict(s1, s2)` computing multiple similarity metrics between `s1` and `s2`: `{\"editDistance\":n, \"lcsLength\":n, \"jaro\":f, \"commonBigrams\":n}` all in one dict.",
+    "answer": "func editDistance(s1, s2) = {\n  local m = s1.textLen()\n  local n = s2.textLen()\n  local dp = []\n  for (i: 0 .. m) {\n    local row = []\n    for (j: 0 .. n) { row.add(0) }\n    dp.add(row)\n  }\n  for (i: 0 .. m) { dp[i][1] = i }\n  for (j: 0 .. n) { dp[1][j] = j }\n  for (i: 2 .. m + 1) {\n    for (j: 2 .. n + 1) {\n      if (s1.segment(i-1,1) === s2.segment(j-1,1)) {\n        dp[i][j] = dp[i-1][j-1]\n      } else {\n        local a = dp[i-1][j] + 1\n        local b = dp[i][j-1] + 1\n        local c = dp[i-1][j-1] + 1\n        dp[i][j] = if (a < b && a < c) a else if (b < c) b else c\n      }\n    }\n  }\n  dp[m+1][n+1]\n}\nfunc lcsLength(s1, s2) = {\n  local m = s1.textLen()\n  local n = s2.textLen()\n  local dp = []\n  for (i: 0 .. m) {\n    local row = []\n    for (j: 0 .. n) { row.add(0) }\n    dp.add(row)\n  }\n  for (i: 1 .. m) {\n    for (j: 1 .. n) {\n      if (s1.segment(i,1) === s2.segment(j,1)) {\n        dp[i][j] = dp[i-1][j-1] + 1\n      } else {\n        dp[i][j] = if (dp[i-1][j] > dp[i][j-1]) dp[i-1][j] else dp[i][j-1]\n      }\n    }\n  }\n  dp[m][n]\n}\nfunc commonBigrams(s1, s2) = {\n  local bg1 = {}\n  local bg2 = {}\n  for (i: 1 .. s1.textLen()-1) { local g = s1.segment(i,2) bg1.set(g, bg1.get(g,0)+1) }\n  for (i: 1 .. s2.textLen()-1) { local g = s2.segment(i,2) bg2.set(g, bg2.get(g,0)+1) }\n  local count = 0\n  for (g, c in bg1) {\n    if (bg2.containsKey(g)) { count = count + if (c < bg2.get(g,0)) c else bg2.get(g,0) }\n  }\n  count\n}\nfunc buildStringMetricsDict(s1, s2) = {\n  {\"editDistance\": editDistance(s1,s2), \"lcsLength\": lcsLength(s1,s2), \"jaro\": jaroSimilarity(s1,s2), \"commonBigrams\": commonBigrams(s1,s2)}\n}\nprintln(buildStringMetricsDict(\"hello\",\"helo\"))"
+  },
+  "3578": {
+    "problem": "Implement `buildStopWordFilter(texts, threshold)` automatically identifying stop words: words appearing in more than `threshold` fraction of texts. Return a dict of stop_word\u2192fraction pairs.",
+    "answer": "func buildStopWordFilter(texts, threshold) = {\n  local wordInText = {}\n  local n = texts.listLen()\n  for (text in texts) {\n    local words = text.splitAtSpaces()\n    local seen = []\n    for (w in words) {\n      local wl = w.lowercase()\n      if (!seen.containsItem(wl)) {\n        seen.add(wl)\n        wordInText.set(wl, wordInText.get(wl, 0) + 1)\n      }\n    }\n  }\n  local result = {}\n  for (w, cnt in wordInText) {\n    local frac = cnt / n\n    if (frac > threshold) { result.set(w, frac) }\n  }\n  result\n}\nprintln(buildStopWordFilter([\"the cat sat\",\"the dog ran\",\"the bird flew\",\"a cat flew\"], 0.5))"
+  },
+  "3584": {
+    "problem": "Implement `buildChunkDict(text, delimiters)` splitting text on multiple delimiters (provided as a list of strings) and counting the frequency of each segment. Return a dict of segment\u2192count.",
+    "answer": "func buildChunkDict(text, delimiters) = {\n  local segments = [text]\n  for (delim in delimiters) {\n    local newSegs = []\n    for (seg in segments) {\n      local parts = seg.split(delim)\n      for (p in parts) {\n        local pt = p.trim()\n        if (pt.textLen() > 0) { newSegs.add(pt) }\n      }\n    }\n    segments = newSegs\n  }\n  local result = {}\n  for (seg in segments) {\n    result.set(seg, result.get(seg, 0) + 1)\n  }\n  result\n}\nprintln(buildChunkDict(\"hello world, foo bar; hello foo\", [\",\",\";\",\" \"]))"
+  },
+  "3591": {
+    "problem": "Write `textToColor(s)` that hashes the string `s` to an RGB color: compute a simple hash (e.g., sum of char positions mod 256 for R, sum alternating add/sub mod 256 for G, length-based formula for B), and return `makeColor([r,g,b])`.",
+    "answer": "func textToColor(s) = {\n  local r = 0\n  local g = 0\n  local b = 0\n  for (i: 1 .. s.textLen()) {\n    local code = \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\".indexOf(s.segment(i,1))\n    r = (r + code * i) % 256\n    g = (g + if (i % 2 == 0) code else 256 - code) % 256\n  }\n  b = s.textLen() * 17 % 256\n  makeColor([r, g, b])\n}\nprintln(textToColor(\"hello\"))\nprintln(textToColor(\"world\"))"
+  },
+  "3595": {
+    "problem": "Write `frequencyToColor(charFreq, maxFreq)` mapping a character frequency to a color intensity: higher frequency \u2192 darker color. Return `makeColor([intensity, intensity, intensity])` where intensity is `255 - floor(freq/maxFreq * 255)`.",
+    "answer": "func frequencyToColor(charFreq, maxFreq) = {\n  local intensity = 255 - floor(charFreq / maxFreq * 255)\n  makeColor([intensity, intensity, intensity])\n}\nprintln(frequencyToColor(10, 10))\nprintln(frequencyToColor(5, 10))\nprintln(frequencyToColor(0, 10))"
+  },
+  "3602": {
+    "problem": "Implement `buildSyntaxColorMap(keywords, types, literals)` creating a syntax-coloring dict mapping each keyword to `#FF0000`, each type to `#0000FF`, and each literal to `#008000`. Merge all three dicts.",
+    "answer": "func buildSyntaxColorMap(keywords, types, literals) = {\n  local result = {}\n  for (k in keywords) { result.set(k, #FF0000) }\n  for (t in types) { result.set(t, #0000FF) }\n  for (l in literals) { result.set(l, #008000) }\n  result\n}\nprintln(buildSyntaxColorMap([\"if\",\"else\",\"while\"],[\"int\",\"string\",\"bool\"],[\"true\",\"false\",\"null\"]))"
+  },
+  "3609": {
+    "problem": "Write `darkenColor(c, factor)` darkening a color by multiplying each RGB component by `factor` (between 0 and 1). Use `floor` to get integers, return `makeColor`.",
+    "answer": "func darkenColor(c, factor) = {\n  local r = floor(floor(c / 65536) % 256 * factor)\n  local g = floor(floor(c / 256) % 256 * factor)\n  local b = floor(c % 256 * factor)\n  makeColor([r, g, b])\n}\nprintln(darkenColor(makeColor([200, 150, 100]), 0.5))"
+  },
+  "3616": {
+    "problem": "Write a program using a `while` loop to find the smallest window in `\"abcabcabc\"` that contains at least one each of `\"a\"`, `\"b\"`, and `\"c\"`. Expand right until all three are present, then shrink left while still valid.",
+    "answer": "local win = \"abcabcabc\"\nlocal required = [\"a\",\"b\",\"c\"]\nlocal counts = {}\nlocal left = 1\nlocal right = 0\nlocal minLen = 999999\nlocal minStart = 1\nfunc allPresent(counts) = {\n  local ok = true\n  for (ch in required) {\n    if (counts.get(ch, 0) < 1) { ok = false }\n  }\n  ok\n}\nwhile (right < win.textLen()) {\n  right = right + 1\n  local ch = win.segment(right, 1)\n  counts.set(ch, counts.get(ch, 0) + 1)\n  while (allPresent(counts)) {\n    if (right - left + 1 < minLen) {\n      minLen = right - left + 1\n      minStart = left\n    }\n    local lch = win.segment(left, 1)\n    counts.set(lch, counts.get(lch, 0) - 1)\n    left = left + 1\n  }\n}\nprintln(\"Smallest window: \" _ win.segment(minStart, minLen) _ \" length=\" _ minLen)"
+  },
+  "3624": {
+    "problem": "Write a `for` loop implementing naive string matching: for `text = \"abacabab\"` and `pattern = \"abab\"`, check every possible starting position and print each match start (1-based).",
+    "answer": "local text3624 = \"abacabab\"\nlocal pattern3624 = \"abab\"\nfor (i: 1 .. text3624.textLen() - pattern3624.textLen() + 1) {\n  if (text3624.segment(i, pattern3624.textLen()) === pattern3624) {\n    println(\"Match at position: \" _ i)\n  }\n}"
+  },
+  "3631": {
+    "problem": "Implement a program using `for` loops to build a suffix automaton for `\"abbc\"`: create states and transitions iteratively. Print the number of states (should be at most `2n-1`).",
+    "answer": "local saWord = \"abbc\"\nlocal saLen = saWord.textLen()\nlocal saStates = [{}]\nlocal saLast = 1\nlocal saSize = 1\nfor (ci: 1 .. saLen) {\n  local ch = saWord.segment(ci, 1)\n  local cur = saSize + 1\n  saStates.add({})\n  saSize = saSize + 1\n  local p = saLast\n  while (p != 0 && !saStates[p].containsKey(ch)) {\n    saStates[p].set(ch, cur)\n    p = saStates[p].get(\"link\", 0)\n  }\n  saLast = cur\n}\nprintln(\"States: \" _ saStates.listLen())"
+  },
+  "3637": {
+    "problem": "Implement a `for` loop with `if/continue` to filter out words containing double letters from `[\"hello\",\"world\",\"apple\",\"sky\",\"moon\"]`. Print only words without consecutive duplicate characters.",
+    "answer": "local wordList3637 = [\"hello\",\"world\",\"apple\",\"sky\",\"moon\"]\nfor (word in wordList3637) {\n  local hasDouble = false\n  for (i: 1 .. word.textLen() - 1) {\n    if (word.segment(i,1) === word.segment(i+1,1)) {\n      hasDouble = true\n    }\n  }\n  if (!hasDouble) {\n    println(word)\n  }\n}"
+  },
+  "3645": {
+    "problem": "Implement a `while` loop for base-64 encoding of `\"Man\"`: convert each character to its ASCII value, combine 3 bytes into 24 bits, split into four 6-bit values, map to base64 alphabet characters.",
+    "answer": "local b64input = \"Man\"\nlocal b64alpha = \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/\"\nlocal asciiMap = {}\nlocal allChars = \" !\\\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\"\nfor (i: 1 .. allChars.textLen()) {\n  asciiMap.set(allChars.segment(i,1), i + 31)\n}\nlocal bytes = []\nfor (i: 1 .. b64input.textLen()) {\n  bytes.add(asciiMap.get(b64input.segment(i,1), 0))\n}\nlocal bits = 0\nfor (b in bytes) { bits = bits * 256 + b }\nlocal result3645 = \"\"\nlocal indices = []\nfor (i: 1 .. 4) {\n  indices.add(bits % 64)\n  bits = floor(bits / 64)\n}\nindices.reverseList()\nfor (idx in indices) {\n  result3645 = result3645 _ b64alpha.segment(idx + 1, 1)\n}\nprintln(result3645)"
+  },
+  "3658": {
+    "problem": "Write a `while` loop reading a compressed list `[\"a\",3,\"b\",2,\"c\",4]` (alternating char and count) and expanding it into the full string `\"aaabbbcccc\"` by repeating each character the specified number of times.",
+    "answer": "local compressed = [\"a\",3,\"b\",2,\"c\",4]\nlocal expanded = \"\"\nlocal ci3658 = 1\nwhile (ci3658 <= compressed.listLen()) {\n  local ch = compressed[ci3658]\n  local cnt = compressed[ci3658 + 1]\n  for (k: 1 .. cnt) { expanded = expanded _ ch }\n  ci3658 = ci3658 + 2\n}\nprintln(expanded)"
+  },
+  "3530": {
+    "problem": "Implement `buildHuffmanCodes(freqDict)` constructing Huffman codes. Build a priority queue (sorted list) of `[freq, char]` pairs, merge the two lowest-frequency nodes, and assign `\"0\"` / `\"1\"` prefix codes recursively.",
+    "answer": "func buildHuffmanCodes(freqDict) = {\n  local heap = []\n  for (ch, freq in freqDict) {\n    heap.add([freq, ch, {}])\n  }\n  heap.sort()\n  while (heap.listLen() > 1) {\n    local a = heap[1]\n    heap.remove(1)\n    local b = heap[1]\n    heap.remove(1)\n    local merged = [a[1] + b[1], a[2] _ b[2], {\"0\": a, \"1\": b}]\n    heap.add(merged)\n    heap.sort()\n  }\n  local codes = {}\n  func assign(node, prefix) {\n    if (node[3].dictLen() == 0) {\n      codes.set(node[2], prefix)\n    } else {\n      assign(node[3].get(\"0\", [0,\"\",{}]), prefix _ \"0\")\n      assign(node[3].get(\"1\", [0,\"\",{}]), prefix _ \"1\")\n    }\n  }\n  if (heap.listLen() > 0) { assign(heap[1], \"\") }\n  codes\n}\nprintln(buildHuffmanCodes({\"a\":5,\"b\":3,\"c\":1,\"d\":2}))"
+  },
+  "3246": {
+    "problem": "Given a list of words `[\"apple\",\"banana\",\"cherry\",\"date\",\"elderberry\"]`, compute the average word length using `avgOf()` after mapping words to their `.textLen()` values. Print the result with 2 decimal places.",
+    "answer": "local wordList3246 = [\"apple\",\"banana\",\"cherry\",\"date\",\"elderberry\"]\nlocal lengths = wordList3246.map { w -> w.textLen() }\nprintln(formatDecimal(avgOf(lengths), 2))"
+  },
+  "3258": {
+    "problem": "Given a hex string `\"1A2B3C\"`, convert each pair of hex digits to a decimal value using `hexToDec` after extracting pairs with `.segment()`. Print the sum of all byte values.",
+    "answer": "local hexStr = \"1A2B3C\"\nlocal hexSum = 0\nfor (i: 1 .. 3) {\n  local pair = hexStr.segment((i-1)*2 + 1, 2)\n  hexSum = hexSum + hexToDec(pair)\n}\nprintln(hexSum)"
+  },
+  "3286": {
+    "problem": "Given the hex color code `\"#FF5733\"`, extract the R, G, B components using `.segment()` and `hexToDec`, then compute their average and the standard deviation using `stdDevOf`. Print both values.",
+    "answer": "local colorHex = \"FF5733\"\nlocal rVal = hexToDec(colorHex.segment(1,2))\nlocal gVal = hexToDec(colorHex.segment(3,2))\nlocal bVal = hexToDec(colorHex.segment(5,2))\nlocal avg3286 = (rVal + gVal + bVal) / 3\nlocal stdDev3286 = stdDevOf([rVal, gVal, bVal])\nprintln(\"Average: \" _ formatDecimal(avg3286, 2))\nprintln(\"StdDev: \" _ formatDecimal(stdDev3286, 2))"
+  },
+  "3369": {
+    "problem": "Write `trieStartsWith(trie, prefix)` returning `true` if any word in the trie starts with `prefix`. Traverse the trie following the prefix characters and return whether the traversal succeeds.",
+    "answer": "func trieStartsWith(trie, prefix) = {\n  local node = trie\n  local ok = true\n  for (i: 1 .. prefix.textLen()) {\n    local ch = prefix.segment(i,1)\n    if (!node.containsKey(ch)) {\n      ok = false\n      i = prefix.textLen() + 1\n    } else {\n      node = node.get(ch, {})\n    }\n  }\n  ok\n}\nprintln(trieStartsWith(trie, \"app\"))\nprintln(trieStartsWith(trie, \"xyz\"))"
+  },
+  "3472": {
+    "problem": "Implement `filterByPrefix(words, prefix)` returning only those words in the list that start with `prefix`. Use `.startsWith()` with the filter lambda.",
+    "answer": "func filterByPrefix(words, prefix) = {\n  words.filter { w -> w.startsWith(prefix) }\n}\nprintln(filterByPrefix([\"apple\",\"application\",\"bat\",\"ball\",\"cat\",\"apply\"], \"app\"))"
+  },
+  "3677": {
+    "problem": "Implement `func sentenceSegment(text) = { ... }` splitting text into sentences using heuristic rules: split on `.`, `!`, `?` but not on abbreviations (detected by single uppercase letter before `.`). Return a list of sentences.",
+    "answer": "func sentenceSegment(text) = {\n  local sentences = []\n  local current = \"\"\n  local i = 1\n  while (i <= text.textLen()) {\n    local ch = text.segment(i,1)\n    current = current _ ch\n    if (ch === \".\" || ch === \"!\" || ch === \"?\") {\n      local isAbbrev = false\n      if (ch === \".\" && i >= 2) {\n        local prev = text.segment(i-1,1)\n        local uppers = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n        if (uppers.contains(prev) && (i < 3 || text.segment(i-2,1) === \" \")) {\n          isAbbrev = true\n        }\n      }\n      if (!isAbbrev) {\n        sentences.add(current.trim())\n        current = \"\"\n      }\n    }\n    i = i + 1\n  }\n  if (current.trim().textLen() > 0) { sentences.add(current.trim()) }\n  sentences\n}\nprintln(sentenceSegment(\"Hello world. How are you? I am fine! Dr. Smith said hello.\"))"
+  }
+}

@@ -1,0 +1,2027 @@
+// 3317
+func anagramGroups(words) = {
+  local groups = {}
+  for (word in words) {
+    local chars = word.split("")
+    chars.sort()
+    local key = chars.join("")
+    if (!groups.containsKey(key)) {
+      groups.set(key, [])
+    }
+    groups.get(key, []).add(word)
+  }
+  groups.values()
+}
+println(anagramGroups(["eat","tea","tan","ate","nat","bat"]))
+
+// 3358
+func stringPermutations(s) = {
+  local results = []
+  func permute(current, remaining) {
+    if (remaining.textLen() == 0) {
+      if (!results.containsItem(current)) {
+        results.add(current)
+      }
+    } else {
+      for (i: 1 .. remaining.textLen()) {
+        local ch = remaining.segment(i, 1)
+        local rest = remaining.segment(1, i-1) _ remaining.segment(i+1, remaining.textLen()-i)
+        permute(current _ ch, rest)
+      }
+    }
+  }
+  permute("", s)
+  results.sort()
+  results
+}
+println(stringPermutations("abc"))
+
+// 3382
+func substringSearch(text, patterns) = {
+  local result = {}
+  for (pattern in patterns) {
+    local positions = []
+    local plen = pattern.textLen()
+    local tlen = text.textLen()
+    for (i: 1 .. tlen - plen + 1) {
+      if (text.segment(i, plen) === pattern) {
+        positions.add(i)
+      }
+    }
+    result.set(pattern, positions)
+  }
+  result
+}
+println(substringSearch("abcabcabc", ["abc","ab","bc"]))
+
+// 3401
+func inverseBWT(transformed) = {
+  local n = transformed.textLen()
+  local table = []
+  for (i: 1 .. n) { table.add("") }
+  for (iter: 1 .. n) {
+    for (i: 1 .. n) {
+      table[i] = transformed.segment(i, 1) _ table[i]
+    }
+    table.sort()
+  }
+  local result = ""
+  for (row in table) {
+    if (row.segment(row.textLen(), 1) === "$") {
+      result = row
+    }
+  }
+  result
+}
+println(inverseBWT("BNN$AA"))
+
+// 3456
+func kmpSearchList(text_chars, pattern_chars) = {
+  local m = pattern_chars.listLen()
+  local n = text_chars.listLen()
+  local fail = []
+  for (i: 1 .. m) { fail.add(0) }
+  local k = 0
+  for (i: 2 .. m) {
+    while (k > 0 && pattern_chars[k+1] !== pattern_chars[i]) {
+      k = fail[k]
+    }
+    if (pattern_chars[k+1] === pattern_chars[i]) { k = k + 1 }
+    fail[i] = k
+  }
+  local matches = []
+  k = 0
+  for (i: 1 .. n) {
+    while (k > 0 && pattern_chars[k+1] !== text_chars[i]) {
+      k = fail[k]
+    }
+    if (pattern_chars[k+1] === text_chars[i]) { k = k + 1 }
+    if (k == m) {
+      matches.add(i - m + 1)
+      k = fail[k]
+    }
+  }
+  matches
+}
+println(kmpSearchList("abcabcabc".split(""), "abc".split("")))
+
+// 3518
+func topNEntries(freqDict, n) = {
+  local pairs = []
+  for (k, v in freqDict) {
+    pairs.add([k, v])
+  }
+  pairs.sort { a, b ->
+    if (a[2] != b[2]) a[2] > b[2] else a[1] << b[1]
+  }
+  pairs.slice(1, n)
+}
+println(topNEntries({"apple":5,"banana":3,"cherry":5,"date":1}, 2))
+
+// 3569
+func buildKeyPhraseDict(text, stopWords) = {
+  local words = text.lowercase().splitAtSpaces()
+  local phrases = {}
+  for (i: 1 .. words.listLen() - 1) {
+    if (!stopWords.containsItem(words[i]) && !stopWords.containsItem(words[i+1])) {
+      local phrase = words[i] _ " " _ words[i+1]
+      phrases.set(phrase, phrases.get(phrase, 0) + 1)
+    }
+    if (i <= words.listLen() - 2 && !stopWords.containsItem(words[i]) && !stopWords.containsItem(words[i+1]) && !stopWords.containsItem(words[i+2])) {
+      local phrase3 = words[i] _ " " _ words[i+1] _ " " _ words[i+2]
+      phrases.set(phrase3, phrases.get(phrase3, 0) + 1)
+    }
+  }
+  phrases
+}
+println(buildKeyPhraseDict("the quick brown fox jumps over the lazy dog", ["the","over"]))
+
+// 3618
+local s = "abcd"
+local subs = []
+for (i: 1 .. s.textLen()) {
+  for (j: i .. s.textLen()) {
+    subs.add(s.segment(i, j - i + 1))
+  }
+}
+subs.sort()
+for (sub in subs) {
+  println(sub)
+}
+
+// 3656
+local wlist = ["a","bb","ccc","dd","e"]
+local lens = wlist.map { w -> w.textLen() }
+local sorted = copyList(wlist)
+sorted.sort { a, b -> a.textLen() < b.textLen() }
+local left = 1
+local right = sorted.listLen()
+while (left < right) {
+  local combined = sorted[left].textLen() + sorted[right].textLen()
+  if (combined == 4) {
+    println(sorted[left] _ " + " _ sorted[right])
+    left = left + 1
+    right = right - 1
+  } else if (combined < 4) {
+    left = left + 1
+  } else {
+    right = right - 1
+  }
+}
+
+// 3376
+func rot13(s) = {
+  local lowers = "abcdefghijklmnopqrstuvwxyz"
+  local uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i, 1)
+    local li = lowers.indexOf(ch) - 1
+    local ui = uppers.indexOf(ch) - 1
+    if (li >= 0) {
+      result = result _ lowers.segment((li + 13) % 26 + 1, 1)
+    } else if (ui >= 0) {
+      result = result _ uppers.segment((ui + 13) % 26 + 1, 1)
+    } else {
+      result = result _ ch
+    }
+  }
+  result
+}
+println(rot13("Hello, World!"))
+println(rot13(rot13("Hello, World!")))
+
+// 3528
+func buildSubstitutionKey(key) = {
+  local alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  local seen = []
+  local keyAlpha = ""
+  local kup = key.uppercase()
+  for (i: 1 .. kup.textLen()) {
+    local ch = kup.segment(i, 1)
+    if (!seen.containsItem(ch) && alpha.contains(ch)) {
+      seen.add(ch)
+      keyAlpha = keyAlpha _ ch
+    }
+  }
+  for (i: 1 .. 26) {
+    local ch = alpha.segment(i, 1)
+    if (!seen.containsItem(ch)) {
+      keyAlpha = keyAlpha _ ch
+    }
+  }
+  local dict = {}
+  for (i: 1 .. 26) {
+    dict.set(alpha.segment(i, 1), keyAlpha.segment(i, 1))
+  }
+  dict
+}
+println(buildSubstitutionKey("KEYWORD"))
+
+// 3653
+local vtext = "HELLO"
+local vkey = "K"
+local vresult = ""
+local alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+local fullKey = vkey
+for (i: 1 .. vtext.textLen() - 1) {
+  fullKey = fullKey _ vtext.segment(i, 1)
+}
+for (i: 1 .. vtext.textLen()) {
+  local p = alpha.indexOf(vtext.segment(i, 1)) - 1
+  local k = alpha.indexOf(fullKey.segment(i, 1)) - 1
+  vresult = vresult _ alpha.segment((p + k) % 26 + 1, 1)
+}
+println(vresult)
+
+// 3452
+func generateFromMarkov(matrix, start, length) = {
+  local result = start
+  local cur = start
+  for (i: 2 .. length) {
+    local row = matrix.get(cur, {})
+    local bestProb = -1
+    local nextChar = cur
+    for (ch, prob in row) {
+      if (prob > bestProb) {
+        bestProb = prob
+        nextChar = ch
+      }
+    }
+    result = result _ nextChar
+    cur = nextChar
+  }
+  result
+}
+local mm = {"a":{"b":0.7,"c":0.3},"b":{"a":0.4,"c":0.6},"c":{"a":0.9,"b":0.1}}
+println(generateFromMarkov(mm, "a", 8))
+
+// 3359
+func nextPermutation(s) = {
+  local chars = []
+  for (i: 1 .. s.textLen()) { chars.add(s.segment(i, 1)) }
+  local n = chars.listLen()
+  local i = n - 1
+  while (i >= 1 && chars[i] >= chars[i+1]) {
+    i = i - 1
+  }
+  if (i < 1) {
+    chars.reverseList()
+  } else {
+    local j = n
+    while (chars[j] <= chars[i]) { j = j - 1 }
+    local tmp = chars[i]
+    chars[i] = chars[j]
+    chars[j] = tmp
+    local suffix = []
+    for (k: i+1 .. n) { suffix.add(chars[k]) }
+    suffix.reverseList()
+    for (k: 1 .. suffix.listLen()) { chars[i+k] = suffix[k] }
+  }
+  chars.join("")
+}
+println(nextPermutation("abc"))
+println(nextPermutation("bca"))
+println(nextPermutation("cba"))
+
+// 3548
+func dfaMatch(dfa, text) = {
+  local state = dfa.get("start", 0)
+  for (i: 1 .. text.textLen()) {
+    local ch = text.segment(i, 1)
+    local transitions = dfa.get("transitions", {}).get(state, {})
+    state = transitions.get(ch, -1)
+    if (state == -1) {
+      state = -1
+      i = text.textLen() + 1
+    }
+  }
+  local accepts = dfa.get("accept", [])
+  accepts.containsItem(state)
+}
+local dfa = {"start": 0, "accept": [2], "transitions": {0: {"a": 1}, 1: {"b": 2}, 2: {}}}
+println(dfaMatch(dfa, "ab"))
+println(dfaMatch(dfa, "abc"))
+
+// 3671
+func longestPalindrome(s) = {
+  local t = "#"
+  for (i: 1 .. s.textLen()) {
+    t = t _ s.segment(i, 1) _ "#"
+  }
+  local n = t.textLen()
+  local p = []
+  for (i: 1 .. n) { p.add(0) }
+  local c = 1
+  local r = 1
+  for (i: 2 .. n) {
+    local mirror = 2 * c - i
+    if (i < r && mirror >= 1) {
+      p[i] = if (r - i < p[mirror]) r - i else p[mirror]
+    }
+    local a = i - (p[i] + 1)
+    local b = i + (p[i] + 1)
+    while (a >= 1 && b <= n && t.segment(a, 1) === t.segment(b, 1)) {
+      p[i] = p[i] + 1
+      a = a - 1
+      b = b + 1
+    }
+    if (i + p[i] > r) {
+      c = i
+      r = i + p[i]
+    }
+  }
+  local maxLen = 0
+  local center = 1
+  for (i: 1 .. n) {
+    if (p[i] > maxLen) {
+      maxLen = p[i]
+      center = i
+    }
+  }
+  local start = floor((center - maxLen) / 2) + 1
+  s.segment(start, maxLen)
+}
+println(longestPalindrome("babad"))
+println(longestPalindrome("cbbd"))
+println(longestPalindrome("racecar"))
+
+// 3676
+func jaroWinkler(s1, s2) = {
+  local l1 = s1.textLen()
+  local l2 = s2.textLen()
+  if (l1 == 0 && l2 == 0) {
+    1
+  } else {
+    local matchWindow = floor(if (l1 > l2) l1 else l2) / 2 - 1
+    local s1matched = []
+    local s2matched = []
+    for (i: 1 .. l1) { s1matched.add(false) }
+    for (i: 1 .. l2) { s2matched.add(false) }
+    local matches = 0
+    for (i: 1 .. l1) {
+      local start = if (i - matchWindow > 1) round(i - matchWindow) else 1
+      local end = if (i + matchWindow < l2) round(i + matchWindow) else l2
+      for (j: start .. end) {
+        if (!s2matched[j] && s1.segment(i,1) === s2.segment(j,1)) {
+          s1matched[i] = true
+          s2matched[j] = true
+          matches = matches + 1
+          j = end + 1
+        }
+      }
+    }
+    if (matches == 0) {
+      0
+    } else {
+      local trans = 0
+      local k = 1
+      for (i: 1 .. l1) {
+        if (s1matched[i]) {
+          while (!s2matched[k]) { k = k + 1 }
+          if (s1.segment(i,1) !== s2.segment(k,1)) { trans = trans + 1 }
+          k = k + 1
+        }
+      }
+      local jaro = (matches/l1 + matches/l2 + (matches - trans/2)/matches) / 3
+      local prefix = 0
+      for (i: 1 .. 4) {
+        if (i <= l1 && i <= l2 && s1.segment(i,1) === s2.segment(i,1)) {
+          prefix = prefix + 1
+        }
+      }
+      jaro + prefix * 0.1 * (1 - jaro)
+    }
+  }
+}
+func findMostSimilar(word, candidates) = {
+  local best = -1
+  local bestWord = ""
+  for (c in candidates) {
+    local score = jaroWinkler(word, c)
+    if (score > best) {
+      best = score
+      bestWord = c
+    }
+  }
+  bestWord
+}
+println(jaroWinkler("MARTHA", "MARHTA"))
+println(findMostSimilar("helo", ["hello","world","help","hero"]))
+
+// 3682
+func wordLadder(start, end, vocabulary) = {
+  local queue = [[start, [start]]]
+  local visited = [start]
+  while (queue.listLen() > 0) {
+    local cur = queue[1]
+    queue.remove(1)
+    local word = cur[1]
+    local path = cur[2]
+    if (word === end) {
+      path
+    } else {
+      local vocab = copyList(vocabulary)
+      for (candidate in vocab) {
+        if (!visited.containsItem(candidate)) {
+          local diffs = 0
+          if (candidate.textLen() == word.textLen()) {
+            for (i: 1 .. word.textLen()) {
+              if (word.segment(i,1) !== candidate.segment(i,1)) {
+                diffs = diffs + 1
+              }
+            }
+            if (diffs == 1) {
+              visited.add(candidate)
+              local newPath = copyList(path)
+              newPath.add(candidate)
+              queue.add([candidate, newPath])
+            }
+          }
+        }
+      }
+      if (queue.listLen() == 0) { [] }
+    }
+  }
+}
+println(wordLadder("hit", "cog", ["hot","dot","dog","lot","log","cog"]))
+
+// 3688
+func decompressString(s) = {
+  local stack = []
+  local currentStr = ""
+  local currentNum = 0
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i, 1)
+    if (ch ? number) {
+      currentNum = currentNum * 10 + ch
+    } else if (ch === "[") {
+      stack.add([currentNum, currentStr])
+      currentStr = ""
+      currentNum = 0
+    } else if (ch === "]") {
+      local top = stack[stack.listLen()]
+      stack.remove(stack.listLen())
+      local times = top[1]
+      local prev = top[2]
+      local repeated = ""
+      for (k: 1 .. times) { repeated = repeated _ currentStr }
+      currentStr = prev _ repeated
+    } else {
+      currentStr = currentStr _ ch
+    }
+  }
+  currentStr
+}
+println(decompressString("3[a2[b]]"))
+println(decompressString("2[abc]3[d]"))
+
+// 3696
+func detectAnomalousWords(text, languageModel) = {
+  local words = text.splitAtSpaces()
+  local result = []
+  local threshold = 0.01
+  for (i: 2 .. words.listLen()) {
+    local prev = words[i-1]
+    local word = words[i]
+    local bigrams = languageModel.get("bigrams", {})
+    local unigrams = languageModel.get("unigrams", {})
+    local total = languageModel.get("total", 1)
+    local pPrev = unigrams.get(prev, 0) / total
+    local pWord = unigrams.get(word, 0) / total
+    local pBigram = bigrams.get(prev _ " " _ word, 0) / total
+    local prob = if (pPrev > 0) pBigram / pPrev else 0
+    if (prob < threshold) {
+      result.add({"word": word, "position": i, "prob": prob})
+    }
+  }
+  result
+}
+local lm = {"unigrams":{"the":10,"cat":5,"sat":4,"on":3},"bigrams":{"the cat":4,"cat sat":3},"total":50}
+println(detectAnomalousWords("the cat sat on mars", lm))
+
+// 3517
+func buildNGramDict(text, n) = {
+  local result = {}
+  for (i: 1 .. text.textLen() - n + 1) {
+    local gram = text.segment(i, n)
+    result.set(gram, result.get(gram, 0) + 1)
+  }
+  result
+}
+println(buildNGramDict("abracadabra", 2))
+
+// 3219
+global camelCase = ""
+local phrase = "convert this to camel case"
+local parts = phrase.splitAtSpaces()
+this.camelCase = parts[1]
+for (i: 2 .. parts.listLen()) {
+  local word = parts[i]
+  this.camelCase = this.camelCase _ word.segment(1,1).uppercase() _ word.segment(2, word.textLen()-1).lowercase()
+}
+println(this.camelCase)
+
+// 3366
+func autocomplete(trie, prefix) = {
+  local node = trie
+  for (i: 1 .. prefix.textLen()) {
+    local ch = prefix.segment(i, 1)
+    if (!node.containsKey(ch)) {
+      []
+    }
+    node = node.get(ch, {})
+  }
+  local results = []
+  func collect(n, current) {
+    if (n.containsKey("$")) { results.add(current) }
+    for (key, val in n) {
+      if (key !== "$") {
+        collect(val, current _ key)
+      }
+    }
+  }
+  collect(node, prefix)
+  results
+}
+local trie = {}
+func ti(w) {
+  local node = trie
+  for (i: 1 .. w.textLen()) {
+    local ch = w.segment(i, 1)
+    if (!node.containsKey(ch)) { node.set(ch, {}) }
+    node = node.get(ch, {})
+  }
+  node.set("$", true)
+}
+ti("apple") ti("app") ti("application") ti("bat") ti("ball")
+println(autocomplete(trie, "app"))
+
+// 3639
+local acPatterns = ["he","she","his","hers"]
+local acTrie = {"root":{}}
+for (pat in acPatterns) {
+  local node = acTrie.get("root", {})
+  for (i: 1 .. pat.textLen()) {
+    local ch = pat.segment(i, 1)
+    if (!node.containsKey(ch)) { node.set(ch, {}) }
+    node = node.get(ch, {})
+  }
+  node.set("$", pat)
+}
+local failLinks = {}
+local bfsQueue = []
+for (key, val in acTrie.get("root", {})) {
+  if (key !== "$") {
+    failLinks.set(key, "root")
+    bfsQueue.add([key, val])
+  }
+}
+local qi = 1
+while (qi <= bfsQueue.listLen()) {
+  local cur = bfsQueue[qi]
+  local curKey = cur[1]
+  local curNode = cur[2]
+  for (ch, child in curNode) {
+    if (ch !== "$") {
+      local fail = failLinks.get(curKey, "root")
+      local failNode = acTrie.get("root", {})
+      if (failNode.containsKey(ch)) {
+        failLinks.set(curKey _ ch, ch)
+      } else {
+        failLinks.set(curKey _ ch, "root")
+      }
+      bfsQueue.add([curKey _ ch, child])
+    }
+  }
+  qi = qi + 1
+}
+println(failLinks)
+
+// 3469
+func jaccardSimilarityLists(list1, list2) = {
+  local intersection = []
+  local union = copyList(list1)
+  for (item in list1) {
+    if (list2.containsItem(item)) {
+      intersection.add(item)
+    }
+  }
+  for (item in list2) {
+    if (!union.containsItem(item)) {
+      union.add(item)
+    }
+  }
+  if (union.listLen() == 0) { 0 } else { intersection.listLen() / union.listLen() }
+}
+println(jaccardSimilarityLists(["a","b","c","d"],["b","c","d","e"]))
+
+// 3516
+func subtractDicts(d1, d2) = {
+  local result = {}
+  for (k, v in d1) {
+    local diff = v - d2.get(k, 0)
+    if (diff > 0) {
+      result.set(k, diff)
+    }
+  }
+  result
+}
+println(subtractDicts({"a":5,"b":3,"c":2},{"a":2,"b":3,"d":1}))
+
+// 3692
+func buildBloomFilter(words, size) = {
+  local filter = []
+  for (i: 1 .. size) { filter.add(false) }
+  for (word in words) {
+    local h1 = 0
+    local h2 = 0
+    for (i: 1 .. word.textLen()) {
+      local c = word.segment(i,1)
+      local code = "abcdefghijklmnopqrstuvwxyz".indexOf(c)
+      h1 = (h1 * 31 + code) % size
+      h2 = (h2 * 37 + code) % size
+    }
+    filter[h1 + 1] = true
+    filter[h2 + 1] = true
+  }
+  filter
+}
+println(buildBloomFilter(["hello","world","foo"], 16))
+
+// 3465
+func buildPointwiseMutualInfo(wordList) = {
+  local n = wordList.listLen()
+  local unigrams = {}
+  local bigrams = {}
+  for (w in wordList) {
+    unigrams.set(w, unigrams.get(w, 0) + 1)
+  }
+  for (i: 1 .. n - 1) {
+    local bg = wordList[i] _ " " _ wordList[i+1]
+    bigrams.set(bg, bigrams.get(bg, 0) + 1)
+  }
+  local pmi = {}
+  for (bg, cnt in bigrams) {
+    local parts = bg.splitAtFirst(" ")
+    local a = parts[1]
+    local b = parts[2]
+    local pab = cnt / n
+    local pa = unigrams.get(a, 1) / n
+    local pb = unigrams.get(b, 1) / n
+    if (!pmi.containsKey(a)) { pmi.set(a, {}) }
+    pmi.get(a, {}).set(b, log(pab / (pa * pb)))
+  }
+  pmi
+}
+println(buildPointwiseMutualInfo(["the","cat","sat","on","the","cat","ate","the","rat"]))
+
+// 3352
+func predictNextWord(model, context) = {
+  local options = model.get(context, {})
+  local best = -1
+  local bestWord = ""
+  for (w, cnt in options) {
+    if (cnt > best) {
+      best = cnt
+      bestWord = w
+    }
+  }
+  bestWord
+}
+local ngm = {"the cat":{"sat":3,"ate":1},"cat sat":{"on":2}}
+println(predictNextWord(ngm, "the cat"))
+
+// 3580
+func buildLanguageModelDict(corpus) = {
+  local words = corpus.splitAtSpaces()
+  local unigrams = {}
+  local bigrams = {}
+  local trigrams = {}
+  local vocab = []
+  for (w in words) {
+    unigrams.set(w, unigrams.get(w, 0) + 1)
+    if (!vocab.containsItem(w)) { vocab.add(w) }
+  }
+  for (i: 1 .. words.listLen() - 1) {
+    local bg = words[i] _ " " _ words[i+1]
+    bigrams.set(bg, bigrams.get(bg, 0) + 1)
+  }
+  for (i: 1 .. words.listLen() - 2) {
+    local tg = words[i] _ " " _ words[i+1] _ " " _ words[i+2]
+    trigrams.set(tg, trigrams.get(tg, 0) + 1)
+  }
+  {"unigrams": unigrams, "bigrams": bigrams, "trigrams": trigrams, "vocabSize": vocab.listLen()}
+}
+println(buildLanguageModelDict("the cat sat on the mat the cat ate"))
+
+// 3245
+local pal = "abacaba"
+local count = 0
+for (i: 1 .. pal.textLen()) {
+  for (j: i .. pal.textLen()) {
+    local sub = pal.segment(i, j - i + 1)
+    local rev = sub.reverse()
+    if (sub === rev) { count = count + 1 }
+  }
+}
+println(count)
+
+// 3252
+local s1 = "GCATGCU"
+local s2 = "GXTXCXU"
+local m = s1.textLen()
+local n = s2.textLen()
+local dp3252 = []
+for (i: 0 .. m) {
+  local row = []
+  for (j: 0 .. n) { row.add(0) }
+  dp3252.add(row)
+}
+for (i: 1 .. m) {
+  for (j: 1 .. n) {
+    if (s1.segment(i,1) === s2.segment(j,1)) {
+      dp3252[i][j] = dp3252[i-1][j-1] + 1
+    } else {
+      dp3252[i][j] = if (dp3252[i-1][j] > dp3252[i][j-1]) dp3252[i-1][j] else dp3252[i][j-1]
+    }
+  }
+}
+println(dp3252[m][n])
+
+// 3260
+local a = "abcbdab"
+local b = "bdcaba"
+local ma = a.textLen()
+local mb = b.textLen()
+local dp3260 = []
+for (i: 0 .. ma) {
+  local row = []
+  for (j: 0 .. mb) { row.add(0) }
+  dp3260.add(row)
+}
+for (i: 1 .. ma) {
+  for (j: 1 .. mb) {
+    if (a.segment(i,1) === b.segment(j,1)) {
+      dp3260[i][j] = dp3260[i-1][j-1] + 1
+    } else {
+      dp3260[i][j] = if (dp3260[i-1][j] > dp3260[i][j-1]) dp3260[i-1][j] else dp3260[i][j-1]
+    }
+  }
+}
+println(dp3260[ma][mb])
+local lcs = ""
+local ci = ma
+local cj = mb
+while (ci > 0 && cj > 0) {
+  if (a.segment(ci,1) === b.segment(cj,1)) {
+    lcs = a.segment(ci,1) _ lcs
+    ci = ci - 1
+    cj = cj - 1
+  } else if (dp3260[ci-1][cj] > dp3260[ci][cj-1]) {
+    ci = ci - 1
+  } else {
+    cj = cj - 1
+  }
+}
+println(lcs)
+
+// 3265
+local b26 = "BCZ"
+local alpha26 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+local decoded = 0
+for (i: 1 .. b26.textLen()) {
+  local val = alpha26.indexOf(b26.segment(i,1)) - 1
+  decoded = decoded * 26 + val
+}
+println(decoded)
+
+// 3270
+local dna = "ATCGATCG"
+local gcCount = 0
+for (i: 1 .. dna.textLen()) {
+  local ch = dna.segment(i,1)
+  if (ch === "G" || ch === "C") { gcCount = gcCount + 1 }
+}
+println(formatDecimal(gcCount / dna.textLen() * 100, 1))
+
+// 3276
+local morse = "... --- ..."
+local mparts = morse.split(" ")
+local dots = 0
+local dashes = 0
+for (part in mparts) {
+  for (i: 1 .. part.textLen()) {
+    if (part.segment(i,1) === ".") { dots = dots + 1 }
+    if (part.segment(i,1) === "-") { dashes = dashes + 1 }
+  }
+}
+println(formatDecimal(dots / dashes, 2))
+
+// 3280
+local su1 = "ABCBDAB"
+local su2 = "BDCAB"
+local sm = su1.textLen()
+local sn = su2.textLen()
+local dpS = []
+for (i: 0 .. sm) {
+  local row = []
+  for (j: 0 .. sn) { row.add(0) }
+  dpS.add(row)
+}
+for (i: 1 .. sm) {
+  for (j: 1 .. sn) {
+    if (su1.segment(i,1) === su2.segment(j,1)) {
+      dpS[i][j] = dpS[i-1][j-1] + 1
+    } else {
+      dpS[i][j] = if (dpS[i-1][j] > dpS[i][j-1]) dpS[i-1][j] else dpS[i][j-1]
+    }
+  }
+}
+local lcsLen = dpS[sm][sn]
+println(sm + sn - lcsLen)
+
+// 3284
+local str3284 = "aababab"
+local maxLen3284 = 0
+for (i: 1 .. str3284.textLen()) {
+  for (j: i + 2 .. str3284.textLen()) {
+    if (str3284.segment(i,1) === str3284.segment(j,1)) {
+      local len = j - i + 1
+      if (len > maxLen3284) { maxLen3284 = len }
+    }
+  }
+}
+println(maxLen3284)
+
+// 3289
+local bits = "11010110"
+local flipped = ""
+for (i: 1 .. bits.textLen()) {
+  if (bits.segment(i,1) === "1") { flipped = flipped _ "0" } else { flipped = flipped _ "1" }
+}
+println(binToDec(bits) _ " + " _ binToDec(flipped) _ " = " _ (binToDec(bits) + binToDec(flipped)))
+
+// 3295
+local h1 = "hello"
+local h2 = "helo"
+func getBigrams(s) = {
+  local bg = {}
+  for (i: 1 .. s.textLen() - 1) {
+    local gram = s.segment(i,2)
+    bg.set(gram, bg.get(gram, 0) + 1)
+  }
+  bg
+}
+local bg1 = getBigrams(h1)
+local bg2 = getBigrams(h2)
+local allKeys = []
+for (k, v in bg1) { if (!allKeys.containsItem(k)) { allKeys.add(k) } }
+for (k, v in bg2) { if (!allKeys.containsItem(k)) { allKeys.add(k) } }
+local dot = 0
+local mag1 = 0
+local mag2 = 0
+for (k in allKeys) {
+  local v1 = bg1.get(k, 0)
+  local v2 = bg2.get(k, 0)
+  dot = dot + v1 * v2
+  mag1 = mag1 + v1 * v1
+  mag2 = mag2 + v2 * v2
+}
+local cosim = if (mag1 > 0 && mag2 > 0) dot / (sqrt(mag1) * sqrt(mag2)) else 0
+println(formatDecimal(cosim, 4))
+
+// 3303
+func titleCase(s) = {
+  local words = s.splitAtSpaces()
+  local result = []
+  for (word in words) {
+    result.add(word.segment(1,1).uppercase() _ word.segment(2, word.textLen()-1).lowercase())
+  }
+  result.join(" ")
+}
+println(titleCase("the quick BROWN fox"))
+
+// 3309
+func countOccurrences(text, pattern) = {
+  local count = 0
+  local plen = pattern.textLen()
+  local i = 1
+  while (i <= text.textLen() - plen + 1) {
+    if (text.segment(i, plen) === pattern) {
+      count = count + 1
+      i = i + plen
+    } else {
+      i = i + 1
+    }
+  }
+  count
+}
+println(countOccurrences("abababab", "aba"))
+
+// 3314
+func zigzagEncode(s, rows) = {
+  local rowStrs = []
+  for (i: 1 .. rows) { rowStrs.add("") }
+  local row = 1
+  local dir = 1
+  for (i: 1 .. s.textLen()) {
+    rowStrs[row] = rowStrs[row] _ s.segment(i,1)
+    if (row == rows) { dir = -1 }
+    if (row == 1) { dir = 1 }
+    row = row + dir
+  }
+  rowStrs.join("")
+}
+println(zigzagEncode("PAYPALISHIRING", 3))
+
+// 3320
+func mostFrequentChar(s) = {
+  local freq = {}
+  local order = []
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    if (ch !== " ") {
+      freq.set(ch, freq.get(ch, 0) + 1)
+      if (!order.containsItem(ch)) { order.add(ch) }
+    }
+  }
+  local best = 0
+  local bestCh = ""
+  for (ch in order) {
+    if (freq.get(ch, 0) > best) {
+      best = freq.get(ch, 0)
+      bestCh = ch
+    }
+  }
+  bestCh
+}
+println(mostFrequentChar("aabbccdddee"))
+
+// 3324
+func countDistinctSubstrings(s) = {
+  local seen = {}
+  for (i: 1 .. s.textLen()) {
+    for (j: i .. s.textLen()) {
+      seen.set(s.segment(i, j-i+1), true)
+    }
+  }
+  seen.dictLen()
+}
+println(countDistinctSubstrings("abc"))
+
+// 3332
+func slugify(text) = {
+  local s = text.lowercase()
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    local alphanums = "abcdefghijklmnopqrstuvwxyz0123456789"
+    if (ch === " ") {
+      result = result _ "-"
+    } else if (alphanums.contains(ch)) {
+      result = result _ ch
+    }
+  }
+  result
+}
+println(slugify("Hello World! This is a Test."))
+
+// 3338
+func longestPalindromicSubstring(s) = {
+  local start = 1
+  local maxLen = 1
+  func expand(l, r) {
+    while (l >= 1 && r <= s.textLen() && s.segment(l,1) === s.segment(r,1)) {
+      if (r - l + 1 > maxLen) {
+        maxLen = r - l + 1
+        start = l
+      }
+      l = l - 1
+      r = r + 1
+    }
+  }
+  for (i: 1 .. s.textLen()) {
+    expand(i, i)
+    expand(i, i+1)
+  }
+  s.segment(start, maxLen)
+}
+println(longestPalindromicSubstring("babad"))
+println(longestPalindromicSubstring("cbbd"))
+
+// 3342
+func encodeStringURL(s) = {
+  local map = {" ": "%20", "!": "%21", "@": "%40", "#": "%23", "$": "%24", "%": "%25"}
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    result = result _ map.get(ch, ch)
+  }
+  result
+}
+println(encodeStringURL("Hello World! Price is $100 #tag"))
+
+// 3348
+func boyerMooreHeuristic(text, pattern) = {
+  local plen = pattern.textLen()
+  local tlen = text.textLen()
+  local badChar = {}
+  for (i: 1 .. plen) {
+    badChar.set(pattern.segment(i,1), i)
+  }
+  local matches = []
+  local s = 1
+  while (s <= tlen - plen + 1) {
+    local j = plen
+    while (j >= 1 && pattern.segment(j,1) === text.segment(s+j-1,1)) {
+      j = j - 1
+    }
+    if (j == 0) {
+      matches.add(s)
+      s = s + 1
+    } else {
+      local bc = badChar.get(text.segment(s+j-1,1), 0)
+      local shift = j - bc
+      s = s + if (shift > 1) shift else 1
+    }
+  }
+  matches
+}
+println(boyerMooreHeuristic("ABCABCABC","ABC"))
+
+// 3363
+func parseCSVLine(line) = {
+  local fields = []
+  local current = ""
+  local inQuotes = false
+  for (i: 1 .. line.textLen()) {
+    local ch = line.segment(i,1)
+    if (ch === "\"") {
+      inQuotes = !inQuotes
+    } else if (ch === "," && !inQuotes) {
+      fields.add(current)
+      current = ""
+    } else {
+      current = current _ ch
+    }
+  }
+  fields.add(current)
+  fields
+}
+println(parseCSVLine("name,\"Smith, John\",age,\"30\""))
+
+// 3380
+func findRepeatingPattern(s) = {
+  local n = s.textLen()
+  local result = s
+  for (len: 1 .. n / 2) {
+    if (n % len == 0) {
+      local pat = s.segment(1, len)
+      local repeated = ""
+      for (k: 1 .. n / len) { repeated = repeated _ pat }
+      if (repeated === s) {
+        result = pat
+        len = n
+      }
+    }
+  }
+  result
+}
+println(findRepeatingPattern("ababab"))
+println(findRepeatingPattern("abcabc"))
+println(findRepeatingPattern("abcd"))
+
+// 3386
+func jaroSimilarity(s1, s2) = {
+  local l1 = s1.textLen()
+  local l2 = s2.textLen()
+  local matchWindow = floor((if (l1 > l2) l1 else l2) / 2) - 1
+  local s1matched = []
+  local s2matched = []
+  for (i: 1 .. l1) { s1matched.add(false) }
+  for (i: 1 .. l2) { s2matched.add(false) }
+  local matches = 0
+  for (i: 1 .. l1) {
+    local lo = if (i - matchWindow > 1) i - matchWindow else 1
+    local hi = if (i + matchWindow < l2) i + matchWindow else l2
+    for (j: lo .. hi) {
+      if (!s2matched[j] && !s1matched[i] && s1.segment(i,1) === s2.segment(j,1)) {
+        s1matched[i] = true
+        s2matched[j] = true
+        matches = matches + 1
+      }
+    }
+  }
+  if (matches == 0) {
+    0
+  } else {
+    local trans = 0
+    local k = 1
+    for (i: 1 .. l1) {
+      if (s1matched[i]) {
+        while (k <= l2 && !s2matched[k]) { k = k + 1 }
+        if (k <= l2 && s1.segment(i,1) !== s2.segment(k,1)) { trans = trans + 1 }
+        k = k + 1
+      }
+    }
+    (matches/l1 + matches/l2 + (matches - trans/2)/matches) / 3
+  }
+}
+println(jaroSimilarity("MARTHA","MARHTA"))
+
+// 3391
+func longestSubstringKDistinct(s, k) = {
+  local freq = {}
+  local left = 1
+  local maxLen = 0
+  for (right: 1 .. s.textLen()) {
+    local ch = s.segment(right,1)
+    freq.set(ch, freq.get(ch, 0) + 1)
+    while (freq.dictLen() > k) {
+      local lch = s.segment(left,1)
+      freq.set(lch, freq.get(lch, 0) - 1)
+      if (freq.get(lch, 0) == 0) { freq.delete(lch) }
+      left = left + 1
+    }
+    if (right - left + 1 > maxLen) { maxLen = right - left + 1 }
+  }
+  maxLen
+}
+println(longestSubstringKDistinct("eceba", 2))
+
+// 3396
+func compressZlib(s) = {
+  local result = []
+  local i = 1
+  while (i <= s.textLen()) {
+    local bestLen = 0
+    local bestOff = 0
+    for (j: 1 .. i - 1) {
+      local len = 0
+      while (i + len <= s.textLen() && s.segment(j+len,1) === s.segment(i+len,1) && len < 10) {
+        len = len + 1
+      }
+      if (len > bestLen) {
+        bestLen = len
+        bestOff = i - j
+      }
+    }
+    if (bestLen >= 3) {
+      result.add([bestOff, bestLen])
+      i = i + bestLen
+    } else {
+      result.add(s.segment(i,1))
+      i = i + 1
+    }
+  }
+  result
+}
+println(compressZlib("abcabcabc"))
+
+// 3405
+func extractMarkdown(text) = {
+  local result = text
+  local i = 1
+  local out = ""
+  while (i <= result.textLen()) {
+    if (i <= result.textLen() - 1 && result.segment(i,2) === "**") {
+      local end = i + 2
+      local content = ""
+      while (end <= result.textLen() - 1 && result.segment(end,2) !== "**") {
+        content = content _ result.segment(end,1)
+        end = end + 1
+      }
+      out = out _ "[BOLD]" _ content _ "[/BOLD]"
+      i = end + 2
+    } else if (result.segment(i,1) === "_") {
+      local end = i + 1
+      local content = ""
+      while (end <= result.textLen() && result.segment(end,1) !== "_") {
+        content = content _ result.segment(end,1)
+        end = end + 1
+      }
+      out = out _ "[ITALIC]" _ content _ "[/ITALIC]"
+      i = end + 1
+    } else if (i == 1 && result.segment(i,2) === "# ") {
+      out = "[H1]" _ result.segment(3, result.textLen()-2) _ "[/H1]"
+      i = result.textLen() + 1
+    } else {
+      out = out _ result.segment(i,1)
+      i = i + 1
+    }
+  }
+  out
+}
+println(extractMarkdown("**bold** and _italic_ text"))
+println(extractMarkdown("# Heading"))
+
+// 3410
+func countSyllables(word) = {
+  local vowels = "aeiouAEIOU"
+  local count = 0
+  local prevVowel = false
+  local w = word.lowercase()
+  for (i: 1 .. w.textLen()) {
+    local isVowel = vowels.contains(w.segment(i,1))
+    if (isVowel && !prevVowel) { count = count + 1 }
+    prevVowel = isVowel
+  }
+  if (w.textLen() > 1 && w.segment(w.textLen(),1) === "e") {
+    count = count - 1
+  }
+  if (count < 1) { 1 } else { count }
+}
+println(countSyllables("beautiful"))
+println(countSyllables("cake"))
+
+// 3414
+func stemWord(word) = {
+  local suffixes = ["ing","ed","ly","er"]
+  local result = word
+  for (suf in suffixes) {
+    local slen = suf.textLen()
+    local wlen = word.textLen()
+    if (wlen > slen + 3 && word.segment(wlen - slen + 1, slen) === suf) {
+      result = word.segment(1, wlen - slen)
+      suf = suffixes[suffixes.listLen()]
+    }
+  }
+  result
+}
+println(stemWord("running"))
+println(stemWord("jumped"))
+println(stemWord("quickly"))
+
+// 3419
+func detectEncoding(s) = {
+  local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
+  local hexchars = "0123456789abcdefABCDEF"
+  local isB64 = s.textLen() % 4 == 0
+  local isHex = true
+  local isB64Valid = true
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    if (!b64chars.contains(ch)) { isB64Valid = false }
+    if (!hexchars.contains(ch)) { isHex = false }
+  }
+  if (isB64 && isB64Valid) {
+    "base64"
+  } else if (isHex) {
+    "hex"
+  } else {
+    "ascii"
+  }
+}
+println(detectEncoding("SGVsbG8="))
+println(detectEncoding("1a2b3c"))
+println(detectEncoding("Hello World"))
+
+// 3424
+func intToRoman(n) = {
+  local vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1]
+  local syms = ["M","CM","D","CD","C","XC","L","XL","X","IX","V","IV","I"]
+  local result = ""
+  local num = n
+  for (i: 1 .. vals.listLen()) {
+    while (num >= vals[i]) {
+      result = result _ syms[i]
+      num = num - vals[i]
+    }
+  }
+  result
+}
+println(intToRoman(3749))
+
+// 3428
+func expandCamelCase(s) = {
+  local result = s.segment(1,1)
+  local uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  for (i: 2 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    if (uppers.contains(ch)) {
+      result = result _ " " _ ch
+    } else {
+      result = result _ ch
+    }
+  }
+  result
+}
+println(expandCamelCase("camelCaseString"))
+println(expandCamelCase("XMLParser"))
+
+// 3435
+func topKFrequent(words, k) = {
+  local freq = {}
+  for (w in words) {
+    freq.set(w, freq.get(w, 0) + 1)
+  }
+  local pairs = []
+  for (w, c in freq) { pairs.add([c, w]) }
+  pairs.sort()
+  pairs.reverseList()
+  local result = []
+  for (i: 1 .. k) {
+    if (i <= pairs.listLen()) { result.add(pairs[i][2]) }
+  }
+  result
+}
+println(topKFrequent(["apple","banana","apple","cherry","banana","apple"], 2))
+
+// 3441
+func groupByFirstChar(words) = {
+  local result = {}
+  for (word in words) {
+    local fc = word.segment(1,1)
+    if (!result.containsKey(fc)) { result.set(fc, []) }
+    result.get(fc, []).add(word)
+  }
+  result
+}
+println(groupByFirstChar(["apple","ant","banana","bear","cherry","cat"]))
+
+// 3447
+func buildWordIndex(sentences) = {
+  local index = {}
+  for (si: 1 .. sentences.listLen()) {
+    local words = sentences[si].splitAtSpaces()
+    for (wi: 1 .. words.listLen()) {
+      local w = words[wi]
+      if (!index.containsKey(w)) { index.set(w, []) }
+      index.get(w, []).add([si, wi])
+    }
+  }
+  index
+}
+println(buildWordIndex(["the cat sat","the cat ate","a cat napped"]))
+
+// 3453
+func longestNonRepeatingList(words) = {
+  local freq = {}
+  local left = 1
+  local maxLen = 0
+  for (right: 1 .. words.listLen()) {
+    local w = words[right]
+    freq.set(w, freq.get(w, 0) + 1)
+    while (freq.get(w, 0) > 1) {
+      local lw = words[left]
+      freq.set(lw, freq.get(lw, 0) - 1)
+      if (freq.get(lw, 0) == 0) { freq.delete(lw) }
+      left = left + 1
+    }
+    if (right - left + 1 > maxLen) { maxLen = right - left + 1 }
+  }
+  maxLen
+}
+println(longestNonRepeatingList(["a","b","c","a","b","d","e"]))
+
+// 3459
+func countUniqueSubstrings(chars, suffixArr, lcpArr) = {
+  local n = chars.listLen()
+  local total = n * (n + 1) / 2
+  local lcpSum = lcpArr.reduce(0) { x, acc -> x + acc }
+  total - lcpSum
+}
+println(countUniqueSubstrings("abc".split(""), [1,2,3], [0,0,1]))
+
+// 3464
+func buildSkipBigrams(wordList, k) = {
+  local result = []
+  for (i: 1 .. wordList.listLen() - k) {
+    result.add([wordList[i], wordList[i+k]])
+  }
+  result
+}
+println(buildSkipBigrams(["the","quick","brown","fox","jumps"], 2))
+
+// 3475
+func buildBagOfWords(sentences) = {
+  local allWords = []
+  local tokenized = []
+  for (s in sentences) {
+    local words = s.splitAtSpaces()
+    tokenized.add(words)
+    for (w in words) {
+      if (!allWords.containsItem(w)) { allWords.add(w) }
+    }
+  }
+  local result = {}
+  for (w in allWords) {
+    local counts = []
+    for (ws in tokenized) {
+      local cnt = 0
+      for (tw in ws) { if (tw === w) { cnt = cnt + 1 } }
+      counts.add(cnt)
+    }
+    result.set(w, counts)
+  }
+  result
+}
+println(buildBagOfWords(["the cat sat","the dog ran","cat and dog"]))
+
+// 3481
+func buildAnagramBuckets(words) = {
+  local groups = {}
+  for (word in words) {
+    local chars = word.split("")
+    chars.sort()
+    local key = chars.join("")
+    if (!groups.containsKey(key)) { groups.set(key, []) }
+    groups.get(key, []).add(word)
+  }
+  groups.values()
+}
+println(buildAnagramBuckets(["eat","tea","tan","ate","nat","bat","cat"]))
+
+// 3489
+func detectPatternList(chars, pattern) = {
+  local plen = pattern.listLen()
+  local clen = chars.listLen()
+  local matches = []
+  for (i: 1 .. clen - plen + 1) {
+    local ok = true
+    for (j: 1 .. plen) {
+      if (chars[i+j-1] !== pattern[j]) { ok = false }
+    }
+    if (ok) { matches.add(i) }
+  }
+  matches
+}
+println(detectPatternList("abcabcabc".split(""), "abc".split("")))
+
+// 3493
+func getAllMatchesMultiPattern(text, patternList) = {
+  local result = {}
+  for (pattern in patternList) {
+    local positions = []
+    local plen = pattern.textLen()
+    for (i: 1 .. text.textLen() - plen + 1) {
+      if (text.segment(i, plen) === pattern) { positions.add(i) }
+    }
+    result.set(pattern, positions)
+  }
+  result
+}
+println(getAllMatchesMultiPattern("abcabcabc", ["abc","ab","c"]))
+
+// 3500
+func buildStringStats(words) = {
+  local minLen = 999999
+  local maxLen = 0
+  local totalChars = 0
+  local allChars = {}
+  local freqW = {}
+  for (w in words) {
+    local l = w.textLen()
+    if (l < minLen) { minLen = l }
+    if (l > maxLen) { maxLen = l }
+    totalChars = totalChars + l
+    freqW.set(w, freqW.get(w, 0) + 1)
+    for (i: 1 .. l) { allChars.set(w.segment(i,1), true) }
+  }
+  local best = 0
+  local bestWord = ""
+  for (w, c in freqW) {
+    if (c > best) { best = c bestWord = w }
+  }
+  {"minLen": minLen, "maxLen": maxLen, "avgLen": totalChars / words.listLen(), "totalChars": totalChars, "uniqueChars": allChars.dictLen(), "mostCommonWord": bestWord}
+}
+println(buildStringStats(["apple","banana","apple","cherry","banana","apple"]))
+
+// 3507
+func buildCharAlignmentMatrix(s1, s2) = {
+  local m = s1.textLen()
+  local n = s2.textLen()
+  local match = 1
+  local mismatch = -1
+  local gap = -2
+  local dp = []
+  for (i: 0 .. m) {
+    local row = []
+    for (j: 0 .. n) { row.add(0) }
+    dp.add(row)
+  }
+  for (i: 0 .. m) { dp[i][1] = i * gap }
+  for (j: 0 .. n) { dp[1][j] = j * gap }
+  for (i: 2 .. m + 1) {
+    for (j: 2 .. n + 1) {
+      local score = if (s1.segment(i-1,1) === s2.segment(j-1,1)) match else mismatch
+      local diag = dp[i-1][j-1] + score
+      local up = dp[i-1][j] + gap
+      local left = dp[i][j-1] + gap
+      dp[i][j] = if (diag > up && diag > left) diag else if (up > left) up else left
+    }
+  }
+  dp
+}
+println(buildCharAlignmentMatrix("ACGT","AGT"))
+
+// 3511
+func buildCharToIndex(alphabet) = {
+  local result = {}
+  for (i: 1 .. alphabet.textLen()) {
+    result.set(alphabet.segment(i,1), i - 1)
+  }
+  result
+}
+println(buildCharToIndex("abcde"))
+
+// 3519
+func invertDict(d) = {
+  local result = {}
+  for (k, v in d) {
+    if (!result.containsKey(v)) { result.set(v, []) }
+    result.get(v, []).add(k)
+  }
+  result
+}
+println(invertDict({"a":1,"b":2,"c":1}))
+
+// 3526
+func findDictKeys(d, params) = {
+  local targetLen = params.get("targetLen", 0)
+  local result = []
+  for (k, v in d) {
+    if (k.textLen() == targetLen) { result.add(k) }
+  }
+  result
+}
+println(findDictKeys({"apple":1,"cat":2,"dog":3,"elephant":4,"at":5}, {"targetLen":3}))
+
+// 3535
+func buildDictionaryIndex(entries) = {
+  local index = {}
+  for (entry in entries) {
+    local word = entry.get("word","")
+    local def = entry.get("definition","")
+    local defWords = def.splitAtSpaces()
+    for (dw in defWords) {
+      local dw2 = dw.lowercase()
+      if (!index.containsKey(dw2)) { index.set(dw2, []) }
+      if (!index.get(dw2, []).containsItem(word)) {
+        index.get(dw2, []).add(word)
+      }
+    }
+  }
+  index
+}
+println(buildDictionaryIndex([{"word":"cat","definition":"a small furry animal"},{"word":"dog","definition":"a loyal furry pet"}]))
+
+// 3540
+func reverseAbbreviation(abbr, abbrevDict) = {
+  abbrevDict.get(abbr, "Unknown")
+}
+local abbrevDict = {"ASAP":"As Soon As Possible","FYI":"For Your Information"}
+println(reverseAbbreviation("ASAP", abbrevDict))
+println(reverseAbbreviation("LOL", abbrevDict))
+
+// 3547
+func buildRegexDFA(pattern) = {
+  local states = {}
+  local n = pattern.textLen()
+  for (i: 0 .. n) { states.set(i, {}) }
+  for (i: 1 .. n) {
+    local ch = pattern.segment(i,1)
+    if (ch === "?") {
+      local alpha = "abcdefghijklmnopqrstuvwxyz"
+      for (j: 1 .. 26) {
+        states.get(i-1, {}).set(alpha.segment(j,1), i)
+      }
+    } else {
+      states.get(i-1, {}).set(ch, i)
+    }
+  }
+  {"start": 0, "accept": [n], "transitions": states}
+}
+println(buildRegexDFA("a?c"))
+
+// 3556
+func buildDependencyDict(text) = {
+  local words = text.splitAtSpaces()
+  local verbs = ["is","are","was","were","run","runs","eat","eats","sits","sat","jumped","sees"]
+  local result = {}
+  for (i: 1 .. words.listLen()) {
+    local w = words[i].lowercase()
+    if (!verbs.containsItem(w)) {
+      local closestVerb = ""
+      local closestDist = 999999
+      for (j: 1 .. words.listLen()) {
+        local v = words[j].lowercase()
+        if (verbs.containsItem(v)) {
+          local dist = abs(i - j)
+          if (dist < closestDist) {
+            closestDist = dist
+            closestVerb = v
+          }
+        }
+      }
+      if (closestVerb !== "") { result.set(w, closestVerb) }
+    }
+  }
+  result
+}
+println(buildDependencyDict("The cat sits on the mat"))
+
+// 3565
+func buildTypoVariants(word) = {
+  local alpha = "abcdefghijklmnopqrstuvwxyz"
+  local insertions = []
+  local deletions = []
+  local substitutions = []
+  local transpositions = []
+  for (i: 1 .. word.textLen() + 1) {
+    for (j: 1 .. 26) {
+      local ch = alpha.segment(j,1)
+      local before = word.segment(1, i-1)
+      local after = if (i <= word.textLen()) word.segment(i, word.textLen()-i+1) else ""
+      insertions.add(before _ ch _ after)
+    }
+  }
+  for (i: 1 .. word.textLen()) {
+    deletions.add(word.segment(1,i-1) _ word.segment(i+1, word.textLen()-i))
+  }
+  for (i: 1 .. word.textLen()) {
+    for (j: 1 .. 26) {
+      local ch = alpha.segment(j,1)
+      substitutions.add(word.segment(1,i-1) _ ch _ word.segment(i+1, word.textLen()-i))
+    }
+  }
+  for (i: 1 .. word.textLen() - 1) {
+    transpositions.add(word.segment(1,i-1) _ word.segment(i+1,1) _ word.segment(i,1) _ word.segment(i+2, word.textLen()-i-1))
+  }
+  {"insertions": insertions, "deletions": deletions, "substitutions": substitutions, "transpositions": transpositions}
+}
+local tv = buildTypoVariants("cat")
+println(tv.get("deletions",""))
+println(tv.get("transpositions",""))
+
+// 3573
+func editDistance(s1, s2) = {
+  local m = s1.textLen()
+  local n = s2.textLen()
+  local dp = []
+  for (i: 0 .. m) {
+    local row = []
+    for (j: 0 .. n) { row.add(0) }
+    dp.add(row)
+  }
+  for (i: 0 .. m) { dp[i][1] = i }
+  for (j: 0 .. n) { dp[1][j] = j }
+  for (i: 2 .. m + 1) {
+    for (j: 2 .. n + 1) {
+      if (s1.segment(i-1,1) === s2.segment(j-1,1)) {
+        dp[i][j] = dp[i-1][j-1]
+      } else {
+        local a = dp[i-1][j] + 1
+        local b = dp[i][j-1] + 1
+        local c = dp[i-1][j-1] + 1
+        dp[i][j] = if (a < b && a < c) a else if (b < c) b else c
+      }
+    }
+  }
+  dp[m+1][n+1]
+}
+func lcsLength(s1, s2) = {
+  local m = s1.textLen()
+  local n = s2.textLen()
+  local dp = []
+  for (i: 0 .. m) {
+    local row = []
+    for (j: 0 .. n) { row.add(0) }
+    dp.add(row)
+  }
+  for (i: 1 .. m) {
+    for (j: 1 .. n) {
+      if (s1.segment(i,1) === s2.segment(j,1)) {
+        dp[i][j] = dp[i-1][j-1] + 1
+      } else {
+        dp[i][j] = if (dp[i-1][j] > dp[i][j-1]) dp[i-1][j] else dp[i][j-1]
+      }
+    }
+  }
+  dp[m][n]
+}
+func commonBigrams(s1, s2) = {
+  local bg1 = {}
+  local bg2 = {}
+  for (i: 1 .. s1.textLen()-1) { local g = s1.segment(i,2) bg1.set(g, bg1.get(g,0)+1) }
+  for (i: 1 .. s2.textLen()-1) { local g = s2.segment(i,2) bg2.set(g, bg2.get(g,0)+1) }
+  local count = 0
+  for (g, c in bg1) {
+    if (bg2.containsKey(g)) { count = count + if (c < bg2.get(g,0)) c else bg2.get(g,0) }
+  }
+  count
+}
+func buildStringMetricsDict(s1, s2) = {
+  {"editDistance": editDistance(s1,s2), "lcsLength": lcsLength(s1,s2), "jaro": jaroSimilarity(s1,s2), "commonBigrams": commonBigrams(s1,s2)}
+}
+println(buildStringMetricsDict("hello","helo"))
+
+// 3578
+func buildStopWordFilter(texts, threshold) = {
+  local wordInText = {}
+  local n = texts.listLen()
+  for (text in texts) {
+    local words = text.splitAtSpaces()
+    local seen = []
+    for (w in words) {
+      local wl = w.lowercase()
+      if (!seen.containsItem(wl)) {
+        seen.add(wl)
+        wordInText.set(wl, wordInText.get(wl, 0) + 1)
+      }
+    }
+  }
+  local result = {}
+  for (w, cnt in wordInText) {
+    local frac = cnt / n
+    if (frac > threshold) { result.set(w, frac) }
+  }
+  result
+}
+println(buildStopWordFilter(["the cat sat","the dog ran","the bird flew","a cat flew"], 0.5))
+
+// 3584
+func buildChunkDict(text, delimiters) = {
+  local segments = [text]
+  for (delim in delimiters) {
+    local newSegs = []
+    for (seg in segments) {
+      local parts = seg.split(delim)
+      for (p in parts) {
+        local pt = p.trim()
+        if (pt.textLen() > 0) { newSegs.add(pt) }
+      }
+    }
+    segments = newSegs
+  }
+  local result = {}
+  for (seg in segments) {
+    result.set(seg, result.get(seg, 0) + 1)
+  }
+  result
+}
+println(buildChunkDict("hello world, foo bar; hello foo", [",",";"," "]))
+
+// 3591
+func textToColor(s) = {
+  local r = 0
+  local g = 0
+  local b = 0
+  for (i: 1 .. s.textLen()) {
+    local code = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".indexOf(s.segment(i,1))
+    r = (r + code * i) % 256
+    g = (g + if (i % 2 == 0) code else 256 - code) % 256
+  }
+  b = s.textLen() * 17 % 256
+  makeColor([r, g, b])
+}
+println(textToColor("hello"))
+println(textToColor("world"))
+
+// 3595
+func frequencyToColor(charFreq, maxFreq) = {
+  local intensity = 255 - floor(charFreq / maxFreq * 255)
+  makeColor([intensity, intensity, intensity])
+}
+println(frequencyToColor(10, 10))
+println(frequencyToColor(5, 10))
+println(frequencyToColor(0, 10))
+
+// 3602
+func buildSyntaxColorMap(keywords, types, literals) = {
+  local result = {}
+  for (k in keywords) { result.set(k, #FF0000) }
+  for (t in types) { result.set(t, #0000FF) }
+  for (l in literals) { result.set(l, #008000) }
+  result
+}
+println(buildSyntaxColorMap(["if","else","while"],["int","string","bool"],["true","false","null"]))
+
+// 3609
+func darkenColor(c, factor) = {
+  local r = floor(floor(c / 65536) % 256 * factor)
+  local g = floor(floor(c / 256) % 256 * factor)
+  local b = floor(c % 256 * factor)
+  makeColor([r, g, b])
+}
+println(darkenColor(makeColor([200, 150, 100]), 0.5))
+
+// 3616
+local win = "abcabcabc"
+local required = ["a","b","c"]
+local counts = {}
+local left = 1
+local right = 0
+local minLen = 999999
+local minStart = 1
+func allPresent(counts) = {
+  local ok = true
+  for (ch in required) {
+    if (counts.get(ch, 0) < 1) { ok = false }
+  }
+  ok
+}
+while (right < win.textLen()) {
+  right = right + 1
+  local ch = win.segment(right, 1)
+  counts.set(ch, counts.get(ch, 0) + 1)
+  while (allPresent(counts)) {
+    if (right - left + 1 < minLen) {
+      minLen = right - left + 1
+      minStart = left
+    }
+    local lch = win.segment(left, 1)
+    counts.set(lch, counts.get(lch, 0) - 1)
+    left = left + 1
+  }
+}
+println("Smallest window: " _ win.segment(minStart, minLen) _ " length=" _ minLen)
+
+// 3624
+local text3624 = "abacabab"
+local pattern3624 = "abab"
+for (i: 1 .. text3624.textLen() - pattern3624.textLen() + 1) {
+  if (text3624.segment(i, pattern3624.textLen()) === pattern3624) {
+    println("Match at position: " _ i)
+  }
+}
+
+// 3631
+local saWord = "abbc"
+local saLen = saWord.textLen()
+local saStates = [{}]
+local saLast = 1
+local saSize = 1
+for (ci: 1 .. saLen) {
+  local ch = saWord.segment(ci, 1)
+  local cur = saSize + 1
+  saStates.add({})
+  saSize = saSize + 1
+  local p = saLast
+  while (p != 0 && !saStates[p].containsKey(ch)) {
+    saStates[p].set(ch, cur)
+    p = saStates[p].get("link", 0)
+  }
+  saLast = cur
+}
+println("States: " _ saStates.listLen())
+
+// 3637
+local wordList3637 = ["hello","world","apple","sky","moon"]
+for (word in wordList3637) {
+  local hasDouble = false
+  for (i: 1 .. word.textLen() - 1) {
+    if (word.segment(i,1) === word.segment(i+1,1)) {
+      hasDouble = true
+    }
+  }
+  if (!hasDouble) {
+    println(word)
+  }
+}
+
+// 3645
+local b64input = "Man"
+local b64alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+local asciiMap = {}
+local allChars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+for (i: 1 .. allChars.textLen()) {
+  asciiMap.set(allChars.segment(i,1), i + 31)
+}
+local bytes = []
+for (i: 1 .. b64input.textLen()) {
+  bytes.add(asciiMap.get(b64input.segment(i,1), 0))
+}
+local bits = 0
+for (b in bytes) { bits = bits * 256 + b }
+local result3645 = ""
+local indices = []
+for (i: 1 .. 4) {
+  indices.add(bits % 64)
+  bits = floor(bits / 64)
+}
+indices.reverseList()
+for (idx in indices) {
+  result3645 = result3645 _ b64alpha.segment(idx + 1, 1)
+}
+println(result3645)
+
+// 3658
+local compressed = ["a",3,"b",2,"c",4]
+local expanded = ""
+local ci3658 = 1
+while (ci3658 <= compressed.listLen()) {
+  local ch = compressed[ci3658]
+  local cnt = compressed[ci3658 + 1]
+  for (k: 1 .. cnt) { expanded = expanded _ ch }
+  ci3658 = ci3658 + 2
+}
+println(expanded)
+
+// 3530
+func buildHuffmanCodes(freqDict) = {
+  local heap = []
+  for (ch, freq in freqDict) {
+    heap.add([freq, ch, {}])
+  }
+  heap.sort()
+  while (heap.listLen() > 1) {
+    local a = heap[1]
+    heap.remove(1)
+    local b = heap[1]
+    heap.remove(1)
+    local merged = [a[1] + b[1], a[2] _ b[2], {"0": a, "1": b}]
+    heap.add(merged)
+    heap.sort()
+  }
+  local codes = {}
+  func assign(node, prefix) {
+    if (node[3].dictLen() == 0) {
+      codes.set(node[2], prefix)
+    } else {
+      assign(node[3].get("0", [0,"",{}]), prefix _ "0")
+      assign(node[3].get("1", [0,"",{}]), prefix _ "1")
+    }
+  }
+  if (heap.listLen() > 0) { assign(heap[1], "") }
+  codes
+}
+println(buildHuffmanCodes({"a":5,"b":3,"c":1,"d":2}))
+
+// 3246
+local wordList3246 = ["apple","banana","cherry","date","elderberry"]
+local lengths = wordList3246.map { w -> w.textLen() }
+println(formatDecimal(avgOf(lengths), 2))
+
+// 3258
+local hexStr = "1A2B3C"
+local hexSum = 0
+for (i: 1 .. 3) {
+  local pair = hexStr.segment((i-1)*2 + 1, 2)
+  hexSum = hexSum + hexToDec(pair)
+}
+println(hexSum)
+
+// 3286
+local colorHex = "FF5733"
+local rVal = hexToDec(colorHex.segment(1,2))
+local gVal = hexToDec(colorHex.segment(3,2))
+local bVal = hexToDec(colorHex.segment(5,2))
+local avg3286 = (rVal + gVal + bVal) / 3
+local stdDev3286 = stdDevOf([rVal, gVal, bVal])
+println("Average: " _ formatDecimal(avg3286, 2))
+println("StdDev: " _ formatDecimal(stdDev3286, 2))
+
+// 3369
+func trieStartsWith(trie, prefix) = {
+  local node = trie
+  local ok = true
+  for (i: 1 .. prefix.textLen()) {
+    local ch = prefix.segment(i,1)
+    if (!node.containsKey(ch)) {
+      ok = false
+      i = prefix.textLen() + 1
+    } else {
+      node = node.get(ch, {})
+    }
+  }
+  ok
+}
+println(trieStartsWith(trie, "app"))
+println(trieStartsWith(trie, "xyz"))
+
+// 3472
+func filterByPrefix(words, prefix) = {
+  words.filter { w -> w.startsWith(prefix) }
+}
+println(filterByPrefix(["apple","application","bat","ball","cat","apply"], "app"))
+
+// 3677
+func sentenceSegment(text) = {
+  local sentences = []
+  local current = ""
+  local i = 1
+  while (i <= text.textLen()) {
+    local ch = text.segment(i,1)
+    current = current _ ch
+    if (ch === "." || ch === "!" || ch === "?") {
+      local isAbbrev = false
+      if (ch === "." && i >= 2) {
+        local prev = text.segment(i-1,1)
+        local uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        if (uppers.contains(prev) && (i < 3 || text.segment(i-2,1) === " ")) {
+          isAbbrev = true
+        }
+      }
+      if (!isAbbrev) {
+        sentences.add(current.trim())
+        current = ""
+      }
+    }
+    i = i + 1
+  }
+  if (current.trim().textLen() > 0) { sentences.add(current.trim()) }
+  sentences
+}
+println(sentenceSegment("Hello world. How are you? I am fine! Dr. Smith said hello."))
