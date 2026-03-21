@@ -227,7 +227,6 @@ func (l *Lexer) text() {
 		}
 		writer.WriteByte(c)
 	}
-	println(len(writer.String()) == 0)
 	content := writer.String()
 	l.appendToken(&Token{
 		Context: l.ctx,
@@ -288,7 +287,6 @@ func (l *Lexer) numeric() {
 }
 
 func (l *Lexer) appendToken(token *Token) {
-	println(token.Debug())
 	l.Tokens = append(l.Tokens, token)
 }
 

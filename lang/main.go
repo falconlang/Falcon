@@ -10,19 +10,98 @@ import (
 	mistParser "Falcon/code/parsers/mistparser"
 	"Falcon/code/runtime"
 	designAnalysis "Falcon/design"
+	"bufio"
 	"encoding/xml"
+	"fmt"
+	"io"
 	"os"
 	"strings"
 )
 
 func main() {
-	println("Hello from Falcon!\n")
-
+	if len(os.Args) > 1 && os.Args[1] == "repl" {
+		repl()
+		return
+	}
+	repl()
 	//diffTest()
-	analyzeSyntax()
+	//analyzeSyntax()
 	//xmlTest()
 	//designTest()
 	//runProgram()
+}
+
+func repl() {
+	fmt.Println("Falcon REPL  (type :exit to quit, Ctrl+D to exit)")
+	fmt.Println()
+
+	interp := runtime.NewInterpreter()
+	reader := bufio.NewReader(os.Stdin)
+
+	var inputBuf strings.Builder
+	openBraces := 0
+
+	for {
+		if openBraces == 0 {
+			fmt.Print(">> ")
+		} else {
+			fmt.Print(".. ")
+		}
+
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				fmt.Println()
+				fmt.Println("Goodbye!")
+				break
+			}
+			fmt.Fprintln(os.Stderr, "read error:", err)
+			continue
+		}
+
+		trimmed := strings.TrimSpace(line)
+		if trimmed == ":exit" {
+			fmt.Println("Goodbye!")
+			break
+		}
+
+		for _, c := range line {
+			if c == '{' {
+				openBraces++
+			} else if c == '}' {
+				openBraces--
+			}
+		}
+		inputBuf.WriteString(line)
+
+		if openBraces > 0 {
+			continue
+		}
+		openBraces = 0
+
+		source := inputBuf.String()
+		inputBuf.Reset()
+
+		if strings.TrimSpace(source) == "" {
+			continue
+		}
+
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					fmt.Fprintln(os.Stderr, "Error:", r)
+				}
+			}()
+			codeContext := &context.CodeContext{SourceCode: &source, FileName: "<repl>"}
+			tokens := lex.NewLexer(codeContext).Lex()
+			langParser := mistParser.NewLangParser(false, tokens)
+			exprs := langParser.ParseAll()
+			result := interp.RunGetLast(exprs)
+			if result.Type() != runtime.Null {
+				fmt.Println("=", result.String())
+			}
+		}()
+	}
 }
 
 func runProgram() {

@@ -11,11 +11,11 @@ import (
 )
 
 // evalMethodCall dispatches method calls on text, list, and dict values.
-func (i *Interpreter) evalMethodCall(e *astmethod.Call, env *Env) Value {
-	on := i.evalInEnv(e.On, env)
+func (i *Interpreter) evalMethodCall(e *astmethod.Call) Value {
+	on := i.eval(e.On)
 	args := make([]Value, len(e.Args))
 	for k, a := range e.Args {
-		args[k] = i.evalInEnv(a, env)
+		args[k] = i.eval(a)
 	}
 
 	switch e.Name {
@@ -404,17 +404,18 @@ func dictSetAtPath(d *OrderedDict, path *[]Value, val Value) {
 }
 
 // evalTransformer handles list lambda operations.
-func (i *Interpreter) evalTransformer(e *astlist.Transformer, env *Env) Value {
-	list := i.evalInEnv(e.List, env).AsList()
+func (i *Interpreter) evalTransformer(e *astlist.Transformer) Value {
+	list := i.eval(e.List).AsList()
+	outerEnv := i.currEnv
 
 	switch e.Name {
 	case "map":
 		varName := e.Names[0]
 		result := make([]Value, len(*list))
 		for k, elem := range *list {
-			lambdaEnv := NewEnv(env)
+			lambdaEnv := NewEnv(outerEnv)
 			lambdaEnv.Define(varName, elem)
-			result[k] = i.evalInEnv(e.Transformer, lambdaEnv)
+			result[k] = i.inEnv(lambdaEnv, func() Value { return i.eval(e.Transformer) })
 		}
 		return ListVal(result)
 
@@ -422,23 +423,23 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer, env *Env) Value {
 		varName := e.Names[0]
 		var result []Value
 		for _, elem := range *list {
-			lambdaEnv := NewEnv(env)
+			lambdaEnv := NewEnv(outerEnv)
 			lambdaEnv.Define(varName, elem)
-			if i.evalInEnv(e.Transformer, lambdaEnv).AsBool() {
+			if i.inEnv(lambdaEnv, func() Value { return i.eval(e.Transformer) }).AsBool() {
 				result = append(result, elem)
 			}
 		}
 		return ListVal(result)
 
 	case "reduce":
-		varName := e.Names[0]   // element
-		accName := e.Names[1]   // accumulator
-		acc := i.evalInEnv(e.Args[0], env)
+		varName := e.Names[0] // element
+		accName := e.Names[1] // accumulator
+		acc := i.eval(e.Args[0])
 		for _, elem := range *list {
-			lambdaEnv := NewEnv(env)
+			lambdaEnv := NewEnv(outerEnv)
 			lambdaEnv.Define(varName, elem)
 			lambdaEnv.Define(accName, acc)
-			acc = i.evalInEnv(e.Transformer, lambdaEnv)
+			acc = i.inEnv(lambdaEnv, func() Value { return i.eval(e.Transformer) })
 		}
 		return acc
 
@@ -448,10 +449,10 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer, env *Env) Value {
 		cp := make([]Value, len(*list))
 		copy(cp, *list)
 		sort.SliceStable(cp, func(a, b int) bool {
-			lambdaEnv := NewEnv(env)
+			lambdaEnv := NewEnv(outerEnv)
 			lambdaEnv.Define(varM, cp[a])
 			lambdaEnv.Define(varN, cp[b])
-			return i.evalInEnv(e.Transformer, lambdaEnv).AsBool()
+			return i.inEnv(lambdaEnv, func() Value { return i.eval(e.Transformer) }).AsBool()
 		})
 		return ListVal(cp)
 
@@ -460,12 +461,12 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer, env *Env) Value {
 		cp := make([]Value, len(*list))
 		copy(cp, *list)
 		sort.SliceStable(cp, func(a, b int) bool {
-			envA := NewEnv(env)
+			envA := NewEnv(outerEnv)
 			envA.Define(varName, cp[a])
-			keyA := i.evalInEnv(e.Transformer, envA)
-			envB := NewEnv(env)
+			keyA := i.inEnv(envA, func() Value { return i.eval(e.Transformer) })
+			envB := NewEnv(outerEnv)
 			envB.Define(varName, cp[b])
-			keyB := i.evalInEnv(e.Transformer, envB)
+			keyB := i.inEnv(envB, func() Value { return i.eval(e.Transformer) })
 			na, aOk := TryNum(keyA)
 			nb, bOk := TryNum(keyB)
 			if aOk && bOk {
@@ -483,11 +484,10 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer, env *Env) Value {
 		}
 		best := (*list)[0]
 		for _, elem := range (*list)[1:] {
-			lambdaEnv := NewEnv(env)
+			lambdaEnv := NewEnv(outerEnv)
 			lambdaEnv.Define(varM, best)
 			lambdaEnv.Define(varN, elem)
-			// comparator: true if varN precedes varM → elem is better
-			if i.evalInEnv(e.Transformer, lambdaEnv).AsBool() {
+			if i.inEnv(lambdaEnv, func() Value { return i.eval(e.Transformer) }).AsBool() {
 				best = elem
 			}
 		}
@@ -501,11 +501,10 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer, env *Env) Value {
 		}
 		best := (*list)[0]
 		for _, elem := range (*list)[1:] {
-			lambdaEnv := NewEnv(env)
+			lambdaEnv := NewEnv(outerEnv)
 			lambdaEnv.Define(varM, best)
 			lambdaEnv.Define(varN, elem)
-			// comparator: true if varN precedes varM → elem is "greater"
-			if i.evalInEnv(e.Transformer, lambdaEnv).AsBool() {
+			if i.inEnv(lambdaEnv, func() Value { return i.eval(e.Transformer) }).AsBool() {
 				best = elem
 			}
 		}

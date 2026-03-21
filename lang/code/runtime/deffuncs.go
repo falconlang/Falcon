@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"Falcon/code/ast"
 	"Falcon/code/ast/common"
 	"fmt"
 	"math"
@@ -11,12 +10,12 @@ import (
 	"strings"
 )
 
-// evalFuncCall dispatches built-in function calls.
-func (i *Interpreter) evalFuncCall(e *common.FuncCall, env *Env) Value {
+// evalFuncCall dispatches built-in (default) function calls.
+func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 	// evaluate arguments eagerly (except short-circuit is handled in BinaryExpr)
 	args := make([]Value, len(e.Args))
 	for k, a := range e.Args {
-		args[k] = i.evalInEnv(a, env)
+		args[k] = i.eval(a)
 	}
 
 	switch e.Name {
@@ -259,29 +258,40 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall, env *Env) Value {
 		}
 		return ListVal([]Value{NumVal(float64(r)), NumVal(float64(g)), NumVal(float64(b)), NumVal(float64(a))})
 
-	// --- App Inventor stubs (no-op at runtime) ---
-	case "openScreen", "openScreenWithValue", "closeScreen", "closeScreenWithValue",
-		"closeApp", "getPlainStartText", "closeScreenWithPlainText":
+	// --- App Inventor screen stubs ---
+	case "openScreen":
+		fmt.Printf("[stub] openScreen(%s) is not supported outside App Inventor\n", args[0].AsStr())
+		return NullVal()
+	case "openScreenWithValue":
+		fmt.Printf("[stub] openScreenWithValue(%s, ...) is not supported outside App Inventor\n", args[0].AsStr())
+		return NullVal()
+	case "closeScreen":
+		fmt.Println("[stub] closeScreen() is not supported outside App Inventor")
+		return NullVal()
+	case "closeScreenWithValue":
+		fmt.Println("[stub] closeScreenWithValue(...) is not supported outside App Inventor")
+		return NullVal()
+	case "closeApp":
+		fmt.Println("[stub] closeApp() is not supported outside App Inventor")
+		return NullVal()
+	case "getPlainStartText":
+		fmt.Println("[stub] getPlainStartText() is not supported outside App Inventor")
+		return StrVal("")
+	case "closeScreenWithPlainText":
+		fmt.Println("[stub] closeScreenWithPlainText(...) is not supported outside App Inventor")
 		return NullVal()
 	case "getStartValue":
+		fmt.Println("[stub] getStartValue() is not supported outside App Inventor")
 		return StrVal("")
 
-	// --- Generic component stubs ---
+	// --- Generic component function stubs ---
 	case "set", "get", "call", "vcall", "every":
+		fmt.Printf("[stub] component function '%s' is not supported outside App Inventor\n", e.Name)
 		return NullVal()
 
 	default:
 		panic("unknown built-in function: " + e.Name)
 	}
-}
-
-// evalFuncCallWithRawArgs is used by the interpreter for calls that need access
-// to the raw ast.Expr arguments (e.g., for lazy evaluation).
-func evalFuncCallAST(name string, rawArgs []ast.Expr, env *Env, interp *Interpreter) Value {
-	_ = rawArgs
-	_ = env
-	_ = interp
-	panic("not used directly")
 }
 
 func listStdDev(list *[]Value, population bool) float64 {
