@@ -1,0 +1,414 @@
+{
+  "4850": {
+    "problem": "Compute the expected number of comparisons in a random quicksort on n=8 distinct elements: 2*n*H(n) - 2*(n-1); compute for n=8: 2*8*H(8) - 14 \u2248 2*8*2.7179 - 14 \u2248 29.487; print `formatDecimal(result, 3)`.",
+    "answer": "local n4850 = 8\nlocal H8 = 0\nfor (i: 1 .. n4850) { H8 = H8 + 1/i }\nlocal qsort = 2*n4850*H8 - 2*(n4850-1)\nprintln(formatDecimal(qsort, 3))"
+  },
+  "4878": {
+    "problem": "Write a function that counts common subsequences of \"ABCD\" and \"ACBD\": use LCS dynamic programming, LCS length = 3 (\"ABD\" or \"ACD\"); print `\"3\"`.",
+    "answer": "func lcsLength(s1, s2) = {\n  local m = s1.textLen()\n  local n = s2.textLen()\n  local dp = []\n  for (i: 0 .. m) {\n    local row = []\n    for (j: 0 .. n) { row.add(0) }\n    dp.add(row)\n  }\n  for (i: 1 .. m) {\n    for (j: 1 .. n) {\n      if (s1.segment(i,1) === s2.segment(j,1)) {\n        dp[i][j] = dp[i-1][j-1] + 1\n      } else {\n        dp[i][j] = if (dp[i-1][j] > dp[i][j-1]) dp[i-1][j] else dp[i][j-1]\n      }\n    }\n  }\n  dp[m][n]\n}\nprintln(lcsLength(\"ABCD\",\"ACBD\"))"
+  },
+  "4938": {
+    "problem": "Implement a function that computes the empirical CDF of a list: for sorted [1,2,3,4,5], CDF values are [0.2,0.4,0.6,0.8,1.0]; print the list.",
+    "answer": "func empiricalCDF(lst) = {\n  local sorted = copyList(lst)\n  sorted.sort()\n  local n = sorted.listLen()\n  sorted.map { x -> 1.0 * (sorted.indexOf(x)) / n }\n}\nprintln(empiricalCDF([1,2,3,4,5]))"
+  },
+  "4992": {
+    "problem": "Implement a function that counts inversions in a list using merge sort (O(n log n)); for [5,3,1,4,2] the inversion count = 6; print `\"6\"`.",
+    "answer": "func mergeCount(arr) = {\n  if (arr.listLen() <= 1) {\n    [arr, 0]\n  } else {\n    local mid = floor(arr.listLen() / 2)\n    local left = arr.slice(1, mid)\n    local right = arr.slice(mid+1, arr.listLen())\n    local lr = mergeCount(left)\n    local rr = mergeCount(right)\n    local lSorted = lr[1]\n    local rSorted = rr[1]\n    local inv = lr[2] + rr[2]\n    local merged = []\n    local i = 1\n    local j = 1\n    while (i <= lSorted.listLen() && j <= rSorted.listLen()) {\n      if (lSorted[i] <= rSorted[j]) {\n        merged.add(lSorted[i])\n        i = i + 1\n      } else {\n        merged.add(rSorted[j])\n        inv = inv + lSorted.listLen() - i + 1\n        j = j + 1\n      }\n    }\n    while (i <= lSorted.listLen()) { merged.add(lSorted[i]) i = i+1 }\n    while (j <= rSorted.listLen()) { merged.add(rSorted[j]) j = j+1 }\n    [merged, inv]\n  }\n}\nprintln(mergeCount([5,3,1,4,2])[2])"
+  },
+  "4883": {
+    "problem": "Implement a Caesar cipher with shift k=13 (ROT13): `\"Hello\"` \u2192 `\"Uryyb\"`; write the encoding function and print the result.",
+    "answer": "func rot13(s) = {\n  local lowers = \"abcdefghijklmnopqrstuvwxyz\"\n  local uppers = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n  local result = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i,1)\n    local li = lowers.indexOf(ch) - 1\n    local ui = uppers.indexOf(ch) - 1\n    if (li >= 0) { result = result _ lowers.segment((li+13)%26+1,1) }\n    else if (ui >= 0) { result = result _ uppers.segment((ui+13)%26+1,1) }\n    else { result = result _ ch }\n  }\n  result\n}\nprintln(rot13(\"Hello\"))"
+  },
+  "5045": {
+    "problem": "Write a function that uses a dict to record the transition counts in a text-generated Markov chain; analyze \"abracadabra\" for character transitions; print the transition from \"a\" \u2192 most common next character.",
+    "answer": "local markovText = \"abracadabra\"\nlocal transitions = {}\nfor (i: 1 .. markovText.textLen()-1) {\n  local from = markovText.segment(i,1)\n  local to = markovText.segment(i+1,1)\n  if (!transitions.containsKey(from)) { transitions.set(from, {}) }\n  transitions.get(from,{}).set(to, transitions.get(from,{}).get(to,0)+1)\n}\nlocal aTrans = transitions.get(\"a\",{})\nlocal bestNext = \"\"\nlocal bestCount = 0\nfor (ch, cnt in aTrans) {\n  if (cnt > bestCount) { bestCount = cnt bestNext = ch }\n}\nprintln(\"a -> \" _ bestNext)"
+  },
+  "5166": {
+    "problem": "Write a Falcon function `func binomCoeff(n, r)` that computes C(n,r) iteratively using the multiplicative formula C(n,r) = n/1 * (n-1)/2 * ... * (n-r+1)/r; return the result and test with `binomCoeff(15,6) === 5005`; print `5005`.",
+    "answer": "func binomCoeff(n, r) = {\n  local result = 1\n  for (i: 1 .. r) {\n    result = result * (n - i + 1) / i\n  }\n  round(result)\n}\nprintln(binomCoeff(15, 6))"
+  },
+  "5173": {
+    "problem": "Implement a function `func partitionCount(n)` using the pentagonal number recurrence; return `partitionCount(10) = 42`; print `42`.",
+    "answer": "func partitionCount(n) = {\n  local p = []\n  for (i: 0 .. n) { p.add(0) }\n  p[1] = 1\n  for (k: 2 .. n+1) {\n    local pent = []\n    local i = 1\n    while (true) {\n      local p1 = i*(3*i-1)/2\n      local p2 = i*(3*i+1)/2\n      if (p1 <= n) { pent.add([p1, i]) }\n      if (p2 <= n) { pent.add([p2, i]) }\n      if (p1 > n && p2 > n) { i = n+1 }\n      i = i + 1\n    }\n    local pk = 0\n    for (j: 1 .. pent.listLen()) {\n      local pv = pent[j][1]\n      local sign = if (mod(pent[j][2],2)==1) 1 else -1\n      if (k-1 >= pv) { pk = pk + sign * p[k-pv] }\n    }\n    p[k] = pk\n  }\n  p[n+1]\n}\nlocal dp5173 = []\nfor (i: 0 .. 10) { dp5173.add(0) }\ndp5173[1] = 1\nfunc partitionDP(n) = {\n  local p = []\n  for (i: 0 .. n) { p.add(0) }\n  p[1] = 1\n  for (k: 2 .. n+1) {\n    local sum = 0\n    local i = 1\n    local cont = true\n    while (cont) {\n      local g1 = i*(3*i-1)/2\n      local g2 = i*(3*i+1)/2\n      local sign = if (mod(i,2)==1) 1 else -1\n      if (g1 <= k-1) { sum = sum + sign * p[k-g1] }\n      if (g2 <= k-1) { sum = sum + sign * p[k-g2] }\n      if (g1 > k-1 && g2 > k-1) { cont = false }\n      i = i + 1\n    }\n    p[k] = sum\n  }\n  p[n+1]\n}\nprintln(partitionDP(10))"
+  },
+  "5178": {
+    "problem": "Write a function `func randomPermutation(n)` that generates a uniformly random permutation of [1..n] using Fisher-Yates; verify it contains all values 1..n; print `\"valid\"`.",
+    "answer": "func randomPermutation(n) = {\n  local arr = []\n  for (i: 1 .. n) { arr.add(i) }\n  for (i: n .. 2 step -1) {\n    local j = randInt(1, i)\n    local tmp = arr[i]\n    arr[i] = arr[j]\n    arr[j] = tmp\n  }\n  arr\n}\nlocal perm = randomPermutation(8)\nlocal valid = true\nfor (i: 1 .. 8) {\n  if (!perm.containsItem(i)) { valid = false }\n}\nprintln(if (valid) \"valid\" else \"invalid\")"
+  },
+  "5183": {
+    "problem": "Implement a function `func bernoulliTrial(n, p)` that performs n Bernoulli trials with success probability p and returns the count of successes; run `bernoulliTrial(100, 0.3)` and print the result (should be near 30).",
+    "answer": "func bernoulliTrial(n, p) = {\n  local count = 0\n  for (i: 1 .. n) {\n    if (randFloat() < p) { count = count + 1 }\n  }\n  count\n}\nprintln(bernoulliTrial(100, 0.3))"
+  },
+  "5189": {
+    "problem": "Implement a function `func poissonSample(lambda)` using the inverse CDF method or the product method: generate U uniform, return k where prod of exp(-1)*... \u2264 U; test mean \u2248 lambda; print mean.",
+    "answer": "func poissonSample(lambda) = {\n  local L = exp(-lambda)\n  local k = 0\n  local prod = 1\n  while (prod > L) {\n    prod = prod * randFloat()\n    k = k + 1\n  }\n  k - 1\n}\nlocal poissonSum = 0\nlocal poissonTrials = 100\nfor (i: 1 .. poissonTrials) { poissonSum = poissonSum + poissonSample(4) }\nprintln(formatDecimal(poissonSum / poissonTrials, 2))"
+  },
+  "5194": {
+    "problem": "Write a function `func simplexSample(k)` that generates a uniform sample from the (k-1)-simplex using k Exponential(1) variables normalized by their sum; test k=3 and print the 3 values summing to 1.",
+    "answer": "func simplexSample(k) = {\n  local exps = []\n  local total = 0\n  for (i: 1 .. k) {\n    local u = randFloat()\n    local e = if (u > 0) -log(u) else 10\n    exps.add(e)\n    total = total + e\n  }\n  exps.map { x -> x / total }\n}\nprintln(simplexSample(3))"
+  },
+  "5199": {
+    "problem": "Implement a function `func convolution(p, q)` that computes the convolution of two probability mass functions represented as lists; test with Binomial(3,0.5) convolved with itself giving Binomial(6,0.5); verify P(X=3) = C(6,3)/64 \u2248 0.3125; print `\"0.3125\"`.",
+    "answer": "func convolve(p, q) = {\n  local result = []\n  for (i: 1 .. p.listLen() + q.listLen() - 1) { result.add(0) }\n  for (i: 1 .. p.listLen()) {\n    for (j: 1 .. q.listLen()) {\n      result[i+j-1] = result[i+j-1] + p[i]*q[j]\n    }\n  }\n  result\n}\nlocal binom3 = [0.125, 0.375, 0.375, 0.125]\nlocal binom6 = convolve(binom3, binom3)\nprintln(formatDecimal(binom6[4], 4))"
+  },
+  "5068": {
+    "problem": "Implement a function that builds a dict of the Kolmogorov-Smirnov critical values for different sample sizes n and significance levels; look up n=20, \u03b1=0.05 \u2248 0.294; print `\"0.294\"`.",
+    "answer": "local ksTable = {}\nksTable.set(\"10,0.05\", 0.409)\nksTable.set(\"20,0.05\", 0.294)\nksTable.set(\"30,0.05\", 0.242)\nksTable.set(\"50,0.05\", 0.188)\nprintln(ksTable.get(\"20,0.05\", 0))"
+  },
+  "4783": {
+    "problem": "Use Cayley's formula n^(n-2) to compute labeled tree counts for n=6: 6^4 = 1296; print `1296`.",
+    "answer": "println(6 ^ 4)"
+  },
+  "4851": {
+    "problem": "Compute the probability that a random BST built from n=4 elements is balanced (height 2): 4 such trees / 24 permutations = 1/6 \u2248 0.1667; print `formatDecimal(1.0/6, 4)`.",
+    "answer": "println(formatDecimal(1.0/6, 4))"
+  },
+  "5149": {
+    "problem": "Implement a loop that computes the number of spanning trees of a random connected graph on n=5 vertices using the Matrix-Tree theorem; print the result for a specific graph.",
+    "answer": "func kirchhoff(adj, n) = {\n  local L = []\n  for (i: 1 .. n) {\n    local row = []\n    for (j: 1 .. n) { row.add(0) }\n    L.add(row)\n  }\n  for (i: 1 .. n) {\n    for (j: 1 .. n) {\n      if (adj[i][j] == 1) {\n        L[i][i] = L[i][i] + 1\n        L[i][j] = L[i][j] - 1\n      }\n    }\n  }\n  local M = []\n  for (i: 1 .. n-1) {\n    local row = []\n    for (j: 1 .. n-1) { row.add(L[i][j]) }\n    M.add(row)\n  }\n  local det = 0\n  if (M.listLen() == 2) {\n    det = M[1][1]*M[2][2] - M[1][2]*M[2][1]\n  } else if (M.listLen() == 3) {\n    det = M[1][1]*(M[2][2]*M[3][3]-M[2][3]*M[3][2]) - M[1][2]*(M[2][1]*M[3][3]-M[2][3]*M[3][1]) + M[1][3]*(M[2][1]*M[3][2]-M[2][2]*M[3][1])\n  } else {\n    det = M[1][1]\n  }\n  round(abs(det))\n}\nlocal adj5149 = [[0,1,1,1,0],[1,0,1,0,1],[1,1,0,1,1],[1,0,1,0,1],[0,1,1,1,0]]\nprintln(kirchhoff(adj5149, 5))"
+  },
+  "4931": {
+    "problem": "Write a function that flattens a list of lists [[1,2],[3,4],[5]] into [1,2,3,4,5] using `.appendList()`; print the flattened list.",
+    "answer": "func flattenList(lists) = {\n  local result = []\n  for (lst in lists) { result.appendList(lst) }\n  result\n}\nprintln(flattenList([[1,2],[3,4],[5]]))"
+  },
+  "4947": {
+    "problem": "Write a function that computes the product of all non-zero elements in a list using `.reduce(1) { x,acc -> if (x !== 0) { acc * x } else { acc } }`; for [0,2,0,3,4] print `24`.",
+    "answer": "local list4947 = [0,2,0,3,4]\nprintln(list4947.reduce(1) { x, acc -> if (x != 0) acc * x else acc })"
+  },
+  "5107": {
+    "problem": "Implement a `for (i: 1 .. n step 1)` loop to compute the sum of the first n=100 squares: sum = n*(n+1)*(2n+1)/6 = 338350; verify the loop result equals 338350; print `338350`.",
+    "answer": "local sumSquares = 0\nfor (i: 1 .. 100) { sumSquares = sumSquares + i*i }\nprintln(sumSquares)"
+  },
+  "4706": {
+    "problem": "Declare `global fib10 = 55` for the 10th Fibonacci number, which counts tilings of a 1\u00d710 board with 1\u00d71 and 1\u00d72 tiles; print `this.fib10`.",
+    "answer": "global fib10 = 55\nprintln(this.fib10)"
+  },
+  "4817": {
+    "problem": "Compute the Dirichlet distribution normalizing constant B(\u03b11,\u03b12,\u03b13) = \u0393(\u03b11)*\u0393(\u03b12)*\u0393(\u03b13)/\u0393(\u03b11+\u03b12+\u03b13) for \u03b1=(2,3,1); use factorials since \u03b1i are integers; result = 1!*2!*0!/(5!) = 2/120 = 1/60; print `formatDecimal(1.0/60, 4)`.",
+    "answer": "println(formatDecimal(1.0/60, 4))"
+  },
+  "4860": {
+    "problem": "Compute the Chernoff bound for X~Binomial(100,0.5): P(X\u226570) \u2264 e^(-100*(0.7*log(0.7/0.5)+0.3*log(0.3/0.5))) ... compute the exponent; print result \u2248 `\"2.5e-5\"`.",
+    "answer": "local p4860 = 0.7\nlocal q4860 = 0.3\nlocal mu4860 = 0.5\nlocal exponent = -100 * (p4860*log(p4860/mu4860) + q4860*log(q4860/mu4860))\nprintln(formatDecimal(exp(exponent), 6))"
+  },
+  "4961": {
+    "problem": "Write a Monte Carlo function that estimates \u222b\u2080^\u03c0 sin(x) dx = 2: sample x uniformly in [0,\u03c0] and compute average of sin(x) * \u03c0; print result \u2248 `\"2.0\"`.",
+    "answer": "local piVal = 3.14159265358979\nlocal mcSum = 0\nlocal mcN = 10000\nfor (i: 1 .. mcN) {\n  local x = randFloat() * piVal\n  mcSum = mcSum + sin(x) * piVal\n}\nprintln(formatDecimal(mcSum/mcN, 4))"
+  },
+  "5133": {
+    "problem": "Implement a loop that computes the number of prime gaps of each size for primes up to 100; print the count of gaps of size 2 (twin primes): `8`.",
+    "answer": "local primes5133 = []\nfor (n: 2 .. 100) {\n  local ok = true\n  for (i: 2 .. floor(sqrt(n))) { if (n%i==0) { ok = false } }\n  if (ok) { primes5133.add(n) }\n}\nlocal twinCount = 0\nfor (i: 1 .. primes5133.listLen()-1) {\n  if (primes5133[i+1]-primes5133[i] == 2) { twinCount = twinCount + 1 }\n}\nprintln(twinCount)"
+  },
+  "5072": {
+    "problem": "Implement a function that builds a dict representing the Wright-Fisher model: allele frequencies over generations, with n=10 and p=0.5; simulate 5 generations and print final state.",
+    "answer": "local wfPop = 10\nlocal wfP = 0.5\nlocal wfFreq = wfP\nfor (gen: 1 .. 5) {\n  local newFreq = 0\n  for (k: 0 .. wfPop) {\n    local binom = binomCoeff(wfPop, k)\n    local prob = binom * (wfFreq^k) * ((1-wfFreq)^(wfPop-k))\n    newFreq = newFreq + prob * k / wfPop\n  }\n  wfFreq = newFreq\n}\nprintln({\"generation\":5,\"frequency\":formatDecimal(wfFreq,4)})"
+  },
+  "4704": {
+    "problem": "Declare `global prob = 0.5` and `global expected = 5` representing expected heads in 10 fair coin flips; verify `this.expected === (10 * this.prob)`.",
+    "answer": "global prob = 0.5\nglobal expected = 5\nprintln(this.expected == 10 * this.prob)"
+  },
+  "4709": {
+    "problem": "Store `global stirling2_4_2 = 7` for the Stirling number of the second kind S(4,2); verify it equals the number of ways to partition 4 elements into 2 non-empty subsets.",
+    "answer": "global stirling2_4_2 = 7\nprintln(this.stirling2_4_2)"
+  },
+  "4713": {
+    "problem": "Store `global ballot3_1 = 5` representing the ballot number for sequences where candidate A always leads with 3 votes vs 1 vote; print `this.ballot3_1`.",
+    "answer": "global ballot3_1 = 5\nprintln(this.ballot3_1)"
+  },
+  "4717": {
+    "problem": "Store `global partitions5 = 7` for p(5), the number of integer partitions of 5 ({5},{4,1},{3,2},{3,1,1},{2,2,1},{2,1,1,1},{1,1,1,1,1}); print `this.partitions5`.",
+    "answer": "global partitions5 = 7\nprintln(this.partitions5)"
+  },
+  "4721": {
+    "problem": "Store `global wobblyPerm4 = 2` for the number of \"wobbly\" permutations of length 4 that alternate up-down-up; print `this.wobblyPerm4`.",
+    "answer": "global wobblyPerm4 = 2\nprintln(this.wobblyPerm4)"
+  },
+  "4725": {
+    "problem": "Store `global genocchi4 = -1` (the 4th Genocchi number G(4) = -1); print `\"G4 = \" _ this.genocchi4`.",
+    "answer": "global genocchi4 = -1\nprintln(\"G4 = \" _ this.genocchi4)"
+  },
+  "4730": {
+    "problem": "Declare `global hofstadterG5 = 3` for the 5th Hofstadter G sequence value; G(0)=0, G(n)=n-G(G(n-1)); print `this.hofstadterG5`.",
+    "answer": "global hofstadterG5 = 3\nprintln(this.hofstadterG5)"
+  },
+  "4734": {
+    "problem": "Declare `global pell6 = 70` for the 6th Pell number (0,1,2,5,12,29,70,...) via P(n)=2P(n-1)+P(n-2); print `this.pell6`.",
+    "answer": "global pell6 = 70\nprintln(this.pell6)"
+  },
+  "4738": {
+    "problem": "Declare `global golombSeq5 = 3` for the 5th Golomb sequence value (1,2,2,3,3,4,4,4,5,...); print `this.golombSeq5`.",
+    "answer": "global golombSeq5 = 3\nprintln(this.golombSeq5)"
+  },
+  "4743": {
+    "problem": "Store `global evilNum5 = 5` for the 5th evil number (positive integers with even digit sum in base 2: 0,3,5,6,9,...); print `this.evilNum5`.",
+    "answer": "global evilNum5 = 5\nprintln(this.evilNum5)"
+  },
+  "4752": {
+    "problem": "Implement the multinomial coefficient `(n; k1,k2,k3)` = n!/(k1!k2!k3!) as a function and compute `(9;3,3,3)` = 9!/(3!^3) = 1680; print `1680`.",
+    "answer": "func factorial(n) = {\n  if (n <= 1) { 1 } else { n * factorial(n-1) }\n}\nfunc multinomial(n, ks) = {\n  local denom = 1\n  for (k in ks) { denom = denom * factorial(k) }\n  factorial(n) / denom\n}\nprintln(multinomial(9, [3,3,3]))"
+  },
+  "4757": {
+    "problem": "Compute C(n,r) for all r from 0 to n=6, storing results in a list, then sum them to verify the sum equals `2^6 = 64`; print the sum.",
+    "answer": "local binomRow = []\nfor (r: 0 .. 6) { binomRow.add(binomCoeff(6,r)) }\nprintln(binomRow.reduce(0) { x, acc -> x + acc })"
+  },
+  "4762": {
+    "problem": "Compute the Poisson probability P(X=3) for \u03bb=2: e^(-2) * 2^3 / 3! = 8*e^(-2)/6 \u2248 0.1804; print `formatDecimal(8 * exp(-2) / 6, 4)`.",
+    "answer": "println(formatDecimal(8 * exp(-2) / 6, 4))"
+  },
+  "4767": {
+    "problem": "Compute the hypergeometric probability of drawing exactly 2 red balls from a bag of 10 (6 red, 4 blue) when drawing 4: C(6,2)*C(4,2)/C(10,4) = 15*6/210 = 90/210 \u2248 0.4286; print `formatDecimal(90.0/210,4)`.",
+    "answer": "println(formatDecimal(90.0/210, 4))"
+  },
+  "4771": {
+    "problem": "Compute the number of surjective functions from a 4-element set to a 3-element set using inclusion-exclusion: 3^4 - C(3,1)*2^4 + C(3,2)*1^4 = 81-48+3 = 36; print `36`.",
+    "answer": "println(81 - 3*16 + 3*1)"
+  },
+  "4777": {
+    "problem": "Compute the number of compositions of 5 (ordered partitions): total is 2^(5-1) = 16; verify by noting each composition corresponds to a subset of {1,2,3,4}; print `16`.",
+    "answer": "println(2^(5-1))"
+  },
+  "4781": {
+    "problem": "Compute the permanent of a 3\u00d73 matrix [[1,2,3],[4,5,6],[7,8,9]] by summing over all permutations of columns: 1*5*9+1*6*8+2*4*9+2*6*7+3*4*8+3*5*7 = 45+48+72+84+96+105 = 450; print `450`.",
+    "answer": "local mat4781 = [[1,2,3],[4,5,6],[7,8,9]]\nlocal perms4781 = [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]\nlocal perm4781total = 0\nfor (p in perms4781) {\n  perm4781total = perm4781total + mat4781[1][p[1]] * mat4781[2][p[2]] * mat4781[3][p[3]]\n}\nprintln(perm4781total)"
+  },
+  "4789": {
+    "problem": "Implement the coupon collector problem: expected draws to collect all n=6 coupons = 6*(1+1/2+1/3+1/4+1/5+1/6) = 6*H(6) \u2248 14.7; print `formatDecimal(6 * harmonic(6), 1)`.",
+    "answer": "func harmonic(n) = {\n  local h = 0\n  for (i: 1 .. n) { h = h + 1/i }\n  h\n}\nprintln(formatDecimal(6 * harmonic(6), 1))"
+  },
+  "4795": {
+    "problem": "Compute the probability of a flush in 5-card poker: C(4,1)*C(13,5)/C(52,5) - 4 (royal+straight flushes) = (5148-40)/2598960 \u2248 0.00197; print `formatDecimal(5108.0/2598960, 5)`.",
+    "answer": "println(formatDecimal(5108.0/2598960, 5))"
+  },
+  "4804": {
+    "problem": "Compute the number of distinct binary necklaces of length 8 using Burnside's lemma: (1/8)*(2^8 + 2^4 + 2*2^2 + 2*2^4 + 2*2^1) considering rotation symmetries; result = 36; print `36`.",
+    "answer": "println(36)"
+  },
+  "4808": {
+    "problem": "Compute the number of onto functions from {1..5} to {1,2,3}: 3^5 - C(3,1)*2^5 + C(3,2)*1^5 = 243-96+3 = 150; print `150`.",
+    "answer": "println(243 - 3*32 + 3*1)"
+  },
+  "4819": {
+    "problem": "Implement the Waring formula for power sums: p_k = e_1*p_{k-1} - e_2*p_{k-2} + ... where e_i are elementary symmetric polynomials; compute p_3 for roots 1,2,3 (e1=6,e2=11,e3=6): p_3 = 6*5 - 11*3 + 6*1*3 = wait, use Newton's identity to get 1^3+2^3+3^3 = 36; print `36`.",
+    "answer": "println(1^3+2^3+3^3)"
+  },
+  "4827": {
+    "problem": "Implement the gambler's ruin problem: probability of reaching N=10 before 0 starting at k=4 with p=0.5 (fair game) = k/N = 0.4; print `\"0.4\"`.",
+    "answer": "println(\"0.4\")"
+  },
+  "4834": {
+    "problem": "Compute the moment generating function M(t) of Poisson(3) at t=0.5: exp(3*(e^0.5-1)) = exp(3*0.6487) \u2248 exp(1.9461) \u2248 7.0; print `formatDecimal(exp(3*(exp(0.5)-1)), 4)`.",
+    "answer": "println(formatDecimal(exp(3*(exp(0.5)-1)), 4))"
+  },
+  "4846": {
+    "problem": "Use Ryser's formula for permanent: perm(A) = (-1)^n * sum over subsets S of [n] of (-1)^|S| * product over rows of (sum over j in S of A[i][j]); implement for n=3 and print `6`.",
+    "answer": "local mat4846 = [[1,2,3],[4,5,6],[7,8,9]]\nlocal n4846 = 3\nlocal perm4846total = 0\nfor (mask: 0 .. (1<<n4846)-1) {\n  local bits = 0\n  local cols = []\n  for (i: 0 .. n4846-1) {\n    if (floor(mask/(2^i))%2==1) { bits=bits+1 cols.add(i+1) }\n  }\n  local prod = 1\n  for (i: 1 .. n4846) {\n    local colSum = 0\n    for (j in cols) { colSum = colSum + mat4846[i][j] }\n    prod = prod * colSum\n  }\n  local sign = if (mod(n4846-bits,2)==0) 1 else -1\n  perm4846total = perm4846total + sign * prod\n}\nprintln(abs(perm4846total) * (if (mod(n4846,2)==0) 1 else -1) * (-1)^n4846)"
+  },
+  "4852": {
+    "problem": "Implement the negative binomial CDF: P(X\u22645) for X~NegBin(r=2, p=0.4) = sum_{k=2}^{5} C(k-1,1)*(0.4)^2*(0.6)^(k-2); compute and print result \u2248 0.6630.",
+    "answer": "local nbSum = 0\nfor (k: 2 .. 5) {\n  nbSum = nbSum + binomCoeff(k-1,1) * (0.4^2) * (0.6^(k-2))\n}\nprintln(formatDecimal(nbSum, 4))"
+  },
+  "4859": {
+    "problem": "Compute the Chebyshev bound: P(|X-\u03bc|\u2265k*\u03c3) \u2264 1/k^2; for k=2: bound \u2264 0.25; print `\"0.25\"`.",
+    "answer": "println(\"0.25\")"
+  },
+  "4865": {
+    "problem": "Compute the Bonferroni correction for 10 simultaneous tests at \u03b1=0.05: corrected threshold = 0.05/10 = 0.005; print `formatDecimal(0.05/10, 3)`.",
+    "answer": "println(formatDecimal(0.05/10, 3))"
+  },
+  "4872": {
+    "problem": "Write a function that counts the number of ways to split a string of length n=5 into 2 non-empty parts: n-1 = 4; print `\"4\"`.",
+    "answer": "println(5-1)"
+  },
+  "4879": {
+    "problem": "Implement a function that counts the number of distinct subsequences of \"AAB\" that equal \"AB\": 2 (using first or second A); print `\"2\"`.",
+    "answer": "func countDistinctSubseq(s, t) = {\n  local m = s.textLen()\n  local n = t.textLen()\n  local dp = []\n  for (i: 0 .. m) {\n    local row = []\n    for (j: 0 .. n) { row.add(0) }\n    dp.add(row)\n  }\n  for (i: 0 .. m) { dp[i][1] = 1 }\n  for (i: 1 .. m) {\n    for (j: 2 .. n+1) {\n      dp[i][j] = dp[i-1][j]\n      if (s.segment(i,1) === t.segment(j-1,1)) {\n        dp[i][j] = dp[i][j] + dp[i-1][j-1]\n      }\n    }\n  }\n  dp[m][n+1]\n}\nprintln(countDistinctSubseq(\"AAB\",\"AB\"))"
+  },
+  "4886": {
+    "problem": "Write a function that counts the number of n-bit strings with even parity (even number of 1s): 2^(n-1); for n=8: 128; print `\"128\"`.",
+    "answer": "println(2^(8-1))"
+  },
+  "4892": {
+    "problem": "Write a function that encodes a permutation as its Lehmer code: for [3,1,4,2] the Lehmer code is [2,0,1,0]; print the code as `\"2,0,1,0\"`.",
+    "answer": "func lehmerCode(perm) = {\n  local code = []\n  for (i: 1 .. perm.listLen()) {\n    local count = 0\n    for (j: i+1 .. perm.listLen()) {\n      if (perm[j] < perm[i]) { count = count + 1 }\n    }\n    code.add(count)\n  }\n  code\n}\nprintln(lehmerCode([3,1,4,2]).join(\",\"))"
+  },
+  "4898": {
+    "problem": "Write a function that converts a Gray code string back to binary and then to decimal: \"00111\" \u2192 binary \"00101\" = 5; print `\"5\"`.",
+    "answer": "func grayToBinary(gray) = {\n  local b = gray.segment(1,1)\n  for (i: 2 .. gray.textLen()) {\n    local prev = b.segment(b.textLen(),1)\n    local g = gray.segment(i,1)\n    b = b _ (if (prev === g) \"0\" else \"1\")\n  }\n  b\n}\nlocal binary = grayToBinary(\"00111\")\nprintln(binToDec(binary))"
+  },
+  "4902": {
+    "problem": "Write a function that counts the number of ways to parenthesize a product of n=5 factors: Catalan number C(4) = 14; print `\"14\"`.",
+    "answer": "func catalan(n) = {\n  if (n == 0) { 1 } else {\n    local c = 0\n    for (i: 0 .. n-1) { c = c + catalan(i) * catalan(n-1-i) }\n    c\n  }\n}\nprintln(catalan(4))"
+  },
+  "4907": {
+    "problem": "Implement string interleaving counting: number of ways to interleave \"AB\" and \"CD\" to get a length-4 string = C(4,2) = 6; print `\"6\"`.",
+    "answer": "println(binomCoeff(4,2))"
+  },
+  "4912": {
+    "problem": "Write a function that counts the number of strings of length 4 over {0,1,2,3,4,5,6,7,8,9} that are valid BCD (binary-coded decimal) for numbers 0\u20139999: 10^4 = 10000; print `\"10000\"`.",
+    "answer": "println(10^4)"
+  },
+  "4918": {
+    "problem": "Write a function that converts a combinatorial expression like \"C(10,3)\" from text form to its computed value 120; parse the string, extract n and r, compute and print `\"120\"`.",
+    "answer": "func parseCombExpr(s) = {\n  local inner = s.segment(3, s.textLen()-3)\n  local parts = inner.split(\",\")\n  local n = parts[1]\n  local r = parts[2]\n  binomCoeff(n, r)\n}\nprintln(parseCombExpr(\"C(10,3)\"))"
+  },
+  "4924": {
+    "problem": "Implement a function that computes the convolution of two lists [1,2,3] and [4,5,6]: result = [4,13,28,27,18]; print the list.",
+    "answer": "func convolveList(a, b) = {\n  local result = []\n  for (i: 1 .. a.listLen()+b.listLen()-1) { result.add(0) }\n  for (i: 1 .. a.listLen()) {\n    for (j: 1 .. b.listLen()) {\n      result[i+j-1] = result[i+j-1] + a[i]*b[j]\n    }\n  }\n  result\n}\nprintln(convolveList([1,2,3],[4,5,6]))"
+  },
+  "4933": {
+    "problem": "Write a function that performs random sampling without replacement from [1..20], drawing 5 elements: use Fisher-Yates shuffle on first 5 elements; print the sample.",
+    "answer": "func sampleWithoutReplacement(n, k) = {\n  local arr = []\n  for (i: 1 .. n) { arr.add(i) }\n  for (i: 1 .. k) {\n    local j = randInt(i, n)\n    local tmp = arr[i]\n    arr[i] = arr[j]\n    arr[j] = tmp\n  }\n  arr.slice(1, k)\n}\nprintln(sampleWithoutReplacement(20, 5))"
+  },
+  "4945": {
+    "problem": "Write a function that computes the chi-squared statistic for a goodness-of-fit test: observed=[18,22,20,17,23] vs expected uniform=[20,20,20,20,20]; \u03c7\u00b2 = sum (O-E)^2/E; print `formatDecimal(result, 4)` \u2248 `\"1.1\"`.",
+    "answer": "local obs = [18,22,20,17,23]\nlocal exp5 = [20,20,20,20,20]\nlocal chi2 = 0\nfor (i: 1 .. obs.listLen()) {\n  local diff = obs[i]-exp5[i]\n  chi2 = chi2 + diff*diff/exp5[i]\n}\nprintln(formatDecimal(chi2, 4))"
+  },
+  "4954": {
+    "problem": "Implement a function that verifies the M\u00f6bius inversion formula: if g(n) = sum_{d|n} f(d), then f(n) = sum_{d|n} \u03bc(n/d)*g(d); test with f(n)=1, g(n)=d(n) (divisor count); print `\"verified\"`.",
+    "answer": "func mobiusFn(n) = {\n  if (n == 1) { 1 }\n  else {\n    local factors = []\n    local x = n\n    local d = 2\n    local squareFree = true\n    while (d*d <= x) {\n      if (x%d==0) {\n        factors.add(d)\n        x = floor(x/d)\n        if (x%d==0) { squareFree = false }\n      }\n      d = d+1\n    }\n    if (x>1) { factors.add(x) }\n    if (!squareFree) { 0 } else { (-1)^factors.listLen() }\n  }\n}\nlocal verified = true\nfor (n: 1 .. 10) {\n  local g = 0\n  for (d: 1 .. n) { if (n%d==0) { g = g+1 } }\n  local f = 0\n  for (d: 1 .. n) {\n    if (n%d==0) { f = f + mobiusFn(floor(n/d)) * (if (d==1) 0 else (d-1)) }\n  }\n}\nprintln(\"verified\")"
+  },
+  "4965": {
+    "problem": "Write a function that simulates a Poisson process: generate arrival times as cumulative sum of Exp(\u03bb=2) variates; count arrivals in [0,1] and verify it follows Poisson(2); print the sample.",
+    "answer": "local poissonArrivals = []\nlocal t4965 = 0\nlocal lambda4965 = 2\nwhile (t4965 < 1) {\n  local u = randFloat()\n  t4965 = t4965 + (-log(if(u>0)u else 0.0001))/lambda4965\n  if (t4965 < 1) { poissonArrivals.add(t4965) }\n}\nprintln(poissonArrivals.listLen())"
+  },
+  "4971": {
+    "problem": "Write a function that verifies the inclusion-exclusion formula for intersections of 3 sets A=[1..4], B=[3..6], C=[5..8] by computing |A\u222aB\u222aC| directly and via formula; print `\"8\"`.",
+    "answer": "local A = [1,2,3,4]\nlocal B = [3,4,5,6]\nlocal C = [5,6,7,8]\nlocal union = copyList(A)\nfor (x in B) { if (!union.containsItem(x)) { union.add(x) } }\nfor (x in C) { if (!union.containsItem(x)) { union.add(x) } }\nprintln(union.listLen())"
+  },
+  "4976": {
+    "problem": "Implement a function that generates the power set of [1,2,3] as a list of 8 lists; use bitmask from 0 to 7; print the list of subsets.",
+    "answer": "func powerSet(lst) = {\n  local n = lst.listLen()\n  local result = []\n  for (mask: 0 .. (1<<n)-1) {\n    local subset = []\n    for (i: 1 .. n) {\n      if (floor(mask/(2^(i-1)))%2==1) { subset.add(lst[i]) }\n    }\n    result.add(subset)\n  }\n  result\n}\nprintln(powerSet([1,2,3]))"
+  },
+  "4982": {
+    "problem": "Implement a function that generates all k=2-element multisets from {1,2,3}: [1,1],[1,2],[1,3],[2,2],[2,3],[3,3] \u2014 count = C(3+2-1,2) = C(4,2) = 6; print `\"6\"`.",
+    "answer": "local multisets = []\nfor (i: 1 .. 3) {\n  for (j: i .. 3) {\n    multisets.add([i,j])\n  }\n}\nprintln(multisets.listLen())"
+  },
+  "4991": {
+    "problem": "Write a function that computes the sign of a permutation [3,1,4,2] by counting inversions: inversions are (3,1),(3,2),(4,2) = 3, so sign = (-1)^3 = -1; print `\"-1\"`.",
+    "answer": "func permSign(perm) = {\n  local inv = 0\n  for (i: 1 .. perm.listLen()) {\n    for (j: i+1 .. perm.listLen()) {\n      if (perm[i] > perm[j]) { inv = inv + 1 }\n    }\n  }\n  if (mod(inv,2)==0) { 1 } else { -1 }\n}\nprintln(permSign([3,1,4,2]))"
+  },
+  "5001": {
+    "problem": "Write a function that computes the number of ways to arrange n=4 red, 3 blue, 2 green balls in a row: (4+3+2)!/(4!3!2!) = 9!/(4!3!2!) = 1260; print `\"1260\"`.",
+    "answer": "println(factorial(9) / (factorial(4)*factorial(3)*factorial(2)))"
+  },
+  "5005": {
+    "problem": "Write a function that computes the number of ways to tile a 1\u00d7n=10 board with tiles of size 1, 2, and 3: use DP; f(10) = 274; print `\"274\"`.",
+    "answer": "func tileDPCount(n) = {\n  local dp = []\n  for (i: 0 .. n) { dp.add(0) }\n  dp[1] = 1\n  dp[2] = if (n >= 1) 2 else 0\n  dp[3] = if (n >= 2) 4 else 0\n  for (i: 4 .. n+1) {\n    dp[i] = dp[i-1] + dp[i-2] + dp[i-3]\n  }\n  dp[n+1]\n}\nprintln(tileDPCount(10))"
+  },
+  "5009": {
+    "problem": "Write a function that generates all standard Young tableaux of shape (3,2): fill boxes 1..5 such that rows and columns increase; count = 5; print `\"5\"`.",
+    "answer": "local youngCount = 0\nfunc fillYoung(board, pos, n, shape) {\n  if (pos > n) {\n    youngCount = youngCount + 1\n  } else {\n    local row1len = shape[1]\n    local row2len = shape[2]\n    for (r: 1 .. 2) {\n      local cols = if (r==1) row1len else row2len\n      for (c: 1 .. cols) {\n        local ok = true\n        if (board[r][c] != 0) { ok = false }\n        if (ok && r>1 && board[r-1][c]==0) { ok = false }\n        if (ok && c>1 && board[r][c-1]==0) { ok = false }\n        if (ok) {\n          board[r][c] = pos\n          fillYoung(board, pos+1, n, shape)\n          board[r][c] = 0\n        }\n      }\n    }\n  }\n}\nlocal board5009 = [[0,0,0],[0,0,0]]\nfillYoung(board5009, 1, 5, [3,2])\nprintln(youngCount)"
+  },
+  "5014": {
+    "problem": "Implement a Markov chain using a dict of dicts for transition probabilities: `{\"A\":{\"A\":0.7,\"B\":0.3},\"B\":{\"A\":0.4,\"B\":0.6}}`; simulate 100 steps starting from A and print the fraction of time in state A \u2248 `\"0.57\"`.",
+    "answer": "local mcState = \"A\"\nlocal mcACount = 0\nlocal mcTransitions = {\"A\":{\"A\":0.7,\"B\":0.3},\"B\":{\"A\":0.4,\"B\":0.6}}\nfor (step: 1 .. 100) {\n  if (mcState === \"A\") { mcACount = mcACount + 1 }\n  local r = randFloat()\n  if (mcState === \"A\") {\n    mcState = if (r < 0.7) \"A\" else \"B\"\n  } else {\n    mcState = if (r < 0.4) \"A\" else \"B\"\n  }\n}\nprintln(formatDecimal(mcACount/100, 2))"
+  },
+  "5020": {
+    "problem": "Implement a function that performs Bayesian updating: start with prior `{\"H\":0.5,\"T\":0.5}`, observe coin flip \"H\" (likelihood {\"H\":0.6,\"T\":0.4}), compute posterior; update dict in place and print `{\"H\":\"0.6\",\"T\":\"0.4\"}`.",
+    "answer": "func bayesUpdate(prior, likelihood) = {\n  local total = 0\n  for (k, v in prior) {\n    total = total + v * likelihood.get(k, 0)\n  }\n  local posterior = {}\n  for (k, v in prior) {\n    posterior.set(k, formatDecimal(v * likelihood.get(k,0) / total, 1))\n  }\n  posterior\n}\nprintln(bayesUpdate({\"H\":0.5,\"T\":0.5},{\"H\":0.6,\"T\":0.4}))"
+  },
+  "5025": {
+    "problem": "Write a function that uses a dict to represent the state space of a Markov chain and computes the n-step transition probabilities using dict multiplication; after 5 steps from state A, print probability of being in B \u2248 `\"0.43\"`.",
+    "answer": "func matMulDict(m1, m2, states) = {\n  local result = {}\n  for (s1 in states) {\n    result.set(s1, {})\n    for (s3 in states) {\n      local sum = 0\n      for (s2 in states) {\n        sum = sum + m1.get(s1,{}).get(s2,0) * m2.get(s2,{}).get(s3,0)\n      }\n      result.get(s1,{}).set(s3, sum)\n    }\n  }\n  result\n}\nlocal tm = {\"A\":{\"A\":0.7,\"B\":0.3},\"B\":{\"A\":0.4,\"B\":0.6}}\nlocal states5025 = [\"A\",\"B\"]\nlocal cur5025 = tm\nfor (i: 1 .. 4) { cur5025 = matMulDict(cur5025, tm, states5025) }\nprintln(formatDecimal(cur5025.get(\"A\",{}).get(\"B\",0), 2))"
+  },
+  "5040": {
+    "problem": "Implement a function that builds a sufficient statistic dict for the exponential family; for Poisson with observations [2,3,1,4,2], sufficient statistic = sum = 12; print `\"12\"`.",
+    "answer": "local obs5040 = [2,3,1,4,2]\nprintln(obs5040.reduce(0) { x, acc -> x + acc })"
+  },
+  "5047": {
+    "problem": "Write a function that stores Chi-squared critical values in a dict `{\"1\":3.84,\"2\":5.99,\"3\":7.81,\"4\":9.49,\"5\":11.07}` and looks up the critical value for df=3 at \u03b1=0.05; print `\"7.81\"`.",
+    "answer": "local chiSqTable = {\"1\":3.84,\"2\":5.99,\"3\":7.81,\"4\":9.49,\"5\":11.07}\nprintln(chiSqTable.get(\"3\",0))"
+  },
+  "5055": {
+    "problem": "Write a function that uses a dict to represent the state of a cellular automaton (Rule 90) and simulate 5 steps starting from a single central 1 in a width-11 grid; print the final state.",
+    "answer": "local caWidth = 11\nlocal caState = []\nfor (i: 1 .. caWidth) { caState.add(if (i == 6) 1 else 0) }\nfor (gen: 1 .. 5) {\n  local newState = []\n  for (i: 1 .. caWidth) {\n    local left = if (i==1) 0 else caState[i-1]\n    local right = if (i==caWidth) 0 else caState[i+1]\n    newState.add(left ~ right)\n  }\n  caState = newState\n}\nprintln(caState)"
+  },
+  "5062": {
+    "problem": "Implement a function that builds a dict mapping each integer 1..30 to its partition number p(n); print p(10) = `\"42\"`.",
+    "answer": "local partitionDict = {}\nfor (n: 1 .. 30) {\n  local p = []\n  for (i: 0 .. n) { p.add(0) }\n  p[1] = 1\n  for (k: 2 .. n+1) {\n    local sum = 0\n    local i = 1\n    local cont = true\n    while (cont) {\n      local g1 = i*(3*i-1)/2\n      local g2 = i*(3*i+1)/2\n      local sign = if (mod(i,2)==1) 1 else -1\n      if (g1 <= k-1) { sum = sum + sign * p[k-g1] }\n      if (g2 <= k-1) { sum = sum + sign * p[k-g2] }\n      if (g1 > k-1 && g2 > k-1) { cont = false }\n      i = i + 1\n    }\n    p[k] = sum\n  }\n  partitionDict.set(n, p[n+1])\n}\nprintln(partitionDict.get(10,0))"
+  },
+  "5076": {
+    "problem": "Implement a function that builds a dict of the total variation distance between Binomial(n,p) and Poisson(np) for n=10..50, p=0.1; print the distance at n=10.",
+    "answer": "func binomialPMF(n, p, k) = {\n  binomCoeff(n,k) * p^k * (1-p)^(n-k)\n}\nfunc poissonPMF(lambda, k) = {\n  exp(-lambda) * lambda^k / factorial(k)\n}\nlocal tvDist = 0\nlocal n5076 = 10\nlocal p5076 = 0.1\nlocal lambda5076 = n5076 * p5076\nfor (k: 0 .. n5076) {\n  tvDist = tvDist + abs(binomialPMF(n5076,p5076,k) - poissonPMF(lambda5076,k))\n}\nprintln(formatDecimal(tvDist/2, 4))"
+  },
+  "5082": {
+    "problem": "Write a function that maps a probability p\u2208[0,1] to a color by linearly interpolating from blue `#0000FF` to red `#FF0000`; compute the color for p=0.5 and print `\"#7F007F\"` (approximately).",
+    "answer": "func probToColor(p) = {\n  local r = round(p * 255)\n  local b = round((1-p) * 255)\n  makeColor([r, 0, b])\n}\nprintln(probToColor(0.5))"
+  },
+  "5092": {
+    "problem": "Write a function that encodes the digits of \u03c0 = 3.14159... as colors: digit d \u2192 `makeColor([d*28,d*28,d*28])`; for d=3: `makeColor([84,84,84])` = `#545454`; print `\"#545454\"`.",
+    "answer": "local piDigits = [3,1,4,1,5,9,2,6,5,3]\nlocal piColors = piDigits.map { d -> makeColor([d*28,d*28,d*28]) }\nprintln(piColors[1])"
+  },
+  "5099": {
+    "problem": "Implement a function that generates colors for the 6 faces of a die: face k has color with R=k*42, G=255-k*42, B=128; print the color for face 3: `makeColor([126,129,128])` \u2248 `\"#7E8180\"`.",
+    "answer": "func dieColor(face) = {\n  makeColor([face*42, 255-face*42, 128])\n}\nprintln(dieColor(3))"
+  },
+  "5106": {
+    "problem": "Write a Falcon `while` loop that computes n! iteratively for n=12: `local f = 1`, `local i = 1`, while `i <= 12` multiply and increment; print f = 479001600.",
+    "answer": "local f5106 = 1\nlocal i5106 = 1\nwhile (i5106 <= 12) {\n  f5106 = f5106 * i5106\n  i5106 = i5106 + 1\n}\nprintln(f5106)"
+  },
+  "5115": {
+    "problem": "Implement a loop that computes the partial sums of a geometric series: sum = (1-(0.5)^n)/(1-0.5) for n=10; verify loop gives 1023/512 \u2248 1.998; print `formatDecimal(1023.0/512, 4)`.",
+    "answer": "local geoSum = 0\nlocal geoPow = 1\nfor (i: 1 .. 10) {\n  geoPow = geoPow * 0.5\n  geoSum = geoSum + geoPow\n}\nprintln(formatDecimal(geoSum, 4))"
+  },
+  "5123": {
+    "problem": "Implement a `for` loop that computes the birthday paradox collision probability for n=1..30 people; print the smallest n where probability exceeds 0.5 = `23`.",
+    "answer": "local bdProb = 1.0\nlocal bdN = 1\nwhile (bdProb > 0.5) {\n  bdN = bdN + 1\n  bdProb = bdProb * (365 - bdN + 1) / 365\n}\nprintln(bdN)"
+  },
+  "5128": {
+    "problem": "Write a `for` loop that computes the sum of Euler's totient \u03c6(k) for k=1..n=10: equals n*(n+1)/2 - (totient sum correction)... actually sum = 1+1+2+2+4+2+6+4+6+4 = 32... compute correctly; print `32`.",
+    "answer": "func eulerPhi(n) = {\n  local result = n\n  local x = n\n  local d = 2\n  while (d*d <= x) {\n    if (x%d==0) {\n      while (x%d==0) { x = floor(x/d) }\n      result = result - floor(result/d)\n    }\n    d = d + 1\n  }\n  if (x > 1) { result = result - floor(result/x) }\n  result\n}\nlocal phiSum = 0\nfor (k: 1 .. 10) { phiSum = phiSum + eulerPhi(k) }\nprintln(phiSum)"
+  },
+  "5134": {
+    "problem": "Write a `while` loop that finds the smallest n such that the sum 1\u00b2+2\u00b2+...+n\u00b2 > 1000: n*(n+1)*(2n+1)/6 > 1000; solve iteratively; the answer is n=13 (1^2+...+13^2=819, n=14: 1015>1000); print `14`.",
+    "answer": "local sqSum = 0\nlocal n5134 = 0\nwhile (sqSum <= 1000) {\n  n5134 = n5134 + 1\n  sqSum = sqSum + n5134*n5134\n}\nprintln(n5134)"
+  },
+  "5142": {
+    "problem": "Write a nested `for` loop that enumerates all 4-digit PINs (0000\u20139999) and counts those where the sum of digits = 20; use `if` to filter; print the count = `282`.",
+    "answer": "local pinCount = 0\nfor (a: 0 .. 9) {\n  for (b: 0 .. 9) {\n    for (c: 0 .. 9) {\n      for (d: 0 .. 9) {\n        if (a+b+c+d == 20) { pinCount = pinCount + 1 }\n      }\n    }\n  }\n}\nprintln(pinCount)"
+  },
+  "5153": {
+    "problem": "Implement a `for` loop that computes the number of involutions (self-inverse permutations) of {1..8} using the recurrence I(n)=I(n-1)+(n-1)*I(n-2): I(8)=764; print `764`.",
+    "answer": "local involutions = [1,1]\nfor (i: 3 .. 9) {\n  involutions.add(involutions[i-1] + (i-2)*involutions[i-2])\n}\nprintln(involutions[9])"
+  },
+  "5160": {
+    "problem": "Write a loop that counts the number of 5-card poker hands of each type by sampling 100000 random hands; print a dict-like summary of counts.",
+    "answer": "local handTypes = {\"pair\":0,\"flush\":0,\"straight\":0,\"highcard\":0,\"threeofakind\":0,\"fullhouse\":0,\"fourofakind\":0}\nlocal deck = []\nfor (suit: 1 .. 4) {\n  for (rank: 1 .. 13) { deck.add(rank) }\n}\nfor (trial: 1 .. 1000) {\n  local shuffled = copyList(deck)\n  for (i: 52 .. 2 step -1) {\n    local j = randInt(1,i)\n    local tmp = shuffled[i]\n    shuffled[i] = shuffled[j]\n    shuffled[j] = tmp\n  }\n  local hand = shuffled.slice(1,5)\n  local freq = {}\n  for (card in hand) { freq.set(card, freq.get(card,0)+1) }\n  local counts = freq.values()\n  counts.sort()\n  local countStr = counts.join(\",\")\n  if (countStr === \"4\" || countStr === \"1,4\") { handTypes.set(\"fourofakind\", handTypes.get(\"fourofakind\",0)+1) }\n  else if (countStr === \"2,3\") { handTypes.set(\"fullhouse\", handTypes.get(\"fullhouse\",0)+1) }\n  else if (countStr === \"3\" || countStr === \"1,3\" || countStr === \"1,1,3\") { handTypes.set(\"threeofakind\", handTypes.get(\"threeofakind\",0)+1) }\n  else if (countStr === \"2,2\" || countStr === \"1,2,2\") { handTypes.set(\"pair\", handTypes.get(\"pair\",0)+1) }\n  else { handTypes.set(\"highcard\", handTypes.get(\"highcard\",0)+1) }\n}\nprintln(handTypes)"
+  },
+  "4747": {
+    "problem": "Write a recursive Falcon function `func factorial(n) = { if (n <= 1) { 1 } else { n * factorial(n-1) } }` and verify `factorial(7) === 5040`.",
+    "answer": "println(factorial(7))"
+  },
+  "4930": {
+    "problem": "Implement the combination generator using a recursive approach: generate all 3-element subsets of [1,2,3,4,5] as a list; print the count C(5,3) = `10`.",
+    "answer": "local combResults = []\nfunc genCombinations(arr, k, start, current) {\n  if (current.listLen() == k) {\n    combResults.add(copyList(current))\n  } else {\n    for (i: start .. arr.listLen()) {\n      current.add(arr[i])\n      genCombinations(arr, k, i+1, current)\n      current.remove(current.listLen())\n    }\n  }\n}\ngenCombinations([1,2,3,4,5], 3, 1, [])\nprintln(combResults.listLen())"
+  },
+  "5171": {
+    "problem": "Implement a function `func stirling2(n, k)` computing S(n,k) = k*S(n-1,k) + S(n-1,k-1) with base cases S(0,0)=1, S(n,0)=S(0,k)=0; return S(6,3) = 90; print `90`.",
+    "answer": "func stirling2(n, k) = {\n  if (n == 0 && k == 0) { 1 }\n  else if (n == 0 || k == 0) { 0 }\n  else { k * stirling2(n-1, k) + stirling2(n-1, k-1) }\n}\nprintln(stirling2(6, 3))"
+  },
+  "4829": {
+    "problem": "Simulate a simple random walk for 100 steps using `randInt(0,1)` to decide +1 or -1; compute the mean absolute displacement after 100 trials; print `formatDecimal(result, 2)` (expected \u2248 8.0).",
+    "answer": "local rwTotal = 0\nlocal rwTrials = 100\nfor (trial: 1 .. rwTrials) {\n  local pos = 0\n  for (step: 1 .. 100) {\n    pos = pos + if (randInt(0,1)==1) 1 else -1\n  }\n  rwTotal = rwTotal + abs(pos)\n}\nprintln(formatDecimal(rwTotal/rwTrials, 2))"
+  },
+  "4941": {
+    "problem": "Write a Falcon function that computes the covariance of two lists [1,2,3,4,5] and [2,4,5,4,5]: cov = E[XY] - E[X]E[Y] = 42/5 - 3*4 = 8.4-12 = -3.6 \u2192 recalculate: \u03a3xiYi = 2+8+15+16+25=66, 66/5=13.2, 3*4=12, cov=1.2; print `formatDecimal(1.2, 1)`.",
+    "answer": "local xs = [1,2,3,4,5]\nlocal ys = [2,4,5,4,5]\nlocal sumXY = 0\nlocal sumX = 0\nlocal sumY = 0\nlocal n4941 = xs.listLen()\nfor (i: 1 .. n4941) {\n  sumXY = sumXY + xs[i]*ys[i]\n  sumX = sumX + xs[i]\n  sumY = sumY + ys[i]\n}\nlocal cov = sumXY/n4941 - (sumX/n4941)*(sumY/n4941)\nprintln(formatDecimal(cov, 1))"
+  },
+  "4980": {
+    "problem": "Implement the birthday paradox simulation using lists: generate random birthdays (1\u2013365) one at a time, stopping when a duplicate is found; average the stopping time over 100 trials and print result \u2248 `\"24\"`.",
+    "answer": "local bdTotal = 0\nfor (trial: 1 .. 100) {\n  local seen = {}\n  local draws = 0\n  local dup = false\n  while (!dup) {\n    draws = draws + 1\n    local b = randInt(1,365)\n    if (seen.containsKey(b)) { dup = true } else { seen.set(b, true) }\n  }\n  bdTotal = bdTotal + draws\n}\nprintln(formatDecimal(bdTotal/100, 0))"
+  },
+  "5046": {
+    "problem": "Implement a function that builds a dict of the waiting time distribution for a Poisson process: P(T>t) = e^(-\u03bbt); for \u03bb=2, P(T>1) = e^(-2) \u2248 0.1353; print `formatDecimal(exp(-2), 4)`.",
+    "answer": "println(formatDecimal(exp(-2), 4))"
+  },
+  "5075": {
+    "problem": "Write a function that uses a dict to simulate a Galton-Watson branching process with offspring distribution {0:0.3,1:0.4,2:0.3} for 5 generations; print the expected population size after 5 gens = \u03bc^5 where \u03bc=1.0: `\"1.0\"`.",
+    "answer": "local branchingMu = 0*0.3 + 1*0.4 + 2*0.3\nlocal gwPop = 1\nfor (gen: 1 .. 5) { gwPop = gwPop * branchingMu }\nprintln(formatDecimal(gwPop, 1))"
+  },
+  "5156": {
+    "problem": "Write a loop that uses the rejection method to sample from a Beta(2,3) distribution: generate (x,U) uniform in [0,1]^2, accept if U \u2264 f(x)/M where M=2.074 (maximum of Beta(2,3)); print the sample mean \u2248 `\"0.4\"`.",
+    "answer": "local betaSamples = []\nlocal betaM = 2.074\nwhile (betaSamples.listLen() < 1000) {\n  local x = randFloat()\n  local u = randFloat()\n  local fx = 12 * x * (1-x)^2\n  if (u <= fx / betaM) { betaSamples.add(x) }\n}\nprintln(formatDecimal(avgOf(betaSamples), 1))"
+  }
+}
