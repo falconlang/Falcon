@@ -1,0 +1,406 @@
+{
+  "5295": {
+    "problem": "Write `kaprekarSteps(n)` that repeatedly applies the Kaprekar routine to a 4-digit number (sort descending minus sort ascending) until reaching 6174 or 0, returning the step count.",
+    "answer": "func kaprekarSteps(n) = {\n  local steps = 0\n  local x = n\n  while (x != 6174 && x != 0 && steps < 100) {\n    local s = \"\" _ x\n    while (s.textLen() < 4) { s = \"0\" _ s }\n    local chars = s.split(\"\")\n    chars.sort()\n    local asc = chars.join(\"\")\n    chars.sort { a, b -> a > b }\n    local desc = chars.join(\"\")\n    x = desc - asc\n    steps = steps + 1\n  }\n  steps\n}\nprintln(kaprekarSteps(1234))\nprintln(kaprekarSteps(9999))"
+  },
+  "5389": {
+    "problem": "Write `composeListOps(list, ops)` where `ops` is a list of `{\"op\": name, \"arg\": val}` dicts, applying each list operation (map/filter/reduce/sort/reverse) sequentially, returning the final list.",
+    "answer": "func composeListOps(list, ops) = {\n  local result = copyList(list)\n  for (op in ops) {\n    local name = op.get(\"op\",\"\")\n    local arg = op.get(\"arg\", 0)\n    if (name === \"map\") {\n      if (arg === \"double\") { result = result.map { x -> x*2 } }\n      else if (arg === \"square\") { result = result.map { x -> x*x } }\n    } else if (name === \"filter\") {\n      if (arg === \"even\") { result = result.filter { x -> mod(x,2)==0 } }\n      else if (arg === \"positive\") { result = result.filter { x -> x > 0 } }\n    } else if (name === \"sort\") {\n      result.sort()\n    } else if (name === \"reverse\") {\n      result.reverseList()\n    } else if (name === \"reduce\") {\n      if (arg === \"sum\") { result = [result.reduce(0) { x, acc -> x+acc }] }\n    }\n  }\n  result\n}\nprintln(composeListOps([3,1,4,1,5,9,2,6], [{\"op\":\"filter\",\"arg\":\"even\"},{\"op\":\"sort\",\"arg\":0}]))"
+  },
+  "5431": {
+    "problem": "Write `countingSort(list, maxVal)` that sorts a list of non-negative integers using counting sort with a frequency array of length `maxVal+1`.",
+    "answer": "func countingSort(list, maxVal) = {\n  local freq = []\n  for (i: 0 .. maxVal) { freq.add(0) }\n  for (x in list) { freq[x+1] = freq[x+1] + 1 }\n  local result = []\n  for (i: 0 .. maxVal) {\n    for (j: 1 .. freq[i+1]) { result.add(i) }\n  }\n  result\n}\nprintln(countingSort([3,1,4,1,5,2,3,2], 5))"
+  },
+  "5467": {
+    "problem": "Write `selectionSort(list)` that sorts by repeatedly finding and removing the minimum element, building the sorted list.",
+    "answer": "func selectionSort(list) = {\n  local remaining = copyList(list)\n  local sorted = []\n  while (remaining.listLen() > 0) {\n    local minVal = remaining[1]\n    local minIdx = 1\n    for (i: 2 .. remaining.listLen()) {\n      if (remaining[i] < minVal) { minVal = remaining[i] minIdx = i }\n    }\n    sorted.add(minVal)\n    remaining.remove(minIdx)\n  }\n  sorted\n}\nprintln(selectionSort([5,3,8,1,9,2]))"
+  },
+  "5565": {
+    "problem": "Write `sortByLuminance(colors)` that sorts a list of colors by perceived luminance `0.299*R + 0.587*G + 0.114*B` using a custom `.sort` lambda.",
+    "answer": "func getLuminance(color) = {\n  local comp = splitColor(color)\n  0.299*comp[2] + 0.587*comp[3] + 0.114*comp[4]\n}\nfunc sortByLuminance(colors) = {\n  local sorted = copyList(colors)\n  sorted.sort { a, b -> getLuminance(a) < getLuminance(b) }\n  sorted\n}\nprintln(sortByLuminance([makeColor([255,0,0]),makeColor([0,255,0]),makeColor([0,0,255]),makeColor([255,255,0])]))"
+  },
+  "5370": {
+    "problem": "Write `rot13(s)` that applies ROT13 to all alphabetic characters in string `s`, preserving case and leaving non-alphabetic characters unchanged.",
+    "answer": "func rot13(s) = {\n  local lowers = \"abcdefghijklmnopqrstuvwxyz\"\n  local uppers = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n  local result = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i,1)\n    local li = lowers.indexOf(ch) - 1\n    local ui = uppers.indexOf(ch) - 1\n    if (li >= 0) { result = result _ lowers.segment(mod(li+13,26)+1,1) }\n    else if (ui >= 0) { result = result _ uppers.segment(mod(ui+13,26)+1,1) }\n    else { result = result _ ch }\n  }\n  result\n}\nprintln(rot13(\"Hello, World!\"))"
+  },
+  "5267": {
+    "problem": "Write `numericPipeline(x, steps)` where `steps` is a list of strings like `[\"double\",\"inc\",\"square\",\"halve\"]`, dispatching each: `\"double\"` \u2192 `x*2`, `\"inc\"` \u2192 `x+1`, `\"square\"` \u2192 `x*x`, `\"halve\"` \u2192 `x/2`.",
+    "answer": "func numericPipeline(x, steps) = {\n  local val = x\n  for (step in steps) {\n    if (step === \"double\") { val = val * 2 }\n    else if (step === \"inc\") { val = val + 1 }\n    else if (step === \"square\") { val = val * val }\n    else if (step === \"halve\") { val = val / 2 }\n  }\n  val\n}\nprintln(numericPipeline(3, [\"double\",\"inc\",\"square\",\"halve\"]))"
+  },
+  "5322": {
+    "problem": "Write `composeTextOps(ops, s)` that takes a list of string operation names and applies them sequentially to `s` using a `for` loop, producing the final transformed string.",
+    "answer": "func applyTextOp(op, s) = {\n  if (op === \"upper\") { s.uppercase() }\n  else if (op === \"lower\") { s.lowercase() }\n  else if (op === \"trim\") { s.trim() }\n  else if (op === \"reverse\") { s.reverse() }\n  else if (op === \"len\") { s.textLen() _ \"\" }\n  else { s }\n}\nfunc composeTextOps(ops, s) = {\n  local result = s\n  for (op in ops) {\n    result = applyTextOp(op, result)\n  }\n  result\n}\nprintln(composeTextOps([\"lower\",\"trim\",\"reverse\"], \"  Hello World  \"))"
+  },
+  "5478": {
+    "problem": "Write `applyMask(list, mask, f)` where `mask` is a list of 0s and 1s: apply transform `f` only to elements where the mask is 1, leaving others unchanged.",
+    "answer": "func applyMask(list, mask, f) = {\n  local result = []\n  for (i: 1 .. list.listLen()) {\n    if (mask[i] == 1) { result.add(f(list[i])) }\n    else { result.add(list[i]) }\n  }\n  result\n}\nprintln(applyMask([1,2,3,4,5],[1,0,1,0,1], func(x)={x*2}))"
+  },
+  "5504": {
+    "problem": "Write `transformKeys(dict, mapping)` where `mapping` is a dict of old-to-new key names: rename keys according to the mapping, leaving unmapped keys unchanged.",
+    "answer": "func transformKeys(dict, mapping) = {\n  local result = {}\n  for (k, v in dict) {\n    local newKey = mapping.get(k, k)\n    result.set(newKey, v)\n  }\n  result\n}\nprintln(transformKeys({\"name\":\"Alice\",\"age\":30,\"city\":\"NYC\"},{\"name\":\"fullName\",\"city\":\"location\"}))"
+  },
+  "5544": {
+    "problem": "Write `dictTrace(dict, f)` that applies transform `f` to each value, stores both old and new under `key _ \"_before\"` and `key _ \"_after\"`, returning the annotated dict.",
+    "answer": "func dictTrace(dict, f) = {\n  local result = {}\n  for (k, v in dict) {\n    result.set(k _ \"_before\", v)\n    result.set(k _ \"_after\", f(v))\n  }\n  result\n}\nprintln(dictTrace({\"a\":1,\"b\":2,\"c\":3}, func(x)={x*2}))"
+  },
+  "5578": {
+    "problem": "Write `makeHeatmap(values)` that maps a list of numeric values (normalized to `[0,1]`) to colors by interpolating through `[blue, cyan, green, yellow, red]` gradient stops.",
+    "answer": "func makeHeatmap(values) = {\n  local stops = [makeColor([0,0,255]),makeColor([0,255,255]),makeColor([0,255,0]),makeColor([255,255,0]),makeColor([255,0,0])]\n  values.map { v ->\n    local t = if (v < 0) 0 else if (v > 1) 1 else v\n    local seg = floor(t * 4)\n    if (seg >= 4) { seg = 3 }\n    local lt = t * 4 - seg\n    local c1 = splitColor(stops[seg+1])\n    local c2 = splitColor(stops[seg+2])\n    local r = round(c1[2]*(1-lt)+c2[2]*lt)\n    local g = round(c1[3]*(1-lt)+c2[3]*lt)\n    local b = round(c1[4]*(1-lt)+c2[4]*lt)\n    makeColor([r,g,b])\n  }\n}\nprintln(makeHeatmap([0,0.25,0.5,0.75,1.0]))"
+  },
+  "5607": {
+    "problem": "Write `applyOdd(f, g, x, n)` that applies transform `f` on odd iterations and `g` on even iterations for `n` total steps, alternating between the two transforms.",
+    "answer": "func applyOdd(f, g, x, n) = {\n  local val = x\n  for (i: 1 .. n) {\n    if (mod(i,2) == 1) { val = f(val) } else { val = g(val) }\n  }\n  val\n}\nprintln(applyOdd(func(x)={x*2}, func(x)={x+10}, 1, 6))"
+  },
+  "5678": {
+    "problem": "Write `applyMaybe(f, x)` that applies transform `f` to `x` only if `x !== 0` and `x !== \"\"`, returning `0`/`\"\"` otherwise \u2014 the Maybe monad's bind.",
+    "answer": "func applyMaybe(f, x) = {\n  if (x == 0 || x === \"\") {\n    x\n  } else {\n    f(x)\n  }\n}\nprintln(applyMaybe(func(x)={x*2}, 5))\nprintln(applyMaybe(func(x)={x*2}, 0))\nprintln(applyMaybe(func(x)={x _ \"!\"}, \"\"))"
+  },
+  "5238": {
+    "problem": "Write `composeEnvs(envs)` that takes a list of dicts and folds them left-to-right using a `for` loop, merging each into an accumulator via `copyDict` and `.mergeInto`, returning the unified environment.",
+    "answer": "func composeEnvs(envs) = {\n  local acc = {}\n  for (env in envs) {\n    local combined = copyDict(acc)\n    combined.mergeInto(env)\n    acc = combined\n  }\n  acc\n}\nprintln(composeEnvs([{\"a\":1,\"b\":2},{\"b\":3,\"c\":4},{\"d\":5}]))"
+  },
+  "5502": {
+    "problem": "Write `unflattenDict(flat, sep)` that takes a flat dict with `sep`-separated compound keys and reconstructs the nested dict structure using `.setAtPath`.",
+    "answer": "func unflattenDict(flat, sep) = {\n  local result = {}\n  for (k, v in flat) {\n    local parts = k.split(sep)\n    result.setAtPath(parts, v)\n  }\n  result\n}\nprintln(unflattenDict({\"a.b.c\":1,\"a.b.d\":2,\"a.e\":3,\"f\":4}, \".\"))"
+  },
+  "5204": {
+    "problem": "Simulate a closure by declaring `global counter = 0` and writing `makeCounter()` that increments `this.counter` and returns its current value, making each call stateful.",
+    "answer": "global counter = 0\nfunc makeCounter() = {\n  this.counter = this.counter + 1\n  this.counter\n}\nprintln(makeCounter())\nprintln(makeCounter())\nprintln(makeCounter())"
+  },
+  "5231": {
+    "problem": "Declare `global funcCallCount = {}` and write `bumpCount(name)` that increments the integer stored at `name` in `this.funcCallCount` (defaulting to 0), simulating invocation counting.",
+    "answer": "global funcCallCount = {}\nfunc bumpCount(name) {\n  this.funcCallCount.set(name, this.funcCallCount.get(name,0) + 1)\n}\nbumpCount(\"foo\")\nbumpCount(\"foo\")\nbumpCount(\"bar\")\nprintln(this.funcCallCount)"
+  },
+  "5268": {
+    "problem": "Write `pairwiseDiff(nums)` that returns a list of differences between consecutive elements, computed using a `for` range loop \u2014 the discrete derivative of a sequence.",
+    "answer": "func pairwiseDiff(nums) = {\n  local result = []\n  for (i: 1 .. nums.listLen()-1) {\n    result.add(nums[i+1] - nums[i])\n  }\n  result\n}\nprintln(pairwiseDiff([1,4,9,16,25]))"
+  },
+  "5385": {
+    "problem": "Write `generateNGrams(s, n)` that returns all n-grams of the split-on-space words list: windows of `n` consecutive words joined with `\" \"`, collected into a list.",
+    "answer": "func generateNGrams(s, n) = {\n  local words = s.splitAtSpaces()\n  local result = []\n  for (i: 1 .. words.listLen()-n+1) {\n    local gram = []\n    for (j: i .. i+n-1) { gram.add(words[j]) }\n    result.add(gram.join(\" \"))\n  }\n  result\n}\nprintln(generateNGrams(\"the quick brown fox jumps\", 2))\nprintln(generateNGrams(\"the quick brown fox jumps\", 3))"
+  },
+  "5417": {
+    "problem": "Write `findIndex(list, pred)` that returns the 1-based index of the first element satisfying predicate `pred`, or `0` if not found.",
+    "answer": "func findIndex(list, pred) = {\n  local result = 0\n  for (i: 1 .. list.listLen()) {\n    if (result == 0 && pred(list[i])) { result = i }\n  }\n  result\n}\nprintln(findIndex([1,3,5,4,6], func(x)={x%2==0}))"
+  },
+  "5456": {
+    "problem": "Write `listIntersection(a, b)` that returns a list of elements present in both `a` and `b`, preserving order from `a`.",
+    "answer": "func listIntersection(a, b) = {\n  a.filter { x -> b.containsItem(x) }\n}\nprintln(listIntersection([1,2,3,4,5],[2,4,6,8]))"
+  },
+  "5497": {
+    "problem": "Write `dictDiff(a, b)` that returns a dict of entries in `a` whose value differs from the corresponding value in `b`, including keys absent from `b`.",
+    "answer": "func dictDiff(a, b) = {\n  local result = {}\n  for (k, v in a) {\n    if (!b.containsKey(k) || b.get(k,0) != v) {\n      result.set(k, v)\n    }\n  }\n  result\n}\nprintln(dictDiff({\"a\":1,\"b\":2,\"c\":3},{\"a\":1,\"b\":5}))"
+  },
+  "5519": {
+    "problem": "Write `dictZipWith(dicts, f)` that takes a list of dicts sharing the same keys and returns a new dict where each key's value is the result of folding all corresponding values with `f`.",
+    "answer": "func dictZipWith(dicts, f) = {\n  local result = {}\n  local keys = dicts[1].keys()\n  for (k in keys) {\n    local vals = dicts.map { d -> d.get(k,0) }\n    local folded = vals[1]\n    for (i: 2 .. vals.listLen()) { folded = f(folded, vals[i]) }\n    result.set(k, folded)\n  }\n  result\n}\nprintln(dictZipWith([{\"a\":1,\"b\":2},{\"a\":3,\"b\":4},{\"a\":5,\"b\":6}], func(a,b)={a+b}))"
+  },
+  "5594": {
+    "problem": "Write `applyIf(cond, f, x)` that applies transform `f` to `x` if `cond` evaluates to `1`, otherwise returns `x` unchanged \u2014 the conditional identity combinator.",
+    "answer": "func applyIf(cond, f, x) = {\n  if (cond == 1) { f(x) } else { x }\n}\nprintln(applyIf(1, func(x)={x*3}, 5))\nprintln(applyIf(0, func(x)={x*3}, 5))"
+  },
+  "5638": {
+    "problem": "Write `wCombinator(f, x)` that returns `f(x, x)` \u2014 the W (duplication) combinator, applying `f` to `x` twice.",
+    "answer": "func wCombinator(f, x) = {\n  f(x, x)\n}\nprintln(wCombinator(func(a,b)={a+b}, 5))"
+  },
+  "5673": {
+    "problem": "Write `trampolineStep(f, x)` where `f` returns either `{\"done\": 0, \"val\": newX}` for continuation or `{\"done\": 1, \"val\": result}` for termination \u2014 iterate until done.",
+    "answer": "func trampolineStep(f, x) = {\n  local state = x\n  local running = true\n  local result = x\n  while (running) {\n    local step = f(state)\n    if (step.get(\"done\",0) == 1) {\n      result = step.get(\"val\",0)\n      running = false\n    } else {\n      state = step.get(\"val\",0)\n    }\n  }\n  result\n}\nlocal counter5673 = 0\nprintln(trampolineStep(func(x)={\n  if (x >= 10) {\"done\":1,\"val\":x} else {\"done\":0,\"val\":x+1}\n}, 0))"
+  },
+  "5423": {
+    "problem": "Write `flatten(nested)` that takes a list potentially containing lists and non-lists, and flattens one level using type checking `x ? list` to decide whether to append or add.",
+    "answer": "func flatten(nested) = {\n  local result = []\n  for (x in nested) {\n    if (x ? list) { result.appendList(x) } else { result.add(x) }\n  }\n  result\n}\nprintln(flatten([[1,2],3,[4,5],6]))"
+  },
+  "5233": {
+    "problem": "Declare `global latentVars = []` and write `declareLatent(name)` that appends `name` to `latentVars` only if `latentVars.containsItem(name)` is false, ensuring unique declarations.",
+    "answer": "global latentVars = []\nfunc declareLatent(name) {\n  if (!this.latentVars.containsItem(name)) {\n    this.latentVars.add(name)\n  }\n}\ndeclareLatent(\"x\")\ndeclareLatent(\"y\")\ndeclareLatent(\"x\")\nprintln(this.latentVars)"
+  },
+  "5255": {
+    "problem": "Declare `global arity = {}` and write `declareArity(name, n)` that stores `n` under `name` in `this.arity`, and `checkArity(name, args)` that returns `args.listLen() == this.arity.get(name, 0)`, validating call signatures.",
+    "answer": "global arity = {}\nfunc declareArity(name, n) {\n  this.arity.set(name, n)\n}\nfunc checkArity(name, args) = {\n  args.listLen() == this.arity.get(name, 0)\n}\ndeclareArity(\"add\", 2)\ndeclareArity(\"triple\", 3)\nprintln(checkArity(\"add\", [1,2]))\nprintln(checkArity(\"add\", [1,2,3]))"
+  },
+  "5356": {
+    "problem": "Write `textConvolve(s, kernel)` where `kernel` is a list of weights: split `s` into characters, take windows of length `kernel.listLen()`, compute the weighted sum of character codes, and return the list of sums.",
+    "answer": "func textConvolve(s, kernel) = {\n  local chars = s.split(\"\")\n  local n = kernel.listLen()\n  local result = []\n  for (i: 1 .. chars.listLen()-n+1) {\n    local sum = 0\n    for (j: 1 .. n) {\n      local alpha = \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n      local code = alpha.indexOf(chars[i+j-1]) + 31\n      sum = sum + code * kernel[j]\n    }\n    result.add(sum)\n  }\n  result\n}\nprintln(textConvolve(\"hello\", [0.5, 0.5, 0.0]))"
+  },
+  "5379": {
+    "problem": "Write `wordReverse(s)` that reverses the order of words in string `s` without reversing the characters within each word, using `.splitAtSpaces()` then `.reverseList()` then `.join(\" \")`.",
+    "answer": "func wordReverse(s) = {\n  local words = s.splitAtSpaces()\n  words.reverseList()\n  words.join(\" \")\n}\nprintln(wordReverse(\"the quick brown fox\"))"
+  },
+  "5395": {
+    "problem": "Write `rotateRight(list, k)` that moves the last `k` elements to the front of the list, equivalent to `rotateLeft(list, list.listLen() - k)`.",
+    "answer": "func rotateRight(list, k) = {\n  local n = list.listLen()\n  local kk = mod(k, n)\n  local tail = list.slice(n-kk+1, n)\n  local head = list.slice(1, n-kk)\n  local result = copyList(tail)\n  result.appendList(head)\n  result\n}\nprintln(rotateRight([1,2,3,4,5], 2))"
+  },
+  "5455": {
+    "problem": "Write `listDifference(a, b)` that returns a list of elements present in `a` but not in `b` (set difference), preserving order and using `.containsItem` for membership testing.",
+    "answer": "func listDifference(a, b) = {\n  a.filter { x -> !b.containsItem(x) }\n}\nprintln(listDifference([1,2,3,4,5],[2,4]))"
+  },
+  "5669": {
+    "problem": "Write `nary(n, f)` that generates a dict describing an n-ary function and `applyNary(desc, args)` that dispatches calling `f` with `args.listLen()` arguments stored in `args`.",
+    "answer": "func nary(n, f) = {\n  {\"arity\":n,\"f\":f}\n}\nfunc applyNary(desc, args) = {\n  local f = desc.get(\"f\", func(x)={x})\n  local n = desc.get(\"arity\", 1)\n  if (n == 1) { f(args[1]) }\n  else if (n == 2) { f(args[1], args[2]) }\n  else if (n == 3) { f(args[1], args[2], args[3]) }\n  else { f(args[1], args[2], args[3], args[4]) }\n}\nlocal add2 = nary(2, func(a,b)={a+b})\nprintln(applyNary(add2, [3,4]))"
+  },
+  "5220": {
+    "problem": "Write `applyEnv(env, keys)` that takes a dict and a list of key strings, returning a new list of the corresponding values using `.map { k -> env.get(k, 0) }`.",
+    "answer": "func applyEnv(env, keys) = {\n  keys.map { k -> env.get(k, 0) }\n}\nprintln(applyEnv({\"a\":10,\"b\":20,\"c\":30}, [\"a\",\"c\",\"b\"]))"
+  },
+  "5248": {
+    "problem": "Write `evalEnv(env, expr)` where `expr` is a string: if `expr === \"sum\"` return the sum of all numeric values in `env.values()` using `.reduce(0) { v,acc -> acc + v }`; if `expr === \"count\"` return `env.dictLen()`.",
+    "answer": "func evalEnv(env, expr) = {\n  if (expr === \"sum\") {\n    env.values().reduce(0) { v, acc -> acc + v }\n  } else if (expr === \"count\") {\n    env.dictLen()\n  } else {\n    0\n  }\n}\nprintln(evalEnv({\"x\":1,\"y\":2,\"z\":3}, \"sum\"))\nprintln(evalEnv({\"x\":1,\"y\":2,\"z\":3}, \"count\"))"
+  },
+  "5378": {
+    "problem": "Write `longestWord(s)` that splits `s` on spaces and returns the longest word using `.reduce(\"\") { w, acc -> if (w.textLen() > acc.textLen()) { w } else { acc } }`.",
+    "answer": "func longestWord(s) = {\n  s.splitAtSpaces().reduce(\"\") { w, acc -> if (w.textLen() > acc.textLen()) w else acc }\n}\nprintln(longestWord(\"the quick brown fox\"))"
+  },
+  "5407": {
+    "problem": "Write `sortBy(list, cmpF)` that sorts `list` using the named comparator function `cmpF`, dispatching to `.sort { a,b -> ... }` with the appropriate comparison logic.",
+    "answer": "func sortBy(list, cmpF) = {\n  local sorted = copyList(list)\n  if (cmpF === \"asc\") { sorted.sort() }\n  else if (cmpF === \"desc\") { sorted.sort { a, b -> a > b } }\n  else if (cmpF === \"len\") { sorted.sort { a, b -> a.textLen() < b.textLen() } }\n  sorted\n}\nprintln(sortBy([\"banana\",\"apple\",\"cherry\",\"fig\"], \"len\"))"
+  },
+  "5210": {
+    "problem": "Use `local acc = 0` inside `runAccumulator(vals)` that iterates over a list and adds each element to `acc`, returning the final sum \u2014 showing how local state simulates a fold accumulator.",
+    "answer": "func runAccumulator(vals) = {\n  local acc = 0\n  for (v in vals) { acc = acc + v }\n  acc\n}\nprintln(runAccumulator([1,2,3,4,5,6,7,8,9,10]))"
+  },
+  "5466": {
+    "problem": "Write `insertionSort(list)` that sorts using insertion sort, functionally building a new sorted list by inserting each element into the correct position.",
+    "answer": "func insertionSort(list) = {\n  local sorted = []\n  for (x in list) {\n    local inserted = false\n    local newSorted = []\n    for (i: 1 .. sorted.listLen()) {\n      if (!inserted && x <= sorted[i]) {\n        newSorted.add(x)\n        inserted = true\n      }\n      newSorted.add(sorted[i])\n    }\n    if (!inserted) { newSorted.add(x) }\n    sorted = newSorted\n  }\n  sorted\n}\nprintln(insertionSort([5,2,8,1,9,3]))"
+  },
+  "5584": {
+    "problem": "Write `mixColors(colorList, weights)` that computes a weighted mixture of colors: for each channel, compute the weighted sum of channel values and divide by total weight.",
+    "answer": "func mixColors(colorList, weights) = {\n  local totalW = weights.reduce(0) { w, acc -> acc + w }\n  local rSum = 0\n  local gSum = 0\n  local bSum = 0\n  for (i: 1 .. colorList.listLen()) {\n    local comp = splitColor(colorList[i])\n    rSum = rSum + comp[2] * weights[i]\n    gSum = gSum + comp[3] * weights[i]\n    bSum = bSum + comp[4] * weights[i]\n  }\n  makeColor([round(rSum/totalW), round(gSum/totalW), round(bSum/totalW)])\n}\nprintln(mixColors([makeColor([255,0,0]),makeColor([0,0,255])],[1,1]))"
+  },
+  "5257": {
+    "problem": "Write `composeMath(ops, x)` that takes a list of operation-name strings and a starting number `x`, then applies each named unary transform in sequence: `\"square\"` \u2192 `x*x`, `\"sqrt\"` \u2192 `sqrt(x)`, `\"neg\"` \u2192 `x * -1`, `\"abs\"` \u2192 `abs(x)`.",
+    "answer": "func composeMath(ops, x) = {\n  local val = x\n  for (op in ops) {\n    if (op === \"square\") { val = val * val }\n    else if (op === \"sqrt\") { val = sqrt(val) }\n    else if (op === \"neg\") { val = val * -1 }\n    else if (op === \"abs\") { val = abs(val) }\n  }\n  val\n}\nprintln(composeMath([\"square\",\"sqrt\",\"neg\",\"abs\"], 3))"
+  },
+  "5317": {
+    "problem": "Write `sumOfAlternatingFactorials(n)` that computes `1! - 2! + 3! - 4! + ... \u00b1 n!` using a for-range loop, toggling the sign each iteration.",
+    "answer": "func sumOfAlternatingFactorials(n) = {\n  local sum = 0\n  local sign = 1\n  local fact = 1\n  for (i: 1 .. n) {\n    fact = fact * i\n    sum = sum + sign * fact\n    sign = sign * -1\n  }\n  sum\n}\nprintln(sumOfAlternatingFactorials(5))"
+  },
+  "5441": {
+    "problem": "Write `knapsack01(weights, values, capacity)` that solves the 0/1 knapsack problem using a DP list, returning the maximum value achievable within the capacity.",
+    "answer": "func knapsack01(weights, values, capacity) = {\n  local n = weights.listLen()\n  local dp = []\n  for (i: 0 .. n) {\n    local row = []\n    for (j: 0 .. capacity) { row.add(0) }\n    dp.add(row)\n  }\n  for (i: 2 .. n+1) {\n    for (j: 1 .. capacity+1) {\n      local w = weights[i-1]\n      local v = values[i-1]\n      local jidx = j\n      dp[i][jidx] = dp[i-1][jidx]\n      if (w <= jidx-1 && dp[i-1][jidx-w] + v > dp[i][jidx]) {\n        dp[i][jidx] = dp[i-1][jidx-w] + v\n      }\n    }\n  }\n  dp[n+1][capacity+1]\n}\nprintln(knapsack01([2,3,4,5],[3,4,5,6],8))"
+  },
+  "5206": {
+    "problem": "Use `local identity = 0` inside a function and demonstrate that assigning `identity = x` then returning it acts as the identity combinator, returning whatever was stored.",
+    "answer": "func identityCombinator(x) = {\n  local identity = x\n  identity\n}\nprintln(identityCombinator(42))\nprintln(identityCombinator(\"hello\"))"
+  },
+  "5212": {
+    "problem": "Write `makeEnv(keys, vals)` that zips two lists into a dict using a `for` loop with index and `.set(k,v)`, returning a fresh environment dict representing variable bindings.",
+    "answer": "func makeEnv(keys, vals) = {\n  local env = {}\n  for (i: 1 .. keys.listLen()) {\n    env.set(keys[i], vals[i])\n  }\n  env\n}\nprintln(makeEnv([\"x\",\"y\",\"z\"],[10,20,30]))"
+  },
+  "5230": {
+    "problem": "Write `shadowVar(env, name, val)` that creates a new dict from `copyDict(env)` and sets `name` to `val` even if it already exists, simulating variable shadowing in lexical scoping.",
+    "answer": "func shadowVar(env, name, val) = {\n  local newEnv = copyDict(env)\n  newEnv.set(name, val)\n  newEnv\n}\nlocal env5230 = {\"x\":1,\"y\":2}\nprintln(shadowVar(env5230, \"x\", 99))\nprintln(env5230)"
+  },
+  "5244": {
+    "problem": "Write `chainBindings(pairs)` that takes a list of two-element lists `[[name,val],...]` and builds a dict by iterating and calling `.set(pair.get(0), pair.get(1))` on an accumulator dict.",
+    "answer": "func chainBindings(pairs) = {\n  local acc = {}\n  for (pair in pairs) {\n    acc.set(pair[1], pair[2])\n  }\n  acc\n}\nprintln(chainBindings([[\"a\",1],[\"b\",2],[\"c\",3]]))"
+  },
+  "5254": {
+    "problem": "Write `filterEnv(env, pred)` where `pred` is a string: if `pred === \"positive\"` return a new dict containing only entries where the value is greater than 0; if `pred === \"nonzero\"` exclude only zero values.",
+    "answer": "func filterEnv(env, pred) = {\n  local result = {}\n  for (k, v in env) {\n    if (pred === \"positive\" && v > 0) { result.set(k, v) }\n    else if (pred === \"nonzero\" && v != 0) { result.set(k, v) }\n  }\n  result\n}\nprintln(filterEnv({\"a\":1,\"b\":-2,\"c\":0,\"d\":3}, \"positive\"))\nprintln(filterEnv({\"a\":1,\"b\":-2,\"c\":0,\"d\":3}, \"nonzero\"))"
+  },
+  "5263": {
+    "problem": "Write `scanLeft(nums, op)` that produces a list of running totals by applying the binary op named `op` cumulatively from left to right, including the initial element in the output.",
+    "answer": "func scanLeft(nums, op) = {\n  local result = [nums[1]]\n  local acc = nums[1]\n  for (i: 2 .. nums.listLen()) {\n    if (op === \"add\") { acc = acc + nums[i] }\n    else if (op === \"mul\") { acc = acc * nums[i] }\n    else if (op === \"max\") { acc = if (nums[i] > acc) nums[i] else acc }\n    result.add(acc)\n  }\n  result\n}\nprintln(scanLeft([1,2,3,4,5], \"add\"))"
+  },
+  "5277": {
+    "problem": "Write `integrateRect(f, a, b, n)` that approximates the integral of unary function `f` over `[a,b]` using `n` rectangles, dispatching `f` as: `\"square\"` \u2192 `x*x`, `\"id\"` \u2192 `x`, `\"recip\"` \u2192 `1/x`.",
+    "answer": "func integrateRect(f, a, b, n) = {\n  local h = (b-a)/n\n  local sum = 0\n  for (i: 0 .. n-1) {\n    local x = a + (i + 0.5) * h\n    local val = 0\n    if (f === \"square\") { val = x*x }\n    else if (f === \"id\") { val = x }\n    else if (f === \"recip\") { val = 1/x }\n    sum = sum + val * h\n  }\n  sum\n}\nprintln(formatDecimal(integrateRect(\"square\", 0, 1, 100), 4))\nprintln(formatDecimal(integrateRect(\"recip\", 1, 2, 100), 4))"
+  },
+  "5290": {
+    "problem": "Write `collatzLength(n)` that counts the number of steps until the Collatz sequence starting at `n` reaches 1: if even divide by 2, if odd multiply by 3 and add 1, using a counter variable.",
+    "answer": "func collatzLength(n) = {\n  local count = 1\n  local x = n\n  while (x != 1) {\n    if (mod(x,2) == 0) { x = floor(x/2) } else { x = 3*x+1 }\n    count = count + 1\n  }\n  count\n}\nprintln(collatzLength(27))"
+  },
+  "5298": {
+    "problem": "Write `continuedFraction(coeffs)` that evaluates a continued fraction given as a list of coefficients `[a0, a1, a2, ...]` by folding from the right: `result = a_n`, then each step `result = a_i + 1/result`.",
+    "answer": "func continuedFraction(coeffs) = {\n  local n = coeffs.listLen()\n  local result = coeffs[n]\n  for (i: n-1 .. 1 step -1) {\n    result = coeffs[i] + 1/result\n  }\n  result\n}\nprintln(continuedFraction([1,1,1,1,1,1,1,1,1,1]))"
+  },
+  "5308": {
+    "problem": "Write `lucasSequence(p, q, n)` that computes the `n`-th term of the Lucas sequence `U_n(p,q)` where `U_0=0, U_1=1, U_n = p*U_{n-1} - q*U_{n-2}`.",
+    "answer": "func lucasSequence(p, q, n) = {\n  if (n == 0) { 0 }\n  else if (n == 1) { 1 }\n  else {\n    local u0 = 0\n    local u1 = 1\n    for (i: 2 .. n) {\n      local u2 = p*u1 - q*u0\n      u0 = u1\n      u1 = u2\n    }\n    u1\n  }\n}\nprintln(lucasSequence(1,-1,10))"
+  },
+  "5313": {
+    "problem": "Write `leibnizPiApprox(n)` that approximates pi using the Leibniz formula: `pi/4 = 1 - 1/3 + 1/5 - 1/7 + ...`, summing `n` terms with alternating signs.",
+    "answer": "func leibnizPiApprox(n) = {\n  local sum = 0\n  local sign = 1\n  for (i: 0 .. n-1) {\n    sum = sum + sign / (2*i+1)\n    sign = sign * -1\n  }\n  sum * 4\n}\nprintln(formatDecimal(leibnizPiApprox(10000), 4))"
+  },
+  "5333": {
+    "problem": "Write `invertWordIndex(text)` that builds a dict mapping each word to the list of 1-based positions where it appears, using a for-index loop.",
+    "answer": "func invertWordIndex(text) = {\n  local words = text.splitAtSpaces()\n  local result = {}\n  for (i: 1 .. words.listLen()) {\n    local w = words[i]\n    if (!result.containsKey(w)) { result.set(w, []) }\n    result.get(w, []).add(i)\n  }\n  result\n}\nprintln(invertWordIndex(\"the cat sat on the mat the cat\"))"
+  },
+  "5340": {
+    "problem": "Write `snakeToCamel(s)` that converts a snake_case string to camelCase by splitting on `\"_\"`, capitalizing the first letter of each part except the first, and concatenating.",
+    "answer": "func snakeToCamel(s) = {\n  local parts = s.split(\"_\")\n  local result = parts[1]\n  for (i: 2 .. parts.listLen()) {\n    local word = parts[i]\n    result = result _ word.segment(1,1).uppercase() _ word.segment(2, word.textLen()-1)\n  }\n  result\n}\nprintln(snakeToCamel(\"hello_world_foo_bar\"))"
+  },
+  "5361": {
+    "problem": "Write `formatTable(rows)` where `rows` is a list of lists of strings: compute column widths, then format each row by padding each cell to the column width and joining with `\" | \"`.",
+    "answer": "func formatTable(rows) = {\n  local colWidths = []\n  for (row in rows) {\n    for (i: 1 .. row.listLen()) {\n      local len = row[i].textLen()\n      while (colWidths.listLen() < i) { colWidths.add(0) }\n      if (len > colWidths[i]) { colWidths[i] = len }\n    }\n  }\n  local lines = []\n  for (row in rows) {\n    local cells = []\n    for (i: 1 .. row.listLen()) {\n      local cell = row[i]\n      while (cell.textLen() < colWidths[i]) { cell = cell _ \" \" }\n      cells.add(cell)\n    }\n    lines.add(cells.join(\" | \"))\n  }\n  lines.join(\"\\n\")\n}\nprintln(formatTable([[\"Name\",\"Age\",\"City\"],[\"Alice\",\"30\",\"New York\"],[\"Bob\",\"25\",\"London\"]]))"
+  },
+  "5367": {
+    "problem": "Write `lzwCompress(s)` that implements a simplified LZW compression: maintain a dict of known patterns starting with single characters, and greedily extend patterns while encoding.",
+    "answer": "func lzwCompress(s) = {\n  local dict = {}\n  local alpha = \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ \"\n  for (i: 1 .. alpha.textLen()) {\n    dict.set(alpha.segment(i,1), i-1)\n  }\n  local codes = []\n  local current = \"\"\n  local nextCode = alpha.textLen()\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i,1)\n    local combined = current _ ch\n    if (dict.containsKey(combined)) {\n      current = combined\n    } else {\n      codes.add(dict.get(current, 0))\n      dict.set(combined, nextCode)\n      nextCode = nextCode + 1\n      current = ch\n    }\n  }\n  if (current.textLen() > 0) { codes.add(dict.get(current, 0)) }\n  codes\n}\nprintln(lzwCompress(\"abcabc\"))"
+  },
+  "5372": {
+    "problem": "Write `consonantFilter(s)` that keeps only consonant characters (alphabetic but not vowels), returning the filtered string joined with no separator.",
+    "answer": "func consonantFilter(s) = {\n  local vowels = \"aeiouAEIOU\"\n  local alpha = \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n  local result = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i,1)\n    if (alpha.contains(ch) && !vowels.contains(ch)) { result = result _ ch }\n  }\n  result\n}\nprintln(consonantFilter(\"Hello World\"))"
+  },
+  "5380": {
+    "problem": "Write `textChunks(s, n)` that splits string `s` into chunks of exactly `n` characters, collecting them into a list and handling the final shorter chunk.",
+    "answer": "func textChunks(s, n) = {\n  local chunks = []\n  local i = 1\n  while (i <= s.textLen()) {\n    local remaining = s.textLen() - i + 1\n    local len = if (remaining < n) remaining else n\n    chunks.add(s.segment(i, len))\n    i = i + n\n  }\n  chunks\n}\nprintln(textChunks(\"Hello World!\", 4))"
+  },
+  "5390": {
+    "problem": "Write `scanWith(list, op, init)` that produces a running list of partial folds, starting with `init` and prepending `init` to the accumulating results.",
+    "answer": "func scanWith(list, op, init) = {\n  local result = [init]\n  local acc = init\n  for (x in list) {\n    if (op === \"add\") { acc = acc + x }\n    else if (op === \"mul\") { acc = acc * x }\n    else if (op === \"max\") { acc = if (x > acc) x else acc }\n    result.add(acc)\n  }\n  result\n}\nprintln(scanWith([1,2,3,4,5], \"add\", 0))"
+  },
+  "5398": {
+    "problem": "Write `deinterleave(list)` that splits a list into two lists: elements at odd positions and elements at even positions (1-based), returning a list of two lists.",
+    "answer": "func deinterleave(list) = {\n  local odds = []\n  local evens = []\n  for (i: 1 .. list.listLen()) {\n    if (mod(i,2) == 1) { odds.add(list[i]) } else { evens.add(list[i]) }\n  }\n  [odds, evens]\n}\nprintln(deinterleave([1,2,3,4,5,6,7,8]))"
+  },
+  "5408": {
+    "problem": "Write `maximumBy(list, cmpF)` that finds the element of `list` that is greatest according to comparator `cmpF`, using `.reduce` or a loop.",
+    "answer": "func maximumBy(list, cmpF) = {\n  local best = list[1]\n  for (i: 2 .. list.listLen()) {\n    if (cmpF === \"len\" && list[i].textLen() > best.textLen()) { best = list[i] }\n    else if (cmpF === \"val\" && list[i] > best) { best = list[i] }\n  }\n  best\n}\nprintln(maximumBy([\"cat\",\"elephant\",\"dog\",\"butterfly\"], \"len\"))"
+  },
+  "5443": {
+    "problem": "Write `matrixChainOrder(dims)` that computes the minimum number of multiplications to chain matrices with given dimension list, using a DP approach.",
+    "answer": "func matrixChainOrder(dims) = {\n  local n = dims.listLen() - 1\n  local dp = []\n  for (i: 1 .. n) {\n    local row = []\n    for (j: 1 .. n) { row.add(0) }\n    dp.add(row)\n  }\n  for (len: 2 .. n) {\n    for (i: 1 .. n-len+1) {\n      local j = i+len-1\n      dp[i][j] = 999999999\n      for (k: i .. j-1) {\n        local cost = dp[i][k] + dp[k+1][j] + dims[i]*dims[k+1]*dims[j+1]\n        if (cost < dp[i][j]) { dp[i][j] = cost }\n      }\n    }\n  }\n  dp[1][n]\n}\nprintln(matrixChainOrder([10,30,5,60]))"
+  },
+  "5460": {
+    "problem": "Write `runLengthList(list)` that encodes a list as runs of identical consecutive elements, producing a list of `[value, count]` pairs.",
+    "answer": "func runLengthList(list) = {\n  local result = []\n  local i = 1\n  while (i <= list.listLen()) {\n    local val = list[i]\n    local count = 1\n    while (i+count <= list.listLen() && list[i+count] == val) { count = count+1 }\n    result.add([val, count])\n    i = i + count\n  }\n  result\n}\nprintln(runLengthList([1,1,2,3,3,3,2,2]))"
+  },
+  "5475": {
+    "problem": "Write `listApplicative(fs, xs)` that applies every function in `fs` to every value in `xs`, collecting all results \u2014 implementing the applicative `<*>` for lists.",
+    "answer": "func listApplicative(fs, xs) = {\n  local result = []\n  for (f in fs) {\n    for (x in xs) { result.add(f(x)) }\n  }\n  result\n}\nprintln(listApplicative([func(x)={x*2},func(x)={x+10}],[1,2,3]))"
+  },
+  "5488": {
+    "problem": "Write `foldDict(dict, op, init)` that folds the values of `dict` using binary op `op` with initial value `init`, iterating over `dict.keys()`.",
+    "answer": "func foldDict(dict, op, init) = {\n  local acc = init\n  for (k in dict.keys()) {\n    local v = dict.get(k, 0)\n    if (op === \"add\") { acc = acc + v }\n    else if (op === \"mul\") { acc = acc * v }\n    else if (op === \"max\") { acc = if (v > acc) v else acc }\n  }\n  acc\n}\nprintln(foldDict({\"a\":1,\"b\":2,\"c\":3}, \"add\", 0))"
+  },
+  "5500": {
+    "problem": "Write `dictSubtract(a, b)` that removes from `a` all keys present in `b`, returning the remaining dict.",
+    "answer": "func dictSubtract(a, b) = {\n  local result = {}\n  for (k, v in a) {\n    if (!b.containsKey(k)) { result.set(k, v) }\n  }\n  result\n}\nprintln(dictSubtract({\"a\":1,\"b\":2,\"c\":3},{\"b\":99}))"
+  },
+  "5520": {
+    "problem": "Write `scanDict(dict, keys, op, init)` that iterates through `keys` in order, accumulating a running fold of the corresponding values with binary op `op`, returning a list of intermediate results.",
+    "answer": "func scanDict(dict, keys, op, init) = {\n  local result = []\n  local acc = init\n  for (k in keys) {\n    local v = dict.get(k, 0)\n    if (op === \"add\") { acc = acc + v }\n    else if (op === \"mul\") { acc = acc * v }\n    result.add(acc)\n  }\n  result\n}\nprintln(scanDict({\"a\":1,\"b\":2,\"c\":3,\"d\":4}, [\"a\",\"b\",\"c\",\"d\"], \"add\", 0))"
+  },
+  "5526": {
+    "problem": "Write `dictRank(dict)` that assigns a rank to each key based on its numeric value (1 = highest), returning a new dict mapping keys to ranks.",
+    "answer": "func dictRank(dict) = {\n  local keys = dict.keys()\n  local sorted = copyList(keys)\n  sorted.sort { a, b -> dict.get(a,0) > dict.get(b,0) }\n  local result = {}\n  for (i: 1 .. sorted.listLen()) {\n    result.set(sorted[i], i)\n  }\n  result\n}\nprintln(dictRank({\"a\":50,\"b\":90,\"c\":10,\"d\":70}))"
+  },
+  "5540": {
+    "problem": "Write `dictFlatten(dict)` where values are lists: return a single flat list of all values across all keys, in the order the keys appear.",
+    "answer": "func dictFlatten(dict) = {\n  local result = []\n  for (k, v in dict) {\n    result.appendList(v)\n  }\n  result\n}\nprintln(dictFlatten({\"a\":[1,2],\"b\":[3,4,5],\"c\":[6]}))"
+  },
+  "5571": {
+    "problem": "Write `colorCurve(color, curveF)` that applies a tone curve function `curveF` (e.g., `\"gamma\"` \u2192 `(ch/255)^0.45 * 255`, `\"brighten\"` \u2192 `min(ch+30, 255)`) to all channels.",
+    "answer": "func colorCurve(color, curveF) = {\n  local comp = splitColor(color)\n  local channels = [comp[2], comp[3], comp[4]]\n  local result = channels.map { ch ->\n    if (curveF === \"gamma\") { round((ch/255)^0.45 * 255) }\n    else if (curveF === \"brighten\") { if (ch+30 > 255) 255 else ch+30 }\n    else { ch }\n  }\n  makeColor(result)\n}\nprintln(colorCurve(makeColor([128,64,32]), \"gamma\"))\nprintln(colorCurve(makeColor([200,200,200]), \"brighten\"))"
+  },
+  "5577": {
+    "problem": "Write `colorContrast(c1, c2)` that computes the WCAG contrast ratio between two colors: `(L1+0.05) / (L2+0.05)` where `L1 >= L2` are the relative luminances.",
+    "answer": "func relativeLuminance(color) = {\n  local comp = splitColor(color)\n  local r = comp[2]/255\n  local g = comp[3]/255\n  local b = comp[4]/255\n  0.2126*r + 0.7152*g + 0.0722*b\n}\nfunc colorContrast(c1, c2) = {\n  local L1 = relativeLuminance(c1)\n  local L2 = relativeLuminance(c2)\n  if (L1 >= L2) { (L1+0.05)/(L2+0.05) } else { (L2+0.05)/(L1+0.05) }\n}\nprintln(formatDecimal(colorContrast(makeColor([255,255,255]),makeColor([0,0,0])), 2))"
+  },
+  "5589": {
+    "problem": "Write `forRange(n, f)` that applies function `f` to each integer from 1 to `n` and collects the results into a list, simulating a functional for-range.",
+    "answer": "func forRange(n, f) = {\n  local result = []\n  for (i: 1 .. n) { result.add(f(i)) }\n  result\n}\nprintln(forRange(5, func(x)={x*x}))"
+  },
+  "5599": {
+    "problem": "Write `guardChain(guards)` where `guards` is a list of `{\"cond\": pred, \"val\": v}` dicts: evaluate conditions in order and return the first `val` whose condition is true.",
+    "answer": "func guardChain(guards) = {\n  local result = 0\n  local found = false\n  for (g in guards) {\n    if (!found && g.get(\"cond\",0) == 1) {\n      result = g.get(\"val\",0)\n      found = true\n    }\n  }\n  result\n}\nprintln(guardChain([{\"cond\":0,\"val\":\"first\"},{\"cond\":1,\"val\":\"second\"},{\"cond\":1,\"val\":\"third\"}]))"
+  },
+  "5609": {
+    "problem": "Write `evalRPN(tokens)` that evaluates a Reverse Polish Notation expression given as a list of tokens (numbers and operator strings), using a stack implemented as a list.",
+    "answer": "func evalRPN(tokens) = {\n  local stack = []\n  for (tok in tokens) {\n    if (tok === \"+\") {\n      local b = stack[stack.listLen()] stack.remove(stack.listLen())\n      local a = stack[stack.listLen()] stack.remove(stack.listLen())\n      stack.add(a+b)\n    } else if (tok === \"-\") {\n      local b = stack[stack.listLen()] stack.remove(stack.listLen())\n      local a = stack[stack.listLen()] stack.remove(stack.listLen())\n      stack.add(a-b)\n    } else if (tok === \"*\") {\n      local b = stack[stack.listLen()] stack.remove(stack.listLen())\n      local a = stack[stack.listLen()] stack.remove(stack.listLen())\n      stack.add(a*b)\n    } else if (tok === \"/\") {\n      local b = stack[stack.listLen()] stack.remove(stack.listLen())\n      local a = stack[stack.listLen()] stack.remove(stack.listLen())\n      stack.add(a/b)\n    } else {\n      stack.add(tok)\n    }\n  }\n  stack[1]\n}\nprintln(evalRPN([3,4,\"+\",2,\"*\",7,\"/\"]))"
+  },
+  "5615": {
+    "problem": "Write `branchFold(list, leftF, rightF, init)` that folds `list`: for odd-indexed elements apply `leftF` to the accumulator, for even-indexed elements apply `rightF`.",
+    "answer": "func branchFold(list, leftF, rightF, init) = {\n  local acc = init\n  for (i: 1 .. list.listLen()) {\n    if (mod(i,2) == 1) { acc = leftF(acc, list[i]) }\n    else { acc = rightF(acc, list[i]) }\n  }\n  acc\n}\nprintln(branchFold([1,2,3,4,5], func(a,b)={a+b}, func(a,b)={a*b}, 1))"
+  },
+  "5622": {
+    "problem": "Write `invertPermutation(perm)` that computes the inverse permutation: if `perm[i] = j`, then `invPerm[j] = i`.",
+    "answer": "func invertPermutation(perm) = {\n  local n = perm.listLen()\n  local inv = []\n  for (i: 1 .. n) { inv.add(0) }\n  for (i: 1 .. n) { inv[perm[i]] = i }\n  inv\n}\nprintln(invertPermutation([3,1,4,2]))"
+  },
+  "5630": {
+    "problem": "Write `iterateWhile(f, x, pred, maxIter)` that generates a list of values by iterating `f` on `x` while `pred` holds, collecting each intermediate result.",
+    "answer": "func iterateWhile(f, x, pred, maxIter) = {\n  local result = []\n  local val = x\n  local i = 0\n  while (pred(val) && i < maxIter) {\n    result.add(val)\n    val = f(val)\n    i = i + 1\n  }\n  result\n}\nprintln(iterateWhile(func(x)={x*2}, 1, func(x)={x<100}, 20))"
+  },
+  "5634": {
+    "problem": "Write `sCombinator(f, g, x)` that computes `f(x)(g(x))`, simulating the S combinator by applying `f` to `x` for the function and `g` to `x` for the argument.",
+    "answer": "func sCombinator(f, g, x) = {\n  f(x)(g(x))\n}\nlocal sf = func(x)={func(y)={x+y}}\nlocal sg = func(x)={x*2}\nprintln(sCombinator(sf, sg, 3))"
+  },
+  "5649": {
+    "problem": "Write `curry3(f, a, b)` that partially applies both `a` and `b` to ternary function `f`, storing all in a dict, and `applyCurried3(c, x)` that dispatches with all three arguments.",
+    "answer": "func curry3(f, a, b) = {\n  {\"f\":f,\"a\":a,\"b\":b}\n}\nfunc applyCurried3(c, x) = {\n  c.get(\"f\",func(a,b,x)={0})(c.get(\"a\",0), c.get(\"b\",0), x)\n}\nlocal curried = curry3(func(a,b,c)={a+b+c}, 1, 2)\nprintln(applyCurried3(curried, 3))"
+  },
+  "5658": {
+    "problem": "Write `applyTuple(f, pair)` where `pair` is a two-element list: call binary function `f` with `pair.get(0)` and `pair.get(1)` \u2014 the `uncurry` combinator.",
+    "answer": "func applyTuple(f, pair) = {\n  f(pair[1], pair[2])\n}\nprintln(applyTuple(func(a,b)={a*b}, [6,7]))"
+  },
+  "5664": {
+    "problem": "Write `partialRight(f, b)` that partially applies the second argument `b` to binary function `f`, returning a dict for later completion with the first argument.",
+    "answer": "func partialRight(f, b) = {\n  {\"f\":f,\"b\":b}\n}\nfunc applyPartialRight(pr, a) = {\n  pr.get(\"f\",func(x,y)={0})(a, pr.get(\"b\",0))\n}\nlocal divBy2 = partialRight(func(a,b)={a/b}, 2)\nprintln(applyPartialRight(divBy2, 10))"
+  },
+  "5671": {
+    "problem": "Write `applyProgressively(fs, x)` that applies function `fs[1]` to `x`, then `fs[2]` to `[x, result1]`, then `fs[3]` to `[x, result1, result2]`, etc., each function receiving the growing history.",
+    "answer": "func applyProgressively(fs, x) = {\n  local history = [x]\n  for (i: 2 .. fs.listLen()) {\n    local result = fs[i](history)\n    history.add(result)\n  }\n  history\n}\nprintln(applyProgressively([func(x)={x}, func(h)={h[1]*2}, func(h)={h[1]+h[2]}], 5))"
+  },
+  "5683": {
+    "problem": "Write `applyState(f, x, state)` that applies `f(x, state)` returning `[result, newState]`, threading state through \u2014 the State monad bind operation.",
+    "answer": "func applyState(f, x, state) = {\n  f(x, state)\n}\nprintln(applyState(func(x,s)={[x+s, s+1]}, 10, 5))"
+  },
+  "5691": {
+    "problem": "Write `kleisliCompose(f, g, x)` that composes two monadic functions (each returning `{\"done\": 0/1, \"val\": v}`): apply `g` to `x`, then if successful apply `f` to the result.",
+    "answer": "func kleisliCompose(f, g, x) = {\n  local gr = g(x)\n  if (gr.get(\"done\",0) == 1) {\n    f(gr.get(\"val\",0))\n  } else {\n    {\"done\":0,\"val\":gr.get(\"val\",0)}\n  }\n}\nprintln(kleisliCompose(func(x)={\"done\":1,\"val\":x*2}, func(x)={\"done\":1,\"val\":x+1}, 5))"
+  },
+  "5699": {
+    "problem": "Write `applyDynamic(funcName, args)` that looks up `funcName` in `this.procTable`, and dispatches the call with the appropriate number of arguments from the `args` list, handling arities 1 through 4.",
+    "answer": "global procTable = {}\nthis.procTable.set(\"double\", func(x)={x*2})\nthis.procTable.set(\"add\", func(a,b)={a+b})\nthis.procTable.set(\"sum3\", func(a,b,c)={a+b+c})\nfunc applyDynamic(funcName, args) = {\n  local f = this.procTable.get(funcName, func(x)={x})\n  local n = args.listLen()\n  if (n == 1) { f(args[1]) }\n  else if (n == 2) { f(args[1], args[2]) }\n  else if (n == 3) { f(args[1], args[2], args[3]) }\n  else { f(args[1], args[2], args[3], args[4]) }\n}\nprintln(applyDynamic(\"double\", [5]))\nprintln(applyDynamic(\"add\", [3,4]))"
+  },
+  "5316": {
+    "problem": "Write `ackermann(m, n)` that computes the Ackermann function with memoization stored in `this.ackCache` (keyed by `m _ \",\" _ n`), using the standard recursive definition dispatched through a `while`-based trampoline.",
+    "answer": "global ackCache = {}\nfunc ackermann(m, n) = {\n  local key = m _ \",\" _ n\n  if (this.ackCache.containsKey(key)) {\n    this.ackCache.get(key, 0)\n  } else {\n    local result = 0\n    if (m == 0) { result = n + 1 }\n    else if (n == 0) { result = ackermann(m-1, 1) }\n    else { result = ackermann(m-1, ackermann(m, n-1)) }\n    this.ackCache.set(key, result)\n    result\n  }\n}\nprintln(ackermann(3, 4))"
+  },
+  "5424": {
+    "problem": "Write `deepFlatten(nested)` that recursively flattens a nested list structure of arbitrary depth, collecting all non-list leaves into a single flat list.",
+    "answer": "func deepFlatten(nested) = {\n  local result = []\n  for (x in nested) {\n    if (x ? list) {\n      local inner = deepFlatten(x)\n      result.appendList(inner)\n    } else {\n      result.add(x)\n    }\n  }\n  result\n}\nprintln(deepFlatten([1,[2,[3,[4,5]]],6,[7,8]]))"
+  },
+  "5447": {
+    "problem": "Write `combinations(list, k)` that generates all size-`k` combinations from `list` as a list of lists, using a recursive or iterative approach.",
+    "answer": "func combinations(list, k) = {\n  local result = []\n  func gen(start, current) {\n    if (current.listLen() == k) {\n      result.add(copyList(current))\n    } else {\n      for (i: start .. list.listLen()) {\n        current.add(list[i])\n        gen(i+1, current)\n        current.remove(current.listLen())\n      }\n    }\n  }\n  gen(1, [])\n  result\n}\nprintln(combinations([1,2,3,4,5], 3).listLen())"
+  },
+  "5605": {
+    "problem": "Write `boundedRecurse(f, x, depth)` that applies transform `f` recursively up to `depth` levels deep, returning the result at the maximum depth or when `f` returns its input unchanged.",
+    "answer": "func boundedRecurse(f, x, depth) = {\n  if (depth == 0) { x }\n  else {\n    local nx = f(x)\n    if (nx == x) { x } else { boundedRecurse(f, nx, depth-1) }\n  }\n}\nprintln(boundedRecurse(func(x)={if(x>1)x/2 else x}, 64, 10))"
+  },
+  "5672": {
+    "problem": "Write `memoRecurse(f, n)` that implements memoized recursion for integer-input function `f`: check `this.memoTable` first, recurse if not cached, store result before returning.",
+    "answer": "global memoTable = {}\nfunc memoRecurse(f, n) = {\n  local key = \"\" _ n\n  if (this.memoTable.containsKey(key)) {\n    this.memoTable.get(key, 0)\n  } else {\n    local result = f(n)\n    this.memoTable.set(key, result)\n    result\n  }\n}\nfunc fibMemo(n) = {\n  if (n <= 1) { n }\n  else { memoRecurse(fibMemo, n-1) + memoRecurse(fibMemo, n-2) }\n}\nprintln(memoRecurse(fibMemo, 15))"
+  },
+  "5579": {
+    "problem": "Write `colorClustering(colors, k)` that assigns each color to one of `k` clusters by performing `k`-means-like iteration: initialize cluster centers, assign each color to nearest center, recompute centers.",
+    "answer": "func colorDistance(c1, c2) = {\n  local a = splitColor(c1)\n  local b = splitColor(c2)\n  local dr = a[2]-b[2] local dg = a[3]-b[3] local db = a[4]-b[4]\n  dr*dr+dg*dg+db*db\n}\nfunc colorClustering(colors, k) = {\n  local centers = []\n  for (i: 1 .. k) { centers.add(colors[i]) }\n  for (iter: 1 .. 5) {\n    local assignments = []\n    for (c in colors) {\n      local best = 1\n      local bestD = colorDistance(c, centers[1])\n      for (j: 2 .. k) {\n        local d = colorDistance(c, centers[j])\n        if (d < bestD) { bestD = d best = j }\n      }\n      assignments.add(best)\n    }\n    local newCenters = []\n    for (j: 1 .. k) {\n      local rSum = 0 local gSum = 0 local bSum = 0 local cnt = 0\n      for (ci: 1 .. colors.listLen()) {\n        if (assignments[ci] == j) {\n          local comp = splitColor(colors[ci])\n          rSum=rSum+comp[2] gSum=gSum+comp[3] bSum=bSum+comp[4] cnt=cnt+1\n        }\n      }\n      if (cnt > 0) { newCenters.add(makeColor([round(rSum/cnt),round(gSum/cnt),round(bSum/cnt)])) }\n      else { newCenters.add(centers[j]) }\n    }\n    centers = newCenters\n  }\n  centers\n}\nprintln(colorClustering([makeColor([255,0,0]),makeColor([200,0,0]),makeColor([0,0,255]),makeColor([0,0,200]),makeColor([0,255,0])], 3))"
+  },
+  "5321": {
+    "problem": "Write `applyTextOp(op, s)` that dispatches on string `op`: `\"upper\"` \u2192 `s.uppercase()`, `\"lower\"` \u2192 `s.lowercase()`, `\"trim\"` \u2192 `s.trim()`, `\"reverse\"` \u2192 `s.reverse()`, `\"len\"` \u2192 `s.textLen() _ \"\"`.",
+    "answer": "println(applyTextOp(\"upper\",\"hello world\"))\nprintln(applyTextOp(\"reverse\",\"hello\"))\nprintln(applyTextOp(\"len\",\"hello\"))"
+  },
+  "5341": {
+    "problem": "Write `textHistogram(s)` that returns a dict mapping each unique character in `s` to its frequency, built by iterating through `s.split(\"\")`.",
+    "answer": "func textHistogram(s) = {\n  local result = {}\n  for (ch in s.split(\"\")) {\n    result.set(ch, result.get(ch,0)+1)\n  }\n  result\n}\nprintln(textHistogram(\"hello world\"))"
+  },
+  "5354": {
+    "problem": "Write `characterClasses(s)` that returns a dict with keys `\"upper\"`, `\"lower\"`, `\"digit\"`, `\"other\"` mapping to counts of characters falling into each class, iterated over `s.split(\"\")`.",
+    "answer": "func characterClasses(s) = {\n  local upper = 0 local lower = 0 local digit = 0 local other = 0\n  local uppers = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n  local lowers = \"abcdefghijklmnopqrstuvwxyz\"\n  local digits = \"0123456789\"\n  for (ch in s.split(\"\")) {\n    if (uppers.contains(ch)) { upper = upper+1 }\n    else if (lowers.contains(ch)) { lower = lower+1 }\n    else if (digits.contains(ch)) { digit = digit+1 }\n    else { other = other+1 }\n  }\n  {\"upper\":upper,\"lower\":lower,\"digit\":digit,\"other\":other}\n}\nprintln(characterClasses(\"Hello World 123!\"))"
+  },
+  "5373": {
+    "problem": "Write `titleCase(s)` that splits `s` on spaces, capitalizes the first character of each word using `.segment(1,1).uppercase() _ word.segment(2, word.textLen()-1)`, and rejoins.",
+    "answer": "func titleCase(s) = {\n  local words = s.splitAtSpaces()\n  words.map { word ->\n    word.segment(1,1).uppercase() _ word.segment(2, word.textLen()-1).lowercase()\n  }.join(\" \")\n}\nprintln(titleCase(\"the quick brown fox\"))"
+  },
+  "5382": {
+    "problem": "Write `trigram(s)` that returns all consecutive 3-character sequences in string `s`, using `.segment(i,3)` in a for-range loop over valid starting positions.",
+    "answer": "func trigram(s) = {\n  local result = []\n  for (i: 1 .. s.textLen()-2) {\n    result.add(s.segment(i,3))\n  }\n  result\n}\nprintln(trigram(\"hello world\"))"
+  },
+  "5542": {
+    "problem": "Write `dictSplit(dict, pred)` that splits `dict` into two dicts based on predicate `pred` applied to values: one passing, one failing.",
+    "answer": "func dictSplit(dict, pred) = {\n  local pass = {}\n  local fail = {}\n  for (k, v in dict) {\n    if (pred === \"positive\" && v > 0) { pass.set(k,v) }\n    else if (pred === \"positive\") { fail.set(k,v) }\n    else if (pred === \"even\" && mod(v,2)==0) { pass.set(k,v) }\n    else if (pred === \"even\") { fail.set(k,v) }\n  }\n  [pass, fail]\n}\nprintln(dictSplit({\"a\":1,\"b\":-2,\"c\":3,\"d\":-4}, \"positive\"))"
+  }
+}
