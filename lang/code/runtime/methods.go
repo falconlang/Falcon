@@ -175,7 +175,7 @@ func (i *Interpreter) evalMethodCall(e *astmethod.Call) Value {
 	case "add":
 		list := on.AsList()
 		*list = append(*list, args...)
-		return NullVal()
+		return VoidVal()
 	case "containsItem":
 		for _, v := range *on.AsList() {
 			if DeepEqual(v, args[0]) {
@@ -197,17 +197,17 @@ func (i *Interpreter) evalMethodCall(e *astmethod.Call) Value {
 		*list = append(*list, NullVal())
 		copy((*list)[idx+1:], (*list)[idx:])
 		(*list)[idx] = val
-		return NullVal()
+		return VoidVal()
 	case "remove":
 		list := on.AsList()
 		idx := int(args[0].AsNum()) - 1 // 1-based
 		*list = append((*list)[:idx], (*list)[idx+1:]...)
-		return NullVal()
+		return VoidVal()
 	case "appendList":
 		list := on.AsList()
 		other := args[0].AsList()
 		*list = append(*list, *other...)
-		return NullVal()
+		return VoidVal()
 	case "lookupInPairs":
 		key := args[0].AsStr()
 		notFound := args[1]
@@ -309,15 +309,15 @@ func (i *Interpreter) evalMethodCall(e *astmethod.Call) Value {
 		return args[1] // notFound
 	case "set":
 		on.AsDict().Set(args[0].AsStr(), args[1])
-		return NullVal()
+		return VoidVal()
 	case "delete":
 		on.AsDict().Delete(args[0].AsStr())
-		return NullVal()
+		return VoidVal()
 	case "getAtPath":
 		return dictGetAtPath(on.AsDict(), args[0].AsList(), args[1])
 	case "setAtPath":
 		dictSetAtPath(on.AsDict(), args[0].AsList(), args[1])
-		return NullVal()
+		return VoidVal()
 	case "containsKey":
 		return BoolVal(on.AsDict().ContainsKey(args[0].AsStr()))
 	case "mergeInto":

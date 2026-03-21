@@ -43,7 +43,7 @@ func repl() {
 
 	for {
 		if openBraces == 0 {
-			fmt.Print(">> ")
+			fmt.Print(">>>> ")
 		} else {
 			fmt.Print(".. ")
 		}
@@ -97,7 +97,7 @@ func repl() {
 			langParser := mistParser.NewLangParser(false, tokens)
 			exprs := langParser.ParseAll()
 			result := interp.RunGetLast(exprs)
-			if result.Type() != runtime.Null {
+			if result.Type() != runtime.Null && result.Type() != runtime.NonConsumable {
 				fmt.Println("=", result.String())
 			}
 		}()

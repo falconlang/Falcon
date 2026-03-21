@@ -16,6 +16,7 @@ const (
 	List
 	Dict
 	Color
+	NonConsumable // result of a statement; consuming it is a runtime error
 )
 
 type Value struct {
@@ -34,6 +35,7 @@ func BoolVal(b bool) Value      { return Value{vtype: Bool, boolVal: b} }
 func NumVal(n float64) Value    { return Value{vtype: Number, numVal: n} }
 func StrVal(s string) Value     { return Value{vtype: String, strVal: s} }
 func ColorVal(hex string) Value { return Value{vtype: Color, strVal: hex} }
+func VoidVal() Value            { return Value{vtype: NonConsumable} }
 
 func ListVal(elems []Value) Value {
 	cp := make([]Value, len(elems))
@@ -59,6 +61,9 @@ func EmptyDict() Value {
 func (v Value) Type() ValueType { return v.vtype }
 
 func (v Value) AsBool() bool {
+	if v.vtype == NonConsumable {
+		panic("cannot consume a statement result as a boolean")
+	}
 	if v.vtype != Bool {
 		panic("expected a boolean value")
 	}
@@ -66,6 +71,9 @@ func (v Value) AsBool() bool {
 }
 
 func (v Value) AsNum() float64 {
+	if v.vtype == NonConsumable {
+		panic("cannot consume a statement result as a number")
+	}
 	switch v.vtype {
 	case Number:
 		return v.numVal
@@ -80,6 +88,9 @@ func (v Value) AsNum() float64 {
 }
 
 func (v Value) AsStr() string {
+	if v.vtype == NonConsumable {
+		panic("cannot consume a statement result as a string")
+	}
 	switch v.vtype {
 	case String:
 		return v.strVal
@@ -104,6 +115,9 @@ func (v Value) AsStr() string {
 }
 
 func (v Value) AsList() *[]Value {
+	if v.vtype == NonConsumable {
+		panic("cannot consume a statement result as a list")
+	}
 	if v.vtype != List {
 		panic("expected a list value")
 	}
@@ -111,6 +125,9 @@ func (v Value) AsList() *[]Value {
 }
 
 func (v Value) AsDict() *OrderedDict {
+	if v.vtype == NonConsumable {
+		panic("cannot consume a statement result as a dict")
+	}
 	if v.vtype != Dict {
 		panic("expected a dict value")
 	}
@@ -152,6 +169,8 @@ func (v Value) String() string {
 		return "[" + strings.Join(parts, ", ") + "]"
 	case Dict:
 		return v.dictVal.String()
+	case NonConsumable:
+		return "<void>"
 	default:
 		return "<unknown>"
 	}

@@ -61,7 +61,7 @@ func (i *Interpreter) RunGetLast(exprs []ast.Expr) Value {
 			i.globalEnv.Define(n.Name, val)
 		}
 	}
-	var last Value = NullVal()
+	var last = NullVal()
 	for _, e := range exprs {
 		switch e.(type) {
 		case *procedures.VoidProcedure, *procedures.RetProcedure, *variables.Global:
@@ -144,17 +144,17 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 
 	// Control blocks
 	case *control.If:
-		return i.ifExpr(e)
+		return i.ifSmt(e)
 	case *control.SimpleIf:
 		return i.simpleIfExpr(e)
 	case *control.For:
-		return i.evalFor(e)
+		return i.forSmt(e)
 	case *control.While:
-		return i.evalWhile(e)
+		return i.whileSmt(e)
 	case *control.Each:
-		return i.evalEach(e)
+		return i.eachSmt(e)
 	case *control.EachPair:
-		return i.evalEachPair(e)
+		return i.eachPairSmt(e)
 	case *control.Break:
 		panic(BreakSignal{})
 	case *control.Do:
@@ -174,11 +174,11 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		} else {
 			i.currEnv.Set(e.Name, val)
 		}
-		return NullVal()
+		return VoidVal()
 	case *variables.Global:
 		val := i.Eval(e.Value)
 		i.currEnv.root().Define(e.Name, val)
-		return NullVal()
+		return VoidVal()
 	case *variables.Var:
 		return i.evalVar(e)
 	case *variables.SimpleVar:
@@ -189,10 +189,10 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 	// Procedure definitions
 	case *procedures.VoidProcedure:
 		i.procedures[e.Name] = &Procedure{params: e.Parameters, voidBody: e.Body}
-		return NullVal()
+		return VoidVal()
 	case *procedures.RetProcedure:
 		i.procedures[e.Name] = &Procedure{params: e.Parameters, retExpr: e.Result}
-		return NullVal()
+		return VoidVal()
 	case *procedures.Call:
 		return i.evalProcedureCall(e)
 
@@ -212,35 +212,35 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 			panic("list index " + strconv.Itoa(idx) + " out of bounds (len=" + strconv.Itoa(len(*list)) + ")")
 		}
 		(*list)[idx-1] = val
-		return NullVal()
+		return VoidVal()
 	case *astlist.Transformer:
 		return i.evalTransformer(e)
 
 	// Component blocks
 	case *components.Event:
 		stub("event handler " + e.ComponentName + "." + e.Event)
-		return NullVal()
+		return VoidVal()
 	case *components.GenericEvent:
 		stub("generic event handler " + e.ComponentType + "." + e.Event)
-		return NullVal()
+		return VoidVal()
 	case *components.MethodCall:
 		stub("component method " + e.ComponentName + "." + e.Method + "(...)")
-		return NullVal()
+		return VoidVal()
 	case *components.GenericMethodCall:
 		stub("generic component method " + e.ComponentType + "." + e.Method + "(...)")
-		return NullVal()
+		return VoidVal()
 	case *components.PropertyGet:
 		stub("property get " + e.ComponentName + "." + e.Property)
-		return NullVal()
+		return NullVal() // property reads are expressions
 	case *components.GenericPropertyGet:
 		stub("generic property get " + e.ComponentType + "." + e.Property)
-		return NullVal()
+		return NullVal() // property reads are expressions
 	case *components.PropertySet:
 		stub("property set " + e.ComponentName + "." + e.Property)
-		return NullVal()
+		return VoidVal()
 	case *components.GenericPropertySet:
 		stub("generic property set " + e.ComponentType + "." + e.Property)
-		return NullVal()
+		return VoidVal()
 	case *components.EveryComponent:
 		stub("every(" + e.Type + ")")
 		return EmptyList()
@@ -392,16 +392,17 @@ func (i *Interpreter) question(e *common.Question) Value {
 	}
 }
 
-func (i *Interpreter) ifExpr(e *control.If) Value {
+func (i *Interpreter) ifSmt(e *control.If) Value {
 	for k, cond := range e.Conditions {
 		if i.Eval(cond).AsBool() {
-			return i.execBody(e.Bodies[k])
+			i.execBody(e.Bodies[k])
+			return VoidVal()
 		}
 	}
 	if e.ElseBody != nil {
-		return i.execBody(e.ElseBody)
+		i.execBody(e.ElseBody)
 	}
-	return NullVal()
+	return VoidVal()
 }
 
 func (i *Interpreter) simpleIfExpr(e *control.SimpleIf) Value {
@@ -414,7 +415,7 @@ func (i *Interpreter) simpleIfExpr(e *control.SimpleIf) Value {
 	return NullVal()
 }
 
-func (i *Interpreter) evalFor(e *control.For) Value {
+func (i *Interpreter) forSmt(e *control.For) Value {
 	from := i.Eval(e.From).AsNum()
 	to := i.Eval(e.To).AsNum()
 	by := i.Eval(e.By).AsNum()
@@ -422,7 +423,6 @@ func (i *Interpreter) evalFor(e *control.For) Value {
 		panic("for loop step cannot be 0")
 	}
 	loopEnv := NewEnv(i.currEnv)
-	var last Value = NullVal()
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -434,16 +434,15 @@ func (i *Interpreter) evalFor(e *control.For) Value {
 		i.inEnv(loopEnv, func() Value {
 			for cur := from; (by > 0 && cur <= to) || (by < 0 && cur >= to); cur += by {
 				loopEnv.Define(e.IName, NumVal(cur))
-				last = i.execBody(e.Body)
+				i.execBody(e.Body)
 			}
-			return NullVal()
+			return VoidVal()
 		})
 	}()
-	return last
+	return VoidVal()
 }
 
-func (i *Interpreter) evalWhile(e *control.While) Value {
-	var last Value = NullVal()
+func (i *Interpreter) whileSmt(e *control.While) Value {
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -453,17 +452,16 @@ func (i *Interpreter) evalWhile(e *control.While) Value {
 			}
 		}()
 		for i.Eval(e.Condition).AsBool() {
-			last = i.execBody(e.Body)
+			i.execBody(e.Body)
 		}
 	}()
-	return last
+	return VoidVal()
 }
 
-func (i *Interpreter) evalEach(e *control.Each) Value {
+func (i *Interpreter) eachSmt(e *control.Each) Value {
 	list := i.Eval(e.Iterable).AsList()
 	loopEnv := NewEnv(i.currEnv)
 	loopEnv.Define(e.IName, NullVal())
-	var last Value = NullVal()
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -475,20 +473,19 @@ func (i *Interpreter) evalEach(e *control.Each) Value {
 		i.inEnv(loopEnv, func() Value {
 			for _, elem := range *list {
 				loopEnv.Define(e.IName, elem)
-				last = i.execBody(e.Body)
+				i.execBody(e.Body)
 			}
-			return NullVal()
+			return VoidVal()
 		})
 	}()
-	return last
+	return VoidVal()
 }
 
-func (i *Interpreter) evalEachPair(e *control.EachPair) Value {
+func (i *Interpreter) eachPairSmt(e *control.EachPair) Value {
 	d := i.Eval(e.Iterable).AsDict()
 	loopEnv := NewEnv(i.currEnv)
 	loopEnv.Define(e.KeyName, NullVal())
 	loopEnv.Define(e.ValueName, NullVal())
-	var last Value = NullVal()
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -501,12 +498,12 @@ func (i *Interpreter) evalEachPair(e *control.EachPair) Value {
 			for _, entry := range d.entries {
 				loopEnv.Define(e.KeyName, StrVal(entry.Key))
 				loopEnv.Define(e.ValueName, entry.Val)
-				last = i.execBody(e.Body)
+				i.execBody(e.Body)
 			}
-			return NullVal()
+			return VoidVal()
 		})
 	}()
-	return last
+	return VoidVal()
 }
 
 // --- Variables ---
@@ -544,10 +541,7 @@ func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
 		panic("undefined procedure: " + e.Name)
 	}
 	// Evaluate arguments in the current (caller) env before switching scope.
-	argVals := make([]Value, len(proc.params))
-	for k := range proc.params {
-		argVals[k] = i.Eval(e.Arguments[k])
-	}
+	argVals := i.evalExprs(e.Arguments)
 	callEnv := NewEnv(i.globalEnv)
 	for k, param := range proc.params {
 		callEnv.Define(param, argVals[k])
@@ -555,6 +549,7 @@ func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
 
 	return i.inEnv(callEnv, func() Value {
 		if proc.retExpr != nil {
+			// a returning procedure
 			var result Value
 			func() {
 				defer func() {
@@ -570,27 +565,22 @@ func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
 			}()
 			return result
 		}
-
-		// void procedure
-		var ret Value = NullVal()
+		// a void procedure
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if rs, ok := r.(ReturnSignal); ok {
-						ret = rs.Val
-					} else {
+					if _, ok := r.(ReturnSignal); !ok {
 						panic(r)
 					}
 				}
 			}()
 			i.execBody(proc.voidBody)
 		}()
-		return ret
+		return VoidVal()
 	})
 }
 
-// --- execBody: run a slice of expressions, return value of last ---
-
+// evaluates all expressions and returns the last expr result
 func (i *Interpreter) execBody(body []ast.Expr) Value {
 	if len(body) == 0 {
 		return NullVal()
@@ -602,7 +592,7 @@ func (i *Interpreter) execBody(body []ast.Expr) Value {
 	return last
 }
 
-// evalExprs evaluates each expression in exprs and returns the results as a []Value slice.
+// evaluates all exprs in a given list
 func (i *Interpreter) evalExprs(exprs []ast.Expr) []Value {
 	vals := make([]Value, len(exprs))
 	for k, expr := range exprs {
