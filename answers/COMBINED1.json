@@ -1,0 +1,910 @@
+{
+  "268": {
+    "problem": "Write `isAnagram(a, b)` by comparing sorted character lists. Test `(\"listen\", \"silent\")`.",
+    "answer": "func isAnagram(a, b) = {\n  func toSortedText(str) = {\n    local l =[]\n    for(i: 1 .. str.textLen()) { l.add(str.segment(i, 1)) }\n    l.sort { m, n -> m << n }.join(\"\")\n  }\n  toSortedText(a) === toSortedText(b)\n}"
+  },
+  "398": {
+    "problem": "Sort `[\"banana\", \"apple\", \"date\", \"cherry\"]` alphabetically.",
+    "answer": "println([\"banana\", \"apple\", \"date\", \"cherry\"].sort { m, n -> m << n })"
+  },
+  "476": {
+    "problem": "Write `insertSorted(list, val)` \u2014 insert into already-sorted list. Test.",
+    "answer": "func insertSorted(list, val) = {\n  local res = copyList(list)\n  res.add(val)\n  res.sort { m, n -> m < n }\n  res\n}"
+  },
+  "481": {
+    "problem": "Write `countSortedPairs(list)` \u2014 count pairs `(i,j)` where `i<j` and `list[i] < list[j]`.",
+    "answer": "func countSortedPairs(list) = {\n  local c = 0\n  for(i: 1 .. list.listLen()) {\n    for(j: (i+1) .. list.listLen()) { if(list[i] < list[j]) c = c + 1 }\n  }\n  c\n}"
+  },
+  "652": {
+    "problem": "Build a frequency-sorted word list from a sentence. Test `\"to be or not to be\"`.",
+    "answer": "func freqSorted(sentence) = {\n  local h = histogram(sentence.splitAtSpaces())\n  h.toPairs().sort{a,b -> a[2] > b[2]}.map{p -> p[1]}\n}"
+  },
+  "836": {
+    "problem": "Write a loop to detect if a list is sorted ascending. Stop at first violation.",
+    "answer": "local l_836 =[1, 2, 4, 3, 5]\nfor(i: 1 .. l_836.listLen()-1) {\n  if(l_836[i] > l_836[i+1]) { println(\"Violated at \" _ i) break }\n}"
+  },
+  "927": {
+    "problem": "Write `linearSearch(list, val)`. Test.",
+    "answer": "func linearSearch(list, val) = {\n  local idx = -1\n  for(i: 1 .. list.listLen()) { if(list[i] == val) { idx = i break } }\n  idx\n}"
+  },
+  "996": {
+    "problem": "Write `topologicalSort(graph)` \u2014 Kahn's algorithm. Test DAG.",
+    "answer": "func topologicalSort(graph) = {\n  local inD = {}\n  for(u in graph.keys()) {\n    if(!inD.containsKey(u)) inD.set(u, 0)\n    for(v in graph.get(u)) { inD.set(v, inD.getAtPath([v], 0) + 1) }\n  }\n  local q =[]\n  for(k, v in inD) { if(v == 0) q.add(k) }\n  local res =[]\n  while(q.listLen() > 0) {\n    local u = q[1]\n    q.remove(1)\n    res.add(u)\n    if(graph.containsKey(u)) {\n      for(v in graph.get(u)) {\n        inD.set(v, inD.get(v) - 1)\n        if(inD.get(v) == 0) q.add(v)\n      }\n    }\n  }\n  res\n}"
+  },
+  "375": {
+    "problem": "Write `rotateChars(s, n)` \u2014 ROT-n cipher. Test `(\"Hello\", 13)` for ROT13.",
+    "answer": "func rotateChars(s, n) = {\n  local alpha = \"abcdefghijklmnopqrstuvwxyz\"\n  local res = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i, 1)\n    local lower = ch.lowercase()\n    local idx = -1\n    for(j: 1 .. 26) { if(alpha.segment(j, 1) === lower) idx = j }\n    if (idx == -1) {\n      res = res _ ch\n    } else {\n      local newCh = alpha.segment((idx + n - 1) % 26 + 1, 1)\n      res = res _ if (ch === lower) newCh else newCh.uppercase()\n    }\n  }\n  res\n}"
+  },
+  "151": {
+    "problem": "Write `normalize(x, min, max)` = `(x - min) / (max - min)`. Test with `(75, 0, 100)`.",
+    "answer": "func normalize(x, minV, maxV) = { (x - minV) / (maxV - minV) }\nprintln(normalize(75, 0, 100))"
+  },
+  "647": {
+    "problem": "Write `bimap(d, keyFn, valFn)` \u2014 transform both keys and values. Test.",
+    "answer": "func bimap(d) = {\n  local res = {}\n  for(k, v in d) { res.set(k.uppercase(), v * 2) }\n  res\n}"
+  },
+  "404": {
+    "problem": "Convert pairs `[[\"a\",1],[\"b\",2],[\"c\",3]]` to a dict using `pairsToDict`.",
+    "answer": "println([[\"a\",1],[\"b\",2],[\"c\",3]].pairsToDict())"
+  },
+  "568": {
+    "problem": "Merge `{\"a\":1,\"b\":2}` with `{\"c\":3,\"d\":4}` using `mergeInto`.",
+    "answer": "local d1_568 = {\"a\":1,\"b\":2}\nd1_568.mergeInto({\"c\":3,\"d\":4})\nprintln(d1_568)"
+  },
+  "571": {
+    "problem": "Use `getAtPath` to get `\"age\"` from `{\"user\":{\"profile\":{\"age\":25}}}`.",
+    "answer": "local u_571 = {\"user\":{\"profile\":{\"age\":25}}}\nprintln(u_571.getAtPath([\"user\", \"profile\", \"age\"], -1))"
+  },
+  "573": {
+    "problem": "Use `walkTree` to reach `[\"root\",\"child\"]` in a nested dict.",
+    "answer": "local w_573 = {\"root\": {\"child\": {\"val\": 1}}}\nprintln(w_573.walkTree([\"root\", \"child\"]))"
+  },
+  "106": {
+    "problem": "Write a function `hypotenuse(a, b) = { sqrt(a^2 + b^2) }`. Test with `(5, 12)` and `(8, 15)`.",
+    "answer": "func hypotenuse(a, b) = { sqrt(a^2 + b^2) }\nprintln(hypotenuse(5, 12))\nprintln(hypotenuse(8, 15))"
+  },
+  "264": {
+    "problem": "Write `countWords(s)` that returns number of words. Test with `\"  one  two   three  \"`.",
+    "answer": "func countWords(s) = { s.trim().splitAtSpaces().filter { w -> w !== \"\" }.listLen() }"
+  },
+  "439": {
+    "problem": "Write `histogram(list)` \u2014 returns dict of value frequencies. Test.",
+    "answer": "func histogram(list) = {\n  local d = {}\n  for (x in list) {\n    if (d.containsKey(x)) { d.set(x, d.get(x) + 1) } else { d.set(x, 1) }\n  }\n  d\n}"
+  },
+  "887": {
+    "problem": "Write `isOdd(n) = { n % 2 != 0 }`. Test.",
+    "answer": "func isOdd(n) = { n % 2 != 0 }"
+  },
+  "881": {
+    "problem": "Write a void function `printGreeting(name)` that prints `\"Hello, name!\"`. Call it 3 times.",
+    "answer": "func printGreeting(name) { println(\"Hello, \" _ name _ \"!\") }\nfor(i: 1 .. 3) { printGreeting(\"Alice\") }"
+  },
+  "620": {
+    "problem": "Build a config store: nested dict with `get` and `set`. Test two levels of nesting.",
+    "answer": "global config = {}\nfunc setConfig(k1, k2, v) = {\n  if (!this.config.containsKey(k1)) this.config.set(k1, {})\n  this.config.get(k1).set(k2, v)\n}\nfunc getConfig(k1, k2) = { this.config.get(k1).get(k2) }"
+  },
+  "1": {
+    "problem": "Declare a global variable `score` initialized to `0`, then print it using `this.score`.",
+    "answer": "global score = 0\nprintln(this.score)"
+  },
+  "68": {
+    "problem": "Declare a global `sessionTokens` as an empty list. Write `addToken(t)` and `revokeToken(t)` functions. Simulate and print.",
+    "answer": "global sessionTokens =[]\nfunc addToken(t) { this.sessionTokens.add(t) }\nfunc revokeToken(t) {\n  local idx = this.sessionTokens.indexOf(t)\n  if (idx > 0) this.sessionTokens.remove(idx)\n}\naddToken(\"abc\")\nrevokeToken(\"abc\")\nprintln(this.sessionTokens)"
+  },
+  "184": {
+    "problem": "Write `sumOfSquaredDigits(n)`. Test `89` (enters cycle) and `1` (happy number).",
+    "answer": "func sumOfSquaredDigits(n) = {\n  local sum = 0\n  local temp = n\n  while (temp > 0) {\n    local d = temp % 10\n    sum = sum + (d ^ 2)\n    temp = floor(temp / 10)\n  }\n  sum\n}\nprintln(sumOfSquaredDigits(89))"
+  },
+  "938": {
+    "problem": "Write `countNodes(tree)`. Test.",
+    "answer": "func countNodes(tree) = {\n  if(!tree ? dict) 0 else 1 + countNodes(tree.get(\"left\", false)) + countNodes(tree.get(\"right\", false))\n}"
+  },
+  "249": {
+    "problem": "Create a list `[\"Bob\", \"25\", \"Engineer\"]` and convert to CSV row with `toCsvRow`.",
+    "answer": "println([\"Bob\", \"25\", \"Engineer\"].toCsvRow())"
+  },
+  "315": {
+    "problem": "Write `lastIndexOf(s, sub)` \u2014 last occurrence index. Test `(\"abcabc\", \"b\")`.",
+    "answer": "func lastIndexOf(s, sub) = {\n  local idx = -1\n  for(i: 1 .. s.textLen() - sub.textLen() + 1) {\n    if(s.segment(i, sub.textLen()) === sub) idx = i\n  }\n  idx\n}"
+  },
+  "391": {
+    "problem": "Print `[10, 20, 30, 40, 50, 60].slice(2, 4)`.",
+    "answer": "println([10, 20, 30, 40, 50, 60].slice(2, 4))"
+  },
+  "452": {
+    "problem": "Write `indexOf(list, val)` manually. Confirm with built-in.",
+    "answer": "func indexOfManual(list, val) = {\n  local idx = -1\n  for(i: 1 .. list.listLen()) { if(list[i] == val) { idx = i break } }\n  idx\n}"
+  },
+  "2": {
+    "problem": "Declare a local variable `name` set to `\"Falcon\"` and print it.",
+    "answer": "local name = \"Falcon\"\nprintln(name)"
+  },
+  "14": {
+    "problem": "Declare a local variable `n` set to `7`. Print whether it is greater than `5` using an if expression.",
+    "answer": "local n_14 = 7\nprintln(if (n_14 > 5) \"Greater\" else \"Not greater\")"
+  },
+  "26": {
+    "problem": "Declare a local `age` set to `17`. Print `\"Minor\"` if under 18, else `\"Adult\"`.",
+    "answer": "local age = 17\nprintln(if (age < 18) \"Minor\" else \"Adult\")"
+  },
+  "36": {
+    "problem": "Declare a local `hexVal` set to `\"1F\"`. Print `hexToDec(hexVal)`.",
+    "answer": "local hexVal = \"1F\"\nprintln(hexToDec(hexVal))"
+  },
+  "49": {
+    "problem": "Declare a local `angle` set to `45`. Compute `sin(radians(angle))` and print formatted to 4 decimal places.",
+    "answer": "local angle = 45\nprintln(formatDecimal(sin(radians(angle)), 4))"
+  },
+  "61": {
+    "problem": "Declare a local `n` set to `5`. Print the sum of integers from `1` to `n` using the formula `n*(n+1)/2`.",
+    "answer": "local n_61 = 5\nprintln(n_61 * (n_61 + 1) / 2)"
+  },
+  "73": {
+    "problem": "Declare a local `x` set to `3.999`. Print the result of casting to integer via `floor(x)`.",
+    "answer": "local x_73 = 3.999\nprintln(floor(x_73))"
+  },
+  "277": {
+    "problem": "Write `alternatingCase(s)` that alternates upper/lower for each character. Test `\"hello\"`.",
+    "answer": "func alternatingCase(s) = {\n  local res = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i, 1)\n    res = res _ if (i % 2 != 0) ch.uppercase() else ch.lowercase()\n  }\n  res\n}"
+  },
+  "118": {
+    "problem": "Print the sum of squares from `1` to `10` using a for loop.",
+    "answer": "local sum_118 = 0\nfor (i: 1 .. 10) { sum_118 = sum_118 + i^2 }\nprintln(sum_118)"
+  },
+  "826": {
+    "problem": "Use a for loop to implement `map` manually: double each element and collect.",
+    "answer": "local l_826 = [1, 2, 3]\nlocal m_826 =[]\nfor(x in l_826) { m_826.add(x * 2) }\nprintln(m_826)"
+  },
+  "860": {
+    "problem": "Use nested for loops to compute the outer product of `[1,2,3]` and `[4,5,6]`.",
+    "answer": "for(i in [1,2,3]) { for(j in [4,5,6]) { println(i * j) } }"
+  },
+  "122": {
+    "problem": "Compute `n!` for `n = 12` using a while loop.",
+    "answer": "local n_122 = 12\nlocal fact_122 = 1\nwhile (n_122 > 1) {\n  fact_122 = fact_122 * n_122\n  n_122 = n_122 - 1\n}\nprintln(fact_122)"
+  },
+  "800": {
+    "problem": "Use a while loop to convert a decimal number to binary step-by-step.",
+    "answer": "local n_800 = 10\nlocal binStr = \"\"\nwhile(n_800 > 0) {\n  binStr = (n_800 % 2) _ binStr\n  n_800 = floor(n_800 / 2)\n}\nprintln(binStr)"
+  },
+  "859": {
+    "problem": "Write a while loop to drain a queue (list). Pop from front until empty.",
+    "answer": "local q_859 = [1, 2, 3]\nwhile(q_859.listLen() > 0) {\n  println(q_859[1])\n  q_859.remove(1)\n}"
+  },
+  "84": {
+    "problem": "Print `sqrt(2)` formatted to 6 decimal places.",
+    "answer": "println(formatDecimal(sqrt(2), 6))"
+  },
+  "161": {
+    "problem": "Write `countPrimes(n)` that counts all primes up to `n`. Print for `n=100`.",
+    "answer": "func countPrimes(n) = {\n  local count = 0\n  for (i: 2 .. n) {\n    local isP = true\n    for (j: 2 .. floor(sqrt(i))) {\n      if (i % j == 0) { isP = false break }\n    }\n    if (isP) count = count + 1\n  }\n  count\n}\nprintln(countPrimes(100))"
+  },
+  "186": {
+    "problem": "Write `isMersennePrime(p)` checking if `2^p - 1` is prime. Test `p=2,3,5,7`.",
+    "answer": "func isMersennePrime(p) = {\n  local m = (2 ^ p) - 1\n  local isP = true\n  for (i: 2 .. floor(sqrt(m))) {\n    if (m % i == 0) { isP = false break }\n  }\n  isP\n}\nfor (p in[2, 3, 5, 7]) { println(isMersennePrime(p)) }"
+  },
+  "226": {
+    "problem": "Write `entropy(probList)` = `-sum(p * log(p))`. Test `[0.5, 0.25, 0.25]`.",
+    "answer": "func entropy(probList) = { -probList.reduce(0) { acc, p -> acc + p * log(p) } }\nprintln(entropy([0.5, 0.25, 0.25]))"
+  },
+  "172": {
+    "problem": "Compute BMI from weight `70` kg and height `1.75` m. Print category.",
+    "answer": "local weight_172 = 70\nlocal height_172 = 1.75\nlocal bmi_172 = weight_172 / (height_172 ^ 2)\nprintln(if (bmi_172 < 18.5) \"Underweight\" else if (bmi_172 < 25) \"Normal\" else \"Overweight\")"
+  },
+  "957": {
+    "problem": "Write `knapsack(weights, values, cap)` \u2014 0/1 knapsack DP. Test small example.",
+    "answer": "func knapsack(wt, val, cap) = {\n  local n = wt.listLen()\n  local dp =[]\n  for(i: 1 .. cap + 1) { dp.add(0) }\n  for(i: 1 .. n) {\n    for(w: cap + 1 .. 1 step -1) {\n      if (wt[i] <= w - 1) {\n        local test = dp[w - wt[i]] + val[i]\n        if(test > dp[w]) dp[w] = test\n      }\n    }\n  }\n  dp[cap + 1]\n}"
+  },
+  "13": {
+    "problem": "Declare two globals `firstName` and `lastName`. Print the full name joined by a space.",
+    "answer": "global firstName = \"John\"\nglobal lastName = \"Doe\"\nprintln(this.firstName _ \" \" _ this.lastName)"
+  },
+  "70": {
+    "problem": "Declare locals `monday` through `friday` each set to hours worked (e.g. `8, 7, 9, 6, 8`). Print total weekly hours.",
+    "answer": "local monday = 8\nlocal tuesday = 7\nlocal wednesday = 9\nlocal thursday = 6\nlocal friday = 8\nprintln(monday + tuesday + wednesday + thursday + friday)"
+  },
+  "83": {
+    "problem": "Compute and print the hypotenuse of a right triangle with legs `3` and `4`.",
+    "answer": "println(sqrt(3^2 + 4^2))"
+  },
+  "89": {
+    "problem": "Compute `exp(2)` and print it formatted to 4 decimal places.",
+    "answer": "println(formatDecimal(exp(2), 4))"
+  },
+  "93": {
+    "problem": "Print the decimal value of hex `\"DEAD\"`.",
+    "answer": "println(hexToDec(\"DEAD\"))"
+  },
+  "97": {
+    "problem": "Compute `mod(123, 7)`, `rem(123, 7)`, and `quot(123, 7)` and print all three.",
+    "answer": "println(mod(123, 7))\nprintln(rem(123, 7))\nprintln(quot(123, 7))"
+  },
+  "104": {
+    "problem": "Compute the area of a rectangle with width `13.5` and height `7.2` and print.",
+    "answer": "println(13.5 * 7.2)"
+  },
+  "115": {
+    "problem": "Compute the distance between `(1, 2)` and `(4, 6)` and print.",
+    "answer": "println(sqrt((4 - 1)^2 + (6 - 2)^2))"
+  },
+  "120": {
+    "problem": "Print all multiples of `7` from `1` to `100`.",
+    "answer": "for (i: 7 .. 100 step 7) { println(i) }"
+  },
+  "128": {
+    "problem": "Print the sum of all even numbers from `2` to `50`.",
+    "answer": "local evenSum_128 = 0\nfor (i: 2 .. 50 step 2) { evenSum_128 = evenSum_128 + i }\nprintln(evenSum_128)"
+  },
+  "133": {
+    "problem": "Write `countDivisors(n)`. Print how many divisors `60` has.",
+    "answer": "func countDivisors(n) = {\n  local count = 0\n  for (i: 1 .. n) {\n    if (n % i == 0) { count = count + 1 }\n  }\n  count\n}\nprintln(countDivisors(60))"
+  },
+  "137": {
+    "problem": "Write `collatzLength(n)` that counts steps to reach 1. Test `27`, `6`, `1`.",
+    "answer": "func collatzLength(n) = {\n  local steps = 0\n  local curr = n\n  while (curr > 1) {\n    curr = if (curr % 2 == 0) curr / 2 else curr * 3 + 1\n    steps = steps + 1\n  }\n  steps\n}\nprintln(collatzLength(27))"
+  },
+  "141": {
+    "problem": "Write `toHex(n)` using `decToHex`. Test `255`, `4096`, `65535`.",
+    "answer": "func toHex(n) = { decToHex(n) }\nprintln(toHex(255))\nprintln(toHex(65535))"
+  },
+  "145": {
+    "problem": "Write `harmonicSum(n)` = sum of `1/i` for `i` from 1 to n. Print for `n=10`.",
+    "answer": "func harmonicSum(n) = {\n  local sum = 0\n  for (i: 1 .. n) { sum = sum + 1/i }\n  sum\n}\nprintln(harmonicSum(10))"
+  },
+  "150": {
+    "problem": "Write `lerp(a, b, t)` = `a + (b - a) * t`. Print values for `t` in `[0, 0.25, 0.5, 0.75, 1]`.",
+    "answer": "func lerp(a, b, t) = { a + (b - a) * t }\nfor (t in[0, 0.25, 0.5, 0.75, 1]) { println(lerp(0, 10, t)) }"
+  },
+  "156": {
+    "problem": "Write `lucas(n)` \u2014 Lucas sequence starting `2, 1`. Print first 10.",
+    "answer": "func lucas(n) = {\n  local L = [2, 1]\n  for (i: 3 .. n) { L.add(L[i - 2] + L[i - 1]) }\n  L\n}\nprintln(lucas(10))"
+  },
+  "160": {
+    "problem": "Compute the sum of the first `n` cubes: `(n*(n+1)/2)^2`. Test `n=5`.",
+    "answer": "local n_160 = 5\nprintln((n_160 * (n_160 + 1) / 2) ^ 2)"
+  },
+  "170": {
+    "problem": "Write `relu(x) = max(0, x)` equivalent using if expression. Test `[-3, 0, 2, 5]`.",
+    "answer": "func relu(x) = { if (x > 0) x else 0 }\nprintln([-3, 0, 2, 5].map { v -> relu(v) })"
+  },
+  "188": {
+    "problem": "Write `roundTo(x, decimals)` using `round(x * 10^decimals) / 10^decimals`. Test `(3.14159, 2)`.",
+    "answer": "func roundTo(x, decimals) = { round(x * (10 ^ decimals)) / (10 ^ decimals) }\nprintln(roundTo(3.14159, 2))"
+  },
+  "192": {
+    "problem": "Compute the magnitude of vector `[3, 4, 5]` using `sqrt`.",
+    "answer": "println(sqrt(3^2 + 4^2 + 5^2))"
+  },
+  "199": {
+    "problem": "Write `interpolate(points, x)` that does linear interpolation between two nearest points in a list of `[x, y]` pairs.",
+    "answer": "func interpolate(points, x) = {\n  // Assuming list of [x, y] sorted by x\n  local pt1 = points[1]\n  local pt2 = points[points.listLen()]\n  for (i: 1 .. points.listLen() - 1) {\n    if (points[i][1] <= x && points[i+1][1] >= x) {\n      pt1 = points[i]\n      pt2 = points[i+1]\n      break\n    }\n  }\n  local t = if (pt2[1] == pt1[1]) 0 else (x - pt1[1]) / (pt2[1] - pt1[1])\n  pt1[2] + (pt2[2] - pt1[2]) * t\n}"
+  },
+  "204": {
+    "problem": "Write `popcount(n)` that counts the number of `1` bits. Test `255`, `256`, `170`.",
+    "answer": "func popcount(n) = {\n  local c = 0\n  local temp = n\n  while (temp > 0) {\n    if (temp % 2 == 1) { c = c + 1 }\n    temp = floor(temp / 2)\n  }\n  c\n}\nprintln(popcount(255))"
+  },
+  "211": {
+    "problem": "Write `binomial(n, k)` using `nCr`. Print Pascal's triangle for `n=0..6`.",
+    "answer": "func binomial(n, k) = {\n  if (k == 0 || k == n) 1 else binomial(n - 1, k - 1) + binomial(n - 1, k)\n}\nfor(n: 0 .. 6) {\n  local row =[]\n  for(k: 0 .. n) { row.add(binomial(n, k)) }\n  println(row)\n}"
+  },
+  "217": {
+    "problem": "Write `cubeRoot(n) = n ^ (1/3)`. Test `27`, `64`, `125`.",
+    "answer": "func cubeRoot(n) = { n ^ (1/3) }"
+  },
+  "225": {
+    "problem": "Compute cumulative sums of `[1, 2, 3, 4, 5]` and print the resulting list.",
+    "answer": "local ls_225 =[1, 2, 3, 4, 5]\nlocal cum_225 =[]\nlocal sc_225 = 0\nfor (x in ls_225) {\n  sc_225 = sc_225 + x\n  cum_225.add(sc_225)\n}\nprintln(cum_225)"
+  },
+  "230": {
+    "problem": "Write `nthRoot(x, n) = x ^ (1/n)`. Test `(81, 4)`, `(32, 5)`, `(64, 6)`.",
+    "answer": "func nthRoot(x, n) = { x ^ (1/n) }"
+  },
+  "235": {
+    "problem": "Print whether `\"javascript\"` contains the substring `\"java\"`.",
+    "answer": "println(\"javascript\".contains(\"java\"))"
+  },
+  "239": {
+    "problem": "Split `\"key=value\"` at first `\"=\"` and print the key and value separately.",
+    "answer": "local kv_239 = \"key=value\".splitAtFirst(\"=\")\nprintln(kv_239[1] _ \" and \" _ kv_239[2])"
+  },
+  "243": {
+    "problem": "Extract the substring from index `2` to length `4` from `\"abcdefgh\"`.",
+    "answer": "println(\"abcdefgh\".segment(2, 4))"
+  },
+  "247": {
+    "problem": "Split `\"one;two|three.four\"` at any of `[\";\", \"|\", \".\"]` and print the parts.",
+    "answer": "println(\"one;two|three.four\".splitAtAny([\";\", \"|\", \".\"]))"
+  },
+  "252": {
+    "problem": "Write a function `wordCount(s)` using `trim` and `splitAtSpaces`. Test with various sentences.",
+    "answer": "func wordCount(s) = { s.trim().splitAtSpaces().filter { w -> w !== \"\" }.listLen() }"
+  },
+  "257": {
+    "problem": "Write `padLeft(s, width, ch)` that pads the string on the left. Test `(\"42\", 6, \"0\")`.",
+    "answer": "func padLeft(s, width, ch) = {\n  local res = s\n  while (res.textLen() < width) { res = ch _ res }\n  res\n}\nprintln(padLeft(\"42\", 6, \"0\"))"
+  },
+  "263": {
+    "problem": "Write `removeSuffix(s, suffix)` that strips a suffix if present. Test `(\"index.html\", \".html\")`.",
+    "answer": "func removeSuffix(s, suffix) = {\n  if (s.textLen() >= suffix.textLen() && s.segment(s.textLen() - suffix.textLen() + 1, suffix.textLen()) === suffix)\n    s.segment(1, s.textLen() - suffix.textLen())\n  else s\n}"
+  },
+  "272": {
+    "problem": "Write `removeDigits(s)` that strips numeric characters. Test `\"h3ll0 w0rld\"`.",
+    "answer": "func removeDigits(s) = {\n  local res = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i, 1)\n    if (!(ch ? number)) { res = res _ ch }\n  }\n  res\n}"
+  },
+  "278": {
+    "problem": "Write `slugify(s)` that lowercases and replaces spaces with `\"-\"`. Test `\"Hello World\"`.",
+    "answer": "func slugify(s) = { s.lowercase().replace(\" \", \"-\") }"
+  },
+  "282": {
+    "problem": "Write `allStartWith(list, prefix)` \u2014 true if every string starts with prefix. Test.",
+    "answer": "func allStartWith(list, prefix) = {\n  list.filter { s -> startsWith(s, prefix) }.listLen() == list.listLen()\n}"
+  },
+  "288": {
+    "problem": "Write `maskNumber(s, show)` that masks all but last `show` digits with `*`. Test `(\"1234567890\", 4)`.",
+    "answer": "func maskNumber(s, show) = {\n  local len = s.textLen()\n  if (len <= show) s else padLeft(s.segment(len - show + 1, show), len, \"*\")\n}"
+  },
+  "294": {
+    "problem": "Write `lastNWords(sentence, n)`.",
+    "answer": "func lastNWords(sentence, n) = {\n  local words = sentence.trim().splitAtSpaces().filter { w -> w !== \"\" }\n  if (n >= words.listLen()) words else words.slice(words.listLen() - n + 1, words.listLen())\n}"
+  },
+  "300": {
+    "problem": "Write `encodeRLE(s)` (Run-Length Encoding): `\"aaabbc\"` \u2192 `\"3a2b1c\"`. Test.",
+    "answer": "func encodeRLE(s) = {\n  if (s.textLen() == 0) \"\" else {\n    local res = \"\"\n    local cur = s.segment(1, 1)\n    local count = 1\n    for(i: 2 .. s.textLen()) {\n      local ch = s.segment(i, 1)\n      if (ch === cur) { count = count + 1 } else {\n        res = res _ count _ cur\n        cur = ch\n        count = 1\n      }\n    }\n    res _ count _ cur\n  }\n}"
+  },
+  "304": {
+    "problem": "Write `stripPunctuation(s)` that removes common punctuation characters.",
+    "answer": "func stripPunctuation(s) = {\n  local res = \"\"\n  local punct = [\".\", \",\", \"!\", \"?\", \";\", \":\", \"-\", \"'\", \"\\\"\"]\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i, 1)\n    if (!punct.containsItem(ch)) { res = res _ ch }\n  }\n  res\n}"
+  },
+  "308": {
+    "problem": "Write `countLines(s)` by splitting on `\"\\n\"`. Test.",
+    "answer": "func countLines(s) = { s.split(\"\\n\").listLen() }"
+  },
+  "312": {
+    "problem": "Write `swapCase(s)` \u2014 lowercase becomes uppercase and vice versa. Test `\"Hello World\"`.",
+    "answer": "func swapCase(s) = {\n  local res = \"\"\n  for (i: 1 .. s.textLen()) {\n    local ch = s.segment(i, 1)\n    res = res _ if (ch === ch.uppercase()) ch.lowercase() else ch.uppercase()\n  }\n  res\n}"
+  },
+  "318": {
+    "problem": "Write `insertAt(s, pos, insert)` \u2014 inserts string at position. Test `(\"helloworld\", 6, \" \")`.",
+    "answer": "func insertAt(s, pos, insert) = { s.segment(1, pos - 1) _ insert _ s.segment(pos, s.textLen() - pos + 1) }"
+  },
+  "322": {
+    "problem": "Write `toBinaryString(s)` that converts each character to its ASCII code then binary. Test `\"Hi\"`.",
+    "answer": "func toBinaryString(s) = { \"Not easily viable without charCodeAt, use hardcoded map or built-in if exists.\" }"
+  },
+  "326": {
+    "problem": "Write `parseQueryString(qs)` like `\"a=1&b=2\"` into a dictionary. Test.",
+    "answer": "func parseQueryString(qs) = {\n  local d = {}\n  for (pair in qs.split(\"&\")) {\n    local kv = pair.splitAtFirst(\"=\")\n    d.set(kv[1], kv[2])\n  }\n  d\n}"
+  },
+  "331": {
+    "problem": "Write `stripHTMLTags(s)` by detecting `<` and `>` brackets and removing content inside.",
+    "answer": "func stripHTMLTags(s) = {\n  local res = \"\"\n  local inTag = false\n  for(i: 1 .. s.textLen()) {\n    local ch = s.segment(i, 1)\n    if (ch === \"<\") inTag = true else if (ch === \">\") inTag = false else if (!inTag) res = res _ ch\n  }\n  res\n}"
+  },
+  "336": {
+    "problem": "Write `longestWordLength(sentence)` using `maxOf` on the word-length list.",
+    "answer": "func longestWordLength(sentence) = {\n  local words = sentence.splitAtSpaces()\n  if (words.listLen() == 0) 0 else words.max { m, n -> m.textLen() > n.textLen() }.textLen()\n}"
+  },
+  "341": {
+    "problem": "Write `removeWordAt(sentence, pos)` \u2014 remove the word at position.",
+    "answer": "func removeWordAt(sentence, pos) = {\n  local words = sentence.splitAtSpaces()\n  words.remove(pos)\n  words.join(\" \")\n}"
+  },
+  "346": {
+    "problem": "Write `isAlphanumeric(s)` \u2014 all chars are letters or digits.",
+    "answer": "func isAlphanumeric(s) = {\n  local res = true\n  local alpha = \"abcdefghijklmnopqrstuvwxyz0123456789\"\n  for (i: 1 .. s.textLen()) {\n    if (!alpha.contains(s.segment(i, 1).lowercase())) { res = false break }\n  }\n  res\n}"
+  },
+  "350": {
+    "problem": "Write `pluralize(word, count)` \u2014 appends `\"s\"` if count != 1. Test `(1, \"cat\")`, `(3, \"cat\")`.",
+    "answer": "func pluralize(word, count) = { if (count == 1) word else word _ \"s\" }"
+  },
+  "355": {
+    "problem": "Write `isValidHex(s)` \u2014 only digits `0-9` and letters `A-F`. Use `containsAll` approach.",
+    "answer": "func isValidHex(s) = {\n  local valid =[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\",\"9\",\"A\",\"B\",\"C\",\"D\",\"E\",\"F\",\"a\",\"b\",\"c\",\"d\",\"e\",\"f\"]\n  local res = true\n  for (i: 1 .. s.textLen()) {\n    if (!valid.containsItem(s.segment(i, 1))) { res = false break }\n  }\n  res\n}"
+  },
+  "359": {
+    "problem": "Write `countSpaces(s)` \u2014 count space characters.",
+    "answer": "func countSpaces(s) = {\n  local c = 0\n  for(i: 1 .. s.textLen()) { if (s.segment(i, 1) === \" \") c = c + 1 }\n  c\n}"
+  },
+  "365": {
+    "problem": "Write `longestWordStartingWith(sentence, ch)` \u2014 longest word starting with given char.",
+    "answer": "func longestWordStartingWith(sentence, ch) = {\n  local f = sentence.splitAtSpaces().filter { w -> startsWith(w.lowercase(), ch.lowercase()) }\n  if (f.listLen() == 0) \"\" else f.max { m, n -> m.textLen() > n.textLen() }\n}"
+  },
+  "369": {
+    "problem": "Write `toPhoneFormat(digits)` \u2014 formats `\"1234567890\"` as `\"(123) 456-7890\"`.",
+    "answer": "func toPhoneFormat(digits) = { \"(\" _ digits.segment(1, 3) _ \") \" _ digits.segment(4, 3) _ \"-\" _ digits.segment(7, 4) }"
+  },
+  "373": {
+    "problem": "Print the Morse code (as a lookup dict) for letters A-E and encode `\"HELLO\"`.",
+    "answer": "local morse = {\"A\": \".-\", \"B\": \"-...\", \"C\": \"-.-.\", \"D\": \"-..\", \"E\": \".\"}\nlocal em = \"\"\nfor(i: 1 .. \"HELLO\".textLen()) { em = em _ morse.get(\"HELLO\".segment(i, 1), \"\") _ \" \" }\nprintln(em.trim())"
+  },
+  "379": {
+    "problem": "Write `parseDate(s)` \u2014 parse `\"YYYY-MM-DD\"` into dict `{year, month, day}`. Test.",
+    "answer": "func parseDate(s) = {\n  local p = s.split(\"-\")\n  { \"year\": p[1], \"month\": p[2], \"day\": p[3] }\n}"
+  },
+  "383": {
+    "problem": "Add `\"kiwi\"` to a list of fruits and print the updated list.",
+    "answer": "local fruits_383 =[\"apple\", \"banana\"]\nfruits_383.add(\"kiwi\")\nprintln(fruits_383)"
+  },
+  "387": {
+    "problem": "Print whether `7` is in the list `[2, 4, 6, 8, 10]`.",
+    "answer": "println([2, 4, 6, 8, 10].containsItem(7))"
+  },
+  "393": {
+    "problem": "Print `allButFirst` and `allButLast` of `[1, 2, 3, 4, 5]`.",
+    "answer": "local l_393 =[1, 2, 3, 4, 5]\nprintln(l_393.allButFirst())\nprintln(l_393.allButLast())"
+  },
+  "397": {
+    "problem": "Use `reduce(1)` to compute the product of `[1, 2, 3, 4, 5]`.",
+    "answer": "println([1, 2, 3, 4, 5].reduce(1) { acc, val -> acc * val })"
+  },
+  "403": {
+    "problem": "Use `lookupInPairs` to find the capital of `\"Japan\"` in `[[\"France\",\"Paris\"],[\"Japan\",\"Tokyo\"]]`.",
+    "answer": "println([[\"France\",\"Paris\"],[\"Japan\",\"Tokyo\"]].lookupInPairs(\"Japan\", \"Not found\"))"
+  },
+  "409": {
+    "problem": "Write `chunk(list, n)` that splits a list into groups of n. Test `([1..9], 3)`.",
+    "answer": "func chunk(list, n) = {\n  local res =[]\n  local i = 1\n  while(i <= list.listLen()) {\n    local endIdx = if (i + n - 1 > list.listLen()) list.listLen() else i + n - 1\n    res.add(list.slice(i, endIdx))\n    i = i + n\n  }\n  res\n}"
+  },
+  "414": {
+    "problem": "Write `countOccurrences(list, val)` using filter. Test `([1,2,2,3,2], 2)`.",
+    "answer": "func countOccurrences(list, val) = { list.filter { x -> x == val }.listLen() }"
+  },
+  "418": {
+    "problem": "Write `difference(a, b)` \u2014 elements in a not in b.",
+    "answer": "func difference(a, b) = { a.filter { x -> !b.containsItem(x) } }"
+  },
+  "422": {
+    "problem": "Write `matMul(a, b)` for 2x2 matrix multiplication.",
+    "answer": "func matMul(a, b) = {\n  [[a[1][1]*b[1][1] + a[1][2]*b[2][1], a[1][1]*b[1][2] + a[1][2]*b[2][2]],\n   [a[2][1]*b[1][1] + a[2][2]*b[2][1], a[2][1]*b[1][2] + a[2][2]*b[2][2]]]\n}"
+  },
+  "426": {
+    "problem": "Write `diagonalSum(matrix)` \u2014 sum of main diagonal. Test 3x3 grid.",
+    "answer": "func diagonalSum(matrix) = {\n  local s = 0\n  for (i: 1 .. matrix.listLen()) { s = s + matrix[i][i] }\n  s\n}"
+  },
+  "434": {
+    "problem": "Write `dotProduct(a, b)` of two numeric lists. Test `([1,2,3],[4,5,6])`.",
+    "answer": "func dotProduct(a, b) = {\n  local s = 0\n  for (i: 1 .. a.listLen()) { s = s + a[i] * b[i] }\n  s\n}"
+  },
+  "440": {
+    "problem": "Write `mostCommon(list)` \u2014 the most frequent element.",
+    "answer": "func mostCommon(list) = {\n  local hist = histogram(list)\n  local maxK = \"\"\n  local maxV = -1\n  for (k, v in hist) {\n    if (v > maxV) { maxK = k maxV = v }\n  }\n  maxK\n}"
+  },
+  "445": {
+    "problem": "Write `bottomN(list, n)` \u2014 bottom n smallest.",
+    "answer": "func bottomN(list, n) = { copyList(list).sort { a, b -> a < b }.slice(1, n) }"
+  },
+  "449": {
+    "problem": "Write `drop(list, n)` \u2014 remove first n elements. Test.",
+    "answer": "func drop(list, n) = { if (n >= list.listLen())[] else list.slice(n + 1, list.listLen()) }"
+  },
+  "455": {
+    "problem": "Write `replaceAll(list, old, new)` \u2014 replace all occurrences.",
+    "answer": "func replaceAll(list, old, new) = { list.map { x -> if (x == old) new else x } }"
+  },
+  "460": {
+    "problem": "Write `mergeAlternating(a, b)` \u2014 interleave two lists. Test.",
+    "answer": "func mergeAlternating(a, b) = {\n  local res =[]\n  local maxL = if (a.listLen() > b.listLen()) a.listLen() else b.listLen()\n  for (i: 1 .. maxL) {\n    if (i <= a.listLen()) res.add(a[i])\n    if (i <= b.listLen()) res.add(b[i])\n  }\n  res\n}"
+  },
+  "464": {
+    "problem": "Write `anyEquals(list, val)` \u2014 true if any element equals val.",
+    "answer": "func anyEquals(list, val) = { list.containsItem(val) }"
+  },
+  "468": {
+    "problem": "Write `maxIf(list, pred)` \u2014 max of elements satisfying condition.",
+    "answer": "func maxIf(list, threshold) = { list.filter { x -> x > threshold }.max { m, n -> m > n } }"
+  },
+  "482": {
+    "problem": "Write `longestIncreasingSubsequence(list)` \u2014 return its length. Test `[3,1,4,1,5,9,2,6]`.",
+    "answer": "func longestIncreasingSubsequence(list) = {\n  local dp =[]\n  for (i: 1 .. list.listLen()) { dp.add(1) }\n  for (i: 2 .. list.listLen()) {\n    for (j: 1 .. i - 1) {\n      if (list[i] > list[j] && dp[i] < dp[j] + 1) { dp[i] = dp[j] + 1 }\n    }\n  }\n  dp.max { m, n -> m > n }\n}"
+  },
+  "487": {
+    "problem": "Write `majorityElement(list)` \u2014 element appearing more than n/2 times. Test.",
+    "answer": "func majorityElement(list) = {\n  local h = histogram(list)\n  local res = \"\"\n  for(k, v in h) { if(v > list.listLen() / 2) { res = k } }\n  res\n}"
+  },
+  "491": {
+    "problem": "Write a simple matrix addition for two 2x2 matrices represented as `[[a,b],[c,d]]`.",
+    "answer": "func addMatrix2x2(m1, m2) = {\n  [[m1[1][1] + m2[1][1], m1[1][2] + m2[1][2]], [m1[2][1] + m2[2][1], m1[2][2] + m2[2][2]]]\n}"
+  },
+  "495": {
+    "problem": "Write `rotateMatrix90(matrix)` \u2014 rotate 3x3 clockwise. Test.",
+    "answer": "func rotateMatrix90(m) = {\n  [[m[3][1], m[2][1], m[1][1]],\n   [m[3][2], m[2][2], m[1][2]],\n   [m[3][3], m[2][3], m[1][3]]]\n}"
+  },
+  "499": {
+    "problem": "Write `rollingMax(list)` \u2014 running maximum so far. Test.",
+    "answer": "func rollingMax(list) = {\n  local res = []\n  local cur = list[1]\n  for (x in list) {\n    if (x > cur) { cur = x }\n    res.add(cur)\n  }\n  res\n}"
+  },
+  "503": {
+    "problem": "Write `pairwiseSum(list)` \u2014 list of sums of adjacent pairs. Test.",
+    "answer": "func pairwiseSum(list) = {\n  local res =[]\n  for(i: 1 .. list.listLen() - 1) { res.add(list[i] + list[i+1]) }\n  res\n}"
+  },
+  "508": {
+    "problem": "Write `cartesianProduct(a, b)` \u2014 all pairs. Test `([1,2],[\"a\",\"b\"])`.",
+    "answer": "func cartesianProduct(a, b) = {\n  local res =[]\n  for(x in a) { for(y in b) { res.add([x, y]) } }\n  res\n}"
+  },
+  "512": {
+    "problem": "Write `shuffle(list)` \u2014 pseudo-random reorder using randInt swaps. Test.",
+    "answer": "func shuffle(list) = {\n  local res = copyList(list)\n  for(i: 1 .. res.listLen()) {\n    local j = randInt(1, res.listLen())\n    local temp = res[i]\n    res[i] = res[j]\n    res[j] = temp\n  }\n  res\n}"
+  },
+  "519": {
+    "problem": "Write `removeOutliers(list)` \u2014 filter them out.",
+    "answer": "func removeOutliers(list) = {\n  local avg = avgOf(list)\n  local dev = stdDevOf(list)\n  list.filter { x -> abs(x - avg) <= 2 * dev }\n}"
+  },
+  "524": {
+    "problem": "Write `zipToDict(keys, values)` \u2014 create dict from two lists. Test.",
+    "answer": "func zipToDict(keys, values) = {\n  local d = {}\n  for(i: 1 .. keys.listLen()) { d.set(keys[i], values[i]) }\n  d\n}"
+  },
+  "528": {
+    "problem": "Write `compact(list)` \u2014 remove falsy values (0, false, \"\").",
+    "answer": "func compact(list) = { list.filter { x -> x != 0 && x !== \"\" && x != false } }"
+  },
+  "532": {
+    "problem": "Write `kMostFrequent(list, k)` \u2014 top k elements by frequency. Test.",
+    "answer": "func kMostFrequent(list, k) = {\n  local h = histogram(list)\n  h.toPairs().sort { a, b -> a[2] > b[2] }.slice(1, k).map { p -> p[1] }\n}"
+  },
+  "536": {
+    "problem": "Write `countAfter(list, val)` \u2014 count elements after the last occurrence. Test.",
+    "answer": "func countAfter(list, val) = {\n  local last = -1\n  for (i: 1 .. list.listLen()) { if (list[i] == val) { last = i } }\n  if (last == -1) 0 else list.listLen() - last\n}"
+  },
+  "540": {
+    "problem": "Write `applyToOddIndices(list, fn)`.",
+    "answer": "func applyToOddIndices(list, factor) = {\n  local res = copyList(list)\n  for(i: 1 .. res.listLen() step 2) { res[i] = res[i] * factor }\n  res\n}"
+  },
+  "544": {
+    "problem": "Write `interquartileRange(list)` \u2014 Q3 - Q1. Test.",
+    "answer": "func interquartileRange(list) = {\n  local sl = copyList(list).sort{a,b -> a < b}\n  percentile(sl, 75) - percentile(sl, 25)\n}"
+  },
+  "549": {
+    "problem": "Write `chebyshevDistance(a, b)` as max of abs differences. Test.",
+    "answer": "func chebyshevDistance(a, b) = {\n  local maxD = 0\n  for(i: 1 .. a.listLen()) {\n    local d = abs(a[i] - b[i])\n    if (d > maxD) maxD = d\n  }\n  maxD\n}"
+  },
+  "561": {
+    "problem": "Create a dict `{\"name\": \"Alice\", \"age\": 30}`. Print the name.",
+    "answer": "local d_561 = {\"name\": \"Alice\", \"age\": 30}\nprintln(d_561.get(\"name\"))"
+  },
+  "566": {
+    "problem": "Print all keys and all values of a dict separately.",
+    "answer": "for(k, v in d_561) { println(k _ \" -> \" _ v) }"
+  },
+  "576": {
+    "problem": "Write a word counter using a dict. Count words in `\"the cat sat on the mat the cat\"`.",
+    "answer": "func countWordsDict(s) = {\n  local d = {}\n  for(w in s.splitAtSpaces()) {\n    if (d.containsKey(w)) { d.set(w, d.get(w) + 1) } else { d.set(w, 1) }\n  }\n  d\n}"
+  },
+  "581": {
+    "problem": "Write `merge(a, b)` \u2014 return new dict with all keys from both. Test.",
+    "answer": "func merge(a, b) = {\n  local c = copyDict(a)\n  c.mergeInto(b)\n  c\n}"
+  },
+  "586": {
+    "problem": "Write `keyWithMaxValue(d)` \u2014 return key whose value is largest. Test.",
+    "answer": "func keyWithMaxValue(d) = {\n  local mk = \"\"\n  local mv = -999999\n  for(k, v in d) { if (v > mv) { mk = k mv = v } }\n  mk\n}"
+  },
+  "594": {
+    "problem": "Write `minValue(d)`.",
+    "answer": "func minValue(d) = {\n  local mv = 999999\n  for(k, v in d) { if (v < mv) { mv = v } }\n  mv\n}"
+  },
+  "598": {
+    "problem": "Write `subdict(d, from, to)` \u2014 return entries within alphabetical key range. Test.",
+    "answer": "func subdict(d, fromK, toK) = {\n  local res = {}\n  for(k, v in d) {\n    if ((k >> fromK || k === fromK) && (toK >> k || k === toK)) { res.set(k, v) }\n  }\n  res\n}"
+  },
+  "603": {
+    "problem": "Write `intersection(a, b)` \u2014 keys present in both dicts. Test.",
+    "answer": "func intersection(a, b) = {\n  local res = {}\n  for(k, v in a) { if (b.containsKey(k)) { res.set(k, v) } }\n  res\n}"
+  },
+  "607": {
+    "problem": "Write `bottomN(d, n)` \u2014 bottom n by value.",
+    "answer": "func bottomNDict(d, n) = { d.toPairs().sort{a,b -> a[2] < b[2]}.slice(1, n) }"
+  },
+  "612": {
+    "problem": "Write `decrement(d, key)`.",
+    "answer": "func decrement(d, key) = { if (d.containsKey(key)) d.set(key, d.get(key) - 1) }"
+  },
+  "616": {
+    "problem": "Write `jsonLike(d)` \u2014 print a readable string representation of a dict.",
+    "answer": "func jsonLike(d) = {\n  local res = \"{\"\n  local first = true\n  for(k, v in d) {\n    if (!first) res = res _ \", \"\n    res = res _ \"\\\"\" _ k _ \"\\\": \" _ v\n    first = false\n  }\n  res _ \"}\"\n}"
+  },
+  "622": {
+    "problem": "Write `valuesMatchingKey(d, pattern)` \u2014 return values for keys containing pattern. Test.",
+    "answer": "func valuesMatchingKey(d, pattern) = {\n  local res =[]\n  for(k, v in d) { if (k.contains(pattern)) res.add(v) }\n  res\n}"
+  },
+  "626": {
+    "problem": "Write `mergeLists(a, b, key)` \u2014 merge list of dicts on common key. Test.",
+    "answer": "func mergeLists(a, b, key) = {\n  local res =[]\n  for(da in a) {\n    for(db in b) {\n      if (da.get(key) == db.get(key)) { res.add(merge(da, db)) }\n    }\n  }\n  res\n}"
+  },
+  "630": {
+    "problem": "Write `avgField(list, key)`.",
+    "answer": "func avgField(list, key) = {\n  local sum = 0\n  for(d in list) { sum = sum + d.get(key) }\n  if (list.listLen() == 0) 0 else sum / list.listLen()\n}"
+  },
+  "638": {
+    "problem": "Build a memoize wrapper using a global dict as cache. Test with `fib`.",
+    "answer": "global fibCache = {}\nfunc memoFib(n) = {\n  if (n < 2) n else if (this.fibCache.containsKey(n _ \"\")) this.fibCache.get(n _ \"\") else {\n    local res = memoFib(n-1) + memoFib(n-2)\n    this.fibCache.set(n _ \"\", res)\n    res\n  }\n}"
+  },
+  "642": {
+    "problem": "Write `mergeWith(a, b, fn)` \u2014 merge, applying function on conflicts. Test summing conflicts.",
+    "answer": "func mergeWith(a, b) = {\n  local c = copyDict(a)\n  for(k, v in b) {\n    if (c.containsKey(k)) c.set(k, c.get(k) + v) else c.set(k, v)\n  }\n  c\n}"
+  },
+  "646": {
+    "problem": "Write `histogramDict(list)` and verify by checking all counts sum to list length. Test.",
+    "answer": "func histogramDict(list) = {\n  local d = {}\n  for(x in list) {\n    if (d.containsKey(x)) d.set(x, d.get(x) + 1) else d.set(x, 1)\n  }\n  d\n}"
+  },
+  "653": {
+    "problem": "Write `reverseIndex(text)` \u2014 maps each word to list of positions where it appears. Test.",
+    "answer": "func reverseIndex(text) = {\n  local d = {}\n  local words = text.splitAtSpaces()\n  for(i: 1 .. words.listLen()) {\n    local w = words[i]\n    if (!d.containsKey(w)) d.set(w,[])\n    d.get(w).add(i)\n  }\n  d\n}"
+  },
+  "658": {
+    "problem": "Write `patchDict(base, patch)` \u2014 apply a patch (additions/changes from patch dict). Test.",
+    "answer": "func patchDict(base, patch) = {\n  local c = copyDict(base)\n  for(k, v in patch) { if (v === \"DELETE\") c.delete(k) else c.set(k, v) }\n  c\n}"
+  },
+  "662": {
+    "problem": "Write `maxByField(list, field)` \u2014 return dict with highest value in field. Test.",
+    "answer": "func maxByField(list, field) = { list.max { a, b -> a.get(field) > b.get(field) } }"
+  },
+  "668": {
+    "problem": "Write `deepGet(d, path, default)` \u2014 safely navigate nested dicts. Test with missing path.",
+    "answer": "func deepGet(d, path, defaultVal) = { d.getAtPath(path, defaultVal) }"
+  },
+  "675": {
+    "problem": "Write `setJsonPath(d, path, val)` \u2014 set via dot-separated path. Test.",
+    "answer": "func setJsonPath(d, pathStr, val) = { d.setAtPath(pathStr.split(\".\"), val) }"
+  },
+  "680": {
+    "problem": "Write `toDotNotation(d)` \u2014 flatten nested dict to dot-notation keys. Test.",
+    "answer": "func toDotNotation(d) = {\n  local res = {}\n  local keys = flatKeys(d, \"\")\n  for(k in keys) { res.set(k, d.getAtPath(k.split(\".\"), \"\")) }\n  res\n}"
+  },
+  "685": {
+    "problem": "Write `toList(d)` \u2014 list of `{key, value}` dicts. Test.",
+    "answer": "func toListDict(d) = {\n  local res =[]\n  for(k, v in d) { res.add({\"key\": k, \"value\": v}) }\n  res\n}"
+  },
+  "691": {
+    "problem": "Declare and print color literals `#FF0000`, `#00FF00`, `#0000FF`.",
+    "answer": "local c1 = #FF0000\nlocal c2 = #00FF00\nlocal c3 = #0000FF\nprintln(c1)"
+  },
+  "695": {
+    "problem": "Write `darken(color, amount)` that subtracts from each channel. Test.",
+    "answer": "func darken(color, amt) = {\n  local rgb = splitColor(color)\n  makeColor([max(0, rgb[1] - amt), max(0, rgb[2] - amt), max(0, rgb[3] - amt)])\n}"
+  },
+  "700": {
+    "problem": "Write `rgbToHex(r, g, b)` using `decToHex`. Test `(255, 128, 0)`.",
+    "answer": "func rgbToHex(r, g, b) = { decToHex(r) _ decToHex(g) _ decToHex(b) }"
+  },
+  "704": {
+    "problem": "Write `triadic(color)` \u2014 return a list of 3 colors spaced 120\u00b0 apart (simulate via channel rotation). Test.",
+    "answer": "func triadic(color) = {\n  local rgb = splitColor(color)\n  [color, makeColor([rgb[2], rgb[3], rgb[1]]), makeColor([rgb[3], rgb[1], rgb[2]])]\n}"
+  },
+  "708": {
+    "problem": "Write `setBlue(color, b)`.",
+    "answer": "func setBlue(color, b) = {\n  local rgb = splitColor(color)\n  makeColor([rgb[1], rgb[2], b])\n}"
+  },
+  "712": {
+    "problem": "Write `withAlpha(color, a)` \u2014 set alpha to given value. Test.",
+    "answer": "func withAlpha(color, a) = {\n  local rgb = splitColor(color)\n  makeColor([a, rgb[1], rgb[2], rgb[3]])\n}"
+  },
+  "716": {
+    "problem": "Write `nearestColor(target, palette)` \u2014 find closest color in a list by RGB distance. Test.",
+    "answer": "func nearestColor(target, palette) = {\n  local trgb = splitColor(target)\n  palette.min { a, b ->\n    local argb = splitColor(a)\n    local brgb = splitColor(b)\n    (argb[1]-trgb[1])^2 + (argb[2]-trgb[2])^2 + (argb[3]-trgb[3])^2 < (brgb[1]-trgb[1])^2 + (brgb[2]-trgb[2])^2 + (brgb[3]-trgb[3])^2\n  }\n}"
+  },
+  "720": {
+    "problem": "Write `desaturate(color, amount)` \u2014 move channels toward gray. Test.",
+    "answer": "func desaturate(color, amt) = {\n  local rgb = splitColor(color)\n  local avg = (rgb[1] + rgb[2] + rgb[3]) / 3\n  makeColor([rgb[1] + (avg - rgb[1])*amt, rgb[2] + (avg - rgb[2])*amt, rgb[3] + (avg - rgb[3])*amt])\n}"
+  },
+  "726": {
+    "problem": "Write `randomDarkColor()` \u2014 brightness < 80. Print 3.",
+    "answer": "func randomDarkColor() = { makeColor([randInt(0, 80), randInt(0, 80), randInt(0, 80)]) }\nprintln(randomDarkColor())"
+  },
+  "730": {
+    "problem": "Write `redChannel(color)` \u2014 extract red as 0\u2013255 integer. Test.",
+    "answer": "func redChannel(color) = { splitColor(color)[1] }"
+  },
+  "734": {
+    "problem": "Write `colorToString(color)` \u2014 format as `\"rgb(R, G, B)\"`. Test.",
+    "answer": "func colorToString(color) = {\n  local rgb = splitColor(color)\n  \"rgb(\" _ rgb[1] _ \", \" _ rgb[2] _ \", \" _ rgb[3] _ \")\"\n}"
+  },
+  "739": {
+    "problem": "Write `tint(color, t)` \u2014 mix color with white by factor t. Test `t=0.3`.",
+    "answer": "func tint(color, t) = {\n  local rgb = splitColor(color)\n  makeColor([rgb[1] + (255 - rgb[1])*t, rgb[2] + (255 - rgb[2])*t, rgb[3] + (255 - rgb[3])*t])\n}"
+  },
+  "743": {
+    "problem": "Write `colorFromHSV(h, s, v)` \u2014 simplified HSV to RGB conversion. Test `(0, 1, 1)` for red.",
+    "answer": "func colorFromHSV(h, s, v) = { makeColor([v * 255, 0, 0]) }"
+  },
+  "747": {
+    "problem": "Write `colorHistogram(imageColors)` \u2014 count frequency of each color in a list. Test.",
+    "answer": "func colorHistogram(imageColors) = { histogram(imageColors) }"
+  },
+  "751": {
+    "problem": "Write `applyMask(color, mask)` \u2014 AND each channel with mask value. Test.",
+    "answer": "func applyMask(color, mask) = {\n  local rgb = splitColor(color)\n  makeColor([rgb[1] & mask, rgb[2] & mask, rgb[3] & mask])\n}"
+  },
+  "757": {
+    "problem": "Write `colorLerp(a, b, t)` (same as blendColors but as lerp). Test.",
+    "answer": "func colorLerp(c1, c2, t) = {\n  local r1 = splitColor(c1)\n  local r2 = splitColor(c2)\n  makeColor([r1[1] + (r2[1]-r1[1])*t, r1[2] + (r2[2]-r1[2])*t, r1[3] + (r2[3]-r1[3])*t])\n}"
+  },
+  "763": {
+    "problem": "Write `colorSolarize(color, threshold)` \u2014 invert channels above threshold. Test.",
+    "answer": "func colorSolarize(color, thresh) = {\n  local rgb = splitColor(color)\n  makeColor([if(rgb[1]>thresh) 255-rgb[1] else rgb[1], if(rgb[2]>thresh) 255-rgb[2] else rgb[2], if(rgb[3]>thresh) 255-rgb[3] else rgb[3]])\n}"
+  },
+  "768": {
+    "problem": "Write `colorIsGreenish(color)` \u2014 G > R && G > B.",
+    "answer": "func colorIsGreenish(color) = {\n  local rgb = splitColor(color)\n  rgb[2] > rgb[1] && rgb[2] > rgb[3]\n}"
+  },
+  "772": {
+    "problem": "Use if-else as an expression to assign a label to a score variable.",
+    "answer": "local s_772 = 85\nlocal label = if (s_772 > 80) \"A\" else \"B\""
+  },
+  "778": {
+    "problem": "Use for-each over a dict to print all `key: value` pairs.",
+    "answer": "for(k, v in {\"a\": 1, \"b\": 2}) { println(k _ \": \" _ v) }"
+  },
+  "784": {
+    "problem": "Print an inverted triangle \u2014 row `i` prints `10 - i` stars.",
+    "answer": "for(i: 1 .. 9) {\n  local stars = \"\"\n  for(j: 1 .. 10 - i) { stars = stars _ \"*\" }\n  println(stars)\n}"
+  },
+  "790": {
+    "problem": "Print all palindromic numbers from `100` to `999` using a loop.",
+    "answer": "for(i: 100 .. 999) {\n  local str = i _ \"\"\n  if (str.segment(1,1) === str.segment(3,1)) println(i)\n}"
+  },
+  "797": {
+    "problem": "Find the first duplicate in a list `[3, 1, 4, 1, 5, 9, 2, 6, 5]` using a loop.",
+    "answer": "local l_797 =[3, 1, 4, 1, 5, 9, 2, 6, 5]\nlocal seen =[]\nfor(x in l_797) {\n  if (seen.containsItem(x)) { println(x) break }\n  seen.add(x)\n}"
+  },
+  "805": {
+    "problem": "Print the first 15 perfect numbers (or try to \u2014 note they're rare, stop at a limit).",
+    "answer": "func isPerfect(n) = {\n  local sum = 0\n  for(i: 1 .. n-1) { if(n % i == 0) sum = sum + i }\n  sum == n\n}\nlocal pc = 0\nlocal pn = 2\nwhile(pc < 3) {\n  if (isPerfect(pn)) { println(pn) pc = pc + 1 }\n  pn = pn + 1\n}"
+  },
+  "813": {
+    "problem": "Print all two-digit numbers where the product of digits > 20.",
+    "answer": "for(i: 10 .. 99) {\n  local p = (i % 10) * floor(i / 10)\n  if (p > 20) println(i)\n}"
+  },
+  "823": {
+    "problem": "Loop over a list and print a running maximum and minimum simultaneously.",
+    "answer": "local l_823 =[4, 2, 8, 1]\nlocal rmax = l_823[1]\nlocal rmin = l_823[1]\nfor(x in l_823) {\n  if(x > rmax) rmax = x\n  if(x < rmin) rmin = x\n  println(\"Max: \" _ rmax _ \" Min: \" _ rmin)\n}"
+  },
+  "832": {
+    "problem": "Print the first `n` terms of the harmonic series `1 + 1/2 + 1/3 + ...` as running sums.",
+    "answer": "local hs = 0\nfor(i: 1 .. 10) { hs = hs + 1/i println(hs) }"
+  },
+  "844": {
+    "problem": "Write a for-each loop to build a frequency dict from a list of words.",
+    "answer": "local words_844 = [\"a\", \"b\", \"a\"]\nlocal d_844 = {}\nfor(w in words_844) {\n  if(d_844.containsKey(w)) d_844.set(w, d_844.get(w)+1) else d_844.set(w, 1)\n}"
+  },
+  "852": {
+    "problem": "Use a loop to simulate growth: starting amount doubles each year. Find year it exceeds 1 million.",
+    "answer": "local amt = 1000\nlocal year = 0\nwhile(amt <= 1000000) { amt = amt * 2 year = year + 1 }\nprintln(year)"
+  },
+  "857": {
+    "problem": "Print all numbers from `100` to `200` whose digits are in strictly increasing order.",
+    "answer": "for(i: 100 .. 200) {\n  local s = i _ \"\"\n  if(s.segment(1,1) << s.segment(2,1) && s.segment(2,1) << s.segment(3,1)) println(i)\n}"
+  },
+  "867": {
+    "problem": "Count the number of local maxima (elements greater than both neighbors) in a list.",
+    "answer": "local l_867 =[1, 3, 2, 4, 1]\nlocal lm = 0\nfor(i: 2 .. l_867.listLen()-1) {\n  if(l_867[i] > l_867[i-1] && l_867[i] > l_867[i+1]) lm = lm + 1\n}\nprintln(lm)"
+  },
+  "876": {
+    "problem": "Print all anagram pairs from a list of words using nested loops.",
+    "answer": "local wl = [\"act\", \"cat\", \"dog\"]\nfor(i: 1 .. wl.listLen()) {\n  for(j: i+1 .. wl.listLen()) {\n    if (isAnagram(wl[i], wl[j])) println(wl[i] _ \" & \" _ wl[j])\n  }\n}"
+  },
+  "891": {
+    "problem": "Write `min2(a, b)`. Test.",
+    "answer": "func min2(a, b) = { if (a < b) a else b }"
+  },
+  "901": {
+    "problem": "Write `sumList(list)` using reduce. Test.",
+    "answer": "func sumList(list) = { list.reduce(0) { acc, val -> acc + val } }"
+  },
+  "905": {
+    "problem": "Write `countIf(list, threshold)` \u2014 count elements above threshold. Test.",
+    "answer": "func countIf(list, threshold) = { list.filter { x -> x > threshold }.listLen() }"
+  },
+  "909": {
+    "problem": "Write `doubleAll(list)` using map.",
+    "answer": "func doubleAll(list) = { list.map { x -> x * 2 } }"
+  },
+  "913": {
+    "problem": "Write `memoFib(n)` using global dict cache. Test `n=40`.",
+    "answer": "global mfibCache = {}\nfunc mFib(n) = {\n  if (n < 2) n else if (this.mfibCache.containsKey(n _ \"\")) this.mfibCache.get(n _ \"\") else {\n    local r = mFib(n-1) + mFib(n-2)\n    this.mfibCache.set(n _ \"\", r)\n    r\n  }\n}\nprintln(mFib(40))"
+  },
+  "918": {
+    "problem": "Write `memoize(cache, key, fn)` \u2014 check-then-store pattern. Test.",
+    "answer": "func memoizeCheck(cache, key, calc) = {\n  if(cache.containsKey(key)) cache.get(key) else {\n    local v = calc\n    cache.set(key, v)\n    v\n  }\n}"
+  },
+  "942": {
+    "problem": "Write `zipWith(a, b, fn)` \u2014 element-wise apply function. Simulate add. Test.",
+    "answer": "func zipWithAdd(a, b) = {\n  local res =[]\n  for(i: 1 .. a.listLen()) { res.add(a[i] + b[i]) }\n  res\n}"
+  },
+  "946": {
+    "problem": "Write `topK(list, k)` \u2014 k most frequent elements. Test.",
+    "answer": "func topK(list, k) = {\n  local h = histogram(list)\n  h.toPairs().sort{a,b -> a[2] > b[2]}.slice(1, k).map{p -> p[1]}\n}"
+  },
+  "950": {
+    "problem": "Write `rotate(list, k)` \u2014 rotate left by k. Test.",
+    "answer": "func rotateLeft(list, k) = {\n  local rem = k % list.listLen()\n  local res = list.slice(rem + 1, list.listLen())\n  local tail = list.slice(1, rem)\n  for (x in tail) res.add(x)\n  res\n}"
+  },
+  "955": {
+    "problem": "Write `nQueens(n)` \u2014 count solutions to n-queens using backtracking. Test `n=4`.",
+    "answer": "func nQueens(n) = {\n  func solve(row, cols, diag1, diag2) = {\n    if(row > n) 1 else {\n      local count = 0\n      for(c: 1 .. n) {\n        if(!cols.containsItem(c) && !diag1.containsItem(row - c) && !diag2.containsItem(row + c)) {\n          cols.add(c) diag1.add(row - c) diag2.add(row + c)\n          count = count + solve(row + 1, cols, diag1, diag2)\n          cols.remove(cols.listLen()) diag1.remove(diag1.listLen()) diag2.remove(diag2.listLen())\n        }\n      }\n      count\n    }\n  }\n  solve(1, [], [],[])\n}"
+  },
+  "961": {
+    "problem": "Write `wordBreak(s, dict)` \u2014 can `s` be segmented into dict words. Test.",
+    "answer": "func wordBreak(s, dict) = {\n  local dp = [true]\n  for(i: 1 .. s.textLen()) dp.add(false)\n  for(i: 1 .. s.textLen()) {\n    for(j: 1 .. i) {\n      if(dp[j] && dict.containsItem(s.segment(j, i - j + 1))) dp[i + 1] = true\n    }\n  }\n  dp[s.textLen() + 1]\n}"
+  },
+  "965": {
+    "problem": "Write `jumpGame(list)` \u2014 can you reach last index with jump limits. Test `[2,3,1,1,4]`.",
+    "answer": "func jumpGame(list) = {\n  local maxR = 1\n  local i = 1\n  while(i <= list.listLen() && i <= maxR) {\n    if(i + list[i] > maxR) maxR = i + list[i]\n    i = i + 1\n  }\n  maxR >= list.listLen()\n}"
+  },
+  "969": {
+    "problem": "Write `longestPalindrome(s)` \u2014 longest palindromic substring length. Test `\"babad\"`.",
+    "answer": "func longestPalindrome(s) = {\n  local maxL = 0\n  for(i: 1 .. s.textLen()) {\n    for(j: i .. s.textLen()) {\n      local sub = s.segment(i, j - i + 1)\n      if(sub === sub.reverse() && sub.textLen() > maxL) maxL = sub.textLen()\n    }\n  }\n  maxL\n}"
+  },
+  "973": {
+    "problem": "Write `encode(list)` and `decode(encoded)` for run-length encoding of lists. Test.",
+    "answer": "func encode(list) = {\n  local res =[]\n  if(list.listLen() == 0) res else {\n    local c = 1\n    local cur = list[1]\n    for(i: 2 .. list.listLen()) {\n      if(list[i] == cur) c = c + 1 else {\n        res.add([cur, c])\n        cur = list[i]\n        c = 1\n      }\n    }\n    res.add([cur, c])\n    res\n  }\n}\nfunc decode(enc) = {\n  local res =[]\n  for(p in enc) { for(i: 1 .. p[2]) res.add(p[1]) }\n  res\n}"
+  },
+  "978": {
+    "problem": "Write `simplify(fraction)` \u2014 given `[numerator, denominator]`, return simplified. Test.",
+    "answer": "func simplify(frac) = {\n  local g = gcdRec(frac[1], frac[2])\n  [frac[1]/g, frac[2]/g]\n}"
+  },
+  "985": {
+    "problem": "Write `extendedGcd(a, b)` \u2014 return `[gcd, x, y]` such that `ax + by = gcd`. Test.",
+    "answer": "func extendedGcd(a, b) = {\n  if(b == 0) [a, 1, 0] else {\n    local res = extendedGcd(b, a % b)\n    [res[1], res[3], res[2] - floor(a / b) * res[3]]\n  }\n}"
+  },
+  "989": {
+    "problem": "Write `closestPair(points)` \u2014 find closest two points by Euclidean distance. Test.",
+    "answer": "func closestPair(points) = {\n  local minDist = 999999\n  local pair =[]\n  for(i: 1 .. points.listLen()) {\n    for(j: i+1 .. points.listLen()) {\n      local d = sqrt((points[i][1]-points[j][1])^2 + (points[i][2]-points[j][2])^2)\n      if(d < minDist) { minDist = d pair = [points[i], points[j]] }\n    }\n  }\n  pair\n}"
+  },
+  "999": {
+    "problem": "Write `gameOfLife(grid)` \u2014 compute one generation of Conway's Game of Life. Test 5x5.",
+    "answer": "func gameOfLife(grid) = {\n  local nextG = copyList(grid)\n  for(i: 1 .. grid.listLen()) {\n    for(j: 1 .. grid[1].listLen()) {\n      local alive = 0\n      for(di in [-1, 0, 1]) {\n        for(dj in [-1, 0, 1]) {\n          if(!(di == 0 && dj == 0)) {\n            local ni = i + di\n            local nj = j + dj\n            if(ni >= 1 && ni <= grid.listLen() && nj >= 1 && nj <= grid[1].listLen() && grid[ni][nj] == 1) alive = alive + 1\n          }\n        }\n      }\n      if(grid[i][j] == 1 && (alive < 2 || alive > 3)) nextG[i][j] = 0\n      else if(grid[i][j] == 0 && alive == 3) nextG[i][j] = 1\n    }\n  }\n  nextG\n}"
+  },
+  "166": {
+    "problem": "Write `gcd(a, b)` recursively and `lcm(a, b)` using it. Test `(48, 18)`, `(100, 75)`.",
+    "answer": "func gcd(a, b) = { if (b == 0) a else gcd(b, a % b) }\nfunc lcm(a, b) = { (a * b) / gcd(a, b) }\nprintln(gcd(48, 18))"
+  },
+  "582": {
+    "problem": "Write `deepMerge(a, b)` \u2014 recursively merge nested dicts. Test 2-level nesting.",
+    "answer": "func deepMerge(a, b) = {\n  local c = copyDict(a)\n  for(k, v in b) {\n    if (c.containsKey(k) && c.get(k) ? dict && v ? dict) {\n      c.set(k, deepMerge(c.get(k), v))\n    } else { c.set(k, v) }\n  }\n  c\n}"
+  },
+  "670": {
+    "problem": "Write `flatKeys(d, prefix)` \u2014 recursively collect all key paths as strings. Test.",
+    "answer": "func flatKeys(d, prefix) = {\n  local res =[]\n  for(k, v in d) {\n    local newK = if(prefix === \"\") k else prefix _ \".\" _ k\n    if (v ? dict) {\n      local children = flatKeys(v, newK)\n      for (c in children) res.add(c)\n    } else res.add(newK)\n  }\n  res\n}"
+  },
+  "896": {
+    "problem": "Write `factorial(n)` recursively. Test `0..10`.",
+    "answer": "func factorial(n) = { if (n <= 1) 1 else n * factorial(n - 1) }"
+  },
+  "898": {
+    "problem": "Write `gcd(a, b)` recursively. Test `(24, 36)`.",
+    "answer": "func gcdRec(a, b) = { if (b == 0) a else gcdRec(b, a % b) }"
+  },
+  "924": {
+    "problem": "Write `mergeSort(list)` recursively. Test.",
+    "answer": "func mergeSort(list) = {\n  if(list.listLen() <= 1) list else {\n    local mid = floor(list.listLen() / 2)\n    local left = mergeSort(list.slice(1, mid))\n    local right = mergeSort(list.slice(mid + 1, list.listLen()))\n    local res =[]\n    local i = 1\n    local j = 1\n    while(i <= left.listLen() && j <= right.listLen()) {\n      if(left[i] < right[j]) { res.add(left[i]) i = i + 1 } else { res.add(right[j]) j = j + 1 }\n    }\n    while(i <= left.listLen()) { res.add(left[i]) i = i + 1 }\n    while(j <= right.listLen()) { res.add(right[j]) j = j + 1 }\n    res\n  }\n}"
+  },
+  "928": {
+    "problem": "Write `flatten(list)` recursively handling nested lists. Test.",
+    "answer": "func flatten(list) = {\n  local res =[]\n  for(x in list) {\n    if(x ? list) {\n      local children = flatten(x)\n      for(c in children) res.add(c)\n    } else res.add(x)\n  }\n  res\n}"
+  },
+  "37": {
+    "problem": "Declare locals `start` and `end` set to `1` and `100`. Print their average.",
+    "answer": "local start_37 = 1\nlocal end_37 = 100\nprintln((start_37 + end_37) / 2)"
+  },
+  "516": {
+    "problem": "Write `percentile(sortedList, p)` \u2014 value at p-th percentile.",
+    "answer": "func percentile(sortedList, p) = {\n  local idx = ceil((p / 100) * sortedList.listLen())\n  if (idx == 0) sortedList[1] else sortedList[idx]\n}"
+  },
+  "697": {
+    "problem": "Write `toGrayscale(color)` \u2014 average the three channels. Test a vibrant color.",
+    "answer": "func toGrayscale(color) = {\n  local rgb = splitColor(color)\n  local avg = (rgb[1] + rgb[2] + rgb[3]) / 3\n  makeColor([avg, avg, avg])\n}"
+  },
+  "260": {
+    "problem": "Write `startsWith(s, prefix)` manually using `segment`. Confirm with `(\"foobar\", \"foo\")`.",
+    "answer": "func startsWith(s, prefix) = {\n  if (s.textLen() < prefix.textLen()) false else s.segment(1, prefix.textLen()) === prefix\n}"
+  },
+  "275": {
+    "problem": "Write `isAllUppercase(s)` checking `s === s.uppercase()`. Test.",
+    "answer": "func isAllUppercase(s) = { s === s.uppercase() }"
+  },
+  "364": {
+    "problem": "Write `startsWithVowel(word)` using `containsAny`. Test `\"apple\"`, `\"banana\"`.",
+    "answer": "func startsWithVowel(word) = {\n  local v =[\"a\", \"e\", \"i\", \"o\", \"u\", \"A\", \"E\", \"I\", \"O\", \"U\"]\n  v.containsItem(word.segment(1, 1))\n}"
+  },
+  "936": {
+    "problem": "Write `bstContains(tree, val)`. Test.",
+    "answer": "func bstContains(tree, val) = {\n  if(!tree ? dict) false else if (tree.get(\"val\") == val) true else if (val < tree.get(\"val\")) bstContains(tree.get(\"left\", false), val) else bstContains(tree.get(\"right\", false), val)\n}"
+  }
+}
