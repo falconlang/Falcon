@@ -1,0 +1,2005 @@
+
+// 2396
+func rabinKarp(text, pattern) = {
+  local n = text.textLen()
+  local m = pattern.textLen()
+  local result = -1
+  local found = false
+  for (i: 1 .. n - m + 1) {
+    if (text.segment(i, m) === pattern && !found) {
+      result = i
+      found = true
+    }
+  }
+  result
+}
+println(rabinKarp("hello world", "world"))
+
+// 2424
+func heapPush(heap, val) {
+  heap.add(val)
+  local i = heap.listLen()
+  while (i > 1) {
+    local parent = floor(i / 2)
+    if (heap[parent] > heap[i]) {
+      local tmp = heap[parent]
+      heap[parent] = heap[i]
+      heap[i] = tmp
+      i = parent
+    } else {
+      i = 1
+    }
+  }
+}
+local heap = [0]
+heapPush(heap, 5)
+heapPush(heap, 3)
+heapPush(heap, 8)
+heapPush(heap, 1)
+println(heap)
+
+// 2430
+func treeToList(tree) = {
+  local result = []
+  func inOrder(node) {
+    if (node != 0) {
+      inOrder(node.get("left", 0))
+      result.add(node.get("val", 0))
+      inOrder(node.get("right", 0))
+    }
+  }
+  inOrder(tree)
+  result
+}
+local tree = {"val": 4, "left": {"val": 2, "left": {"val": 1, "left": 0, "right": 0}, "right": {"val": 3, "left": 0, "right": 0}}, "right": {"val": 5, "left": 0, "right": 0}}
+println(treeToList(tree))
+
+// 2496
+func prim(graph, start) = {
+  local visited = [start]
+  local edges = []
+  local mst = []
+  for (key, val in graph) {
+    if (key === start) {
+      for (neighbor, weight in val) {
+        edges.add([weight, start, neighbor])
+      }
+    }
+  }
+  edges.sort()
+  while (edges.listLen() > 0) {
+    local best = edges[1]
+    edges.remove(1)
+    local w = best[1]
+    local u = best[2]
+    local v = best[3]
+    if (!visited.containsItem(v)) {
+      visited.add(v)
+      mst.add([u, v, w])
+      for (key, val in graph) {
+        if (key === v) {
+          for (neighbor, weight in val) {
+            if (!visited.containsItem(neighbor)) {
+              edges.add([weight, v, neighbor])
+            }
+          }
+        }
+      }
+      edges.sort()
+    }
+  }
+  mst
+}
+local graph = {"A": {"B": 1, "C": 4}, "B": {"A": 1, "C": 2, "D": 5}, "C": {"A": 4, "B": 2, "D": 1}, "D": {"B": 5, "C": 1}}
+println(prim(graph, "A"))
+
+// 2603
+local words = ["banana", "apple", "cherry"]
+local suffixes = []
+for (word in words) {
+  local len = word.textLen()
+  for (i: 1 .. len) {
+    suffixes.add(word.segment(i, len - i + 1))
+  }
+}
+suffixes.sort()
+println(suffixes)
+
+// 2205
+global level = 1
+global xp = 0
+
+func levelUp() {
+  this.level = this.level + 1
+  this.xp = 0
+}
+
+func gainXP(amount) {
+  this.xp = this.xp + amount
+  if (this.xp >= this.level * 100) {
+    levelUp()
+  }
+}
+
+gainXP(150)
+println(this.level)
+println(this.xp)
+
+// 2508
+global scoreboard = {}
+
+func update(name, delta) {
+  local cur = this.scoreboard.get(name, 0)
+  this.scoreboard.set(name, cur + delta)
+}
+
+func rank(name) = {
+  local myScore = this.scoreboard.get(name, 0)
+  local r = 1
+  for (key, val in this.scoreboard) {
+    if (val > myScore) {
+      r = r + 1
+    }
+  }
+  r
+}
+
+update("Alice", 100)
+update("Bob", 200)
+update("Alice", 50)
+println(this.scoreboard)
+println(rank("Alice"))
+println(rank("Bob"))
+
+// 2552
+func blendColors(c1, c2, t) = {
+  local r1 = floor(c1 / 65536) % 256
+  local g1 = floor(c1 / 256) % 256
+  local b1 = c1 % 256
+  local r2 = floor(c2 / 65536) % 256
+  local g2 = floor(c2 / 256) % 256
+  local b2 = c2 % 256
+  local r = round(r1 + (r2 - r1) * t)
+  local g = round(g1 + (g2 - g1) * t)
+  local b = round(b1 + (b2 - b1) * t)
+  makeColor([r, g, b])
+}
+
+func healthColor(hp, maxHp) = {
+  local ratio = hp / maxHp
+  local green = makeColor([0, 255, 0])
+  local red = makeColor([255, 0, 0])
+  blendColors(green, red, 1 - ratio)
+}
+
+println(healthColor(100, 100))
+println(healthColor(50, 100))
+println(healthColor(0, 100))
+
+// 2643
+func spawnWave(waveNum) = {
+  local enemies = []
+  local count = waveNum * 3
+  for (i: 1 .. count) {
+    enemies.add({"id": i, "hp": 50 * waveNum, "damage": 10 * waveNum})
+  }
+  enemies
+}
+println(spawnWave(2))
+
+// 2653
+func applySplashDamage(enemies, epicenter, radius, damage) = {
+  local ex = epicenter[1]
+  local ey = epicenter[2]
+  local updated = []
+  for (enemy in enemies) {
+    local dx = enemy.get("x", 0) - ex
+    local dy = enemy.get("y", 0) - ey
+    local dist = sqrt(dx * dx + dy * dy)
+    if (dist <= radius) {
+      local falloff = 1 - dist / radius
+      local dmg = round(damage * falloff)
+      local newHp = enemy.get("hp", 0) - dmg
+      local e2 = copyDict(enemy)
+      e2.set("hp", newHp)
+      updated.add(e2)
+    } else {
+      updated.add(enemy)
+    }
+  }
+  updated
+}
+local enemies = [{"id": 1, "x": 0, "y": 0, "hp": 100}, {"id": 2, "x": 3, "y": 4, "hp": 100}, {"id": 3, "x": 10, "y": 10, "hp": 100}]
+println(applySplashDamage(enemies, [0, 0], 6, 50))
+
+// 2699
+func computeXPReward(enemy, player_level) = {
+  local base = enemy.get("xp", 50)
+  local elevel = enemy.get("level", 1)
+  local diff = elevel - player_level
+  local multiplier = if (diff > 0) 1 + diff * 0.2 else if (diff < 0) 1 + diff * 0.1 else 1
+  local reward = round(base * multiplier)
+  local msg = if (reward >= base * 1.5) "Level up bonus XP!" else ""
+  [reward, msg]
+}
+println(computeXPReward({"xp": 100, "level": 5}, 3))
+
+// 2224
+global projectiles = []
+
+func fire(x, y, angle, speed) {
+  this.projectiles.add({"x": x, "y": y, "angle": angle, "speed": speed})
+}
+
+func stepProjectiles() {
+  local updated = []
+  for (p in this.projectiles) {
+    local nx = p.get("x", 0) + cos(p.get("angle", 0)) * p.get("speed", 0)
+    local ny = p.get("y", 0) + sin(p.get("angle", 0)) * p.get("speed", 0)
+    local p2 = copyDict(p)
+    p2.set("x", nx)
+    p2.set("y", ny)
+    updated.add(p2)
+  }
+  this.projectiles = updated
+}
+
+fire(0, 0, 0, 5)
+fire(10, 10, 1.57, 3)
+stepProjectiles()
+stepProjectiles()
+stepProjectiles()
+println(this.projectiles)
+
+// 2248
+global graphicsSettings = {"resolution": "1920x1080", "fullscreen": false, "vsync": true, "fpsLimit": 60}
+
+func applyPreset(name) {
+  if (name === "low") {
+    this.graphicsSettings.set("resolution", "1280x720")
+    this.graphicsSettings.set("fullscreen", false)
+    this.graphicsSettings.set("vsync", false)
+    this.graphicsSettings.set("fpsLimit", 30)
+  } else if (name === "medium") {
+    this.graphicsSettings.set("resolution", "1920x1080")
+    this.graphicsSettings.set("fullscreen", false)
+    this.graphicsSettings.set("vsync", true)
+    this.graphicsSettings.set("fpsLimit", 60)
+  } else if (name === "high") {
+    this.graphicsSettings.set("resolution", "2560x1440")
+    this.graphicsSettings.set("fullscreen", true)
+    this.graphicsSettings.set("vsync", true)
+    this.graphicsSettings.set("fpsLimit", 144)
+  }
+}
+
+applyPreset("low")
+println(this.graphicsSettings)
+applyPreset("medium")
+println(this.graphicsSettings)
+applyPreset("high")
+println(this.graphicsSettings)
+
+// 2474
+func pacManPath(grid, px, py, fx, fy) = {
+  local rows = grid.listLen()
+  local cols = grid[1].listLen()
+  local visited = []
+  local queue = [[px, py, 0]]
+  visited.add(px _ "," _ py)
+  local result = -1
+  local found = false
+  while (queue.listLen() > 0 && !found) {
+    local cur = queue[1]
+    queue.remove(1)
+    local cx = cur[1]
+    local cy = cur[2]
+    local cd = cur[3]
+    if (cx == fx && cy == fy) {
+      result = cd
+      found = true
+    } else {
+      local dirs = [[0,1],[0,-1],[1,0],[-1,0]]
+      for (d in dirs) {
+        local nx = cx + d[1]
+        local ny = cy + d[2]
+        local key = nx _ "," _ ny
+        if (nx >= 1 && nx <= rows && ny >= 1 && ny <= cols && grid[nx][ny] != 1 && !visited.containsItem(key)) {
+          visited.add(key)
+          queue.add([nx, ny, cd + 1])
+        }
+      }
+    }
+  }
+  result
+}
+local grid = [[0,0,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]]
+println(pacManPath(grid, 1, 1, 4, 4))
+
+// 2492
+func bellmanFord(graph, start) = {
+  local dist = {}
+  local nodes = []
+  for (u, edges in graph) {
+    dist.set(u, 999999)
+    if (!nodes.containsItem(u)) {
+      nodes.add(u)
+    }
+    for (v, w in edges) {
+      if (!nodes.containsItem(v)) {
+        nodes.add(v)
+        dist.set(v, 999999)
+      }
+    }
+  }
+  dist.set(start, 0)
+  local n = nodes.listLen()
+  for (i: 1 .. n - 1) {
+    for (u, edges in graph) {
+      for (v, w in edges) {
+        if (dist.get(u, 999999) + w < dist.get(v, 999999)) {
+          dist.set(v, dist.get(u, 999999) + w)
+        }
+      }
+    }
+  }
+  local negCycle = false
+  for (u, edges in graph) {
+    for (v, w in edges) {
+      if (dist.get(u, 999999) + w < dist.get(v, 999999)) {
+        negCycle = true
+      }
+    }
+  }
+  if (negCycle) {
+    println("Negative cycle detected")
+  }
+  dist
+}
+local graph = {"A": {"B": 1, "C": 4}, "B": {"C": -3, "D": 2}, "C": {"D": 1}, "D": {}}
+println(bellmanFord(graph, "A"))
+
+// 2538
+global recipeGraph = {}
+
+func crafting_tree(recipes) {
+  for (item, deps in recipes) {
+    this.recipeGraph.set(item, deps)
+  }
+}
+
+func dependencies(item) = {
+  local visited = []
+  local stack = [item]
+  while (stack.listLen() > 0) {
+    local cur = stack[stack.listLen()]
+    stack.remove(stack.listLen())
+    if (!visited.containsItem(cur)) {
+      visited.add(cur)
+      local deps = this.recipeGraph.get(cur, [])
+      for (d in deps) {
+        stack.add(d)
+      }
+    }
+  }
+  visited
+}
+
+local recipes = {"sword": ["blade", "handle"], "blade": ["iron", "fire"], "handle": ["wood"], "iron": [], "fire": [], "wood": []}
+crafting_tree(recipes)
+println(dependencies("sword"))
+
+// 2692
+func solvePuzzle(board, goal) = {
+  local queue = [[board, 0]]
+  local visited = [board.join(",")]
+  local result = -1
+  local found = false
+  while (queue.listLen() > 0 && !found) {
+    local cur = queue[1]
+    queue.remove(1)
+    local state = cur[1]
+    local moves = cur[2]
+    local flat = state.join(",")
+    local gflat = goal.join(",")
+    if (flat === gflat) {
+      result = moves
+      found = true
+    } else {
+      local zeroIdx = 1
+      for (i: 1 .. state.listLen()) {
+        if (state[i] == 0) {
+          zeroIdx = i
+        }
+      }
+      local neighbors = []
+      if (zeroIdx > 3) { neighbors.add(zeroIdx - 3) }
+      if (zeroIdx <= 6) { neighbors.add(zeroIdx + 3) }
+      if ((zeroIdx - 1) % 3 != 0) { neighbors.add(zeroIdx - 1) }
+      if (zeroIdx % 3 != 0) { neighbors.add(zeroIdx + 1) }
+      for (ni in neighbors) {
+        local ns = copyList(state)
+        local tmp = ns[zeroIdx]
+        ns[zeroIdx] = ns[ni]
+        ns[ni] = tmp
+        local key = ns.join(",")
+        if (!visited.containsItem(key)) {
+          visited.add(key)
+          queue.add([ns, moves + 1])
+        }
+      }
+    }
+  }
+  result
+}
+println(solvePuzzle([1,2,3,4,0,5,7,8,6], [1,2,3,4,5,6,7,8,0]))
+
+// 2392
+global trie = {}
+
+func trie_insert(trie, word) {
+  local node = trie
+  local len = word.textLen()
+  for (i: 1 .. len) {
+    local ch = word.segment(i, 1)
+    if (!node.containsKey(ch)) {
+      node.set(ch, {})
+    }
+    node = node.get(ch, {})
+  }
+  node.set("$", true)
+}
+
+func trie_search(trie, word) = {
+  local node = trie
+  local len = word.textLen()
+  local found = true
+  for (i: 1 .. len) {
+    local ch = word.segment(i, 1)
+    if (!node.containsKey(ch)) {
+      found = false
+    }
+    if (found) {
+      node = node.get(ch, {})
+    }
+  }
+  if (found) { node.containsKey("$") } else { false }
+}
+
+trie_insert(this.trie, "apple")
+trie_insert(this.trie, "app")
+trie_insert(this.trie, "bat")
+trie_insert(this.trie, "ball")
+trie_insert(this.trie, "cat")
+println(trie_search(this.trie, "app"))
+println(trie_search(this.trie, "apple"))
+println(trie_search(this.trie, "ap"))
+println(trie_search(this.trie, "bat"))
+println(trie_search(this.trie, "dog"))
+
+// 2586
+local angles = []
+for (i: 0 .. 359 step 10) {
+  angles.add([sin(radians(i)), cos(radians(i))])
+}
+println(angles)
+
+// 2613
+local partitions = []
+func genPartitions(n, maxVal, current) {
+  if (n == 0) {
+    partitions.add(copyList(current))
+  } else {
+    local limit = if (maxVal < n) maxVal else n
+    for (i: 1 .. limit) {
+      current.add(i)
+      genPartitions(n - i, i, current)
+      current.remove(current.listLen())
+    }
+  }
+}
+genPartitions(6, 6, [])
+println(partitions)
+
+// 2638
+local sieveLimit = 50
+local innerLimit = floor((sieveLimit - 1) / 2)
+local marked = []
+for (i: 1 .. sieveLimit) {
+  marked.add(false)
+}
+for (i: 1 .. innerLimit) {
+  for (j: i .. floor((sieveLimit - i) / (2 * i + 1)) + 1) {
+    local idx = i + j + 2 * i * j
+    if (idx <= sieveLimit) {
+      marked[idx] = true
+    }
+  }
+}
+local primes = [2]
+for (i: 1 .. innerLimit) {
+  if (!marked[i]) {
+    primes.add(2 * i + 1)
+  }
+}
+println(primes)
+
+// 2604
+local pi = 0
+local sign = 1
+for (k: 0 .. 9999) {
+  pi = pi + sign / (2 * k + 1)
+  sign = sign * -1
+}
+pi = pi * 4
+println(pi)
+
+// 2637
+local taps = [8, 6, 5, 4]
+local state = [1, 0, 1, 1, 0, 1, 0, 0]
+local bits = []
+local count = 0
+while (count < 20) {
+  bits.add(state[state.listLen()])
+  local feedback = 0
+  for (t in taps) {
+    feedback = feedback ~ state[t]
+  }
+  local newState = [feedback]
+  for (i: 1 .. state.listLen() - 1) {
+    newState.add(state[i])
+  }
+  state = newState
+  count = count + 1
+}
+println(bits)
+
+// 2290
+func noise2D(x, y) = {
+  sin(x * 1.3 + y * 0.7) * cos(x * 0.7 - y * 1.3)
+}
+local grid = []
+for (x: 0 .. 3) {
+  local row = []
+  for (y: 0 .. 3) {
+    row.add(noise2D(x, y))
+  }
+  grid.add(row)
+}
+println(grid)
+
+// 2566
+func heatmapColor(value, minVal, maxVal) = {
+  local t = (value - minVal) / (maxVal - minVal)
+  local r = 0
+  local g = 0
+  local b = 0
+  if (t < 0.5) {
+    r = 0
+    g = round(t * 2 * 255)
+    b = round((1 - t * 2) * 255)
+  } else {
+    r = round((t - 0.5) * 2 * 255)
+    g = round((1 - (t - 0.5) * 2) * 255)
+    b = 0
+  }
+  makeColor([r, g, b])
+}
+println(heatmapColor(0, 0, 100))
+println(heatmapColor(50, 0, 100))
+println(heatmapColor(100, 0, 100))
+
+// 2251
+func distance2D(x1, y1, x2, y2) = {
+  local dx = x2 - x1
+  local dy = y2 - y1
+  sqrt(dx * dx + dy * dy)
+}
+func distance3D(x1, y1, z1, x2, y2, z2) = {
+  local dx = x2 - x1
+  local dy = y2 - y1
+  local dz = z2 - z1
+  sqrt(dx * dx + dy * dy + dz * dz)
+}
+println(distance2D(0, 0, 3, 4))
+println(distance3D(0, 0, 0, 1, 2, 2))
+
+// 2257
+func circlesOverlap(x1, y1, r1, x2, y2, r2) = {
+  local d = distance2D(x1, y1, x2, y2)
+  d < r1 + r2
+}
+println(circlesOverlap(0, 0, 5, 3, 0, 3))
+println(circlesOverlap(0, 0, 2, 10, 0, 2))
+
+// 2262
+func snap(val, gridSize) = {
+  round(val / gridSize) * gridSize
+}
+println(snap(7.3, 5))
+println(snap(7.7, 5))
+
+// 2266
+func smoothStep(t) = {
+  3 * t ^ 2 - 2 * t ^ 3
+}
+func easeInOut(t) = {
+  if (t < 0.5) 2 * t * t else -1 + (4 - 2 * t) * t
+}
+local tvals = [0, 0.25, 0.5, 0.75, 1]
+for (t in tvals) {
+  println("t=" _ t _ " smooth=" _ smoothStep(t) _ " easeInOut=" _ easeInOut(t))
+}
+
+// 2270
+func polygonArea(vertices) = {
+  local n = vertices.listLen()
+  local area = 0
+  for (i: 1 .. n) {
+    local j = if (i == n) 1 else i + 1
+    area = area + vertices[i][1] * vertices[j][2] - vertices[j][1] * vertices[i][2]
+  }
+  abs(area) / 2
+}
+local square = [[0,0],[4,0],[4,4],[0,4]]
+println(polygonArea(square))
+
+// 2275
+func addVec(ax, ay, bx, by) = {
+  [ax + bx, ay + by]
+}
+println(addVec(1, 2, 3, 4))
+
+// 2279
+func bernstein(i, n, t) = {
+  local coeff = 1
+  for (k: 1 .. i) {
+    coeff = coeff * (n - k + 1) / k
+  }
+  coeff * t ^ i * (1 - t) ^ (n - i)
+}
+println(bernstein(1, 3, 0.5))
+
+// 2283
+func bilinearInterp(q11, q12, q21, q22, tx, ty) = {
+  local r1 = q11 * (1 - tx) + q21 * tx
+  local r2 = q12 * (1 - tx) + q22 * tx
+  r1 * (1 - ty) + r2 * ty
+}
+println(bilinearInterp(0, 0, 0, 1, 0, 0))
+println(bilinearInterp(0, 0, 0, 1, 1, 1))
+println(bilinearInterp(0, 0, 0, 1, 0.5, 0.5))
+
+// 2287
+func rk4_step(x, v, dt) = {
+  local k1x = v
+  local k1v = -x
+  local k2x = v + 0.5 * dt * k1v
+  local k2v = -(x + 0.5 * dt * k1x)
+  local k3x = v + 0.5 * dt * k2v
+  local k3v = -(x + 0.5 * dt * k2x)
+  local k4x = v + dt * k3v
+  local k4v = -(x + dt * k3x)
+  local nx = x + dt / 6 * (k1x + 2 * k2x + 2 * k3x + k4x)
+  local nv = v + dt / 6 * (k1v + 2 * k2v + 2 * k3v + k4v)
+  [nx, nv]
+}
+local state = [1, 0]
+for (i: 1 .. 5) {
+  local ns = rk4_step(state[1], state[2], 0.1)
+  state = ns
+  println(state)
+}
+
+// 2293
+func waveformSaw(t, freq) = {
+  (t * freq) % 1
+}
+for (i: 0 .. 7) {
+  println(waveformSaw(i / 8, 1))
+}
+
+// 2297
+func randomOnCircle(cx, cy, r) = {
+  local points = []
+  for (i: 0 .. 7) {
+    local angle = radians(i * 45)
+    points.add([cx + r * cos(angle), cy + r * sin(angle)])
+  }
+  points
+}
+println(randomOnCircle(0, 0, 5))
+
+// 2301
+func aabb(points) = {
+  local minX = points[1][1]
+  local minY = points[1][2]
+  local maxX = points[1][1]
+  local maxY = points[1][2]
+  for (p in points) {
+    if (p[1] < minX) { minX = p[1] }
+    if (p[2] < minY) { minY = p[2] }
+    if (p[1] > maxX) { maxX = p[1] }
+    if (p[2] > maxY) { maxY = p[2] }
+  }
+  {"minX": minX, "minY": minY, "maxX": maxX, "maxY": maxY}
+}
+println(aabb([[1,2],[3,4],[0,5],[-1,2],[2,3]]))
+
+// 2307
+local pi = 3.14159265358979
+func sphereVolume(r) = { 4 / 3 * pi * r ^ 3 }
+func sphereSurface(r) = { 4 * pi * r ^ 2 }
+println(sphereVolume(1))
+println(sphereSurface(1))
+println(sphereVolume(5))
+println(sphereSurface(5))
+
+// 2312
+func rotateX(x, y, z, angle_deg) = {
+  local a = radians(angle_deg)
+  [x, y * cos(a) - z * sin(a), y * sin(a) + z * cos(a)]
+}
+func rotateY(x, y, z, angle_deg) = {
+  local a = radians(angle_deg)
+  [x * cos(a) + z * sin(a), y, -x * sin(a) + z * cos(a)]
+}
+func rotateZ(x, y, z, angle_deg) = {
+  local a = radians(angle_deg)
+  [x * cos(a) - y * sin(a), x * sin(a) + y * cos(a), z]
+}
+println(rotateZ(1, 0, 0, 90))
+
+// 2316
+func dot3D(ax, ay, az, bx, by, bz) = {
+  ax * bx + ay * by + az * bz
+}
+println(dot3D(1, 0, 0, 0, 1, 0))
+println(dot3D(1, 0, 0, 1, 0, 0))
+
+// 2321
+func julia(zx, zy, cx, cy, maxIter) = {
+  local iter = 0
+  local x = zx
+  local y = zy
+  while (iter < maxIter && x * x + y * y < 4) {
+    local tmp = x * x - y * y + cx
+    y = 2 * x * y + cy
+    x = tmp
+    iter = iter + 1
+  }
+  iter
+}
+println(julia(0, 0, -0.7, 0.27, 100))
+println(julia(0.5, 0.5, -0.7, 0.27, 100))
+
+// 2326
+func flocking(birds, dt) = {
+  local result = copyList(birds)
+  for (step: 1 .. 3) {
+    local updated = []
+    for (i: 1 .. result.listLen()) {
+      local b = result[i]
+      local sepX = 0
+      local sepY = 0
+      local avgVx = 0
+      local avgVy = 0
+      local avgX = 0
+      local avgY = 0
+      for (j: 1 .. result.listLen()) {
+        if (i != j) {
+          local o = result[j]
+          local dx = b.get("x",0) - o.get("x",0)
+          local dy = b.get("y",0) - o.get("y",0)
+          local d = sqrt(dx*dx+dy*dy)
+          if (d < 2 && d > 0) {
+            sepX = sepX + dx/d
+            sepY = sepY + dy/d
+          }
+          avgVx = avgVx + o.get("vx",0)
+          avgVy = avgVy + o.get("vy",0)
+          avgX = avgX + o.get("x",0)
+          avgY = avgY + o.get("y",0)
+        }
+      }
+      local n = result.listLen() - 1
+      local nvx = b.get("vx",0) + 0.1*sepX + 0.05*(avgVx/n - b.get("vx",0)) + 0.01*(avgX/n - b.get("x",0))
+      local nvy = b.get("vy",0) + 0.1*sepY + 0.05*(avgVy/n - b.get("vy",0)) + 0.01*(avgY/n - b.get("y",0))
+      local b2 = copyDict(b)
+      b2.set("x", b.get("x",0) + nvx*dt)
+      b2.set("y", b.get("y",0) + nvy*dt)
+      b2.set("vx", nvx)
+      b2.set("vy", nvy)
+      updated.add(b2)
+    }
+    result = updated
+  }
+  result
+}
+local birds = [{"x":0,"y":0,"vx":1,"vy":0},{"x":1,"y":0,"vx":0,"vy":1},{"x":0,"y":1,"vx":-1,"vy":0},{"x":-1,"y":0,"vx":0,"vy":-1},{"x":0,"y":-1,"vx":1,"vy":1}]
+println(flocking(birds, 0.1))
+
+// 2331
+func formatScore(score, digits) = {
+  local s = "" _ score
+  while (s.textLen() < digits) {
+    s = "0" _ s
+  }
+  s
+}
+println(formatScore(42, 6))
+
+// 2337
+func progressBar(current, max, width, fillChar, emptyChar) = {
+  local filled = round(current / max * width)
+  local bar = ""
+  for (i: 1 .. width) {
+    if (i <= filled) {
+      bar = bar _ fillChar
+    } else {
+      bar = bar _ emptyChar
+    }
+  }
+  bar
+}
+println(progressBar(7, 10, 20, "#", "-"))
+
+// 2341
+func parseName(fullName) = {
+  local parts = fullName.splitAtSpaces()
+  local last = parts[parts.listLen()]
+  local first = parts[1]
+  {"first": first, "last": last}
+}
+println(parseName("John Michael Doe"))
+println(parseName("Alice Smith"))
+
+// 2346
+func extractQuoted(text) = {
+  local result = []
+  local inQuote = false
+  local current = ""
+  local i = 1
+  while (i <= text.textLen()) {
+    local ch = text.segment(i, 1)
+    if (ch === "\"") {
+      if (inQuote) {
+        result.add(current)
+        current = ""
+        inQuote = false
+      } else {
+        inQuote = true
+      }
+    } else if (inQuote) {
+      current = current _ ch
+    }
+    i = i + 1
+  }
+  result
+}
+println(extractQuoted("She said \"hello\" and \"bye\""))
+
+// 2351
+func wildcard_match(pattern, text) = {
+  local p = pattern.textLen()
+  local t = text.textLen()
+  func match(pi, ti) = {
+    if (pi > p && ti > t) {
+      true
+    } else if (pi > p) {
+      false
+    } else if (pattern.segment(pi, 1) === "*") {
+      if (pi == p) {
+        true
+      } else {
+        match(pi + 1, ti) || if (ti <= t) match(pi, ti + 1) else false
+      }
+    } else if (ti > t) {
+      false
+    } else {
+      local pc = pattern.segment(pi, 1)
+      local tc = text.segment(ti, 1)
+      if (pc === "?" || pc === tc) {
+        match(pi + 1, ti + 1)
+      } else {
+        false
+      }
+    }
+  }
+  match(1, 1)
+}
+println(wildcard_match("h?llo", "hello"))
+println(wildcard_match("h*o", "hello"))
+println(wildcard_match("h*o", "hi"))
+
+// 2355
+func excerptAround(text, keyword, radius) = {
+  local idx = 1
+  local klen = keyword.textLen()
+  local tlen = text.textLen()
+  local found = false
+  local pos = 1
+  while (idx <= tlen - klen + 1 && !found) {
+    if (text.segment(idx, klen) === keyword) {
+      found = true
+      pos = idx
+    }
+    idx = idx + 1
+  }
+  if (!found) {
+    ""
+  } else {
+    local start = if (pos - radius < 1) 1 else pos - radius
+    local len = 2 * radius + klen
+    text.segment(start, len)
+  }
+}
+println(excerptAround("The quick brown fox jumps over the lazy dog", "fox", 5))
+
+// 2359
+func toRomanNumeral(n) = {
+  local vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+  local syms = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
+  local result = ""
+  local num = n
+  for (i: 1 .. vals.listLen()) {
+    while (num >= vals[i]) {
+      result = result _ syms[i]
+      num = num - vals[i]
+    }
+  }
+  result
+}
+println(toRomanNumeral(14))
+println(toRomanNumeral(42))
+println(toRomanNumeral(1994))
+println(toRomanNumeral(2025))
+
+// 2363
+func base64Encode(s) = {
+  local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  local result = ""
+  local i = 1
+  local len = s.textLen()
+  while (i <= len) {
+    local b0 = 0
+    local b1 = 0
+    local b2 = 0
+    local pad = 0
+    local c0 = s.segment(i, 1)
+    b0 = 0
+    local ci = 1
+    while (ci <= 256) {
+      if (chars.segment(1,1) === c0) { b0 = ci - 1 }
+      ci = ci + 1
+    }
+    b0 = 0
+    local allChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    b0 = allChars.indexOf(c0) - 1
+    println("base64 encode not fully supported without char code access")
+    i = len + 1
+  }
+  result
+}
+
+func base64Decode(s) = {
+  local table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  local result = ""
+  local i = 1
+  local len = s.textLen()
+  while (i <= len - 3) {
+    local c1 = table.indexOf(s.segment(i, 1)) - 1
+    local c2 = table.indexOf(s.segment(i + 1, 1)) - 1
+    local c3 = table.indexOf(s.segment(i + 2, 1)) - 1
+    local c4 = table.indexOf(s.segment(i + 3, 1)) - 1
+    local b1 = (c1 * 4 + floor(c2 / 16)) % 256
+    local b2 = (c2 * 16 + floor(c3 / 4)) % 256
+    local b3 = (c3 * 64 + c4) % 256
+    result = result _ b1 _ "," _ b2 _ "," _ b3 _ " "
+    i = i + 4
+  }
+  result
+}
+println(base64Decode("SGVsbG8="))
+
+// 2369
+func morseDecode(code) = {
+  local table = {".-": "A", "-...": "B", "-.-.": "C", "-..": "D", ".": "E", "..-.": "F", "--.": "G", "....": "H", "..": "I", ".---": "J", "-.-": "K", ".-..": "L", "--": "M", "-.": "N", "---": "O", ".--.": "P", "--.-": "Q", ".-.": "R", "...": "S", "-": "T", "..-": "U", "...-": "V", ".--": "W", "-..-": "X", "-.--": "Y", "--..": "Z"}
+  local words = code.split("   ")
+  local result = ""
+  for (word in words) {
+    local letters = word.split(" ")
+    for (letter in letters) {
+      result = result _ table.get(letter, "?")
+    }
+    result = result _ " "
+  }
+  result.trim()
+}
+println(morseDecode(".... . .-.. .-.. ---"))
+
+// 2373
+func numberToRoman(n) = {
+  local vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+  local syms = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
+  local result = ""
+  local num = n
+  for (i: 1 .. vals.listLen()) {
+    while (num >= vals[i]) {
+      result = result _ syms[i]
+      num = num - vals[i]
+    }
+  }
+  result
+}
+func romanToNumber(s) = {
+  local table = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+  local total = 0
+  local len = s.textLen()
+  for (i: 1 .. len) {
+    local cur = table.get(s.segment(i, 1), 0)
+    local nxt = if (i < len) table.get(s.segment(i + 1, 1), 0) else 0
+    if (cur < nxt) {
+      total = total - cur
+    } else {
+      total = total + cur
+    }
+  }
+  total
+}
+for (i: 1 .. 20) {
+  local r = numberToRoman(i)
+  println(i _ " -> " _ r _ " -> " _ romanToNumber(r))
+}
+
+// 2377
+func expandAbbreviation(abbr, dict) = {
+  dict.get(abbr, "Unknown abbreviation")
+}
+local dict = {"ASAP": "As Soon As Possible", "FYI": "For Your Information", "BTW": "By The Way"}
+println(expandAbbreviation("ASAP", dict))
+
+// 2384
+func charShift(s, n) = {
+  local result = ""
+  local i = 1
+  while (i <= s.textLen()) {
+    local ch = s.segment(i, 1)
+    local code = 0
+    local alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    local pos = alphabet.indexOf(ch) - 1
+    if (pos >= 0) {
+      if (pos < 26) {
+        result = result _ alphabet.segment(((pos + n) % 26 + 26) % 26 + 1, 1)
+      } else {
+        result = result _ alphabet.segment(((pos - 26 + n) % 26 + 26) % 26 + 27, 1)
+      }
+    } else {
+      result = result _ ch
+    }
+    i = i + 1
+  }
+  result
+}
+local shifted = charShift("Hello, World!", 3)
+println(shifted)
+println(charShift(shifted, -3))
+
+// 2389
+func scoreText(s, letterValues) = {
+  local total = 0
+  local i = 1
+  while (i <= s.textLen()) {
+    local ch = s.segment(i, 1).uppercase()
+    total = total + letterValues.get(ch, 0)
+    i = i + 1
+  }
+  total
+}
+local scrabble = {"A":1,"B":3,"C":3,"D":2,"E":1,"F":4,"G":2,"H":4,"I":1,"J":8,"K":5,"L":1,"M":3,"N":1,"O":1,"P":3,"Q":10,"R":1,"S":1,"T":1,"U":1,"V":4,"W":4,"X":8,"Y":4,"Z":10}
+println(scoreText("quiz", scrabble))
+
+// 2394
+func huffmanFreq(text) = {
+  local freq = {}
+  local i = 1
+  while (i <= text.textLen()) {
+    local ch = text.segment(i, 1)
+    freq.set(ch, freq.get(ch, 0) + 1)
+    i = i + 1
+  }
+  freq
+}
+println(huffmanFreq("abracadabra"))
+
+// 2402
+func gridGet(grid, r, c) = {
+  grid[r][c]
+}
+local grid = [[1,2,3],[4,5,6],[7,8,9]]
+println(gridGet(grid, 2, 3))
+
+// 2406
+func gridDiag(grid) = {
+  local result = []
+  local n = grid.listLen()
+  for (i: 1 .. n) {
+    if (i <= grid[i].listLen()) {
+      result.add(grid[i][i])
+    }
+  }
+  result
+}
+local g4 = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]
+println(gridDiag(g4))
+
+// 2410
+func gridRotate90(grid) = {
+  local n = grid.listLen()
+  local m = grid[1].listLen()
+  local result = []
+  for (j: 1 .. m) {
+    local row = []
+    for (i: n .. 1 step -1) {
+      row.add(grid[i][j])
+    }
+    result.add(row)
+  }
+  result
+}
+local g3 = [[1,2,3],[4,5,6],[7,8,9]]
+println(gridRotate90(g3))
+
+// 2414
+func gridSum(grid) = {
+  local total = 0
+  for (row in grid) {
+    for (val in row) {
+      if (val ? number) {
+        total = total + val
+      }
+    }
+  }
+  total
+}
+println(gridSum([[1,2,3],[4,5,6],[7,8,9]]))
+
+// 2420
+func floodFill(grid, r, c, newVal) = {
+  local target = grid[r][c]
+  if (target == newVal) {
+    grid
+  } else {
+    local rows = grid.listLen()
+    local cols = grid[1].listLen()
+    local stack = [[r, c]]
+    while (stack.listLen() > 0) {
+      local cur = stack[stack.listLen()]
+      stack.remove(stack.listLen())
+      local cr = cur[1]
+      local cc = cur[2]
+      if (cr >= 1 && cr <= rows && cc >= 1 && cc <= cols && grid[cr][cc] == target) {
+        grid[cr][cc] = newVal
+        stack.add([cr+1, cc])
+        stack.add([cr-1, cc])
+        stack.add([cr, cc+1])
+        stack.add([cr, cc-1])
+      }
+    }
+    grid
+  }
+}
+local fg = [[1,1,1,0,0],[1,1,0,0,0],[1,0,0,1,1],[0,0,1,1,1],[0,0,1,1,1]]
+println(floodFill(fg, 1, 1, 2))
+
+// 2435
+global lruCache = []
+global lruCapacity = 0
+
+func lru_cache(capacity) {
+  this.lruCapacity = capacity
+  this.lruCache = []
+}
+
+func cache_get(key) = {
+  local result = -1
+  local idx = -1
+  for (i: 1 .. this.lruCache.listLen()) {
+    if (this.lruCache[i][1] === key) {
+      result = this.lruCache[i][2]
+      idx = i
+    }
+  }
+  if (idx != -1) {
+    local entry = this.lruCache[idx]
+    this.lruCache.remove(idx)
+    this.lruCache.add(entry)
+  }
+  result
+}
+
+func cache_put(key, val) {
+  local existing = -1
+  for (i: 1 .. this.lruCache.listLen()) {
+    if (this.lruCache[i][1] === key) {
+      existing = i
+    }
+  }
+  if (existing != -1) {
+    this.lruCache.remove(existing)
+  } else if (this.lruCache.listLen() >= this.lruCapacity) {
+    this.lruCache.remove(1)
+  }
+  this.lruCache.add([key, val])
+}
+
+lru_cache(3)
+cache_put("a", 1)
+cache_put("b", 2)
+cache_put("c", 3)
+println(cache_get("a"))
+cache_put("d", 4)
+println(cache_get("b"))
+println(this.lruCache)
+
+// 2439
+func nlargest(arr, n) = {
+  local sorted = copyList(arr)
+  sorted.sort()
+  sorted.reverseList()
+  sorted.slice(1, n)
+}
+println(nlargest([3,1,4,1,5,9,2,6], 3))
+
+// 2446
+func interval_intersect(a, b) = {
+  local result = []
+  local i = 1
+  local j = 1
+  while (i <= a.listLen() && j <= b.listLen()) {
+    local lo = if (a[i][1] > b[j][1]) a[i][1] else b[j][1]
+    local hi = if (a[i][2] < b[j][2]) a[i][2] else b[j][2]
+    if (lo <= hi) {
+      result.add([lo, hi])
+    }
+    if (a[i][2] < b[j][2]) {
+      i = i + 1
+    } else {
+      j = j + 1
+    }
+  }
+  result
+}
+println(interval_intersect([[1,3],[5,9]], [[2,4],[6,8],[10,12]]))
+
+// 2451
+func wordBreak(s, wordList) = {
+  local n = s.textLen()
+  local dp = []
+  for (i: 0 .. n) {
+    dp.add(false)
+  }
+  dp[1] = true
+  for (i: 1 .. n) {
+    if (dp[i]) {
+      for (word in wordList) {
+        local wlen = word.textLen()
+        if (i + wlen - 1 <= n && s.segment(i, wlen) === word) {
+          dp[i + wlen] = true
+        }
+      }
+    }
+  }
+  dp[n + 1]
+}
+println(wordBreak("leetcode", ["leet", "code"]))
+println(wordBreak("applepenapple", ["apple", "pen"]))
+
+// 2455
+func eggDrop(eggs, floors) = {
+  local dp = []
+  for (i: 0 .. eggs) {
+    local row = []
+    for (j: 0 .. floors) {
+      row.add(0)
+    }
+    dp.add(row)
+  }
+  for (j: 1 .. floors) {
+    dp[1][j] = j
+  }
+  for (i: 2 .. eggs) {
+    for (j: 1 .. floors) {
+      dp[i][j] = 999999
+      for (k: 1 .. j) {
+        local val = 1 + if (dp[i-1][k-1] > dp[i][j-k]) dp[i-1][k-1] else dp[i][j-k]
+        if (val < dp[i][j]) {
+          dp[i][j] = val
+        }
+      }
+    }
+  }
+  dp[eggs][floors]
+}
+println(eggDrop(2, 10))
+
+// 2459
+func maxProfitK(prices, k) = {
+  local n = prices.listLen()
+  local dp = []
+  for (i: 0 .. k) {
+    local row = []
+    for (j: 0 .. n) {
+      row.add(0)
+    }
+    dp.add(row)
+  }
+  for (t: 1 .. k) {
+    local maxSoFar = -999999
+    for (d: 1 .. n) {
+      if (-prices[d] + dp[t-1][d] > maxSoFar) {
+        maxSoFar = -prices[d] + dp[t-1][d]
+      }
+      local candidate = maxSoFar + prices[d]
+      dp[t][d] = if (dp[t][d-1] > candidate) dp[t][d-1] else candidate
+    }
+  }
+  dp[k][n]
+}
+println(maxProfitK(2, [3,2,6,5,0,3]))
+
+// 2463
+func maxSumSubarray(arr) = {
+  local maxSum = arr[1]
+  local curSum = arr[1]
+  local start = 1
+  local end = 1
+  local tempStart = 1
+  for (i: 2 .. arr.listLen()) {
+    if (arr[i] > curSum + arr[i]) {
+      curSum = arr[i]
+      tempStart = i
+    } else {
+      curSum = curSum + arr[i]
+    }
+    if (curSum > maxSum) {
+      maxSum = curSum
+      start = tempStart
+      end = i
+    }
+  }
+  {"sum": maxSum, "start": start, "end": end}
+}
+println(maxSumSubarray([-2,1,-3,4,-1,2,1,-5,4]))
+
+// 2467
+func diagonalTraversal(matrix) = {
+  local rows = matrix.listLen()
+  local cols = matrix[1].listLen()
+  local result = []
+  for (d: 2 .. rows + cols) {
+    local diag = []
+    for (r: 1 .. rows) {
+      local c = d - r
+      if (c >= 1 && c <= cols) {
+        diag.add(matrix[r][c])
+      }
+    }
+    result.add(diag)
+  }
+  result
+}
+println(diagonalTraversal([[1,2,3],[4,5,6],[7,8,9]]))
+
+// 2475
+func dungeonGame(dungeon) = {
+  local rows = dungeon.listLen()
+  local cols = dungeon[1].listLen()
+  local dp = []
+  for (i: 1 .. rows) {
+    local row = []
+    for (j: 1 .. cols) {
+      row.add(0)
+    }
+    dp.add(row)
+  }
+  dp[rows][cols] = if (dungeon[rows][cols] >= 0) 1 else 1 - dungeon[rows][cols]
+  for (j: cols - 1 .. 1 step -1) {
+    local need = dp[rows][j+1] - dungeon[rows][j]
+    dp[rows][j] = if (need > 1) need else 1
+  }
+  for (i: rows - 1 .. 1 step -1) {
+    local need = dp[i+1][cols] - dungeon[i][cols]
+    dp[i][cols] = if (need > 1) need else 1
+  }
+  for (i: rows - 1 .. 1 step -1) {
+    for (j: cols - 1 .. 1 step -1) {
+      local fromRight = dp[i][j+1] - dungeon[i][j]
+      local fromDown = dp[i+1][j] - dungeon[i][j]
+      local best = if (fromRight < fromDown) fromRight else fromDown
+      dp[i][j] = if (best > 1) best else 1
+    }
+  }
+  dp[1][1]
+}
+println(dungeonGame([[-2,-3,3],[-5,-10,1],[10,30,-5]]))
+
+// 2480
+func runLengthList(arr) = {
+  local result = []
+  local i = 1
+  while (i <= arr.listLen()) {
+    local val = arr[i]
+    local count = 1
+    while (i + count <= arr.listLen() && arr[i + count] == val) {
+      count = count + 1
+    }
+    result.add([count, val])
+    i = i + count
+  }
+  result
+}
+func runLengthDecode(encoded) = {
+  local result = []
+  for (pair in encoded) {
+    for (i: 1 .. pair[1]) {
+      result.add(pair[2])
+    }
+  }
+  result
+}
+local encoded = runLengthList([1,1,2,3,3,3])
+println(encoded)
+println(runLengthDecode(encoded))
+
+// 2505
+global quests = {}
+
+func quest_tracker(q) {
+  this.quests = q
+}
+
+func complete(name) {
+  local q = this.quests.get(name, {})
+  q.set("completed", true)
+  this.quests.set(name, q)
+}
+
+func totalReward() = {
+  local total = 0
+  for (name, q in this.quests) {
+    if (q.get("completed", false)) {
+      total = total + q.get("reward", 0)
+    }
+  }
+  total
+}
+
+quest_tracker({"slay_dragon": {"completed": false, "reward": 500}, "find_gem": {"completed": false, "reward": 200}})
+complete("slay_dragon")
+println(totalReward())
+
+// 2510
+global assets = {}
+
+func load(id, data) {
+  this.assets.set(id, data)
+}
+
+func unload(id) {
+  this.assets.delete(id)
+}
+
+func get(id) = {
+  this.assets.get(id, "Not found")
+}
+
+load("hero", {"sprite": "hero.png", "size": 32})
+load("enemy", {"sprite": "enemy.png", "size": 16})
+println(get("hero"))
+unload("enemy")
+println(get("enemy"))
+
+// 2515
+global buffs = {}
+
+func buff_manager(b) {
+  this.buffs = b
+}
+
+func tick_all() {
+  local keys = this.buffs.keys()
+  for (k in keys) {
+    local b = this.buffs.get(k, {})
+    local dur = b.get("duration", 0) - 1
+    if (dur <= 0) {
+      this.buffs.delete(k)
+    } else {
+      b.set("duration", dur)
+      this.buffs.set(k, b)
+    }
+  }
+}
+
+func apply_all(stats) = {
+  local s = copyDict(stats)
+  for (name, b in this.buffs) {
+    local effect = b.get("effect", "")
+    local mag = b.get("magnitude", 0)
+    if (effect === "attack") {
+      s.set("attack", s.get("attack", 0) + mag)
+    } else if (effect === "speed") {
+      s.set("speed", s.get("speed", 0) + mag)
+    }
+  }
+  s
+}
+
+buff_manager({"strength": {"duration": 3, "effect": "attack", "magnitude": 10}, "haste": {"duration": 2, "effect": "speed", "magnitude": 5}})
+local stats = {"attack": 20, "speed": 10}
+println(apply_all(stats))
+tick_all()
+println(this.buffs)
+
+// 2521
+global collObjects = {}
+
+func collision_registry(objects) {
+  this.collObjects = objects
+}
+
+func check_all() = {
+  local pairs = []
+  local ids = this.collObjects.keys()
+  for (i: 1 .. ids.listLen()) {
+    for (j: i + 1 .. ids.listLen()) {
+      local a = this.collObjects.get(ids[i], {})
+      local b = this.collObjects.get(ids[j], {})
+      local dx = a.get("x",0) - b.get("x",0)
+      local dy = a.get("y",0) - b.get("y",0)
+      local dist = sqrt(dx*dx + dy*dy)
+      if (dist < a.get("r",0) + b.get("r",0)) {
+        pairs.add([ids[i], ids[j]])
+      }
+    }
+  }
+  pairs
+}
+
+collision_registry({"p1": {"x": 0, "y": 0, "r": 5}, "p2": {"x": 3, "y": 4, "r": 5}, "p3": {"x": 20, "y": 20, "r": 2}})
+println(check_all())
+
+// 2525
+global tiles = {}
+
+func tile_registry(t) {
+  this.tiles = t
+}
+
+func is_solid(id) = {
+  local t = this.tiles.get(id, {})
+  t.get("solid", false)
+}
+
+func tile_color(id) = {
+  local t = this.tiles.get(id, {})
+  t.get("color", #000000)
+}
+
+tile_registry({"grass": {"name": "Grass", "solid": false, "color": #00FF00}, "wall": {"name": "Wall", "solid": true, "color": #888888}})
+println(is_solid("wall"))
+println(is_solid("grass"))
+println(tile_color("grass"))
+
+// 2532
+global currentRoom = "start"
+global dungeon = {}
+
+func dungeon_map(rooms) {
+  this.dungeon = rooms
+}
+
+func look() = {
+  local room = this.dungeon.get(this.currentRoom, {})
+  room.get("description", "Unknown room")
+}
+
+func go(dir) {
+  local room = this.dungeon.get(this.currentRoom, {})
+  local exits = room.get("exits", {})
+  local next = exits.get(dir, "")
+  if (next !== "") {
+    this.currentRoom = next
+    println("Moved to " _ next)
+  } else {
+    println("No exit that way")
+  }
+}
+
+dungeon_map({"start": {"description": "A dark cave entrance", "exits": {"north": "hall"}, "items": ["torch"]}, "hall": {"description": "A long hallway", "exits": {"south": "start", "north": "throne"}, "items": []}, "throne": {"description": "The throne room", "exits": {"south": "hall"}, "items": ["crown"]}})
+println(look())
+go("north")
+println(look())
+go("east")
+
+// 2537
+global locStrings = {}
+global currentLang = "EN"
+
+func localization(strings, lang) {
+  this.locStrings = strings
+  this.currentLang = lang
+}
+
+func t(key) = {
+  local entry = this.locStrings.get(key, {})
+  entry.get(this.currentLang, key)
+}
+
+localization({"greeting": {"EN": "Hello", "ES": "Hola"}, "farewell": {"EN": "Goodbye", "ES": "Adios"}}, "EN")
+println(t("greeting"))
+println(t("farewell"))
+this.currentLang = "ES"
+println(t("greeting"))
+println(t("farewell"))
+
+// 2544
+global resources = {}
+
+func resource_manager(r) {
+  this.resources = r
+}
+
+func produce(type, amount) {
+  this.resources.set(type, this.resources.get(type, 0) + amount)
+}
+
+func consume(type, amount) {
+  local cur = this.resources.get(type, 0)
+  this.resources.set(type, if (cur - amount > 0) cur - amount else 0)
+}
+
+func surplus(type) = {
+  this.resources.get(type, 0)
+}
+
+resource_manager({"wood": 10, "stone": 5})
+produce("wood", 5)
+consume("stone", 3)
+println(surplus("wood"))
+println(surplus("stone"))
+
+// 2548
+global msgQueue = []
+global msgCapacity = 0
+
+func message_queue(capacity) {
+  this.msgCapacity = capacity
+  this.msgQueue = []
+}
+
+func enqueue(msg) {
+  if (this.msgQueue.listLen() >= this.msgCapacity) {
+    println("Queue full, dropping: " _ msg)
+  } else {
+    this.msgQueue.add(msg)
+  }
+}
+
+func dequeue() = {
+  if (this.msgQueue.listLen() == 0) {
+    "empty"
+  } else {
+    local msg = this.msgQueue[1]
+    this.msgQueue.remove(1)
+    msg
+  }
+}
+
+message_queue(3)
+enqueue("msg1")
+enqueue("msg2")
+enqueue("msg3")
+enqueue("msg4")
+println(dequeue())
+println(dequeue())
+
+// 2556
+func dayNightLerp(daytime_color, nighttime_color, hour) = {
+  local t = 0
+  if (hour >= 6 && hour <= 18) {
+    t = 1 - abs(hour - 12) / 6
+  } else {
+    t = 0
+  }
+  blendColors(nighttime_color, daytime_color, t)
+}
+local day = makeColor([135, 206, 235])
+local night = makeColor([10, 10, 40])
+println(dayNightLerp(day, night, 0))
+println(dayNightLerp(day, night, 6))
+println(dayNightLerp(day, night, 12))
+println(dayNightLerp(day, night, 18))
+println(dayNightLerp(day, night, 23))
+
+// 2562
+func chameleonPalette(n) = {
+  local colors = []
+  for (i: 0 .. n - 1) {
+    local angle = i * 360 / n
+    local r = round(sin(radians(angle)) * 127 + 128)
+    local g = round(sin(radians(angle + 120)) * 127 + 128)
+    local b = round(sin(radians(angle + 240)) * 127 + 128)
+    colors.add(makeColor([r, g, b]))
+  }
+  colors
+}
+println(chameleonPalette(6))
+
+// 2567
+func shieldColor(integrity) = {
+  if (integrity >= 0.5) {
+    local t = (integrity - 0.5) * 2
+    local cyan = makeColor([0, 255, 255])
+    local yellow = makeColor([255, 255, 0])
+    blendColors(yellow, cyan, t)
+  } else {
+    local t = integrity * 2
+    local black = makeColor([0, 0, 0])
+    local yellow = makeColor([255, 255, 0])
+    blendColors(black, yellow, t)
+  }
+}
+println(shieldColor(1.0))
+println(shieldColor(0.5))
+println(shieldColor(0.0))
+
+// 2574
+func outlineColor(base) = {
+  local r = floor(base / 65536) % 256
+  local g = floor(base / 256) % 256
+  local b = base % 256
+  local luminance = r * 0.299 + g * 0.587 + b * 0.114
+  if (luminance > 128) {
+    makeColor([0, 0, 0])
+  } else {
+    makeColor([255, 255, 255])
+  }
+}
+println(outlineColor(makeColor([255, 255, 255])))
+println(outlineColor(makeColor([0, 0, 0])))
+println(outlineColor(makeColor([255, 0, 0])))
+println(outlineColor(makeColor([0, 0, 255])))
+
+// 2587
+local waypoints = [[0,0],[3,4],[6,0],[9,4]]
+for (i: 1 .. waypoints.listLen() - 1) {
+  local a = waypoints[i]
+  local b = waypoints[i+1]
+  local dx = b[1] - a[1]
+  local dy = b[2] - a[2]
+  println("Segment " _ i _ ": " _ sqrt(dx*dx+dy*dy))
+}
+
+// 2628
+local cities = [{"city":"Delhi","temp":42},{"city":"Mumbai","temp":35},{"city":"Bangalore","temp":28},{"city":"Chennai","temp":38},{"city":"Kolkata","temp":40}]
+local top3 = []
+for (i: 1 .. 3) {
+  local best = 0
+  local bestIdx = 1
+  for (j: 1 .. cities.listLen()) {
+    local inTop = false
+    for (t in top3) {
+      if (t === cities[j].get("city","")) {
+        inTop = true
+      }
+    }
+    if (!inTop && cities[j].get("temp",0) > best) {
+      best = cities[j].get("temp",0)
+      bestIdx = j
+    }
+  }
+  top3.add(cities[bestIdx].get("city",""))
+}
+println(top3)
+
+// 2646
+func resolveCollisions(entities) = {
+  local updated = copyList(entities)
+  for (i: 1 .. updated.listLen()) {
+    for (j: i+1 .. updated.listLen()) {
+      local a = updated[i]
+      local b = updated[j]
+      local dx = b.get("x",0) - a.get("x",0)
+      local dy = b.get("y",0) - a.get("y",0)
+      local dist = sqrt(dx*dx+dy*dy)
+      local minDist = a.get("r",0) + b.get("r",0)
+      if (dist < minDist && dist > 0) {
+        local overlap = (minDist - dist) / 2
+        local nx = dx / dist
+        local ny = dy / dist
+        local a2 = copyDict(a)
+        local b2 = copyDict(b)
+        a2.set("x", a.get("x",0) - nx * overlap)
+        a2.set("y", a.get("y",0) - ny * overlap)
+        b2.set("x", b.get("x",0) + nx * overlap)
+        b2.set("y", b.get("y",0) + ny * overlap)
+        updated[i] = a2
+        updated[j] = b2
+      }
+    }
+  }
+  updated
+}
+local ents = [{"id":1,"x":0,"y":0,"r":5},{"id":2,"x":4,"y":0,"r":5}]
+println(resolveCollisions(ents))
+
+// 2655
+func computeScore(kills, time, deaths, combo) = {
+  local base = kills * 100
+  local timebonus = if (time < 60) 500 else if (time < 120) 200 else 0
+  local deathpenalty = deaths * 50
+  local combobonus = combo * combo * 10
+  local score = base + timebonus - deathpenalty + combobonus
+  local grade = if (score >= 1500) "S" else if (score >= 1000) "A" else if (score >= 700) "B" else if (score >= 400) "C" else "D"
+  {"score": score, "grade": grade}
+}
+println(computeScore(10, 45, 1, 5))
+
+// 2667
+func applyStatusEffects(entity, effects) = {
+  local e = copyDict(entity)
+  for (effect in effects) {
+    local type = effect.get("type","")
+    local mag = effect.get("magnitude",0)
+    if (type === "poison") {
+      e.set("hp", e.get("hp",0) - mag)
+      e.set("poisoned", true)
+    } else if (type === "burn") {
+      e.set("hp", e.get("hp",0) - mag * 1.5)
+      e.set("burning", true)
+    } else if (type === "freeze") {
+      e.set("speed", e.get("speed",0) - mag)
+      e.set("frozen", true)
+    }
+  }
+  e
+}
+local entity = {"hp": 100, "speed": 10}
+local effects = [{"type":"poison","magnitude":5,"duration":3},{"type":"freeze","magnitude":3,"duration":2}]
+println(applyStatusEffects(entity, effects))
+
+// 2673
+global objectives = []
+
+func objectiveTracker(objs) {
+  this.objectives = objs
+}
+
+func completeObj(name) {
+  for (i: 1 .. this.objectives.listLen()) {
+    if (this.objectives[i].get("name","") === name) {
+      this.objectives[i].set("complete", true)
+    }
+  }
+}
+
+func allDone() = {
+  local done = true
+  for (obj in this.objectives) {
+    if (obj.get("required",false) && !obj.get("complete",false)) {
+      done = false
+    }
+  }
+  done
+}
+
+func nextObjective() = {
+  local result = "None"
+  for (obj in this.objectives) {
+    if (!obj.get("complete",false) && result === "None") {
+      result = obj.get("name","")
+    }
+  }
+  result
+}
+
+objectiveTracker([{"name":"kill_boss","complete":false,"required":true},{"name":"find_key","complete":false,"required":true},{"name":"bonus_chest","complete":false,"required":false}])
+completeObj("kill_boss")
+println(allDone())
+println(nextObjective())
+
+// 2682
+func buildTileset(rules) = {
+  local grid = []
+  for (r: 1 .. 5) {
+    local row = []
+    for (c: 1 .. 5) {
+      local tile = "grass"
+      for (rule in rules) {
+        local rr = rule.get("row", -1)
+        local rc = rule.get("col", -1)
+        if ((rr == -1 || rr == r) && (rc == -1 || rc == c)) {
+          tile = rule.get("tile", "grass")
+        }
+      }
+      row.add(tile)
+    }
+    grid.add(row)
+  }
+  grid
+}
+local rules = [{"row": 1, "tile": "water"}, {"col": 5, "tile": "wall"}, {"row": 3, "col": 3, "tile": "chest"}]
+println(buildTileset(rules))
+
+// 2690
+global gameState = {}
+
+func buildEventChain(events) = {
+  local chain = {}
+  for (ev in events) {
+    chain.set(ev.get("trigger",""), ev)
+  }
+  chain
+}
+
+func runChain(start, gs) = {
+  local chain = buildEventChain([{"trigger":"start","action":"openDoor","next":"doorOpen"},{"trigger":"doorOpen","action":"spawnEnemy","next":"fight"},{"trigger":"fight","action":"endGame","next":""}])
+  local cur = start
+  local state = copyDict(gs)
+  while (cur !== "") {
+    local ev = chain.get(cur, {})
+    local action = ev.get("action","")
+    state.set("lastAction", action)
+    println("Running: " _ action)
+    cur = ev.get("next","")
+  }
+  state
+}
+
+local gs = {"score": 0, "hp": 100}
+println(runChain("start", gs))
+
+// 2695
+func simulateGrowth(ecosystem, ticks) {
+  local prey = ecosystem.get("prey", 100)
+  local predator = ecosystem.get("predator", 10)
+  local alpha = 0.1
+  local beta = 0.02
+  local gamma = 0.3
+  local delta = 0.01
+  for (t: 1 .. ticks) {
+    local newPrey = prey + (alpha * prey - beta * prey * predator)
+    local newPredator = predator + (delta * prey * predator - gamma * predator)
+    prey = newPrey
+    predator = newPredator
+    println("Tick " _ t _ ": prey=" _ round(prey) _ " predator=" _ round(predator))
+  }
+}
+simulateGrowth({"prey": 100, "predator": 10}, 10)
+
+// 2255
+func circleContains(cx, cy, r, px, py) = {
+  local dx = px - cx
+  local dy = py - cy
+  dx * dx + dy * dy < r * r
+}
+println(circleContains(0, 0, 5, 3, 4))
+println(circleContains(0, 0, 5, 4, 4))
+println(circleContains(0, 0, 5, 0, 0))
+
+// 2305
+func closestPointOnSegment(px, py, ax, ay, bx, by) = {
+  local dx = bx - ax
+  local dy = by - ay
+  local lenSq = dx * dx + dy * dy
+  local t = 0
+  if (lenSq != 0) {
+    t = ((px - ax) * dx + (py - ay) * dy) / lenSq
+    t = if (t < 0) 0 else if (t > 1) 1 else t
+  }
+  [ax + t * dx, ay + t * dy]
+}
+println(closestPointOnSegment(3, 0, 0, 0, 5, 0))
+println(closestPointOnSegment(6, 0, 0, 0, 5, 0))
+println(closestPointOnSegment(2, 3, 0, 0, 4, 0))
