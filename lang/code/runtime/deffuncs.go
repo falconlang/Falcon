@@ -1,18 +1,14 @@
 package runtime
 
+// deffuncs.go dispatches built-in (default) function calls.
+// Numeric specials (base conversions, colour, random, statistics) live in numops.go.
+
 import (
 	"Falcon/code/ast/common"
-	"fmt"
 	"math"
-	"math/rand"
-	"sort"
-	"strconv"
-	"strings"
 )
 
-// evalFuncCall dispatches built-in (default) function calls.
 func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
-	// evaluate arguments eagerly (except short-circuit is handled in BinaryExpr)
 	args := make([]Value, len(e.Args))
 	for k, a := range e.Args {
 		args[k] = i.eval(a)
@@ -21,7 +17,7 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 	switch e.Name {
 	// --- Output ---
 	case "println":
-		fmt.Println(args[0].AsStr())
+		printLine(args[0].AsStr())
 		return NullVal()
 
 	// --- Math single-arg ---
@@ -58,57 +54,31 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 	case "radians":
 		return NumVal(args[0].AsNum() * math.Pi / 180)
 
-	// --- Base conversions ---
+	// --- Base conversions (numops.go) ---
 	case "decToHex":
-		return StrVal(fmt.Sprintf("%X", int64(args[0].AsNum())))
+		return evalDecToHex(args)
 	case "decToBin":
-		return StrVal(strconv.FormatInt(int64(args[0].AsNum()), 2))
+		return evalDecToBin(args)
 	case "hexToDec":
-		n, err := strconv.ParseInt(args[0].AsStr(), 16, 64)
-		if err != nil {
-			panic("invalid hex string: " + args[0].AsStr())
-		}
-		return NumVal(float64(n))
+		return evalHexToDec(args)
 	case "binToDec":
-		n, err := strconv.ParseInt(args[0].AsStr(), 2, 64)
-		if err != nil {
-			panic("invalid binary string: " + args[0].AsStr())
-		}
-		return NumVal(float64(n))
+		return evalBinToDec(args)
 	case "dec":
-		n, err := strconv.ParseInt(args[0].AsStr(), 10, 64)
-		if err != nil {
-			panic("invalid decimal string: " + args[0].AsStr())
-		}
-		return NumVal(float64(n))
+		return evalDec(args)
 	case "bin":
-		n, err := strconv.ParseInt(args[0].AsStr(), 2, 64)
-		if err != nil {
-			panic("invalid binary string: " + args[0].AsStr())
-		}
-		return NumVal(float64(n))
+		return evalBin(args)
 	case "octal":
-		n, err := strconv.ParseInt(args[0].AsStr(), 8, 64)
-		if err != nil {
-			panic("invalid octal string: " + args[0].AsStr())
-		}
-		return NumVal(float64(n))
+		return evalOctal(args)
 	case "hexa":
-		n, err := strconv.ParseInt(args[0].AsStr(), 16, 64)
-		if err != nil {
-			panic("invalid hex string: " + args[0].AsStr())
-		}
-		return NumVal(float64(n))
+		return evalHexa(args)
 
-	// --- Random ---
+	// --- Random (numops.go) ---
 	case "randInt":
-		lo, hi := int(args[0].AsNum()), int(args[1].AsNum())
-		return NumVal(float64(lo + rand.Intn(hi-lo+1)))
+		return evalRandInt(args)
 	case "randFloat":
-		return NumVal(rand.Float64())
+		return evalRandFloat(args)
 	case "setRandSeed":
-		rand.Seed(int64(args[0].AsNum()))
-		return NullVal()
+		return evalSetRandSeed(args)
 
 	// --- Variadic min/max ---
 	case "min":
@@ -128,99 +98,35 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 		}
 		return NumVal(result)
 
-	// --- List stats ---
+	// --- List statistics (numops.go) ---
 	case "avgOf":
-		list := args[0].AsList()
-		if len(*list) == 0 {
-			return NumVal(0)
-		}
-		sum := 0.0
-		for _, v := range *list {
-			sum += v.AsNum()
-		}
-		return NumVal(sum / float64(len(*list)))
+		return evalAvgOf(args)
 	case "maxOf":
-		list := args[0].AsList()
-		if len(*list) == 0 {
-			panic("maxOf: empty list")
-		}
-		mx := (*list)[0].AsNum()
-		for _, v := range (*list)[1:] {
-			if v.AsNum() > mx {
-				mx = v.AsNum()
-			}
-		}
-		return NumVal(mx)
+		return evalMaxOf(args)
 	case "minOf":
-		list := args[0].AsList()
-		if len(*list) == 0 {
-			panic("minOf: empty list")
-		}
-		mn := (*list)[0].AsNum()
-		for _, v := range (*list)[1:] {
-			if v.AsNum() < mn {
-				mn = v.AsNum()
-			}
-		}
-		return NumVal(mn)
+		return evalMinOf(args)
 	case "geoMeanOf":
-		list := args[0].AsList()
-		if len(*list) == 0 {
-			return NumVal(0)
-		}
-		product := 1.0
-		for _, v := range *list {
-			product *= v.AsNum()
-		}
-		return NumVal(math.Pow(product, 1.0/float64(len(*list))))
+		return evalGeoMeanOf(args)
 	case "stdDevOf":
-		return NumVal(listStdDev(args[0].AsList(), false))
+		return evalStdDevOf(args)
 	case "stdErrOf":
-		list := args[0].AsList()
-		n := float64(len(*list))
-		if n <= 1 {
-			return NumVal(0)
-		}
-		return NumVal(listStdDev(list, false) / math.Sqrt(n))
+		return evalStdErrOf(args)
 	case "modeOf":
-		list := args[0].AsList()
-		counts := make(map[string]int)
-		var order []string
-		for _, v := range *list {
-			s := v.String()
-			if counts[s] == 0 {
-				order = append(order, s)
-			}
-			counts[s]++
-		}
-		maxCount := 0
-		var modeVal string
-		for _, s := range order {
-			if counts[s] > maxCount {
-				maxCount = counts[s]
-				modeVal = s
-			}
-		}
-		// Return as list of modes (App Inventor returns a list)
-		return ListVal([]Value{StrVal(modeVal)})
+		return evalModeOf(args)
 
-	// --- Math ops ---
+	// --- Secondary math ops (numops.go) ---
 	case "mod":
-		a, b := args[0].AsNum(), args[1].AsNum()
-		return NumVal(math.Mod(math.Abs(a), math.Abs(b)) * sign(a))
+		return evalMod(args)
 	case "rem":
-		a, b := args[0].AsNum(), args[1].AsNum()
-		return NumVal(math.Mod(a, b))
+		return evalRem(args)
 	case "quot":
-		a, b := args[0].AsNum(), args[1].AsNum()
-		return NumVal(math.Trunc(a / b))
+		return evalQuot(args)
 	case "atan2":
-		return NumVal(math.Atan2(args[0].AsNum(), args[1].AsNum()))
+		return evalAtan2(args)
 	case "formatDecimal":
-		n, places := args[0].AsNum(), int(args[1].AsNum())
-		return StrVal(strconv.FormatFloat(n, 'f', places, 64))
+		return evalFormatDecimal(args)
 
-	// --- List ---
+	// --- List helpers ---
 	case "copyList":
 		src := args[0].AsList()
 		cp := make([]Value, len(*src))
@@ -229,109 +135,44 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 	case "copyDict":
 		return DictVal(args[0].AsDict().Clone())
 
-	// --- Color ---
+	// --- Color (numops.go) ---
 	case "makeColor":
-		// arg is a list [r, g, b] or [r, g, b, a]
-		list := args[0].AsList()
-		r := int((*list)[0].AsNum()) & 0xFF
-		g := int((*list)[1].AsNum()) & 0xFF
-		b := int((*list)[2].AsNum()) & 0xFF
-		a := 255
-		if len(*list) >= 4 {
-			a = int((*list)[3].AsNum()) & 0xFF
-		}
-		hex := fmt.Sprintf("#%02X%02X%02X%02X", a, r, g, b)
-		return ColorVal(hex)
+		return evalMakeColor(args)
 	case "splitColor":
-		hex := strings.TrimPrefix(args[0].AsStr(), "#")
-		var a, r, g, b int64
-		if len(hex) == 8 {
-			a, _ = strconv.ParseInt(hex[0:2], 16, 64)
-			r, _ = strconv.ParseInt(hex[2:4], 16, 64)
-			g, _ = strconv.ParseInt(hex[4:6], 16, 64)
-			b, _ = strconv.ParseInt(hex[6:8], 16, 64)
-		} else if len(hex) == 6 {
-			a = 255
-			r, _ = strconv.ParseInt(hex[0:2], 16, 64)
-			g, _ = strconv.ParseInt(hex[2:4], 16, 64)
-			b, _ = strconv.ParseInt(hex[4:6], 16, 64)
-		}
-		return ListVal([]Value{NumVal(float64(r)), NumVal(float64(g)), NumVal(float64(b)), NumVal(float64(a))})
+		return evalSplitColor(args)
 
 	// --- App Inventor screen stubs ---
 	case "openScreen":
-		fmt.Printf("[stub] openScreen(%s) is not supported outside App Inventor\n", args[0].AsStr())
+		stub("openScreen(" + args[0].AsStr() + ")")
 		return NullVal()
 	case "openScreenWithValue":
-		fmt.Printf("[stub] openScreenWithValue(%s, ...) is not supported outside App Inventor\n", args[0].AsStr())
+		stub("openScreenWithValue(" + args[0].AsStr() + ", ...)")
 		return NullVal()
 	case "closeScreen":
-		fmt.Println("[stub] closeScreen() is not supported outside App Inventor")
+		stub("closeScreen()")
 		return NullVal()
 	case "closeScreenWithValue":
-		fmt.Println("[stub] closeScreenWithValue(...) is not supported outside App Inventor")
+		stub("closeScreenWithValue(...)")
 		return NullVal()
 	case "closeApp":
-		fmt.Println("[stub] closeApp() is not supported outside App Inventor")
+		stub("closeApp()")
 		return NullVal()
 	case "getPlainStartText":
-		fmt.Println("[stub] getPlainStartText() is not supported outside App Inventor")
+		stub("getPlainStartText()")
 		return StrVal("")
 	case "closeScreenWithPlainText":
-		fmt.Println("[stub] closeScreenWithPlainText(...) is not supported outside App Inventor")
+		stub("closeScreenWithPlainText(...)")
 		return NullVal()
 	case "getStartValue":
-		fmt.Println("[stub] getStartValue() is not supported outside App Inventor")
+		stub("getStartValue()")
 		return StrVal("")
 
 	// --- Generic component function stubs ---
 	case "set", "get", "call", "vcall", "every":
-		fmt.Printf("[stub] component function '%s' is not supported outside App Inventor\n", e.Name)
+		stub("component function '" + e.Name + "'")
 		return NullVal()
 
 	default:
 		panic("unknown built-in function: " + e.Name)
 	}
-}
-
-func listStdDev(list *[]Value, population bool) float64 {
-	n := float64(len(*list))
-	if n == 0 {
-		return 0
-	}
-	sum := 0.0
-	for _, v := range *list {
-		sum += v.AsNum()
-	}
-	mean := sum / n
-	variance := 0.0
-	for _, v := range *list {
-		d := v.AsNum() - mean
-		variance += d * d
-	}
-	denom := n
-	if !population && n > 1 {
-		denom = n - 1
-	}
-	return math.Sqrt(variance / denom)
-}
-
-func sign(f float64) float64 {
-	if f < 0 {
-		return -1
-	}
-	return 1
-}
-
-// sortValues sorts a slice of Values numerically if possible, else lexicographically.
-func sortValues(list []Value) {
-	sort.SliceStable(list, func(a, b int) bool {
-		va, vb := list[a], list[b]
-		na, aOk := TryNum(va)
-		nb, bOk := TryNum(vb)
-		if aOk && bOk {
-			return na < nb
-		}
-		return va.AsStr() < vb.AsStr()
-	})
 }

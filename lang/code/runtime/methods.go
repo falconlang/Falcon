@@ -4,7 +4,6 @@ import (
 	astlist "Falcon/code/ast/list"
 	astmethod "Falcon/code/ast/method"
 	"encoding/csv"
-	"fmt"
 	"math/rand"
 	"sort"
 	"strings"
@@ -511,6 +510,6 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer) Value {
 		return best
 
 	default:
-		panic(fmt.Sprintf("unknown list transformer: %s", e.Name))
+		panic("unknown list transformer: " + e.Name)
 	}
 }

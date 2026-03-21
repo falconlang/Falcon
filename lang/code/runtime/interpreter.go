@@ -11,7 +11,6 @@ import (
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
 	"Falcon/code/lex"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -135,7 +134,7 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 	case *fundamentals.SmartBody:
 		return i.execBody(e.Body)
 	case *fundamentals.Component:
-		fmt.Printf("[stub] component reference @%s (%s) is not supported outside App Inventor\n", e.Name, e.Type)
+		stub("component reference @" + e.Name + " (" + e.Type + ")")
 		return NullVal()
 
 	case *common.EmptySocket:
@@ -214,7 +213,7 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 		list := i.eval(e.List).AsList()
 		idx := int(i.eval(e.Index).AsNum())
 		if idx < 1 || idx > len(*list) {
-			panic(fmt.Sprintf("list index %d out of bounds (len=%d)", idx, len(*list)))
+			panic("list index " + strconv.Itoa(idx) + " out of bounds (len=" + strconv.Itoa(len(*list)) + ")")
 		}
 		return (*list)[idx-1]
 	case *astlist.Set:
@@ -222,7 +221,7 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 		idx := int(i.eval(e.Index).AsNum())
 		val := i.eval(e.Value)
 		if idx < 1 || idx > len(*list) {
-			panic(fmt.Sprintf("list index %d out of bounds (len=%d)", idx, len(*list)))
+			panic("list index " + strconv.Itoa(idx) + " out of bounds (len=" + strconv.Itoa(len(*list)) + ")")
 		}
 		(*list)[idx-1] = val
 		return NullVal()
@@ -231,35 +230,35 @@ func (i *Interpreter) eval(expr ast.Expr) Value {
 
 	// --- App Inventor component stubs ---
 	case *components.Event:
-		fmt.Printf("[stub] event handler %s.%s is not supported outside App Inventor\n", e.ComponentName, e.Event)
+		stub("event handler " + e.ComponentName + "." + e.Event)
 		return NullVal()
 	case *components.GenericEvent:
-		fmt.Printf("[stub] generic event handler %s.%s is not supported outside App Inventor\n", e.ComponentType, e.Event)
+		stub("generic event handler " + e.ComponentType + "." + e.Event)
 		return NullVal()
 	case *components.MethodCall:
-		fmt.Printf("[stub] component method %s.%s(...) is not supported outside App Inventor\n", e.ComponentName, e.Method)
+		stub("component method " + e.ComponentName + "." + e.Method + "(...)")
 		return NullVal()
 	case *components.GenericMethodCall:
-		fmt.Printf("[stub] generic component method %s.%s(...) is not supported outside App Inventor\n", e.ComponentType, e.Method)
+		stub("generic component method " + e.ComponentType + "." + e.Method + "(...)")
 		return NullVal()
 	case *components.PropertyGet:
-		fmt.Printf("[stub] property get %s.%s is not supported outside App Inventor\n", e.ComponentName, e.Property)
+		stub("property get " + e.ComponentName + "." + e.Property)
 		return NullVal()
 	case *components.GenericPropertyGet:
-		fmt.Printf("[stub] generic property get %s.%s is not supported outside App Inventor\n", e.ComponentType, e.Property)
+		stub("generic property get " + e.ComponentType + "." + e.Property)
 		return NullVal()
 	case *components.PropertySet:
-		fmt.Printf("[stub] property set %s.%s is not supported outside App Inventor\n", e.ComponentName, e.Property)
+		stub("property set " + e.ComponentName + "." + e.Property)
 		return NullVal()
 	case *components.GenericPropertySet:
-		fmt.Printf("[stub] generic property set %s.%s is not supported outside App Inventor\n", e.ComponentType, e.Property)
+		stub("generic property set " + e.ComponentType + "." + e.Property)
 		return NullVal()
 	case *components.EveryComponent:
-		fmt.Printf("[stub] every(%s) is not supported outside App Inventor\n", e.Type)
+		stub("every(" + e.Type + ")")
 		return EmptyList()
 
 	default:
-		panic(fmt.Sprintf("unknown AST node type: %T", expr))
+		panic("unknown AST node type")
 	}
 }
 
@@ -394,7 +393,7 @@ func (i *Interpreter) evalBinary(e *common.BinaryExpr) Value {
 		return StrVal(sb.String())
 
 	default:
-		panic(fmt.Sprintf("unknown binary operator: %v", e.Operator))
+		panic("unknown binary operator: " + strconv.Itoa(int(e.Operator)))
 	}
 }
 

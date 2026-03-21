@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -181,7 +180,7 @@ func formatNum(f float64) string {
 		return "NaN"
 	}
 	if f == math.Trunc(f) && math.Abs(f) < 1e15 {
-		return fmt.Sprintf("%d", int64(f))
+		return strconv.FormatInt(int64(f), 10)
 	}
 	return strconv.FormatFloat(f, 'f', -1, 64)
 }
