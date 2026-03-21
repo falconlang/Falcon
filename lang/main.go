@@ -15,13 +15,24 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "repl" {
-		repl()
-		return
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "repl":
+			repl()
+			return
+		case "run":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: Falcon run <file.mist>")
+				os.Exit(1)
+			}
+			runFile(os.Args[2])
+			return
+		}
 	}
 	repl()
 	//diffTest()
@@ -29,6 +40,28 @@ func main() {
 	//xmlTest()
 	//designTest()
 	//runProgram()
+}
+
+func runFile(path string) {
+	codeBytes, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+	source := string(codeBytes)
+	fileName := filepath.Base(path)
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintln(os.Stderr, "Error:", r)
+			os.Exit(1)
+		}
+	}()
+	codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
+	tokens := lex.NewLexer(codeContext).Lex()
+	langParser := mistParser.NewLangParser(false, tokens)
+	exprs := langParser.ParseAll()
+	interp := runtime.NewInterpreter()
+	interp.Run(exprs)
 }
 
 func repl() {
