@@ -1,0 +1,2181 @@
+//10731
+global gcHeap = []
+global gcRoots = []
+
+func allocate(id) = {
+  this.gcHeap.add({"id": id, "alive": false})
+}
+
+func addRoot(id) = {
+  this.gcRoots.add(id)
+}
+
+func markSweep() = {
+  for (obj in this.gcHeap) {
+    obj.set("alive", false)
+  }
+  for (rootId in this.gcRoots) {
+    for (obj in this.gcHeap) {
+      if (obj.get("id") === rootId) {
+        obj.set("alive", true)
+      }
+    }
+  }
+  local swept = this.gcHeap.filter { obj -> obj.get("alive") }
+  this.gcHeap = swept
+  swept
+}
+
+allocate("a")
+allocate("b")
+allocate("c")
+addRoot("a")
+addRoot("c")
+println(markSweep())
+
+//10911
+func topSortDependencies(modules, dep_map) = {
+  local visited = {}
+  local order = []
+  func visit(m) = {
+    if (!visited.containsKey(m)) {
+      visited.set(m, true)
+      local deps = dep_map.get(m)
+      if (deps ? list) {
+        for (d in deps) {
+          visit(d)
+        }
+      }
+      order.add(m)
+    }
+  }
+  for (m in modules) {
+    visit(m)
+  }
+  order
+}
+
+local mods = ["app", "utils", "core", "base"]
+local deps = {"app": ["utils", "core"], "utils": ["base"], "core": ["base"], "base": []}
+println(topSortDependencies(mods, deps))
+
+//11059
+func heapUsageColor(used, total) = {
+  local t = used / total
+  local r = round(t * 255)
+  local g = round((1 - t) * 255)
+  makeColor([r, g, 0])
+}
+
+println(heapUsageColor(100, 1000))
+println(heapUsageColor(900, 1000))
+
+//10956
+func softwarePipeline(loop_body, initiation_interval) = {
+  local n = loop_body.listLen()
+  local prologue = []
+  local kernel = []
+  local epilogue = []
+  for (i: 1 .. initiation_interval) {
+    prologue.add("prologue_stage_" _ i _ ": " _ loop_body[((i-1) % n) + 1])
+  }
+  for (i: 1 .. n) {
+    kernel.add("kernel: " _ loop_body[i])
+  }
+  for (i: 1 .. initiation_interval) {
+    epilogue.add("epilogue_stage_" _ i _ ": " _ loop_body[((i-1) % n) + 1])
+  }
+  {"prologue": prologue, "kernel": kernel, "epilogue": epilogue}
+}
+
+println(softwarePipeline(["load r1", "add r2,r1", "store r2"], 2))
+
+//10861
+func formatIndented(code, level) = {
+  local prefix = ""
+  for (i: 1 .. level * 2) {
+    prefix = prefix _ " "
+  }
+  local lines = code.split("\n")
+  local result = ""
+  for (line in lines) {
+    result = result _ prefix _ line _ "\n"
+  }
+  result
+}
+
+println(formatIndented("if (x) {\nreturn x;\n}", 2))
+
+//10712
+global codeBuffer = []
+
+func emit(instr) = {
+  this.codeBuffer.add(instr)
+}
+
+emit("MOV R0, #0")
+emit("ADD R1, R0, #1")
+emit("CMP R1, #5")
+emit("BNE loop")
+emit("RET")
+println(this.codeBuffer)
+
+//10739
+global trampolineTable = {}
+
+func needsTrampoline(func_name) = {
+  this.trampolineTable.containsKey(func_name)
+}
+
+func addTrampoline(name) = {
+  local tramp_addr = this.trampolineTable.dictLen() * 16 + 65536
+  this.trampolineTable.set(name, {"addr": tramp_addr, "target": name})
+}
+
+addTrampoline("far_func_1")
+addTrampoline("far_func_2")
+println(needsTrampoline("far_func_1"))
+println(needsTrampoline("near_func"))
+println(this.trampolineTable)
+
+//10843
+func printDomTree(dom) = {
+  func printNode(node, level) = {
+    local indent = ""
+    for (i: 1 .. level * 2) {
+      indent = indent _ " "
+    }
+    local out = indent _ node.get("id") _ "\n"
+    local children = node.get("children")
+    if (children ? list) {
+      for (child in children) {
+        out = out _ printNode(child, level + 1)
+      }
+    }
+    out
+  }
+  printNode(dom, 0)
+}
+
+local domTree = {"id": "entry", "children": [
+  {"id": "B1", "children": [
+    {"id": "B2", "children": []},
+    {"id": "B3", "children": []}
+  ]},
+  {"id": "B4", "children": []}
+]}
+println(printDomTree(domTree))
+
+//10917
+func buildInterferenceGraph(live_ranges) = {
+  local edges = []
+  local vars = live_ranges.keys()
+  local n = vars.listLen()
+  for (i: 1 .. n) {
+    for (j: i+1 .. n) {
+      local r1 = live_ranges.get(vars[i])
+      local r2 = live_ranges.get(vars[j])
+      local s1 = r1.get("start")
+      local e1 = r1.get("end")
+      local s2 = r2.get("start")
+      local e2 = r2.get("end")
+      if (s1 <= e2 && s2 <= e1) {
+        edges.add([vars[i], vars[j]])
+      }
+    }
+  }
+  edges
+}
+
+local lrs = {"x": {"start": 1, "end": 5}, "y": {"start": 3, "end": 8}, "z": {"start": 6, "end": 10}}
+println(buildInterferenceGraph(lrs))
+
+//10985
+func buildCFG(func_ast) = {
+  {"blocks": {}, "edges": [], "entry": "entry", "exit": "exit"}
+}
+
+func addBlock(cfg, id) = {
+  cfg.get("blocks").set(id, {"id": id, "instrs": []})
+  cfg
+}
+
+func addEdge(cfg, from, to) = {
+  cfg.get("edges").add([from, to])
+  cfg
+}
+
+local cfg = buildCFG({})
+addBlock(cfg, "entry")
+addBlock(cfg, "B1")
+addBlock(cfg, "exit")
+addEdge(cfg, "entry", "B1")
+addEdge(cfg, "B1", "exit")
+println(cfg)
+
+//11195
+func buildDeadlockDetector(threads, locks) = {
+  local graph = {}
+  for (t in threads) {
+    graph.set(t.get("id"), t.get("waiting_for"))
+  }
+  local visited = {}
+  local rec_stack = {}
+  local cycle = []
+  func dfs(node) = {
+    visited.set(node, true)
+    rec_stack.set(node, true)
+    local neighbor = graph.get(node)
+    if (neighbor ? text) {
+      if (!visited.containsKey(neighbor)) {
+        dfs(neighbor)
+      } else if (rec_stack.containsKey(neighbor)) {
+        cycle.add(node _ " -> " _ neighbor)
+      }
+    }
+    rec_stack.delete(node)
+  }
+  for (t in threads) {
+    local tid = t.get("id")
+    if (!visited.containsKey(tid)) {
+      dfs(tid)
+    }
+  }
+  if (cycle.listLen() > 0) cycle else ["no deadlock"]
+}
+
+local threads_dl = [
+  {"id": "T1", "waiting_for": "T2"},
+  {"id": "T2", "waiting_for": "T3"},
+  {"id": "T3", "waiting_for": "T1"}
+]
+println(buildDeadlockDetector(threads_dl, {}))
+
+//11009
+func buildTraceCache(traces) = {
+  local cache = {}
+  for (t in traces) {
+    cache.set(t.get("id"), t.get("code"))
+  }
+  {"cache": cache}
+}
+
+func addTrace(tc, trace_id, code) = {
+  tc.get("cache").set(trace_id, code)
+  tc
+}
+
+func lookupTrace(tc, trace_id) = {
+  local cache = tc.get("cache")
+  if (cache.containsKey(trace_id)) {
+    cache.get(trace_id)
+  } else {
+    "miss"
+  }
+}
+
+local tc = buildTraceCache([{"id": "t1", "code": "MOV R0,#1"}, {"id": "t2", "code": "ADD R0,R1"}])
+addTrace(tc, "t3", "RET")
+println(lookupTrace(tc, "t2"))
+println(lookupTrace(tc, "t99"))
+
+//11084
+local grammar = {
+  "E": [["T", "E'"]],
+  "E'": [["+", "T", "E'"], [""]],
+  "T": [["F", "T'"]],
+  "T'": [["*", "F", "T'"], [""]],
+  "F": [["(", "E", ")"], ["id"]]
+}
+
+local nonterminals = ["E", "E'", "T", "T'", "F"]
+local firstSets = {}
+for (nt in nonterminals) {
+  firstSets.set(nt, [])
+}
+
+local changed = true
+while (changed) {
+  changed = false
+  for (nt in nonterminals) {
+    local prods = grammar.get(nt)
+    for (prod in prods) {
+      if (prod.listLen() == 1 && prod[1] === "") {
+        local fs = firstSets.get(nt)
+        if (!fs.containsItem("ε")) {
+          fs.add("ε")
+          changed = true
+        }
+      } else {
+        local sym = prod[1]
+        if (!nonterminals.containsItem(sym)) {
+          local fs = firstSets.get(nt)
+          if (!fs.containsItem(sym)) {
+            fs.add(sym)
+            changed = true
+          }
+        } else {
+          local symFirst = firstSets.get(sym)
+          for (t in symFirst) {
+            if (t !== "ε") {
+              local fs = firstSets.get(nt)
+              if (!fs.containsItem(t)) {
+                fs.add(t)
+                changed = true
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+println(firstSets)
+
+//11108
+local loops = [
+  {"i_start": 0, "i_end": 10, "j_start": 0, "j_end": 10},
+  {"i_start": 0, "i_end": 5, "j_start": 0, "j_end": 5}
+]
+local deps_poly = [
+  {"src": [1, 0], "dst": [1, 1]},
+  {"src": [0, 1], "dst": [1, 0]}
+]
+local transform = [[0, 1], [1, 0]]
+
+for (i: 1 .. deps_poly.listLen()) {
+  for (j: 1 .. deps_poly.listLen()) {
+    local src = deps_poly[i].get("src")
+    local dst = deps_poly[j].get("dst")
+    local diff = [dst[1] - src[1], dst[2] - src[2]]
+    local t_diff = [
+      transform[1][1]*diff[1] + transform[1][2]*diff[2],
+      transform[2][1]*diff[1] + transform[2][2]*diff[2]
+    ]
+    local valid = t_diff[1] > 0 || (t_diff[1] == 0 && t_diff[2] >= 0)
+    println("Dep " _ i _ "→" _ j _ " transformed diff=" _ t_diff _ " valid=" _ valid)
+  }
+}
+
+//11129
+local closures_raw = [
+  {"name": "adder", "params": ["x"], "body": "x + y", "free": ["y"]},
+  {"name": "multiplier", "params": ["a"], "body": "a * scale", "free": ["scale"]},
+  {"name": "printer", "params": ["msg"], "body": "print(msg _ suffix)", "free": ["suffix"]}
+]
+
+local env_outer = {"y": 10, "scale": 3, "suffix": "!"}
+
+for (cl in closures_raw) {
+  local captured = {}
+  for (fv in cl.get("free")) {
+    if (env_outer.containsKey(fv)) {
+      captured.set(fv, env_outer.get(fv))
+    }
+  }
+  println("Closure '" _ cl.get("name") _ "' captures: " _ captured)
+}
+
+//11086
+local ll1_table = {
+  "E+id": ["T", "E'"],
+  "E+(": ["T", "E'"],
+  "E'++": ["+", "T", "E'"],
+  "E'+)": [],
+  "E'+$": [],
+  "T+id": ["F", "T'"],
+  "T+(": ["F", "T'"],
+  "T'+*": ["*", "F", "T'"],
+  "T'++": [],
+  "T'+)": [],
+  "T'+$": [],
+  "F+id": ["id"],
+  "F+(": ["(", "E", ")"]
+}
+
+local input_ll1 = ["id", "+", "id", "*", "id", "$"]
+local stack_ll1 = ["$", "E"]
+local pos_ll1 = 1
+local accepted = false
+local error_ll1 = false
+
+while (stack_ll1.listLen() > 0 && !accepted && !error_ll1) {
+  local top = stack_ll1[stack_ll1.listLen()]
+  local curr = input_ll1[pos_ll1]
+  println("Stack top: " _ top _ " Input: " _ curr)
+  if (top === "$" && curr === "$") {
+    accepted = true
+  } else if (top === curr) {
+    stack_ll1.remove(stack_ll1.listLen())
+    pos_ll1 = pos_ll1 + 1
+  } else {
+    local key = top _ "+" _ curr
+    if (ll1_table.containsKey(key)) {
+      local prod = ll1_table.get(key)
+      stack_ll1.remove(stack_ll1.listLen())
+      for (i: prod.listLen() .. 1 step -1) {
+        if (prod[i] !== "") {
+          stack_ll1.add(prod[i])
+        }
+      }
+    } else {
+      error_ll1 = true
+    }
+  }
+}
+println(if (accepted) "Accepted!" else "Parse error")
+
+//11116
+local loop_instrs = ["load", "mul", "add"]
+local latency = 3
+local ii = latency
+local schedule = []
+local stage = 0
+
+while (stage < ii) {
+  local kernel_cycle = []
+  for (i: 1 .. loop_instrs.listLen()) {
+    local issue_time = (stage + (i-1) * latency) % ii
+    kernel_cycle.add({"op": loop_instrs[i], "stage": stage, "issue": issue_time})
+  }
+  schedule.add(kernel_cycle)
+  stage = stage + 1
+}
+println("Software pipeline schedule:")
+for (cyc in schedule) {
+  println(cyc)
+}
+
+//10705
+global keywords = ["let","const","if","else","while","for","return","func","true","false","null"]
+
+func isKeyword(word) = {
+  this.keywords.containsItem(word)
+}
+
+println(isKeyword("if"))
+println(isKeyword("myVar"))
+
+//10722
+global liveIn = {}
+global liveOut = {}
+
+func initLiveness(blocks) = {
+  for (b in blocks) {
+    this.liveIn.set(b, [])
+    this.liveOut.set(b, [])
+  }
+}
+
+initLiveness(["B0","B1","B2","B3"])
+println(this.liveIn)
+println(this.liveOut)
+
+//10746
+global variantTags = {"None": 0, "Some": 1, "Ok": 2, "Err": 3}
+
+func matchVariant(tag, cases) = {
+  if (cases.containsKey(tag)) {
+    cases.get(tag)
+  } else if (cases.containsKey("_")) {
+    cases.get("_")
+  } else {
+    "no match"
+  }
+}
+
+println(matchVariant("Some", {"Some": "has value", "None": "empty", "_": "other"}))
+println(matchVariant("Err", {"Ok": "success", "_": "failure"}))
+
+//10754
+func bitCount(n) = {
+  local count = 0
+  local x = n
+  while (x > 0) {
+    count = count + (x % 2)
+    x = floor(x / 2)
+  }
+  count
+}
+
+println(bitCount(0))
+println(bitCount(255))
+println(bitCount(170))
+
+//10758
+func log2Floor(n) = {
+  local result = 0
+  local x = n
+  while (x > 1) {
+    x = floor(x / 2)
+    result = result + 1
+  }
+  result
+}
+
+println(log2Floor(1))
+println(log2Floor(8))
+println(log2Floor(255))
+
+//10762
+func toggleBit(n, i) = {
+  local mask = 2 ^ (i - 1)
+  local bit = floor(n / mask) % 2
+  if (bit == 1) {
+    n - mask
+  } else {
+    n + mask
+  }
+}
+
+println(toggleBit(12, 1))
+println(toggleBit(12, 4))
+
+//10766
+func signExtend(n, fromBits) = {
+  local maxVal = 2 ^ fromBits
+  local signBit = 2 ^ (fromBits - 1)
+  local masked = n % maxVal
+  if (masked >= signBit) {
+    masked - maxVal
+  } else {
+    masked
+  }
+}
+
+println(signExtend(200, 8))
+println(signExtend(127, 8))
+
+//10770
+func minBits(n) = {
+  if (n == 0) {
+    1
+  } else {
+    local bits = 0
+    local x = n
+    while (x > 0) {
+      bits = bits + 1
+      x = floor(x / 2)
+    }
+    bits
+  }
+}
+
+println(minBits(0))
+println(minBits(127))
+println(minBits(128))
+
+//10774
+func reedMuller(bits, r, m) = {
+  local result = bits[1]
+  for (i: 1 .. m) {
+    result = result ~ bits[i]
+  }
+  for (i: 1 .. m) {
+    for (j: i+1 .. m) {
+      result = result ~ (bits[i] & bits[j])
+    }
+  }
+  result
+}
+
+println(reedMuller([1, 0, 1, 1], 1, 3))
+
+//10779
+func tabulation_hash(key_bytes, tables) = {
+  local h = 0
+  for (i: 1 .. key_bytes.listLen()) {
+    local byte_val = key_bytes[i]
+    local table = tables[((i-1) % tables.listLen()) + 1]
+    h = h ~ table[byte_val + 1]
+  }
+  h
+}
+
+local tab_tables = [[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255]]
+println(tabulation_hash([72, 101, 108], tab_tables))
+
+//10784
+func modMul(a, b, m) = {
+  local result = 0
+  local aa = a % m
+  local bb = b
+  while (bb > 0) {
+    if (bb % 2 == 1) {
+      result = (result + aa) % m
+    }
+    aa = (aa * 2) % m
+    bb = floor(bb / 2)
+  }
+  result
+}
+
+println(modMul(123456, 789012, 1000007))
+
+//10788
+func deinterleave_bits(z) = {
+  local x = 0
+  local y = 0
+  local bit = 0
+  local zz = z
+  while (zz > 0) {
+    x = x + (zz % 2) * (2 ^ bit)
+    zz = floor(zz / 2)
+    y = y + (zz % 2) * (2 ^ bit)
+    zz = floor(zz / 2)
+    bit = bit + 1
+  }
+  {"x": x, "y": y}
+}
+
+func interleave_bits(x, y) = {
+  local z = 0
+  local xx = x
+  local yy = y
+  local bit = 0
+  while (xx > 0 || yy > 0) {
+    z = z + (xx % 2) * (2 ^ (2*bit))
+    z = z + (yy % 2) * (2 ^ (2*bit+1))
+    xx = floor(xx / 2)
+    yy = floor(yy / 2)
+    bit = bit + 1
+  }
+  z
+}
+
+local morton = interleave_bits(5, 3)
+println("Morton: " _ morton)
+println(deinterleave_bits(morton))
+
+//10792
+func ieee754_encode_simple(mantissa, exponent) = {
+  local sign = if (mantissa < 0) 1 else 0
+  local bias = 3
+  local exp_biased = exponent + bias
+  local mant_abs = abs(mantissa)
+  local mant_int = round((mant_abs - floor(mant_abs)) * 16) % 16
+  local byte_val = sign * 128 + exp_biased * 16 + mant_int
+  {"sign": sign, "exp": exp_biased, "mantissa_bits": mant_int, "byte": byte_val}
+}
+
+println(ieee754_encode_simple(1.5, 0))
+println(ieee754_encode_simple(-1.25, 1))
+
+//10796
+func elias_omega(n) = {
+  local code = ["0"]
+  local x = n
+  while (x > 1) {
+    local bits = []
+    local tmp = x
+    while (tmp > 0) {
+      bits.insert(1, tmp % 2)
+      tmp = floor(tmp / 2)
+    }
+    local encoded = bits.map { b -> "" _ b }.join("")
+    code.insert(1, encoded)
+    x = bits.listLen() - 1
+  }
+  code.join("")
+}
+
+for (i: 1 .. 8) {
+  println("elias_omega(" _ i _ ") = " _ elias_omega(i))
+}
+
+//10802
+func karatsuba(a, b) = {
+  if (a < 10 || b < 10) {
+    a * b
+  } else {
+    local n = max(floor(log(a)/log(10)) + 1, floor(log(b)/log(10)) + 1)
+    local m = floor(n / 2)
+    local p = 10 ^ m
+    local a1 = floor(a / p)
+    local a0 = a % p
+    local b1 = floor(b / p)
+    local b0 = b % p
+    local z0 = karatsuba(a0, b0)
+    local z2 = karatsuba(a1, b1)
+    local z1 = karatsuba(a0 + a1, b0 + b1) - z2 - z0
+    z2 * p * p + z1 * p + z0
+  }
+}
+
+println(karatsuba(1234, 5678))
+
+//10806
+func shor_order_finding(n, a) = {
+  local x = 1
+  local r = 1
+  while (r <= n) {
+    x = (x * a) % n
+    if (x == 1) {
+      r
+    } else {
+      r = r + 1
+    }
+  }
+  r
+}
+
+println(shor_order_finding(15, 7))
+println(shor_order_finding(21, 2))
+
+//10811
+func lagrange_basis(xs, i, x) = {
+  local n = xs.listLen()
+  local result = 1
+  for (j: 1 .. n) {
+    if (j != i) {
+      result = result * (x - xs[j]) / (xs[i] - xs[j])
+    }
+  }
+  result
+}
+
+println(lagrange_basis([1,2,3,4,5], 2, 2.5))
+println(lagrange_basis([0,1,2], 1, 0.5))
+
+//10815
+func legendre_P(n, x) = {
+  if (n == 0) {
+    1
+  } else if (n == 1) {
+    x
+  } else {
+    ((2*n - 1) * x * legendre_P(n-1, x) - (n-1) * legendre_P(n-2, x)) / n
+  }
+}
+
+println(legendre_P(0, 0.5))
+println(legendre_P(1, 0.5))
+println(legendre_P(2, 0.5))
+println(legendre_P(3, 0.5))
+
+//10819
+func motzkin(n) = {
+  if (n == 0) {
+    1
+  } else if (n == 1) {
+    1
+  } else {
+    ((2*n + 2) * motzkin(n-1) + (3*n - 3) * motzkin(n-2)) / (n + 2)
+  }
+}
+
+for (i: 0 .. 8) {
+  println("motzkin(" _ i _ ") = " _ motzkin(i))
+}
+
+//10824
+func hafnian(matrix) = {
+  local n = matrix.listLen()
+  local half = n / 2
+  local pairs = []
+  local all_indices = []
+  for (i: 1 .. n) {
+    all_indices.add(i)
+  }
+  func gen_matchings(remaining, matching) = {
+    if (remaining.listLen() == 0) {
+      local prod = 1
+      for (p in matching) {
+        prod = prod * matrix[p[1]][p[2]]
+      }
+      prod
+    } else {
+      local first = remaining[1]
+      local rest = remaining.slice(2, remaining.listLen())
+      local total = 0
+      for (i: 1 .. rest.listLen()) {
+        local partner = rest[i]
+        local new_rest = []
+        for (j: 1 .. rest.listLen()) {
+          if (j != i) {
+            new_rest.add(rest[j])
+          }
+        }
+        local new_matching = copyList(matching)
+        new_matching.add([first, partner])
+        total = total + gen_matchings(new_rest, new_matching)
+      }
+      total
+    }
+  }
+  gen_matchings(all_indices, [])
+}
+
+local haf_mat = [[0,1,1,0],[1,0,0,1],[1,0,0,1],[0,1,1,0]]
+println("Hafnian: " _ hafnian(haf_mat))
+
+//10828
+func companion_matrix(poly) = {
+  local n = poly.listLen() - 1
+  local C = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. n) {
+      row.add(0)
+    }
+    C.add(row)
+  }
+  for (i: 1 .. n-1) {
+    C[i+1][i] = 1
+  }
+  local lead = poly[n+1]
+  for (j: 1 .. n) {
+    C[j][n] = -poly[j] / lead
+  }
+  C
+}
+
+println(companion_matrix([6, -11, 6, -1]))
+
+//10832
+func printTokenList(tokens) = {
+  local out = ""
+  for (tok in tokens) {
+    out = out _ "[" _ tok.get("type") _ ": " _ tok.get("value") _ "]\n"
+  }
+  out
+}
+
+local toks = [{"type":"KEYWORD","value":"if"},{"type":"IDENT","value":"x"},{"type":"OP","value":">"},{"type":"NUMBER","value":"0"}]
+println(printTokenList(toks))
+
+//10837
+func formatTypeError(expected, got) = {
+  "TypeError: expected '" _ expected _ "' but got '" _ got _ "'"
+}
+
+println(formatTypeError("number", "string"))
+
+//10845
+func escapeString(s) = {
+  s.replace("\n", "\\n").replace("\t", "\\t").replace("\"", "\\\"")
+}
+
+println(escapeString("Hello\nWorld\t\"test\""))
+
+//10849
+func lexeme(type, value, line, col) = {
+  "[" _ type _ "] " _ value _ " @" _ line _ ":" _ col
+}
+
+println(lexeme("IDENT", "myVar", 3, 12))
+
+//10853
+func printClosure(name, freeVars) = {
+  local fv_str = freeVars.keys().map { k -> k _ "=" _ freeVars.get(k) }.join(", ")
+  "closure " _ name _ " { " _ fv_str _ " }"
+}
+
+println(printClosure("adder", {"x": 5, "offset": 10}))
+
+//10860
+func parseSourceLine(s) = {
+  local i = 1
+  while (i <= s.textLen() && (s.segment(i, 1) === " " || s.segment(i, 1) === "\t")) {
+    i = i + 1
+  }
+  local indent = s.segment(1, i - 1)
+  local content = s.segment(i, s.textLen() - i + 1)
+  {"indent": indent.textLen(), "content": content}
+}
+
+println(parseSourceLine("    local x = 5"))
+println(parseSourceLine("func foo() = {"))
+
+//10865
+func formatIf(cond, then, else_br) = {
+  "if (" _ cond _ ") {\n  " _ then _ "\n} else {\n  " _ else_br _ "\n}"
+}
+
+println(formatIf("x > 0", "return x", "return -x"))
+
+//10871
+func printFirstSet(nonterminals, first) = {
+  local out = ""
+  for (nt in nonterminals) {
+    local fs = first.get(nt)
+    out = out _ "FIRST(" _ nt _ ") = { " _ fs.join(", ") _ " }\n"
+  }
+  out
+}
+
+println(printFirstSet(["E","T","F"], {"E": ["id","("], "T": ["id","("], "F": ["id","("]}))
+
+//10875
+func printActionTable(states, table) = {
+  local out = "State\t|\tACTION\n"
+  out = out _ "------+---------\n"
+  for (s in states) {
+    local row = table.get("" _ s)
+    out = out _ s _ "\t|\t" _ row _ "\n"
+  }
+  out
+}
+
+local act_table = {"0": "shift 5", "1": "reduce E", "2": "accept"}
+println(printActionTable([0, 1, 2], act_table))
+
+//10880
+func formatDFA(states, transitions, accept) = {
+  local out = "State\tInput\tNext\tAccept?\n"
+  for (tr in transitions) {
+    local is_accept = accept.containsItem(tr.get("from"))
+    out = out _ tr.get("from") _ "\t" _ tr.get("input") _ "\t" _ tr.get("to") _ "\t" _ is_accept _ "\n"
+  }
+  out
+}
+
+local dfa_trans = [{"from":"q0","input":"a","to":"q1"},{"from":"q1","input":"b","to":"q2"}]
+println(formatDFA(["q0","q1","q2"], dfa_trans, ["q2"]))
+
+//10886
+func printSCEV(var, scev) = {
+  "SCEV(" _ var _ ") = {" _ scev.get("start") _ " + " _ scev.get("step") _ " * i, rec=" _ scev.get("recurrence") _ "}"
+}
+
+println(printSCEV("x", {"start": 0, "step": 2, "recurrence": "linear"}))
+
+//10891
+func printLinkMap(symbols, addresses) = {
+  local out = "Symbol\t\tAddress\n"
+  for (sym in symbols) {
+    out = out _ sym _ "\t\t0x" _ addresses.get(sym) _ "\n"
+  }
+  out
+}
+
+local syms = ["main", "printf", "_start"]
+local addrs = {"main": "1000", "printf": "2000", "_start": "0800"}
+println(printLinkMap(syms, addrs))
+
+//10895
+func formatMachineCode(bytes) = {
+  local out = ""
+  for (i: 1 .. bytes.listLen()) {
+    local b = bytes[i]
+    local hex_str = decToHex(b)
+    out = out _ hex_str _ " "
+    if (i % 8 == 0) {
+      out = out _ "\n"
+    }
+  }
+  out
+}
+
+println(formatMachineCode([72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]))
+
+//10902
+func filterTokens(tokens, type) = {
+  tokens.filter { tok -> tok.get("type") === type }
+}
+
+local all_toks = [{"type":"NUMBER","value":"42"},{"type":"IDENT","value":"x"},{"type":"NUMBER","value":"7"},{"type":"OP","value":"+"}]
+println(filterTokens(all_toks, "NUMBER"))
+
+//10906
+func parseExprList(tokens) = {
+  local groups = []
+  local current = []
+  for (tok in tokens) {
+    if (tok.get("type") === "COMMA") {
+      groups.add(copyList(current))
+      current = []
+    } else {
+      current.add(tok)
+    }
+  }
+  if (current.listLen() > 0) {
+    groups.add(current)
+  }
+  groups
+}
+
+local expr_toks = [{"type":"IDENT","value":"x"},{"type":"COMMA","value":","},{"type":"NUMBER","value":"5"},{"type":"COMMA","value":","},{"type":"IDENT","value":"y"}]
+println(parseExprList(expr_toks))
+
+//10915
+func computeLiveDefs(blocks) = {
+  local result = {}
+  for (b in blocks) {
+    local def_set = []
+    local use_set = []
+    local instrs = b.get("instrs")
+    for (instr in instrs) {
+      if (instr.containsKey("def") && !def_set.containsItem(instr.get("def"))) {
+        def_set.add(instr.get("def"))
+      }
+      if (instr.containsKey("use")) {
+        for (u in instr.get("use")) {
+          if (!def_set.containsItem(u) && !use_set.containsItem(u)) {
+            use_set.add(u)
+          }
+        }
+      }
+    }
+    result.set(b.get("id"), {"DEF": def_set, "USE": use_set})
+  }
+  result
+}
+
+local blks = [
+  {"id": "B0", "instrs": [{"def":"x","use":["a","b"]},{"def":"y","use":["x"]}]},
+  {"id": "B1", "instrs": [{"def":"z","use":["y","c"]}]}
+]
+println(computeLiveDefs(blks))
+
+//10922
+func hoist(loop_body, invariants) = {
+  local hoisted = []
+  local remaining = []
+  for (instr in loop_body) {
+    if (invariants.containsItem(instr)) {
+      hoisted.add(instr)
+    } else {
+      remaining.add(instr)
+    }
+  }
+  {"hoisted": hoisted, "remaining": remaining}
+}
+
+println(hoist(["x=5", "y=i*2", "z=y+1", "w=3"], ["x=5", "w=3"]))
+
+//10926
+func fusionCandidates(loops) = {
+  local candidates = []
+  for (i: 1 .. loops.listLen() - 1) {
+    local l1 = loops[i]
+    local l2 = loops[i+1]
+    if (l1.get("end") + 1 == l2.get("start") && l1.get("step") == l2.get("step")) {
+      candidates.add([i, i+1])
+    }
+  }
+  candidates
+}
+
+local loop_list = [
+  {"start": 0, "end": 9, "step": 1},
+  {"start": 10, "end": 19, "step": 1},
+  {"start": 20, "end": 29, "step": 2}
+]
+println(fusionCandidates(loop_list))
+
+//10931
+func reassociate(instructions) = {
+  local consts = []
+  local others = []
+  for (instr in instructions) {
+    if (instr.get("type") === "const") {
+      consts.add(instr)
+    } else {
+      others.add(instr)
+    }
+  }
+  local result = copyList(consts)
+  result.appendList(others)
+  result
+}
+
+local instrs_r = [
+  {"op":"add","type":"var","val":"x"},
+  {"op":"add","type":"const","val":3},
+  {"op":"add","type":"var","val":"y"},
+  {"op":"add","type":"const","val":5}
+]
+println(reassociate(instrs_r))
+
+//10935
+func selectInstructions(ir) = {
+  local machine = []
+  for (op in ir) {
+    local mop = if (op === "add") "ADD R0,R1"
+      else if (op === "sub") "SUB R0,R1"
+      else if (op === "mul") "MUL R0,R1"
+      else if (op === "load") "LDR R0,[SP]"
+      else if (op === "store") "STR R0,[SP]"
+      else "NOP"
+    machine.add(mop)
+  }
+  machine
+}
+
+println(selectInstructions(["load","add","mul","store"]))
+
+//10939
+func patchJumps(instructions, label_map) = {
+  local patched = []
+  for (i: 1 .. instructions.listLen()) {
+    local instr = instructions[i]
+    if (instr.startsWith("JMP ") || instr.startsWith("BNE ") || instr.startsWith("BEQ ")) {
+      local parts = instr.split(" ")
+      local label = parts[2]
+      if (label_map.containsKey(label)) {
+        local offset = label_map.get(label) - i
+        patched.add(parts[1] _ " " _ offset)
+      } else {
+        patched.add(instr)
+      }
+    } else {
+      patched.add(instr)
+    }
+  }
+  patched
+}
+
+local instrs_j = ["MOV R0,#0", "ADD R0,#1", "CMP R0,#5", "BNE loop_start", "RET"]
+local lmap = {"loop_start": 2}
+println(patchJumps(instrs_j, lmap))
+
+//10943
+func buildAnticipExprs(blocks) = {
+  local result = {}
+  for (b in blocks) {
+    local exprs = []
+    for (instr in b.get("instrs")) {
+      if (instr.containsKey("expr")) {
+        exprs.add(instr.get("expr"))
+      }
+    }
+    result.set(b.get("id"), exprs)
+  }
+  result
+}
+
+local antic_blocks = [
+  {"id":"B0","instrs":[{"expr":"a+b"},{"expr":"c*d"}]},
+  {"id":"B1","instrs":[{"expr":"a+b"}]}
+]
+println(buildAnticipExprs(antic_blocks))
+
+//10947
+func aliasAnalysis(instructions) = {
+  local stores = []
+  local loads = []
+  local aliases = []
+  for (instr in instructions) {
+    if (instr.get("op") === "store") {
+      stores.add(instr)
+    } else if (instr.get("op") === "load") {
+      loads.add(instr)
+    }
+  }
+  for (s in stores) {
+    for (l in loads) {
+      aliases.add({"store": s.get("addr"), "load": l.get("addr"), "may_alias": true})
+    }
+  }
+  aliases
+}
+
+local mem_instrs = [
+  {"op":"store","addr":"x","val":5},
+  {"op":"load","addr":"y"},
+  {"op":"store","addr":"z","val":3},
+  {"op":"load","addr":"x"}
+]
+println(aliasAnalysis(mem_instrs))
+
+//10957
+func modulo_schedule(ops, latencies, resources) = {
+  local n = ops.listLen()
+  local max_lat = latencies.max { m, n -> m > n }
+  local ii = max_lat
+  local schedule = []
+  for (cycle: 0 .. ii - 1) {
+    local slot = []
+    for (i: 1 .. n) {
+      if ((i - 1) % ii == cycle) {
+        slot.add({"op": ops[i], "latency": latencies[i], "cycle": cycle})
+      }
+    }
+    schedule.add(slot)
+  }
+  schedule
+}
+
+println(modulo_schedule(["load","add","store"], [3,1,2], {"mem":1,"alu":1}))
+
+//10961
+func buildTypeProfile(instructions) = {
+  local profiles = []
+  for (instr in instructions) {
+    if (instr.get("op") === "call") {
+      profiles.add({"call_site": instr.get("site"), "observed_types": instr.get("arg_types")})
+    }
+  }
+  profiles
+}
+
+local typed_instrs = [
+  {"op":"call","site":"add","arg_types":["int","int"]},
+  {"op":"mov","dest":"r0"},
+  {"op":"call","site":"print","arg_types":["string"]}
+]
+println(buildTypeProfile(typed_instrs))
+
+//10965
+func buildJIT_regions(traces) = {
+  local regions = []
+  local current_region = []
+  local current_freq = 0
+  for (tr in traces) {
+    if (tr.get("freq") > 10) {
+      current_region.add(tr)
+    } else {
+      if (current_region.listLen() > 0) {
+        regions.add(copyList(current_region))
+        current_region = []
+      }
+    }
+  }
+  if (current_region.listLen() > 0) {
+    regions.add(current_region)
+  }
+  regions
+}
+
+local traces_j = [
+  {"id":"t1","freq":100},
+  {"id":"t2","freq":50},
+  {"id":"t3","freq":2},
+  {"id":"t4","freq":80}
+]
+println(buildJIT_regions(traces_j))
+
+//10972
+func inlinedVersions(functions, inlining_map) = {
+  local result = []
+  for (fn in functions) {
+    local name = fn.get("name")
+    if (inlining_map.containsKey(name)) {
+      local inlined_at = inlining_map.get(name)
+      result.add({"name": name _ "_inlined_at_" _ inlined_at, "body": fn.get("body"), "inlined": true})
+    } else {
+      result.add(fn)
+    }
+  }
+  result
+}
+
+local fns = [{"name":"add","body":"return a+b"},{"name":"mul","body":"return a*b"}]
+local imap = {"add": "main:5"}
+println(inlinedVersions(fns, imap))
+
+//10980
+func stripDebug(instructions) = {
+  instructions.filter { instr ->
+    local op = instr.get("op")
+    !(op === "debug" || op === "nop_debug" || op === "source_map")
+  }
+}
+
+local debug_instrs = [
+  {"op":"mov","dest":"r0"},
+  {"op":"debug","info":"line 5"},
+  {"op":"add","dest":"r1"},
+  {"op":"source_map","line":6}
+]
+println(stripDebug(debug_instrs))
+
+//10984
+func buildTypeEnv(base) = {
+  local env = copyDict(base)
+  env
+}
+
+func bind(te, tvar, type) = {
+  te.set(tvar, type)
+  te
+}
+
+func resolve(te, t) = {
+  if (te.containsKey(t)) {
+    local resolved = te.get(t)
+    if (te.containsKey(resolved)) {
+      resolve(te, resolved)
+    } else {
+      resolved
+    }
+  } else {
+    t
+  }
+}
+
+local te = buildTypeEnv({"int": "Int", "str": "String"})
+bind(te, "T0", "int")
+bind(te, "T1", "T0")
+println(resolve(te, "T1"))
+
+//10989
+func buildConstEnv(blocks) = {
+  {"consts": {}}
+}
+
+func setConst(ce, var, val) = {
+  ce.get("consts").set(var, val)
+  ce
+}
+
+func getConst(ce, var) = {
+  local consts = ce.get("consts")
+  if (consts.containsKey(var)) {
+    consts.get(var)
+  } else {
+    "⊤"
+  }
+}
+
+local ce = buildConstEnv([])
+setConst(ce, "x", 5)
+setConst(ce, "y", 10)
+println(getConst(ce, "x"))
+println(getConst(ce, "z"))
+
+//10994
+func buildMacroEnv(defs) = {
+  {"macros": copyDict(defs)}
+}
+
+func define(me, name, body) = {
+  me.get("macros").set(name, body)
+  me
+}
+
+func expand(me, name, args) = {
+  local macros = me.get("macros")
+  if (macros.containsKey(name)) {
+    local body = macros.get(name)
+    local result = body
+    for (i: 1 .. args.listLen()) {
+      result = result.replace("$" _ i, "" _ args[i])
+    }
+    result
+  } else {
+    "undefined macro: " _ name
+  }
+}
+
+local me = buildMacroEnv({"swap": "local tmp=$1; $1=$2; $2=tmp"})
+define(me, "max", "if ($1 > $2) $1 else $2")
+println(expand(me, "max", [5, 3]))
+println(expand(me, "swap", ["a", "b"]))
+
+//10999
+func buildInliningMap(call_sites, decisions) = {
+  local map = {}
+  for (i: 1 .. call_sites.listLen()) {
+    map.set(call_sites[i], decisions[i])
+  }
+  {"map": map}
+}
+
+func willInline(im, site) = {
+  local map = im.get("map")
+  if (map.containsKey(site)) {
+    map.get(site)
+  } else {
+    false
+  }
+}
+
+local im = buildInliningMap(["call:add:5", "call:print:8", "call:mul:12"], [true, false, true])
+println(willInline(im, "call:add:5"))
+println(willInline(im, "call:print:8"))
+
+//11003
+func buildOptStats(before, after) = {
+  local removed = before - after
+  {"instructions_before": before, "instructions_after": after,
+   "removed": removed, "reduction_pct": formatDecimal(removed / before * 100, 2)}
+}
+
+println(buildOptStats(150, 112))
+
+//11008
+func buildEscapeInfo(functions) = {
+  local info = {}
+  for (fn in functions) {
+    info.set(fn, {"escapes": []})
+  }
+  info
+}
+
+func markEscape(ei, fn, obj) = {
+  if (ei.containsKey(fn)) {
+    ei.get(fn).get("escapes").add(obj)
+  }
+  ei
+}
+
+func doesEscape(ei, fn, obj) = {
+  if (ei.containsKey(fn)) {
+    ei.get(fn).get("escapes").containsItem(obj)
+  } else {
+    false
+  }
+}
+
+local ei = buildEscapeInfo(["foo", "bar"])
+markEscape(ei, "foo", "obj1")
+println(doesEscape(ei, "foo", "obj1"))
+println(doesEscape(ei, "foo", "obj2"))
+
+//11014
+func buildObjHeader(type_id, size, gc_bits) = {
+  {"type_id": type_id, "size": size, "gc_bits": gc_bits, "marked": false}
+}
+
+func isMarked(hdr) = {
+  hdr.get("marked")
+}
+
+func mark(hdr) = {
+  hdr.set("marked", true)
+  hdr
+}
+
+local hdr = buildObjHeader(42, 64, 0)
+println(isMarked(hdr))
+mark(hdr)
+println(isMarked(hdr))
+
+//11018
+func buildExceptionTable(fn, handlers) = {
+  {"function": fn, "handlers": handlers}
+}
+
+func findHandler(et, pc) = {
+  local handlers = et.get("handlers")
+  local found = "no handler"
+  for (h in handlers) {
+    if (pc >= h.get("start") && pc <= h.get("end")) {
+      found = h.get("handler")
+    }
+  }
+  found
+}
+
+local et = buildExceptionTable("main", [
+  {"start": 10, "end": 20, "handler": "catch_io"},
+  {"start": 30, "end": 50, "handler": "catch_all"}
+])
+println(findHandler(et, 15))
+println(findHandler(et, 25))
+
+//11022
+func buildPackageDict(name, version, deps) = {
+  {"name": name, "version": version, "deps": deps}
+}
+
+func resolveDepend(pkg, dep) = {
+  local deps = pkg.get("deps")
+  for (d in deps) {
+    if (d.get("name") === dep) {
+      d
+    }
+  }
+  "not found"
+}
+
+func versionOk(pkg, required) = {
+  local parts_pkg = pkg.get("version").split(".")
+  local parts_req = required.split(".")
+  parts_pkg[1] >= parts_req[1]
+}
+
+local pkg = buildPackageDict("mylib", "2.3.1", [{"name":"lodash","version":"4.0.0"},{"name":"axios","version":"1.2.0"}])
+println(resolveDepend(pkg, "lodash"))
+println(versionOk(pkg, "2.0.0"))
+
+//11026
+func buildCodeCoverage(source) = {
+  local lines = source.split("\n")
+  local cov = {}
+  for (i: 1 .. lines.listLen()) {
+    cov.set("" _ i, 0)
+  }
+  {"coverage": cov, "total": lines.listLen()}
+}
+
+func hitLine(cc, line) = {
+  local key = "" _ line
+  local cov = cc.get("coverage")
+  if (cov.containsKey(key)) {
+    cov.set(key, cov.get(key) + 1)
+  }
+  cc
+}
+
+func coverage_pct(cc) = {
+  local cov = cc.get("coverage")
+  local keys = cov.keys()
+  local hit = keys.filter { k -> cov.get(k) > 0 }.listLen()
+  formatDecimal(hit / cc.get("total") * 100, 1) _ "%"
+}
+
+local cc = buildCodeCoverage("line1\nline2\nline3\nline4")
+hitLine(cc, 1)
+hitLine(cc, 3)
+println(coverage_pct(cc))
+
+//11030
+func buildInterpreter(env, stack) = {
+  {"env": copyDict(env), "stack": copyList(stack), "output": []}
+}
+
+func executeBC(interp, bytecode) = {
+  for (instr in bytecode) {
+    local op = instr.get("op")
+    if (op === "push") {
+      interp.get("stack").add(instr.get("val"))
+    } else if (op === "add") {
+      local b = interp.get("stack")[interp.get("stack").listLen()]
+      interp.get("stack").remove(interp.get("stack").listLen())
+      local a = interp.get("stack")[interp.get("stack").listLen()]
+      interp.get("stack").remove(interp.get("stack").listLen())
+      interp.get("stack").add(a + b)
+    } else if (op === "print") {
+      local val = interp.get("stack")[interp.get("stack").listLen()]
+      interp.get("output").add(val)
+    }
+  }
+  interp
+}
+
+func callFunction(interp, name, args) = {
+  local env = interp.get("env")
+  if (env.containsKey(name)) {
+    env.get(name)
+  } else {
+    "undefined: " _ name
+  }
+}
+
+local interp = buildInterpreter({"pi": 3.14159}, [])
+executeBC(interp, [{"op":"push","val":3},{"op":"push","val":4},{"op":"add"},{"op":"print"}])
+println(interp.get("output"))
+
+//11034
+func buildTransaction(db_state) = {
+  {"db": copyDict(db_state), "snapshot": copyDict(db_state), "active": false, "log": []}
+}
+
+func beginTx(tx) = {
+  tx.set("snapshot", copyDict(tx.get("db")))
+  tx.set("active", true)
+  tx.set("log", [])
+  tx
+}
+
+func commitTx(tx) = {
+  tx.set("active", false)
+  tx
+}
+
+func rollbackTx(tx) = {
+  tx.set("db", copyDict(tx.get("snapshot")))
+  tx.set("active", false)
+  tx
+}
+
+local tx = buildTransaction({"balance": 100})
+beginTx(tx)
+tx.get("db").set("balance", 50)
+println("After change: " _ tx.get("db").get("balance"))
+rollbackTx(tx)
+println("After rollback: " _ tx.get("db").get("balance"))
+
+//11038
+func buildFree(functor, ops) = {
+  {"functor": functor, "ops": ops, "computations": []}
+}
+
+func lift(fm, op) = {
+  fm.get("computations").add({"type": "lift", "op": op})
+  fm
+}
+
+func interp(fm, handler) = {
+  local result = []
+  for (comp in fm.get("computations")) {
+    local op = comp.get("op")
+    if (handler.containsKey(op)) {
+      result.add(handler.get(op))
+    } else {
+      result.add("unhandled: " _ op)
+    }
+  }
+  result
+}
+
+local fm = buildFree("IO", ["read","write","close"])
+lift(fm, "read")
+lift(fm, "write")
+println(interp(fm, {"read": "42", "write": "ok"}))
+
+//11043
+func buildRefine(base_type, predicate) = {
+  {"base": base_type, "predicate": predicate}
+}
+
+func checkRefine(rt, val) = {
+  local base = rt.get("base")
+  local pred = rt.get("predicate")
+  local base_ok = if (base === "number") val ? number else if (base === "text") val ? text else true
+  local pred_ok = if (pred === "positive") val > 0
+    else if (pred === "nonzero") val != 0
+    else if (pred === "nonempty") !(val ? emptyText)
+    else true
+  {"base_ok": base_ok, "pred_ok": pred_ok, "valid": base_ok && pred_ok}
+}
+
+local rt = buildRefine("number", "positive")
+println(checkRefine(rt, 5))
+println(checkRefine(rt, -3))
+
+//11047
+func buildGADT(constructors) = {
+  {"constructors": constructors}
+}
+
+func matchGADT(gadt, value, cases) = {
+  local tag = value.get("tag")
+  if (cases.containsKey(tag)) {
+    local handler = cases.get(tag)
+    tag _ " => " _ handler
+  } else {
+    "no match"
+  }
+}
+
+local gadt = buildGADT({"Nil": "List a", "Cons": "a -> List a -> List a"})
+println(matchGADT(gadt, {"tag":"Cons","head":1,"tail":[]}, {"Cons":"process cons","Nil":"empty"}))
+
+//11051
+func tokenTypeColor(type) = {
+  if (type === "NUMBER") {
+    makeColor([76, 175, 80])
+  } else if (type === "STRING") {
+    makeColor([255, 152, 0])
+  } else if (type === "KEYWORD") {
+    makeColor([33, 150, 243])
+  } else if (type === "IDENT") {
+    makeColor([255, 255, 255])
+  } else {
+    makeColor([244, 67, 54])
+  }
+}
+
+println(tokenTypeColor("NUMBER"))
+println(tokenTypeColor("STRING"))
+println(tokenTypeColor("KEYWORD"))
+println(tokenTypeColor("IDENT"))
+println(tokenTypeColor("OP"))
+
+//11056
+func liveIntervalColor(var, start, end) = {
+  local hash = 0
+  for (i: 1 .. var.textLen()) {
+    hash = (hash * 31 + var.segment(i,1).textLen()) % 360
+  }
+  local length = end - start
+  local brightness = if (length > 20) 200 else round(100 + length * 5)
+  local hue = hash
+  local r = round(abs(cos(radians(hue))) * brightness)
+  local g = round(abs(cos(radians(hue - 120))) * brightness)
+  local b = round(abs(cos(radians(hue - 240))) * brightness)
+  makeColor([r, g, b])
+}
+
+println(liveIntervalColor("x", 0, 10))
+println(liveIntervalColor("temp_var", 5, 30))
+
+//11061
+func hotPathColor(frequency, max_freq) = {
+  local t = frequency / max_freq
+  if (t < 0.33) {
+    makeColor([68, 68, 255])
+  } else if (t < 0.66) {
+    makeColor([255, 136, 0])
+  } else {
+    makeColor([255, 0, 0])
+  }
+}
+
+println(hotPathColor(10, 100))
+println(hotPathColor(50, 100))
+println(hotPathColor(90, 100))
+
+//11065
+func phaseColor(phase) = {
+  if (phase === "parse") {
+    makeColor([68, 204, 255])
+  } else if (phase === "typecheck") {
+    makeColor([68, 136, 255])
+  } else if (phase === "codegen") {
+    makeColor([68, 255, 136])
+  } else {
+    makeColor([255, 255, 68])
+  }
+}
+
+println(phaseColor("parse"))
+println(phaseColor("typecheck"))
+println(phaseColor("codegen"))
+println(phaseColor("link"))
+
+//11069
+func instructionClassColor(class) = {
+  if (class === "alu") {
+    makeColor([68, 255, 68])
+  } else if (class === "mem") {
+    makeColor([255, 136, 0])
+  } else if (class === "branch") {
+    makeColor([255, 68, 68])
+  } else if (class === "call") {
+    makeColor([255, 255, 0])
+  } else {
+    makeColor([136, 136, 136])
+  }
+}
+
+println(instructionClassColor("alu"))
+println(instructionClassColor("mem"))
+println(instructionClassColor("branch"))
+println(instructionClassColor("call"))
+println(instructionClassColor("nop"))
+
+//11074
+func vtableSlotColor(method_type) = {
+  if (method_type === "virtual") {
+    makeColor([255, 136, 0])
+  } else if (method_type === "override") {
+    makeColor([68, 136, 255])
+  } else if (method_type === "abstract") {
+    makeColor([255, 68, 68])
+  } else {
+    makeColor([136, 136, 136])
+  }
+}
+
+println(vtableSlotColor("virtual"))
+println(vtableSlotColor("override"))
+println(vtableSlotColor("abstract"))
+println(vtableSlotColor("static"))
+
+//11079
+func linkingColor(status) = {
+  if (status === "resolved") {
+    makeColor([68, 204, 68])
+  } else if (status === "weak") {
+    makeColor([255, 170, 0])
+  } else {
+    makeColor([255, 68, 68])
+  }
+}
+
+println(linkingColor("resolved"))
+println(linkingColor("weak"))
+println(linkingColor("undefined"))
+
+//11097
+local copy_instrs = [
+  {"op":"copy","src":"x","dst":"a"},
+  {"op":"add","src1":"a","src2":"b","dst":"c"},
+  {"op":"copy","src":"c","dst":"d"},
+  {"op":"mul","src1":"d","src2":"e","dst":"f"}
+]
+
+local prop_map = {}
+for (instr in copy_instrs) {
+  println("Before: " _ instr)
+  if (instr.get("op") === "copy") {
+    prop_map.set(instr.get("dst"), instr.get("src"))
+  } else {
+    if (instr.containsKey("src1") && prop_map.containsKey(instr.get("src1"))) {
+      instr.set("src1", prop_map.get(instr.get("src1")))
+    }
+    if (instr.containsKey("src2") && prop_map.containsKey(instr.get("src2"))) {
+      instr.set("src2", prop_map.get(instr.get("src2")))
+    }
+  }
+  println("After:  " _ instr)
+}
+
+//11124
+local type_annotations = [
+  {"var": "x", "declared": "number", "actual": "number"},
+  {"var": "name", "declared": "text", "actual": "number"},
+  {"var": "flag", "declared": "boolean", "actual": "boolean"},
+  {"var": "items", "declared": "list", "actual": "text"}
+]
+
+for (ann in type_annotations) {
+  if (ann.get("declared") !== ann.get("actual")) {
+    println("TypeError: '" _ ann.get("var") _ "' declared as " _ ann.get("declared") _ " but got " _ ann.get("actual"))
+  } else {
+    println("OK: '" _ ann.get("var") _ "' is " _ ann.get("declared"))
+  }
+}
+
+//11143
+func typeCheck(ast, env) = {
+  local errors = []
+  local typed_ast = copyDict(ast)
+  func checkNode(node) = {
+    local kind = node.get("kind")
+    if (kind === "var") {
+      local name = node.get("name")
+      if (!env.containsKey(name)) {
+        errors.add("Undefined variable: " _ name)
+        "unknown"
+      } else {
+        env.get(name)
+      }
+    } else if (kind === "num") {
+      "number"
+    } else if (kind === "binop") {
+      local lt = checkNode(node.get("left"))
+      local rt = checkNode(node.get("right"))
+      if (lt !== "number" || rt !== "number") {
+        errors.add("Type error in binop: expected number, got " _ lt _ " and " _ rt)
+      }
+      "number"
+    } else {
+      "unknown"
+    }
+  }
+  local result_type = checkNode(ast)
+  typed_ast.set("inferred_type", result_type)
+  {"typed_ast": typed_ast, "errors": errors}
+}
+
+local ast_tc = {"kind":"binop","op":"+","left":{"kind":"var","name":"x"},"right":{"kind":"num","value":5}}
+println(typeCheck(ast_tc, {"x": "number"}))
+println(typeCheck(ast_tc, {}))
+
+//11149
+func link(objects, entry) = {
+  local symbol_table = {}
+  local code = []
+  local offset = 0
+  for (obj in objects) {
+    for (sym in obj.get("symbols")) {
+      symbol_table.set(sym.get("name"), offset + sym.get("offset"))
+    }
+    for (instr in obj.get("code")) {
+      code.add(instr)
+    }
+    offset = offset + obj.get("code").listLen()
+  }
+  local entry_addr = if (symbol_table.containsKey(entry)) symbol_table.get(entry) else -1
+  {"entry": entry_addr, "symbol_table": symbol_table, "code": code, "size": code.listLen()}
+}
+
+local objs = [
+  {"symbols": [{"name":"main","offset":0},{"name":"helper","offset":3}], "code":["MOV R0,#1","ADD R0,R1","RET","PUSH R0","POP R0","RET"]},
+  {"symbols": [{"name":"printf","offset":0}], "code":["LDR R0,[R1]","RET"]}
+]
+println(link(objs, "main"))
+
+//11154
+func buildInterpreterSem(semantics) = {
+  {"rules": semantics, "state": {}}
+}
+
+func executeSem(interp_s, program) = {
+  local output = []
+  for (stmt in program) {
+    local kind = stmt.get("kind")
+    local rules = interp_s.get("rules")
+    if (rules.containsKey(kind)) {
+      local rule = rules.get(kind)
+      if (kind === "assign") {
+        interp_s.get("state").set(stmt.get("var"), stmt.get("val"))
+        output.add("assigned " _ stmt.get("var") _ " = " _ stmt.get("val"))
+      } else if (kind === "print") {
+        local val = if (interp_s.get("state").containsKey(stmt.get("var"))) interp_s.get("state").get(stmt.get("var")) else "undefined"
+        output.add("" _ val)
+      }
+    }
+  }
+  output
+}
+
+local sem = buildInterpreterSem({"assign": "store", "print": "output"})
+println(executeSem(sem, [{"kind":"assign","var":"x","val":42},{"kind":"print","var":"x"}]))
+
+//11160
+func buildProfiler(executable) = {
+  {"executable": executable, "running": false, "start_time": 0, "samples": [], "elapsed": 0}
+}
+
+func startProfiler(prof) = {
+  prof.set("running", true)
+  prof.set("start_time", 0)
+  prof
+}
+
+func stopProfiler(prof) = {
+  prof.set("running", false)
+  prof.set("elapsed", 100)
+  prof
+}
+
+func reportProfiler(prof) = {
+  "Profiler report: elapsed=" _ prof.get("elapsed") _ "ms samples=" _ prof.get("samples").listLen()
+}
+
+local prof = buildProfiler({"name":"myapp"})
+startProfiler(prof)
+stopProfiler(prof)
+println(reportProfiler(prof))
+
+//11164
+func buildFormatter(style) = {
+  {"style": style, "indent": if (style === "2space") "  " else if (style === "4space") "    " else "\t"}
+}
+
+func formatSource(fmt, source) = {
+  local lines = source.split("\n")
+  local result = ""
+  local level = 0
+  for (line in lines) {
+    local trimmed = line.trim()
+    if (trimmed.endsWith("}")) {
+      level = if (level > 0) level - 1 else 0
+    }
+    local indent = ""
+    for (i: 1 .. level) {
+      indent = indent _ fmt.get("indent")
+    }
+    result = result _ indent _ trimmed _ "\n"
+    if (trimmed.endsWith("{")) {
+      level = level + 1
+    }
+  }
+  result
+}
+
+local fmt = buildFormatter("2space")
+println(formatSource(fmt, "func foo() {\nlocal x = 5\nif (x > 0) {\nreturn x\n}\n}"))
+
+//11170
+func buildCompletion(context, ast) = {
+  local symbols = []
+  if (context.containsKey("vars")) {
+    symbols.appendList(context.get("vars"))
+  }
+  if (context.containsKey("funcs")) {
+    symbols.appendList(context.get("funcs"))
+  }
+  {"symbols": symbols, "context": context}
+}
+
+func complete(comp, prefix) = {
+  comp.get("symbols").filter { s -> s.startsWith(prefix) }
+}
+
+local ctx = {"vars": ["myVar", "myCount", "index"], "funcs": ["myFunc", "print", "map"]}
+local comp = buildCompletion(ctx, {})
+println(complete(comp, "my"))
+
+//11177
+func buildMigration(old_api, new_api, source) = {
+  {"old": old_api, "new": new_api, "source": source}
+}
+
+func migrationApply(mig) = {
+  local result = mig.get("source")
+  local old_names = mig.get("old")
+  local new_names = mig.get("new")
+  for (i: 1 .. old_names.listLen()) {
+    result = result.replace(old_names[i], new_names[i])
+  }
+  result
+}
+
+local mig = buildMigration(["oldFunc", "legacyAPI", "deprecated"], ["newFunc", "modernAPI", "supported"], "local x = oldFunc(legacyAPI(deprecated()))")
+println(migrationApply(mig))
+
+//11181
+func buildSandbox(policy) = {
+  {"policy": policy, "log": []}
+}
+
+func executeSandbox(sb, code) = {
+  local allowed = sb.get("policy").get("allowed_ops")
+  local blocked = false
+  local result = "executed"
+  for (op in sb.get("policy").get("blocked_ops")) {
+    if (code.contains(op)) {
+      blocked = true
+      sb.get("log").add("BLOCKED: " _ op _ " in '" _ code _ "'")
+      result = "blocked: " _ op
+    }
+  }
+  result
+}
+
+local sb = buildSandbox({"allowed_ops":["add","print"], "blocked_ops":["exec","eval","import"]})
+println(executeSandbox(sb, "add(1,2)"))
+println(executeSandbox(sb, "exec('rm -rf /')"))
+println(sb.get("log"))
+
+//11185
+func buildASTMatcher(pattern) = {
+  {"pattern": pattern}
+}
+
+func matchAST(matcher, ast) = {
+  local pat = matcher.get("pattern")
+  func matchNode(p, n) = {
+    if (p.get("kind") !== n.get("kind")) {
+      false
+    } else if (p.containsKey("name") && p.get("name") !== "_" && p.get("name") !== n.get("name")) {
+      false
+    } else {
+      true
+    }
+  }
+  func walk(node) = {
+    local matches = []
+    if (matchNode(pat, node)) {
+      matches.add(node)
+    }
+    if (node.containsKey("children")) {
+      for (child in node.get("children")) {
+        matches.appendList(walk(child))
+      }
+    }
+    matches
+  }
+  walk(ast)
+}
+
+local matcher = buildASTMatcher({"kind": "var", "name": "_"})
+local program_ast = {"kind":"binop","children":[{"kind":"var","name":"x"},{"kind":"num","value":5}]}
+println(matchAST(matcher, program_ast))
+
+//11189
+func buildAbstractInterp(analysis_domain, program) = {
+  {"domain": analysis_domain, "program": program, "state": {}}
+}
+
+func analyseAI(ai) = {
+  local state = ai.get("state")
+  local domain = ai.get("domain")
+  for (stmt in ai.get("program")) {
+    local var = stmt.get("var")
+    local val = stmt.get("val")
+    if (domain === "sign") {
+      local sign = if (val > 0) "+" else if (val < 0) "-" else "0"
+      state.set(var, sign)
+    } else if (domain === "parity") {
+      state.set(var, if (val % 2 == 0) "even" else "odd")
+    } else {
+      state.set(var, val)
+    }
+  }
+  state
+}
+
+local ai = buildAbstractInterp("sign", [{"var":"x","val":5},{"var":"y","val":-3},{"var":"z","val":0}])
+println(analyseAI(ai))
+
+//11194
+func buildRaceDetector(program, threads) = {
+  local accesses = {}
+  local races = []
+  for (thread in threads) {
+    local tid = thread.get("id")
+    for (access in thread.get("accesses")) {
+      local addr = access.get("addr")
+      local op = access.get("op")
+      if (!accesses.containsKey(addr)) {
+        accesses.set(addr, [])
+      }
+      accesses.get(addr).add({"tid": tid, "op": op})
+    }
+  }
+  local addrs = accesses.keys()
+  for (addr in addrs) {
+    local acc_list = accesses.get(addr)
+    local has_write = acc_list.filter { a -> a.get("op") === "write" }.listLen() > 0
+    local multi_thread = acc_list.listLen() > 1
+    if (has_write && multi_thread) {
+      races.add({"addr": addr, "accesses": acc_list})
+    }
+  }
+  races
+}
+
+local thrs = [
+  {"id":"T1","accesses":[{"addr":"x","op":"read"},{"addr":"y","op":"write"}]},
+  {"id":"T2","accesses":[{"addr":"y","op":"write"},{"addr":"z","op":"read"}]}
+]
+println(buildRaceDetector({}, thrs))
+
+//11142
+func parse(tokens) = {
+  local pos = [1]
+  func peek() = {
+    if (pos[1] <= tokens.listLen()) tokens[pos[1]] else {"type":"EOF","value":""}
+  }
+  func consume() = {
+    local tok = peek()
+    pos[1] = pos[1] + 1
+    tok
+  }
+  func parseExprP() = {
+    local left = {"kind":"var","name":consume().get("value")}
+    if (peek().get("type") === "OP") {
+      local op = consume().get("value")
+      local right = {"kind":"var","name":consume().get("value")}
+      {"kind":"binop","op":op,"left":left,"right":right}
+    } else {
+      left
+    }
+  }
+  func parseStmt() = {
+    local tok = peek()
+    if (tok.get("value") === "if") {
+      consume()
+      consume()
+      local cond = parseExprP()
+      consume()
+      consume()
+      local then_expr = {"kind":"return","val":parseExprP()}
+      consume()
+      consume()
+      local else_expr = {"kind":"return","val":parseExprP()}
+      consume()
+      {"kind":"if","cond":cond,"then":then_expr,"else":else_expr}
+    } else {
+      {"kind":"unknown"}
+    }
+  }
+  parseStmt()
+}
+
+local parse_tokens = [
+  {"type":"KEYWORD","value":"if"},
+  {"type":"OP","value":"("},
+  {"type":"IDENT","value":"x"},
+  {"type":"OP","value":">"},
+  {"type":"NUMBER","value":"0"},
+  {"type":"OP","value":")"},
+  {"type":"KEYWORD","value":"return"},
+  {"type":"IDENT","value":"x"},
+  {"type":"OP","value":";"},
+  {"type":"KEYWORD","value":"else"},
+  {"type":"KEYWORD","value":"return"},
+  {"type":"OP","value":"-"},
+  {"type":"IDENT","value":"x"},
+  {"type":"OP","value":";"}
+]
+println(parse(parse_tokens))
