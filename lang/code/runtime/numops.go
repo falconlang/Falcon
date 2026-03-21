@@ -318,8 +318,8 @@ func sign(f float64) float64 {
 func sortValues(list []Value) {
 	sort.SliceStable(list, func(a, b int) bool {
 		va, vb := list[a], list[b]
-		na, aOk := TryNum(va)
-		nb, bOk := TryNum(vb)
+		na, aOk := CoerceNum(va)
+		nb, bOk := CoerceNum(vb)
 		if aOk && bOk {
 			return na < nb
 		}

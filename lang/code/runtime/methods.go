@@ -463,8 +463,8 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer) Value {
 			envB := NewEnv(outerEnv)
 			envB.Define(varName, cp[b])
 			keyB := i.inEnv(envB, func() Value { return i.Eval(e.Transformer) })
-			na, aOk := TryNum(keyA)
-			nb, bOk := TryNum(keyB)
+			na, aOk := CoerceNum(keyA)
+			nb, bOk := CoerceNum(keyB)
 			if aOk && bOk {
 				return na < nb
 			}

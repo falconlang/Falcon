@@ -117,7 +117,7 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 	case *fundamentals.List:
 		return ListVal(i.evalExprs(e.Elements))
 	case *fundamentals.Dictionary:
-		return i.makeDictionary(e)
+		return i.dictionary(e)
 	case *fundamentals.Pair:
 		// Bare pair evaluates to a two-element list [key, value].
 		return ListVal([]Value{i.Eval(e.Key), i.Eval(e.Value)})
@@ -134,19 +134,19 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		return i.Eval(e.On) // for "obfuscate" unwrapping
 
 	case *common.BinaryExpr:
-		return i.evalBinary(e)
+		return i.binary(e)
 	case *common.FuncCall:
 		return i.evalFuncCall(e)
 	case *common.Question:
-		return i.evalQuestion(e)
+		return i.question(e)
 	case *astmethod.Call:
 		return i.evalMethodCall(e)
 
 	// Control blocks
 	case *control.If:
-		return i.evalIf(e)
+		return i.ifExpr(e)
 	case *control.SimpleIf:
-		return i.evalSimpleIf(e)
+		return i.simpleIfExpr(e)
 	case *control.For:
 		return i.evalFor(e)
 	case *control.While:
@@ -250,7 +250,7 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 	}
 }
 
-func (i *Interpreter) makeDictionary(e *fundamentals.Dictionary) Value {
+func (i *Interpreter) dictionary(e *fundamentals.Dictionary) Value {
 	d := NewOrderedDict()
 	for _, el := range e.Elements {
 		pair := i.Eval(el).AsList()
@@ -262,7 +262,7 @@ func (i *Interpreter) makeDictionary(e *fundamentals.Dictionary) Value {
 	return DictVal(d)
 }
 
-func (i *Interpreter) evalBinary(e *common.BinaryExpr) Value {
+func (i *Interpreter) binary(e *common.BinaryExpr) Value {
 	// Short-circuit logical operators
 	switch e.Operator {
 	case lex.LogicAnd:
@@ -324,6 +324,7 @@ func (i *Interpreter) evalBinary(e *common.BinaryExpr) Value {
 		}
 		return NumVal(float64(result))
 
+	// runs deep comparison for logical equality
 	case lex.Equals:
 		return BoolVal(DeepEqual(vals[0], vals[1]))
 	case lex.NotEquals:
@@ -347,6 +348,7 @@ func (i *Interpreter) evalBinary(e *common.BinaryExpr) Value {
 	case lex.TextGreaterThan:
 		return BoolVal(vals[0].AsStr() > vals[1].AsStr())
 
+	// text join operation
 	case lex.Underscore:
 		var sb strings.Builder
 		for _, v := range vals {
@@ -359,13 +361,11 @@ func (i *Interpreter) evalBinary(e *common.BinaryExpr) Value {
 	}
 }
 
-// --- Question (? operator) ---
-
-func (i *Interpreter) evalQuestion(e *common.Question) Value {
+func (i *Interpreter) question(e *common.Question) Value {
 	v := i.Eval(e.On)
 	switch e.Question {
 	case "number":
-		_, ok := TryNum(v)
+		_, ok := CoerceNum(v)
 		return BoolVal(ok)
 	case "base10":
 		return BoolVal(isBase10(v.AsStr()))
@@ -392,9 +392,7 @@ func (i *Interpreter) evalQuestion(e *common.Question) Value {
 	}
 }
 
-// --- Control flow ---
-
-func (i *Interpreter) evalIf(e *control.If) Value {
+func (i *Interpreter) ifExpr(e *control.If) Value {
 	for k, cond := range e.Conditions {
 		if i.Eval(cond).AsBool() {
 			return i.execBody(e.Bodies[k])
@@ -406,7 +404,7 @@ func (i *Interpreter) evalIf(e *control.If) Value {
 	return NullVal()
 }
 
-func (i *Interpreter) evalSimpleIf(e *control.SimpleIf) Value {
+func (i *Interpreter) simpleIfExpr(e *control.SimpleIf) Value {
 	if i.Eval(e.Condition()).AsBool() {
 		return i.execBody(e.Then())
 	}

@@ -29,11 +29,11 @@ type Value struct {
 
 // --- Constructors ---
 
-func NullVal() Value                  { return Value{vtype: Null} }
-func BoolVal(b bool) Value            { return Value{vtype: Bool, boolVal: b} }
-func NumVal(n float64) Value          { return Value{vtype: Number, numVal: n} }
-func StrVal(s string) Value           { return Value{vtype: String, strVal: s} }
-func ColorVal(hex string) Value       { return Value{vtype: Color, strVal: hex} }
+func NullVal() Value            { return Value{vtype: Null} }
+func BoolVal(b bool) Value      { return Value{vtype: Bool, boolVal: b} }
+func NumVal(n float64) Value    { return Value{vtype: Number, numVal: n} }
+func StrVal(s string) Value     { return Value{vtype: String, strVal: s} }
+func ColorVal(hex string) Value { return Value{vtype: Color, strVal: hex} }
 
 func ListVal(elems []Value) Value {
 	cp := make([]Value, len(elems))
@@ -59,34 +59,23 @@ func EmptyDict() Value {
 func (v Value) Type() ValueType { return v.vtype }
 
 func (v Value) AsBool() bool {
-	switch v.vtype {
-	case Bool:
-		return v.boolVal
-	case Number:
-		return v.numVal != 0
-	case String:
-		return v.strVal != ""
-	default:
-		return false
+	if v.vtype != Bool {
+		panic("expected a boolean value")
 	}
+	return v.boolVal
 }
 
 func (v Value) AsNum() float64 {
 	switch v.vtype {
 	case Number:
 		return v.numVal
-	case Bool:
-		if v.boolVal {
-			return 1
-		}
-		return 0
 	case String:
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v.strVal), 64); err == nil {
 			return f
 		}
 		panic("cannot convert string to number: " + v.strVal)
 	default:
-		panic("cannot convert to number")
+		panic("expected a number value")
 	}
 }
 
@@ -110,7 +99,7 @@ func (v Value) AsStr() string {
 	case Dict:
 		return v.String()
 	default:
-		return ""
+		return v.String()
 	}
 }
 
@@ -128,8 +117,7 @@ func (v Value) AsDict() *OrderedDict {
 	return v.dictVal
 }
 
-// TryNum attempts numeric conversion from string, returns (float64, true) if possible.
-func TryNum(v Value) (float64, bool) {
+func CoerceNum(v Value) (float64, bool) {
 	if v.vtype == Number {
 		return v.numVal, true
 	}
