@@ -1,0 +1,6876 @@
+//20001
+local x = "42"
+println(x ? number)
+println(x ? text)
+println(x ? base10)
+
+//20002
+local flag = "true"
+println(flag ? text)
+println(flag ? number)
+
+//20003
+local mixed = [1, "hello", true, []]
+for (el in mixed) {
+  println("text:" _ (el ? text) _ " number:" _ (el ? number) _ " list:" _ (el ? list))
+}
+
+//20004
+func classify(v) = {
+  if (v ? number) "num"
+  else if (v ? text) "text"
+  else if (v ? list) "list"
+  else "other"
+}
+println(classify(42))
+println(classify("hi"))
+println(classify([]))
+println(classify(true))
+
+//20005
+local s5 = "1010"
+local results5 = [s5 ? bin, s5 ? base10, s5 ? hexa]
+println(s5 ? bin)
+println(s5 ? base10)
+println(s5 ? hexa)
+println(results5)
+
+//20006
+local h6 = "1F3A"
+println(h6 ? hexa)
+println(h6 ? base10)
+println(h6 ? bin)
+
+//20007
+func isNumericString(s) = {
+  s ? base10
+}
+println(isNumericString("123"))
+println(isNumericString("12.3"))
+println(isNumericString("abc"))
+println(isNumericString("007"))
+
+//20008
+local arr8 = []
+println(arr8 ? emptyList)
+arr8.add(1)
+println(arr8 ? emptyList)
+
+//20009
+local t9 = "   "
+println(t9 ? emptyText)
+println(t9.trim() ? emptyText)
+
+//20010
+func safeDiv(a, b) = {
+  if (b ? number && b != 0) a / b else 0
+}
+println(safeDiv(10, 2))
+println(safeDiv(10, 0))
+println(safeDiv(10, "x"))
+
+//20011
+local val11 = "FF"
+println(val11 ? hexa)
+local dec11 = hexToDec(val11)
+println(dec11 ? number)
+
+//20012
+func allNumbers(lst) = {
+  local ok = true
+  for (el in lst) {
+    if (!(el ? number)) {
+      ok = false
+    }
+  }
+  ok
+}
+println(allNumbers([1,2,3]))
+println(allNumbers([1,"x",3]))
+
+//20013
+local items13 = [1, "two", 3, "four", 5]
+println(items13.filter { x -> x ? number })
+
+//20014
+local code14 = "101"
+println(code14 ? bin)
+println(code14 ? base10)
+println("'101' is both bin and base10 because it only contains 0s and 1s and is also a valid decimal.")
+
+//20015
+func parseOrZero(s) = {
+  if (s ? base10) dec(s) else 0
+}
+println(parseOrZero("99"))
+println(parseOrZero(""))
+println(parseOrZero("abc"))
+println(parseOrZero("0"))
+
+//20016
+local pairs16 = [["a", 1], ["b", 2]]
+println(pairs16 ? list)
+println(pairs16[1] ? list)
+
+//20017
+func typeHistogram(lst) = {
+  local h = {"number": 0, "text": 0, "list": 0}
+  for (el in lst) {
+    if (el ? number) h.set("number", h.get("number") + 1)
+    else if (el ? text) h.set("text", h.get("text") + 1)
+    else if (el ? list) h.set("list", h.get("list") + 1)
+  }
+  h
+}
+println(typeHistogram([1, "a", [], 2, "b", [1]]))
+
+//20018
+local s18 = "0"
+println(s18 ? base10)
+println(s18 ? bin)
+println(s18 ? hexa)
+println("'0' satisfies all three because 0 is a valid digit in decimal, binary, and hexadecimal.")
+
+//20019
+func requireNumber(v, fallback) = {
+  if (v ? number) v else fallback
+}
+println(requireNumber(requireNumber("x", "y"), 0))
+
+//20020
+local data20 = ["10", "FF", "1010", "99", "GG"]
+local hexValid = data20.filter { s -> s ? hexa }
+local hexInvalid = data20.filter { s -> !(s ? hexa) }
+println(hexValid)
+println(hexInvalid)
+
+//20021
+func isHomogeneous(lst) = {
+  if (lst ? emptyList) true
+  else {
+    local first = lst[1]
+    local kind = if (first ? number) "num" else if (first ? text) "txt" else "lst"
+    local ok = true
+    for (el in lst) {
+      local ek = if (el ? number) "num" else if (el ? text) "txt" else "lst"
+      if (ek !== kind) ok = false
+    }
+    ok
+  }
+}
+println(isHomogeneous([1,2,3]))
+println(isHomogeneous(["a","b"]))
+println(isHomogeneous([1,"a"]))
+
+//20022
+local matrix22 = [[1,2],[3,4]]
+println(matrix22 ? list)
+println(matrix22[1] ? list)
+println(matrix22[1][1] ? number)
+
+//20023
+func coerceList(v) = {
+  if (v ? list) v else [v]
+}
+println(coerceList(5))
+println(coerceList("hi"))
+println(coerceList([1,2]))
+
+//20024
+local d24 = {}
+println(d24 ? dict)
+d24.set("k", 1)
+println(d24.keys() ? list)
+
+//20025
+func strictAdd(a, b) = {
+  if (!(a ? number)) {
+    println("Error: first argument is not a number")
+    0
+  } else if (!(b ? number)) {
+    println("Error: second argument is not a number")
+    0
+  } else {
+    a + b
+  }
+}
+println(strictAdd(3, 4))
+println(strictAdd(3, "x"))
+
+//20026
+local word1 = "Name"
+local sep1 = ": "
+local val1 = "Falcon"
+local sep2 = ", "
+local word2 = "Version"
+local sep3 = ": "
+local val2 = "2"
+println(word1 _ sep1 _ val1 _ sep2 _ word2 _ sep3 _ val2)
+
+//20027
+local first27 = "John"
+local last27 = "Doe"
+local age27 = 30
+println("Hello, " _ first27 _ " " _ last27 _ "! You are " _ age27 _ " years old.")
+
+//20028
+func repeat(s, n) = {
+  local result = ""
+  for (i: 1 .. n) {
+    result = result _ s
+  }
+  result
+}
+println(repeat("ab", 4))
+
+//20029
+func joinWith(lst, sep) = {
+  local result = ""
+  for (i: 1 .. lst.listLen()) {
+    if (i == 1) result = lst[i]
+    else result = result _ sep _ lst[i]
+  }
+  result
+}
+println(joinWith(["a","b","c"], "-"))
+
+//20030
+local words30 = ["The", "quick", "brown", "fox"]
+println(words30.reduce("") { w, acc -> if (acc ? emptyText) w else acc _ " " _ w })
+
+//20031
+func padLeft(s, width, ch) = {
+  local result = s
+  while (result.textLen() < width) {
+    result = ch _ result
+  }
+  result
+}
+println(padLeft("7", 4, "0"))
+
+//20032
+func padRight(s, width, ch) = {
+  local result = s
+  while (result.textLen() < width) {
+    result = result _ ch
+  }
+  result
+}
+println(padRight("hi", 6, "."))
+
+//20033
+func centre(s, width) = {
+  local total = width - s.textLen()
+  local left = floor(total / 2)
+  local right = total - left
+  padLeft(padRight(s, s.textLen() + right, " "), width, " ")
+}
+println(centre("Falcon", 12))
+
+//20034
+local items34 = ["apple", "banana", "cherry"]
+local out34 = ""
+for (i: 1 .. items34.listLen()) {
+  out34 = out34 _ i _ ". " _ items34[i] _ "\n"
+}
+println(out34)
+
+//20035
+func titleCase(s) = {
+  local ws = s.split(" ")
+  local result = ws.map { w ->
+    if (w ? emptyText) w
+    else w.segment(1,1).uppercase() _ w.segment(2, w.textLen()-1)
+  }
+  result.join(" ")
+}
+println(titleCase("hello world from falcon"))
+
+//20036
+func wrapLine(s, maxLen) = {
+  if (s.textLen() > maxLen) s.segment(1, maxLen) _ "…"
+  else s
+}
+println(wrapLine("Hello World", 7))
+
+//20037
+local rows37 = ["Name", "Age", "City"]
+local vals37 = ["Alice", "30", "Delhi"]
+for (i: 1 .. rows37.listLen()) {
+  println(rows37[i] _ ": " _ vals37[i])
+}
+
+//20038
+func formatList(lst) = {
+  "[" _ lst.join(", ") _ "]"
+}
+println(formatList([1,2,3]))
+
+//20039
+func abbreviate(s) = {
+  local ws = s.split(" ")
+  local initials = ws.map { w -> w.segment(1,1) }
+  initials.join(".")
+}
+println(abbreviate("National Aeronautics and Space Administration"))
+
+//20040
+func snakeToTitle(s) = {
+  local parts = s.split("_")
+  local result = parts.map { p -> p.segment(1,1).uppercase() _ p.segment(2, p.textLen()-1) }
+  result.join(" ")
+}
+println(snakeToTitle("hello_world_foo"))
+
+//20041
+local template41 = "Dear {name}, your order {id} is ready."
+println(template41.replaceFrom({"{name}": "Alice", "{id}": "#42"}))
+
+//20042
+func slugify(s) = {
+  s.lowercase().replace(" ", "-")
+}
+println(slugify("Hello World Example"))
+
+//20043
+func countChar(s, ch) = {
+  s.split(ch).listLen() - 1
+}
+println(countChar("banana", "a"))
+
+//20044
+local a44 = "Falcon"
+local b44 = " Language"
+local c44 = " v2"
+println(a44 _ b44 _ c44)
+
+//20045
+func interleave(s1, s2) = {
+  local result = ""
+  local len = min(s1.textLen(), s2.textLen())
+  for (i: 1 .. len) {
+    result = result _ s1.segment(i,1) _ s2.segment(i,1)
+  }
+  result
+}
+println(interleave("abc", "123"))
+
+//20046
+local color46 = makeColor([255, 128, 0])
+println(color46)
+println(splitColor(color46))
+
+//20047
+func blendColors(c1, c2) = {
+  local ch1 = splitColor(c1)
+  local ch2 = splitColor(c2)
+  makeColor([
+    round((ch1[1]+ch2[1])/2),
+    round((ch1[2]+ch2[2])/2),
+    round((ch1[3]+ch2[3])/2)
+  ])
+}
+println(blendColors(makeColor([200,100,50]), makeColor([100,200,150])))
+
+//20048
+func brightness(c) = {
+  local ch = splitColor(c)
+  (ch[1] + ch[2] + ch[3]) / 3
+}
+println(brightness(makeColor([200, 100, 50])))
+
+//20049
+func isDark(c) = {
+  brightness(c) < 128
+}
+println(isDark(makeColor([20,20,20])))
+println(isDark(makeColor([200,200,200])))
+
+//20050
+local palette50 = [makeColor([255,0,0]), makeColor([0,255,0]), makeColor([0,0,255]), makeColor([128,128,128])]
+for (c in palette50) {
+  println(brightness(c))
+}
+
+//20051
+func invertColor(c) = {
+  local ch = splitColor(c)
+  makeColor([255-ch[1], 255-ch[2], 255-ch[3]])
+}
+println(invertColor(makeColor([100,150,200])))
+
+//20052
+func toGreyscale(c) = {
+  local ch = splitColor(c)
+  local avg = round((ch[1]+ch[2]+ch[3])/3)
+  makeColor([avg,avg,avg])
+}
+println(toGreyscale(makeColor([80,160,240])))
+
+//20053
+global theme53 = makeColor([30,30,30])
+func setTheme(r, g, b) = {
+  this.theme53 = makeColor([r,g,b])
+}
+setTheme(255, 87, 34)
+println(this.theme53)
+
+//20054
+func colorDistance(c1, c2) = {
+  local ch1 = splitColor(c1)
+  local ch2 = splitColor(c2)
+  abs(ch1[1]-ch2[1]) + abs(ch1[2]-ch2[2]) + abs(ch1[3]-ch2[3])
+}
+println(colorDistance(makeColor([255,0,0]), makeColor([0,0,255])))
+
+//20055
+local stops55 = [makeColor([30,30,30]), makeColor([128,128,128]), makeColor([240,240,240])]
+for (c in stops55) {
+  local ch = splitColor(c)
+  println([ch[1],ch[2],ch[3]])
+}
+
+//20056
+func clampChannel(v) = {
+  if (v < 0) 0 else if (v > 255) 255 else v
+}
+func safeColor(r, g, b) = {
+  makeColor([clampChannel(r), clampChannel(g), clampChannel(b)])
+}
+println(safeColor(-10, 300, 128))
+
+//20057
+func rgbToHex(r, g, b) = {
+  local rh = padLeft(decToHex(r), 2, "0")
+  local gh = padLeft(decToHex(g), 2, "0")
+  local bh = padLeft(decToHex(b), 2, "0")
+  "#" _ rh _ gh _ bh
+}
+println(rgbToHex(255, 128, 0))
+
+//20058
+local row58 = "Alice,30,Engineer"
+local fields58 = row58.csvRowToList()
+println(fields58[1])
+println(fields58[2])
+println(fields58[3])
+
+//20059
+local fields59 = ["Bob", "25", "New York", "true"]
+println(fields59.toCsvRow())
+
+//20060
+local table60 = "Name,Age\nAlice,30\nBob,25"
+local parsed60 = table60.csvTableToList()
+println(parsed60.listLen())
+println(parsed60[1].listLen())
+
+//20061
+local data61 = [["Alice","30"],["Bob","25"]]
+println(data61.toCsvTable())
+
+//20062
+func parseCsvColumn(csv, colIdx) = {
+  local rows = csv.csvTableToList()
+  rows.map { row -> row[colIdx] }
+}
+println(parseCsvColumn("a,b,c\n1,2,3\n4,5,6\n7,8,9", 2))
+
+//20063
+func csvToDict(headerRow, dataRow) = {
+  local headers = headerRow.csvRowToList()
+  local data = dataRow.csvRowToList()
+  local result = {}
+  for (i: 1 .. headers.listLen()) {
+    result.set(headers[i], data[i])
+  }
+  result
+}
+println(csvToDict("name,age", "Alice,30"))
+
+//20064
+local escaped64 = "\"quoted,field\",normal"
+local fields64 = escaped64.csvRowToList()
+for (f in fields64) {
+  println(f)
+}
+
+//20065
+func filterCsvRows(table, colIdx, value) = {
+  local rows = table.csvTableToList()
+  rows.filter { row -> row[colIdx] === value }
+}
+local t65 = "name,age\nAlice,30\nBob,25\nCarol,30\nDave,25"
+println(filterCsvRows(t65, 2, "30"))
+
+//20066
+local n66 = 255
+println(decToHex(n66) _ " " _ decToBin(n66) _ " " _ n66)
+
+//20067
+func hexToRgb(hex) = {
+  local r = hexToDec(hex.segment(1,2))
+  local g = hexToDec(hex.segment(3,2))
+  local b = hexToDec(hex.segment(5,2))
+  [r, g, b]
+}
+println(hexToRgb("FF8000"))
+
+//20068
+func isPowerOfTwo(n) = {
+  n > 0 && (n & (n-1)) == 0
+}
+for (v in [1,2,3,4,7,8,16]) {
+  println(v _ ": " _ isPowerOfTwo(v))
+}
+
+//20069
+func countBits(n) = {
+  local count = 0
+  local x = n
+  while (x > 0) {
+    count = count + (x & 1)
+    x = floor(x / 2)
+  }
+  count
+}
+println(countBits(13))
+
+//20070
+func xorSwap(a, b) = {
+  println("Before: a=" _ a _ " b=" _ b)
+  a = a ~ b
+  b = a ~ b
+  a = a ~ b
+  println("After: a=" _ a _ " b=" _ b)
+}
+xorSwap(5, 9)
+
+//20071
+func setBit(n, pos) = {
+  n | (2 ^ (pos-1))
+}
+println(setBit(8, 1))
+
+//20072
+func clearBit(n, pos) = {
+  local mask = 2^32 - 1 - (2^(pos-1))
+  n & mask
+}
+println(clearBit(15, 2))
+
+//20073
+func grayCode(n) = {
+  n ~ floor(n / 2)
+}
+for (i: 0 .. 7) {
+  println(i _ " -> " _ grayCode(i) _ " (" _ decToBin(grayCode(i)) _ ")")
+}
+
+//20074
+local a74 = 12
+local b74 = 10
+println("AND=" _ (a74 & b74) _ " OR=" _ (a74 | b74) _ " XOR=" _ (a74 ~ b74))
+
+//20075
+func parity(n) = {
+  countBits(n) % 2
+}
+println(parity(7))
+println(parity(8))
+println(parity(9))
+
+//20076
+func octalStr(n) = {
+  if (n == 0) "0"
+  else {
+    local result = ""
+    local x = n
+    while (x > 0) {
+      result = (x % 8) _ result
+      x = floor(x / 8)
+    }
+    result
+  }
+}
+println(octalStr(255))
+
+//20077
+local flags77 = 0
+flags77 = flags77 | 1
+flags77 = flags77 | 4
+local bit2check = flags77 & 2
+println(flags77)
+println(bit2check)
+
+//20078
+func nibbles(n) = {
+  local hi = floor(n / 16)
+  local lo = n % 16
+  println("High nibble: " _ decToHex(hi) _ " Low nibble: " _ decToHex(lo))
+}
+nibbles(171)
+
+//20079
+func rotateBitsLeft(n, bits, width) = {
+  local mask = (2^width) - 1
+  ((n * (2^bits)) | floor(n / (2^(width-bits)))) & mask
+}
+println(rotateBitsLeft(11, 1, 4))
+
+//20080
+for (a80 in [0,1]) {
+  for (b80 in [0,1]) {
+    println(a80 _ " XOR " _ b80 _ " = " _ (a80 ~ b80))
+  }
+}
+
+//20081
+local s81a = "apple"
+local s81b = "banana"
+println(s81a << s81b)
+println(s81a >> s81b)
+
+//20082
+func lexMin(lst) = {
+  local m = lst[1]
+  for (s in lst) {
+    if (s << m) m = s
+  }
+  m
+}
+println(lexMin(["zebra","apple","mango"]))
+
+//20083
+func lexMax(lst) = {
+  local m = lst[1]
+  for (s in lst) {
+    if (s >> m) m = s
+  }
+  m
+}
+println(lexMax(["cat","dog","ant","zoo"]))
+
+//20084
+func lexSort(lst) = {
+  local arr = copyList(lst)
+  for (i: 2 .. arr.listLen()) {
+    local key = arr[i]
+    local j = i - 1
+    while (j >= 1 && arr[j] >> key) {
+      arr[j+1] = arr[j]
+      j = j - 1
+    }
+    arr[j+1] = key
+  }
+  arr
+}
+println(lexSort(["fig","apple","date","banana"]))
+
+//20085
+func strictEquals(a, b) = {
+  a === b
+}
+println(strictEquals("42", 42))
+println(strictEquals("42", "42"))
+
+//20086
+local names86 = ["Alice","alice","ALICE"]
+println(names86[1] === names86[2])
+println(names86[1].lowercase() === names86[2])
+
+//20087
+func between(s, lo, hi) = {
+  (lo << s || lo === s) && (s << hi || s === hi)
+}
+println(between("mango", "apple", "zebra"))
+
+//20088
+func groupByInitial(words) = {
+  local result = {}
+  for (w in words) {
+    local init = w.segment(1,1)
+    if (!result.containsKey(init)) result.set(init, [])
+    result.get(init).add(w)
+  }
+  result
+}
+println(groupByInitial(["ant","bee","bat","cat","ape"]))
+
+//20089
+func versionCompare(v1, v2) = {
+  local p1 = v1.split(".")
+  local p2 = v2.split(".")
+  local result = "same"
+  for (i: 1 .. p1.listLen()) {
+    if (p1[i] << p2[i]) {
+      result = "older"
+    } else if (p1[i] >> p2[i]) {
+      result = "newer"
+    }
+  }
+  result
+}
+println(versionCompare("1.2.3","1.2.4"))
+println(versionCompare("2.0.0","1.9.9"))
+
+//20090
+local words90 = ["delta","alpha","gamma","beta"]
+println(words90.sort { a, b -> a << b })
+
+//20091
+func distinctSorted(lst) = {
+  local sorted = lst.sort { a, b -> a << b }
+  local result = []
+  for (s in sorted) {
+    if (result ? emptyList || !(result[result.listLen()] === s)) {
+      result.add(s)
+    }
+  }
+  result
+}
+println(distinctSorted(["b","a","b","c","a"]))
+
+//20092
+func textBetween(s, open, close) = {
+  local parts = s.splitAtFirst(open)
+  if (parts.listLen() < 2) ""
+  else {
+    local after = parts[2]
+    local parts2 = after.splitAtFirst(close)
+    parts2[1]
+  }
+}
+println(textBetween("say \"hello\"", "\"", "\""))
+
+//20093
+local codes93 = ["en","fr","de","zh"]
+println(codes93.sort { a, b -> a << b })
+
+//20094
+func isSortedAsc(lst) = {
+  local ok = true
+  for (i: 2 .. lst.listLen()) {
+    if (lst[i] << lst[i-1]) ok = false
+  }
+  ok
+}
+println(isSortedAsc(["ant","bee","cat"]))
+println(isSortedAsc(["cat","ant"]))
+
+//20095
+local lst95 = [10,20,30,40,50]
+println(lst95.slice(2,4))
+println(lst95.allButFirst())
+println(lst95.allButLast())
+
+//20096
+func tail(lst, n) = {
+  lst.slice(lst.listLen()-n+1, lst.listLen())
+}
+println(tail([1,2,3,4,5], 3))
+
+//20097
+func head(lst, n) = {
+  lst.slice(1, n)
+}
+println(head(["a","b","c","d"], 2))
+
+//20098
+func middle(lst) = {
+  lst.allButFirst().allButLast()
+}
+println(middle([1,2,3,4,5]))
+
+//20099
+func windows(lst, size) = {
+  local result = []
+  for (i: 1 .. lst.listLen()-size+1) {
+    result.add(lst.slice(i, i+size-1))
+  }
+  result
+}
+println(windows([1,2,3,4,5], 3))
+
+//20100
+local nums100 = [3,1,4,1,5,9,2,6]
+println(nums100.random())
+local randoms = []
+for (i: 1 .. 10) {
+  randoms.add(nums100.random())
+}
+println(randoms)
+
+//20101
+func rotateLeft(lst, n) = {
+  local r = n % lst.listLen()
+  local front = lst.slice(1, r)
+  local back = lst.slice(r+1, lst.listLen())
+  back.appendList(front)
+  back
+}
+println(rotateLeft([1,2,3,4,5], 2))
+
+//20102
+func rotateRight(lst, n) = {
+  local r = n % lst.listLen()
+  local front = lst.slice(1, lst.listLen()-r)
+  local back = lst.slice(lst.listLen()-r+1, lst.listLen())
+  back.appendList(front)
+  back
+}
+println(rotateRight([1,2,3,4,5], 2))
+
+//20103
+func chunk(lst, size) = {
+  local result = []
+  local i = 1
+  while (i <= lst.listLen()) {
+    local end = min(i+size-1, lst.listLen())
+    result.add(lst.slice(i, end))
+    i = i + size
+  }
+  result
+}
+local lst103 = []
+for (i: 1 .. 8) lst103.add(i)
+println(chunk(lst103, 3))
+
+//20104
+local words104 = ["one","two","three","four"]
+println(words104.reverseList())
+println(words104.reverseList().reverseList())
+
+//20105
+func flatten(lst) = {
+  lst.reduce([]) { sublist, acc ->
+    local r = copyList(acc)
+    r.appendList(sublist)
+    r
+  }
+}
+println(flatten([[1,2],[3,4],[5]]))
+
+//20106
+func zip(a, b) = {
+  local result = []
+  local len = min(a.listLen(), b.listLen())
+  for (i: 1 .. len) {
+    result.add([a[i], b[i]])
+  }
+  result
+}
+println(zip([1,2,3], ["a","b","c"]))
+
+//20107
+func unzip(pairs) = {
+  local keys = pairs.map { p -> p[1] }
+  local vals = pairs.map { p -> p[2] }
+  [keys, vals]
+}
+local zipped = zip([1,2,3],["a","b","c"])
+println(unzip(zipped))
+
+//20108
+func enumerate(lst) = {
+  local result = []
+  for (i: 1 .. lst.listLen()) {
+    result.add([i, lst[i]])
+  }
+  result
+}
+println(enumerate(["a","b","c"]))
+
+//20109
+func takeWhile(lst, pred) = {
+  local result = []
+  local i = 1
+  while (i <= lst.listLen() && pred(lst[i])) {
+    result.add(lst[i])
+    i = i + 1
+  }
+  result
+}
+println(takeWhile([1,2,3,4,5], { x -> x < 4 }))
+
+//20110
+func dropWhile(lst, pred) = {
+  local i = 1
+  while (i <= lst.listLen() && pred(lst[i])) {
+    i = i + 1
+  }
+  lst.slice(i, lst.listLen())
+}
+println(dropWhile([1,2,3,4,5], { x -> x < 3 }))
+
+//20111
+local nested111 = {}
+nested111.setAtPath(["a","b","c"], 42)
+println(nested111.getAtPath(["a","b","c"], 0))
+
+//20112
+func deepMerge(base, patch) = {
+  for (key, value in patch) {
+    if (value ? dict && base.containsKey(key) && base.get(key) ? dict) {
+      deepMerge(base.get(key), value)
+    } else {
+      base.set(key, value)
+    }
+  }
+  base
+}
+local b112 = {"x": {"a": 1, "b": 2}, "y": 3}
+local p112 = {"x": {"b": 99, "c": 5}, "z": 4}
+println(deepMerge(b112, p112))
+
+//20113
+local config113 = {"db": {"host": "localhost", "port": 5432}, "app": {"debug": true}}
+println(config113.getAtPath(["db","host"], "unknown"))
+
+//20114
+func flattenDict(d, prefix) = {
+  local result = {}
+  for (key, value in d) {
+    local fullKey = if (prefix ? emptyText) key else prefix _ "." _ key
+    if (value ? dict) {
+      local sub = flattenDict(value, fullKey)
+      for (sk, sv in sub) {
+        result.set(sk, sv)
+      }
+    } else {
+      result.set(fullKey, value)
+    }
+  }
+  result
+}
+println(flattenDict({"db": {"host": "localhost", "port": 5432}}, ""))
+
+//20115
+local d115 = {"x": 1, "y": 2, "z": 3}
+println(d115.keys())
+println(d115.values())
+println(d115.toPairs())
+
+//20116
+func invertDict(d) = {
+  local result = {}
+  for (k, v in d) {
+    result.set("" _ v, k)
+  }
+  result
+}
+println(invertDict({"a":1,"b":2,"c":3}))
+
+//20117
+func mergeSum(d1, d2) = {
+  local result = copyDict(d1)
+  for (k, v in d2) {
+    if (result.containsKey(k)) result.set(k, result.get(k) + v)
+    else result.set(k, v)
+  }
+  result
+}
+println(mergeSum({"a":1,"b":2}, {"b":3,"c":4}))
+
+//20118
+local scores118 = {"Alice":88,"Bob":72,"Carol":95}
+local pairs118 = scores118.toPairs()
+local best = pairs118.max { a, b -> a.get("Carol") > b.get("Carol") }
+local topName = pairs118.reduce(pairs118[1]) { p, acc -> if (p[2] > acc[2]) p else acc }
+println(topName[1])
+
+//20119
+func groupBy(lst, keyFn) = {
+  local result = {}
+  for (el in lst) {
+    local key = keyFn(el)
+    local keyStr = "" _ key
+    if (!result.containsKey(keyStr)) result.set(keyStr, [])
+    result.get(keyStr).add(el)
+  }
+  result
+}
+println(groupBy([1,2,3,4,5,6], { x -> if (x % 2 == 0) "even" else "odd" }))
+
+//20120
+func countBy(lst, keyFn) = {
+  local result = {}
+  for (el in lst) {
+    local key = keyFn(el)
+    if (!result.containsKey(key)) result.set(key, 0)
+    result.set(key, result.get(key) + 1)
+  }
+  result
+}
+println(countBy(["apple","ant","bear","bee","cat"], { s -> s.segment(1,1) }))
+
+//20121
+global registry121 = {}
+func register(name, val) = {
+  this.registry121.set(name, val)
+}
+register("alpha", 1)
+register("beta", 2)
+register("gamma", 3)
+register("delta", 4)
+register("epsilon", 5)
+println(this.registry121.keys())
+
+//20122
+func pick(d, keys) = {
+  local result = {}
+  for (k in keys) {
+    if (d.containsKey(k)) result.set(k, d.get(k))
+  }
+  result
+}
+println(pick({"a":1,"b":2,"c":3}, ["a","c"]))
+
+//20123
+func omit(d, keys) = {
+  local result = {}
+  for (k, v in d) {
+    if (!keys.containsItem(k)) result.set(k, v)
+  }
+  result
+}
+println(omit({"a":1,"b":2,"c":3}, ["b"]))
+
+//20124
+local lookup124 = {"Mon":1,"Tue":2,"Wed":3,"Thu":4,"Fri":5}
+func dayNumber(name) = {
+  lookup124.get(name, -1)
+}
+for (d in ["Mon","Tue","Wed","Thu","Fri"]) {
+  println(d _ ": " _ dayNumber(d))
+}
+
+//20125
+func histDict(lst) = {
+  local result = {}
+  for (el in lst) {
+    local key = "" _ el
+    if (!result.containsKey(key)) result.set(key, 0)
+    result.set(key, result.get(key) + 1)
+  }
+  result
+}
+println(histDict(["a","b","a","c","b","a"]))
+
+//20126
+local s126 = "hello world falcon"
+local parts126 = s126.splitAtFirst(" ")
+println(parts126[1])
+println(parts126[2])
+println(s126.splitAtAny([" ","o"]))
+
+//20127
+func words(s) = {
+  s.splitAtSpaces().filter { w -> !(w ? emptyText) }
+}
+println(words("  hello   world  "))
+
+//20128
+func extractBetween(s, open, close) = {
+  local p1 = s.splitAtFirst(open)
+  if (p1.listLen() < 2) ""
+  else {
+    local p2 = p1[2].splitAtFirst(close)
+    p2[1]
+  }
+}
+println(extractBetween("(abc)", "(", ")"))
+
+//20129
+local csv129 = "alpha;beta;gamma"
+local fields129 = csv129.split(";")
+println(fields129[2])
+
+//20130
+func camelToWords(s) = {
+  local result = []
+  local current = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    local isUpper = ch === ch.uppercase() && !(ch ? number) && ch !== ch.lowercase()
+    if (isUpper && i > 1) {
+      result.add(current)
+      current = ch
+    } else {
+      current = current _ ch
+    }
+  }
+  if (!(current ? emptyText)) result.add(current)
+  result
+}
+println(camelToWords("helloWorldFoo"))
+
+//20131
+func truncate(s, n, ellipsis) = {
+  if (s.textLen() > n) s.segment(1, n) _ ellipsis
+  else s
+}
+println(truncate("Hello World", 5, "…"))
+
+//20132
+local template132 = "{{first}} {{last}}"
+println(template132.replaceFrom({"{{first}}": "Jane", "{{last}}": "Smith"}))
+
+//20133
+func countWords(s) = {
+  s.splitAtSpaces().filter { w -> !(w ? emptyText) }.listLen()
+}
+println(countWords("  the quick brown fox  "))
+
+//20134
+func isPalindrome(s) = {
+  local t = s.trim()
+  t === t.reverse()
+}
+println(isPalindrome("racecar"))
+println(isPalindrome("hello"))
+println(isPalindrome("a man a plan a canal panama".lowercase()))
+
+//20135
+func longestWord(s) = {
+  s.splitAtSpaces().filter { w -> !(w ? emptyText) }.max { a, b -> a.textLen() > b.textLen() }
+}
+println(longestWord("the quick brown fox"))
+
+//20136
+func multiReplace(s, pairs) = {
+  local result = s
+  for (p in pairs) {
+    result = result.replace(p[1], p[2])
+  }
+  result
+}
+println(multiReplace("hello world foo", [["hello","hi"],["world","earth"],["foo","bar"]]))
+
+//20137
+func commonPrefix(a, b) = {
+  local result = ""
+  local len = min(a.textLen(), b.textLen())
+  for (i: 1 .. len) {
+    if (a.segment(i,1) === b.segment(i,1)) result = result _ a.segment(i,1)
+    else len = 0
+  }
+  result
+}
+println(commonPrefix("flower","flow"))
+
+//20138
+local log138 = "2024-01-15T08:30:00 ERROR disk full\n2024-01-15T08:31:00 INFO ok"
+local lines138 = log138.split("\n")
+local errors138 = lines138.filter { l -> l.contains("ERROR") }
+for (l in errors138) println(l)
+
+//20139
+func initials(fullName) = {
+  fullName.splitAtSpaces().filter { w -> !(w ? emptyText) }.map { w -> w.segment(1,1) }.join(".")
+}
+println(initials("John Ronald Reuel Tolkien"))
+
+//20140
+func normaliseSpaces(s) = {
+  s.splitAtSpaces().filter { w -> !(w ? emptyText) }.join(" ")
+}
+println(normaliseSpaces("hello   world   foo"))
+
+//20141
+local nums141 = []
+for (i: 1 .. 10) nums141.add(i)
+println(nums141.filter { x -> x % 2 == 0 }.map { x -> x*x }.reduce(0) { x, s -> x + s })
+
+//20142
+local words142 = ["apple","ant","banana","bear","cherry"]
+println(words142.filter { w -> w.startsWith("a") || w.startsWith("b") }.map { w -> w.uppercase() }.sort { a, b -> a << b })
+
+//20143
+func isPrime143(n) = {
+  if (n < 2) false
+  else {
+    local ok = true
+    for (i: 2 .. floor(sqrt(n))) {
+      if (n % i == 0) ok = false
+    }
+    ok
+  }
+}
+local nums143 = []
+for (i: 1 .. 20) nums143.add(i)
+println(nums143.filter { n -> isPrime143(n) }.map { n -> "prime: " _ n }.join(", "))
+
+//20144
+local people144 = [{"name":"Alice","age":30},{"name":"Bob","age":25},{"name":"Carol","age":35}]
+println(people144.filter { p -> p.get("age") > 27 }.map { p -> p.get("name") }.sort { a, b -> a << b })
+
+//20145
+func pipeline(value, fns) = {
+  local result = value
+  for (f in fns) {
+    result = f(result)
+  }
+  result
+}
+println(pipeline(5, [{ x -> x * 2 }, { x -> x + 1 }, { x -> x ^ 2 }]))
+
+//20146
+local prices146 = [9.99, 14.50, 3.00, 25.00, 7.75]
+println(prices146.filter { p -> p > 5 }.map { p -> round(p * 0.9) }.reduce(0) { x, s -> x + s })
+
+//20147
+func compose(f, g) = {
+  { x -> f(g(x)) }
+}
+local double147 = { x -> x * 2 }
+local addOne147 = { x -> x + 1 }
+local doubleAddOne = compose(addOne147, double147)
+println(doubleAddOne(3))
+
+//20148
+local sentences148 = ["Hello World","Foo Bar Baz","One"]
+println(sentences148.map { s -> s.splitAtSpaces().filter { w -> !(w ? emptyText) }.listLen() }.filter { c -> c > 1 }.reduce(0) { x, s -> x + s })
+
+//20149
+local matrix149 = [[1,2,3],[4,5,6],[7,8,9]]
+local flat = matrix149.reduce([]) { row, acc -> local r = copyList(acc); r.appendList(row); r }
+println(flat.filter { x -> x % 2 != 0 }.reduce(0) { x, s -> x + s })
+
+//20150
+local data150 = [{"score":80},{"score":95},{"score":60},{"score":70}]
+local filtered150 = data150.map { d -> d.get("score") }.filter { s -> s >= 70 }
+println(avgOf(filtered150))
+
+//20151
+local names151 = ["bob","alice","charlie","dave"]
+println(names151.sort { a, b -> a << b }.sort { a, b -> a.textLen() < b.textLen() })
+
+//20152
+local nums152 = [3,1,4,1,5,9,2,6,5,3,5]
+local sorted152 = nums152.sort()
+local deduped152 = []
+for (x in sorted152) {
+  if (deduped152 ? emptyList || deduped152[deduped152.listLen()] != x) deduped152.add(x)
+}
+println(deduped152)
+
+//20153
+func groupSumBy(lst, keyFn) = {
+  local result = {}
+  for (el in lst) {
+    local key = "" _ keyFn(el)
+    if (!result.containsKey(key)) result.set(key, 0)
+    result.set(key, result.get(key) + el)
+  }
+  result
+}
+println(groupSumBy([1,2,3,4,5,6], { x -> x % 3 }))
+
+//20154
+local words154 = ["the","fox","the","cat","fox","the","dog","fox","the"]
+local freq154 = words154.reduce({}) { word, acc -> acc.set(word, if (acc.containsKey(word)) acc.get(word)+1 else 1); acc }
+local pairs154 = freq154.toPairs().sort { a, b -> a[2] > b[2] }
+println(pairs154.slice(1,3))
+
+//20155
+local readings155 = [22.1, 21.8, 23.0, 22.5, 21.9]
+local running155 = []
+local sum155 = 0
+for (i: 1 .. readings155.listLen()) {
+  sum155 = sum155 + readings155[i]
+  running155.add(sum155 / i)
+}
+println(running155)
+
+//20156
+global stack156 = []
+func push156(v) = { this.stack156.add(v) }
+func pop156() = {
+  local top = this.stack156[this.stack156.listLen()]
+  this.stack156.remove(this.stack156.listLen())
+  top
+}
+func peek156() = { this.stack156[this.stack156.listLen()] }
+func isEmpty156() = { this.stack156 ? emptyList }
+push156(1); push156(2); push156(3)
+println(peek156())
+println(pop156())
+println(isEmpty156())
+
+//20157
+global queue157 = []
+func enqueue(v) = { this.queue157.add(v) }
+func dequeue() = {
+  local front = this.queue157[1]
+  this.queue157.remove(1)
+  front
+}
+func front157() = { this.queue157[1] }
+func queueLen() = { this.queue157.listLen() }
+enqueue(1); enqueue(2); enqueue(3)
+dequeue(); dequeue()
+println(front157())
+
+//20158
+func evalRPN(tokens) = {
+  local stack = []
+  for (t in tokens) {
+    if (t === "+") {
+      local b = stack[stack.listLen()]; stack.remove(stack.listLen())
+      local a = stack[stack.listLen()]; stack.remove(stack.listLen())
+      stack.add(a + b)
+    } else if (t === "-") {
+      local b = stack[stack.listLen()]; stack.remove(stack.listLen())
+      local a = stack[stack.listLen()]; stack.remove(stack.listLen())
+      stack.add(a - b)
+    } else if (t === "*") {
+      local b = stack[stack.listLen()]; stack.remove(stack.listLen())
+      local a = stack[stack.listLen()]; stack.remove(stack.listLen())
+      stack.add(a * b)
+    } else if (t === "/") {
+      local b = stack[stack.listLen()]; stack.remove(stack.listLen())
+      local a = stack[stack.listLen()]; stack.remove(stack.listLen())
+      stack.add(a / b)
+    } else {
+      stack.add(dec(t))
+    }
+  }
+  stack[1]
+}
+println(evalRPN(["3","4","+","2","*"]))
+
+//20159
+func balancedParens(s) = {
+  local count = 0
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    if (ch === "(") count = count + 1
+    else if (ch === ")") count = count - 1
+    if (count < 0) count = -999
+  }
+  count == 0
+}
+println(balancedParens("((()))"))
+println(balancedParens("(()"))
+println(balancedParens(")("))
+
+//20160
+global minStack160 = []
+global minTrack160 = []
+func msPush(v) = {
+  this.minStack160.add(v)
+  if (this.minTrack160 ? emptyList) this.minTrack160.add(v)
+  else this.minTrack160.add(min(v, this.minTrack160[this.minTrack160.listLen()]))
+}
+func msPop() = {
+  local top = this.minStack160[this.minStack160.listLen()]
+  this.minStack160.remove(this.minStack160.listLen())
+  this.minTrack160.remove(this.minTrack160.listLen())
+  top
+}
+func msMin() = { this.minTrack160[this.minTrack160.listLen()] }
+for (v in [5,3,7,2,4]) msPush(v)
+println(msMin())
+msPop()
+println(msMin())
+
+//20161
+global deque161 = []
+func pushFront(v) = { this.deque161.insert(1, v) }
+func pushBack(v) = { this.deque161.add(v) }
+func popFront() = {
+  local v = this.deque161[1]; this.deque161.remove(1); v
+}
+func popBack() = {
+  local v = this.deque161[this.deque161.listLen()]; this.deque161.remove(this.deque161.listLen()); v
+}
+pushBack(1); pushBack(2); pushFront(0); pushBack(3)
+println(popFront())
+println(popBack())
+println(this.deque161)
+
+//20162
+func nextGreater(lst) = {
+  local n = lst.listLen()
+  local result = []
+  for (i: 1 .. n) result.add(-1)
+  local stack = []
+  for (i: 1 .. n) {
+    while (!(stack ? emptyList) && lst[stack[stack.listLen()]] < lst[i]) {
+      local idx = stack[stack.listLen()]
+      stack.remove(stack.listLen())
+      result[idx] = lst[i]
+    }
+    stack.add(i)
+  }
+  result
+}
+println(nextGreater([4,1,2,3]))
+
+//20163
+func infixToPostfix(tokens) = {
+  local prec = {"+":1,"-":1,"*":2,"/":2}
+  local output = []
+  local stack = []
+  for (t in tokens) {
+    if (t === "+" || t === "-" || t === "*" || t === "/") {
+      while (!(stack ? emptyList) && stack[stack.listLen()] !== "(" && prec.get(stack[stack.listLen()]) >= prec.get(t)) {
+        output.add(stack[stack.listLen()])
+        stack.remove(stack.listLen())
+      }
+      stack.add(t)
+    } else if (t === "(") {
+      stack.add(t)
+    } else if (t === ")") {
+      while (stack[stack.listLen()] !== "(") {
+        output.add(stack[stack.listLen()])
+        stack.remove(stack.listLen())
+      }
+      stack.remove(stack.listLen())
+    } else {
+      output.add(t)
+    }
+  }
+  while (!(stack ? emptyList)) {
+    output.add(stack[stack.listLen()])
+    stack.remove(stack.listLen())
+  }
+  output
+}
+println(infixToPostfix(["a","+","b","*","c"]))
+
+//20164
+global cbuf164 = [0,0,0,0]
+global cbHead = 1
+global cbTail = 1
+global cbSize = 0
+func cbWrite(v) = {
+  this.cbuf164[this.cbTail] = v
+  this.cbTail = (this.cbTail % 4) + 1
+  this.cbSize = min(this.cbSize + 1, 4)
+}
+func cbRead() = {
+  local v = this.cbuf164[this.cbHead]
+  this.cbHead = (this.cbHead % 4) + 1
+  this.cbSize = this.cbSize - 1
+  v
+}
+for (i: 1 .. 6) cbWrite(i)
+for (i: 1 .. 4) println(cbRead())
+
+//20165
+func histFreq(lst) = {
+  local h = histDict(lst)
+  local pairs = h.toPairs()
+  pairs.sort { a, b -> a[2] > b[2] }
+}
+println(histFreq(["a","b","a","c","a","b"]))
+
+//20166
+func runLengthEncode(lst) = {
+  if (lst ? emptyList) []
+  else {
+    local result = []
+    local cur = lst[1]
+    local cnt = 1
+    for (i: 2 .. lst.listLen()) {
+      if (lst[i] === cur) cnt = cnt + 1
+      else {
+        result.add([cur, cnt])
+        cur = lst[i]
+        cnt = 1
+      }
+    }
+    result.add([cur, cnt])
+    result
+  }
+}
+println(runLengthEncode(["a","a","b","c","c","c"]))
+
+//20167
+func runLengthDecode(encoded) = {
+  local result = []
+  for (p in encoded) {
+    for (i: 1 .. p[2]) result.add(p[1])
+  }
+  result
+}
+local orig167 = ["a","a","b","c","c","c"]
+println(runLengthDecode(runLengthEncode(orig167)))
+
+//20168
+func rle(s) = {
+  if (s ? emptyText) ""
+  else {
+    local result = ""
+    local cur = s.segment(1,1)
+    local cnt = 1
+    for (i: 2 .. s.textLen()) {
+      local ch = s.segment(i,1)
+      if (ch === cur) cnt = cnt + 1
+      else {
+        result = result _ cnt _ cur
+        cur = ch
+        cnt = 1
+      }
+    }
+    result _ cnt _ cur
+  }
+}
+println(rle("aaabbc"))
+
+//20169
+func modeList(lst) = {
+  local h = histDict(lst)
+  local maxCount = h.values().max { a, b -> a > b }
+  h.toPairs().filter { p -> p[2] == maxCount }.map { p -> p[1] }
+}
+println(modeList([1,2,2,3,3,4]))
+
+//20170
+func normalize(lst) = {
+  local mx = lst.max { a, b -> a > b }
+  lst.map { x -> x / mx }
+}
+println(normalize([2,4,8,6]))
+
+//20171
+func cToF(c) = { c * 9/5 + 32 }
+func fToC(f) = { (f - 32) * 5/9 }
+println(cToF(0))
+println(cToF(100))
+println(fToC(32))
+println(fToC(212))
+
+//20172
+func kmToMiles(km) = { km * 0.621371 }
+func milesToKm(m) = { m * 1.60934 }
+local km172 = 100
+local miles172 = kmToMiles(km172)
+println(formatDecimal(miles172, 2))
+println(formatDecimal(milesToKm(miles172), 2))
+
+//20173
+func kgToLbs(kg) = { kg * 2.20462 }
+func lbsToKg(lb) = { lb / 2.20462 }
+local kg173 = 70
+local lbs173 = kgToLbs(kg173)
+println(formatDecimal(lbs173, 2) _ " lbs")
+println(formatDecimal(lbsToKg(lbs173), 2) _ " kg")
+
+//20174
+func mpsToKph(v) = { v * 3.6 }
+func kphToMps(v) = { v / 3.6 }
+println(formatDecimal(mpsToKph(10), 1) _ " kph")
+
+//20175
+func bytesToMB(b) = { b / 1048576 }
+func bytesToGB(b) = { b / 1073741824 }
+println(formatDecimal(bytesToMB(1073741824), 0) _ " MB")
+println(formatDecimal(bytesToGB(1073741824), 0) _ " GB")
+
+//20176
+func secondsToHMS(s) = {
+  local h = quot(s, 3600)
+  local m = quot(mod(s, 3600), 60)
+  local sec = mod(s, 60)
+  padLeft("" _ h, 2, "0") _ ":" _ padLeft("" _ m, 2, "0") _ ":" _ padLeft("" _ sec, 2, "0")
+}
+println(secondsToHMS(3661))
+
+//20177
+func hmsToseconds(hms) = {
+  local parts = hms.split(":")
+  dec(parts[1])*3600 + dec(parts[2])*60 + dec(parts[3])
+}
+local secs177 = hmsToseconds("02:30:15")
+println(secs177)
+println(secondsToHMS(secs177))
+
+//20178
+func acresToSqm(a) = { a * 4046.86 }
+func sqmToAcres(m) = { m / 4046.86 }
+println(formatDecimal(acresToSqm(2.5), 2))
+
+//20179
+local convTable = {"in":2.54,"ft":30.48,"yd":91.44}
+func toCm(value, unit) = { value * convTable.get(unit) }
+println(toCm(1, "in"))
+println(toCm(1, "ft"))
+println(toCm(1, "yd"))
+
+//20180
+func degToRad(d) = { radians(d) }
+func radToDeg(r) = { degrees(r) }
+println(formatDecimal(degToRad(180), 6))
+println(formatDecimal(radToDeg(3.141593), 6))
+
+//20181
+func formatDecPad(n, places, width) = {
+  local s = formatDecimal(n, places)
+  padLeft(s, width, " ")
+}
+println(formatDecPad(3.14159, 2, 8))
+
+//20182
+func formatThousands(n) = {
+  local s = "" _ n
+  local result = ""
+  local len = s.textLen()
+  for (i: 1 .. len) {
+    result = result _ s.segment(i,1)
+    local remaining = len - i
+    if (remaining > 0 && remaining % 3 == 0) result = result _ ","
+  }
+  result
+}
+println(formatThousands(1234567))
+
+//20183
+func formatSign(n) = {
+  if (n > 0) "+" _ n
+  else if (n < 0) "" _ n
+  else "0"
+}
+println(formatSign(42))
+println(formatSign(-7))
+println(formatSign(0))
+
+//20184
+func formatPercent(n, total) = {
+  formatDecimal(n / total * 100, 1) _ "%"
+}
+println(formatPercent(37, 200))
+
+//20185
+func formatTable(rows) = {
+  local colWidths = []
+  for (row in rows) {
+    for (i: 1 .. row.listLen()) {
+      local w = ("" _ row[i]).textLen()
+      if (colWidths.listLen() < i) colWidths.add(w)
+      else colWidths[i] = max(colWidths[i], w)
+    }
+  }
+  local out = ""
+  for (row in rows) {
+    local line = ""
+    for (i: 1 .. row.listLen()) {
+      line = line _ padRight("" _ row[i], colWidths[i], " ") _ "\t"
+    }
+    out = out _ line _ "\n"
+  }
+  out
+}
+println(formatTable([["Name","Age","City"],["Alice","30","Delhi"],["Bob","25","London"]]))
+
+//20186
+func formatSci(n, sig) = {
+  local e = floor(log(abs(n)) / log(10))
+  local m = n / (10^e)
+  local mf = formatDecimal(m, sig-1)
+  mf _ "e" _ e
+}
+println(formatSci(0.000123, 3))
+
+//20187
+func zeroPad(n, width) = {
+  padLeft("" _ n, width, "0")
+}
+println(zeroPad(7, 4))
+println(zeroPad(1234, 4))
+
+//20188
+func formatCurrency(amount, symbol) = {
+  symbol _ formatDecimal(amount, 2)
+}
+println(formatCurrency(9.5, "$"))
+
+//20189
+local measurements189 = [3.14159, 2.71828, 1.41421]
+println(measurements189.map { x -> formatDecimal(x, 3) }.join(", "))
+
+//20190
+func humanSize(bytes) = {
+  if (bytes >= 1073741824) formatDecimal(bytes/1073741824, 1) _ " GB"
+  else if (bytes >= 1048576) formatDecimal(bytes/1048576, 1) _ " MB"
+  else formatDecimal(bytes/1024, 1) _ " KB"
+}
+println(humanSize(1234567890))
+println(humanSize(5242880))
+println(humanSize(2048))
+
+//20191
+global currentState191 = "idle"
+local transitions191 = {
+  "idle": {"start": "loading"},
+  "loading": {"done": "ready", "fail": "error"},
+  "ready": {"reset": "idle"},
+  "error": {"reset": "idle"}
+}
+func transition191(event) = {
+  local stateMap = transitions191.get(this.currentState191)
+  if (stateMap.containsKey(event)) {
+    this.currentState191 = stateMap.get(event)
+  } else {
+    println("Invalid transition: " _ event _ " from " _ this.currentState191)
+  }
+  this.currentState191
+}
+println(transition191("start"))
+println(transition191("done"))
+println(transition191("reset"))
+println(transition191("fail"))
+
+//20192
+func vendingMachine(balance, item) = {
+  local prices = {"cola": 1.50, "chips": 1.00, "water": 0.75}
+  if (!prices.containsKey(item)) {
+    println("Unknown item")
+    balance
+  } else {
+    local price = prices.get(item)
+    if (balance >= price) {
+      local change = balance - price
+      println("Dispensing " _ item _ ". Change: " _ formatDecimal(change, 2))
+      change
+    } else {
+      println("Insufficient balance for " _ item)
+      balance
+    }
+  }
+}
+local bal = 2.00
+bal = vendingMachine(bal, "cola")
+bal = vendingMachine(bal, "water")
+vendingMachine(bal, "chips")
+
+//20193
+global tlState = "red"
+func tick193() = {
+  this.tlState = if (this.tlState === "red") "green"
+    else if (this.tlState === "green") "yellow"
+    else "red"
+  println(this.tlState)
+}
+for (i: 1 .. 7) tick193()
+
+//20194
+func tokenizer(s) = {
+  local result = []
+  local i = 1
+  while (i <= s.textLen()) {
+    local ch = s.segment(i,1)
+    local isDigit = ch ? base10 && ch.textLen() == 1 && !(ch === ".")
+    local isLetter = !(ch ? number) && ch !== "+" && ch !== "-" && ch !== "*" && ch !== "/" && ch !== "(" && ch !== ")"
+    if (ch ? base10 && !(ch === ".")) {
+      local tok = ""
+      while (i <= s.textLen() && s.segment(i,1) ? base10) {
+        tok = tok _ s.segment(i,1)
+        i = i + 1
+      }
+      result.add({"type":"NUM","val":tok})
+    } else if (isLetter) {
+      local tok = ""
+      while (i <= s.textLen() && !(s.segment(i,1) ? number) && s.segment(i,1) !== "+" && s.segment(i,1) !== "-") {
+        tok = tok _ s.segment(i,1)
+        i = i + 1
+      }
+      result.add({"type":"WORD","val":tok})
+    } else {
+      result.add({"type":"SYM","val":ch})
+      i = i + 1
+    }
+  }
+  result
+}
+println(tokenizer("abc123+def"))
+
+//20195
+func elevator(current, requests) = {
+  local pos = current
+  local total = 0
+  for (r in requests) {
+    local dist = abs(r - pos)
+    total = total + dist
+    for (f in [if (r > pos) 1 else -1]) {
+      local step = pos
+      while (step != r) {
+        step = step + f
+        println("Floor: " _ step)
+      }
+    }
+    pos = r
+  }
+  println("Total floors traveled: " _ total)
+}
+elevator(1, [3, 1, 5, 2])
+
+//20196
+global history196 = []
+func doAction(action) = { this.history196.add(action) }
+func undo196() = {
+  if (!(this.history196 ? emptyList)) this.history196.remove(this.history196.listLen())
+}
+doAction("type A"); doAction("type B"); doAction("paste"); doAction("format"); doAction("save")
+undo196(); undo196()
+println(this.history196)
+
+//20197
+func parseCSM(transitions) = {
+  local table = {}
+  for (t in transitions) {
+    local parts = t.split(":")
+    local state = parts[1]
+    local event = parts[2]
+    local next = parts[3]
+    if (!table.containsKey(state)) table.set(state, {})
+    table.get(state).set(event, next)
+  }
+  table
+}
+func runCSM(table, startState, events) = {
+  local state = startState
+  for (e in events) {
+    if (table.containsKey(state) && table.get(state).containsKey(e)) {
+      state = table.get(state).get(e)
+    }
+    println(state)
+  }
+  state
+}
+local csm = parseCSM(["locked:coin:unlocked","unlocked:push:locked","unlocked:coin:unlocked","locked:push:locked"])
+runCSM(csm, "locked", ["coin","push","push","coin"])
+
+//20198
+global tsState = "locked"
+func tsEvent(e) = {
+  if (this.tsState === "locked") {
+    if (e === "coin") this.tsState = "unlocked"
+  } else {
+    if (e === "push") this.tsState = "locked"
+  }
+  println(this.tsState)
+}
+for (e in ["coin","push","push","coin","coin","push"]) tsEvent(e)
+
+//20199
+func workflowEngine(steps) = {
+  local idx = 1
+  for (step in steps) {
+    println("[" _ idx _ "/" _ steps.listLen() _ "] " _ step.get("name") _ ": " _ step.get("action"))
+    idx = idx + 1
+  }
+}
+workflowEngine([{"name":"init","action":"setup"},{"name":"build","action":"compile"},{"name":"test","action":"run tests"},{"name":"deploy","action":"push"}])
+
+//20200
+global attempts200 = 0
+func tryAction(action, maxRetries) = {
+  local success = false
+  local result = "failed"
+  while (this.attempts200 < maxRetries && !success) {
+    this.attempts200 = this.attempts200 + 1
+    if (this.attempts200 > 2) {
+      success = true
+      result = "success on attempt " _ this.attempts200
+    } else {
+      println("Attempt " _ this.attempts200 _ " failed")
+    }
+  }
+  if (!success) println("All retries exhausted")
+  result
+}
+println(tryAction("connect", 5))
+
+//20201
+global fibCache = {}
+func memoFib(n) = {
+  local key = "" _ n
+  if (this.fibCache.containsKey(key)) {
+    this.fibCache.get(key)
+  } else {
+    local result = if (n <= 1) n else memoFib(n-1) + memoFib(n-2)
+    this.fibCache.set(key, result)
+    result
+  }
+}
+println(memoFib(10))
+println(this.fibCache.dictLen())
+
+//20202
+global factCache = {}
+func memoFact(n) = {
+  local key = "" _ n
+  if (this.factCache.containsKey(key)) this.factCache.get(key)
+  else {
+    local result = if (n <= 1) 1 else n * memoFact(n-1)
+    this.factCache.set(key, result)
+    result
+  }
+}
+println(memoFact(10))
+local sz1 = this.factCache.dictLen()
+println(memoFact(8))
+println(this.factCache.dictLen())
+
+//20203
+global memoStore203 = {}
+global callCounter203 = 0
+func expensiveCompute(x) = {
+  this.callCounter203 = this.callCounter203 + 1
+  x * x + 1
+}
+func memoize203(x) = {
+  local key = "" _ x
+  if (this.memoStore203.containsKey(key)) this.memoStore203.get(key)
+  else {
+    local v = expensiveCompute(x)
+    this.memoStore203.set(key, v)
+    v
+  }
+}
+println(memoize203(5))
+println(memoize203(5))
+println("Actual calls: " _ this.callCounter203)
+
+//20204
+global lruVals = {}
+global lruOrder = []
+global lruCap = 3
+func lruGet(k) = {
+  local key = "" _ k
+  if (this.lruVals.containsKey(key)) {
+    local idx = this.lruOrder.indexOf(key)
+    if (idx > 0) { this.lruOrder.remove(idx); this.lruOrder.add(key) }
+    this.lruVals.get(key)
+  } else -1
+}
+func lruPut(k, v) = {
+  local key = "" _ k
+  if (this.lruVals.containsKey(key)) {
+    local idx = this.lruOrder.indexOf(key)
+    if (idx > 0) this.lruOrder.remove(idx)
+  } else if (this.lruOrder.listLen() >= this.lruCap) {
+    local evict = this.lruOrder[1]
+    this.lruOrder.remove(1)
+    this.lruVals.delete(evict)
+  }
+  this.lruVals.set(key, v)
+  this.lruOrder.add(key)
+}
+lruPut(1,10); lruPut(2,20); lruPut(3,30)
+println(lruGet(1))
+lruPut(4,40)
+println(lruGet(2))
+
+//20205
+global callCounts = {}
+func countCalls(name) = {
+  if (!this.callCounts.containsKey(name)) this.callCounts.set(name, 0)
+  this.callCounts.set(name, this.callCounts.get(name) + 1)
+}
+func fnAlpha() = { countCalls("fnAlpha") }
+func fnBeta() = { countCalls("fnBeta") }
+func fnGamma() = { countCalls("fnGamma") }
+fnAlpha(); fnAlpha(); fnBeta(); fnGamma(); fnBeta(); fnAlpha()
+println(this.callCounts)
+
+//20206
+global rangeCache = {}
+func memoRange(lo, hi) = {
+  local key = "" _ lo _ "-" _ hi
+  if (this.rangeCache.containsKey(key)) {
+    println("cached")
+    this.rangeCache.get(key)
+  } else {
+    local result = []
+    for (i: lo .. hi) result.add(i)
+    this.rangeCache.set(key, result)
+    result
+  }
+}
+println(memoRange(1,5))
+println(memoRange(1,5))
+
+//20207
+global fibTable = [0,1]
+func buildFibTable(n) = {
+  while (this.fibTable.listLen() <= n) {
+    local len = this.fibTable.listLen()
+    this.fibTable.add(this.fibTable[len] + this.fibTable[len-1])
+  }
+  this.fibTable[n+1]
+}
+println(buildFibTable(15))
+
+//20208
+func coinChange(coins, amount) = {
+  local dp = []
+  for (i: 0 .. amount) dp.add(if (i == 0) 0 else 999999)
+  for (i: 1 .. amount) {
+    for (c in coins) {
+      if (c <= i && dp[i-c+1] + 1 < dp[i+1]) {
+        dp[i+1] = dp[i-c+1] + 1
+      }
+    }
+  }
+  dp[amount+1]
+}
+println(coinChange([1,5,10,25], 41))
+
+//20209
+func longestCommonSubsequence(a, b) = {
+  local m = a.textLen()
+  local n = b.textLen()
+  local dp = []
+  for (i: 0 .. m) {
+    local row = []
+    for (j: 0 .. n) row.add(0)
+    dp.add(row)
+  }
+  for (i: 1 .. m) {
+    for (j: 1 .. n) {
+      if (a.segment(i,1) === b.segment(j,1)) dp[i+1][j+1] = dp[i][j] + 1
+      else dp[i+1][j+1] = max(dp[i][j+1], dp[i+1][j])
+    }
+  }
+  dp[m+1][n+1]
+}
+println(longestCommonSubsequence("ABCBDAB","BDCAB"))
+
+//20210
+func knapsack(weights, values, capacity) = {
+  local n = weights.listLen()
+  local dp = []
+  for (i: 0 .. n) {
+    local row = []
+    for (j: 0 .. capacity) row.add(0)
+    dp.add(row)
+  }
+  for (i: 1 .. n) {
+    for (j: 0 .. capacity) {
+      dp[i+1][j+1] = dp[i][j+1]
+      if (weights[i] <= j) {
+        dp[i+1][j+1] = max(dp[i+1][j+1], dp[i][j-weights[i]+1] + values[i])
+      }
+    }
+  }
+  dp[n+1][capacity+1]
+}
+println(knapsack([2,3,4,5],[3,4,5,6],8))
+
+//20211
+global mat211 = []
+for (i: 1 .. 4) {
+  local row = [0,0,0,0]
+  mat211.add(row)
+}
+func setCell(r,c,v) = { this.mat211[r][c] = v }
+func getCell(r,c) = { this.mat211[r][c] }
+for (i: 1 .. 4) setCell(i,i,1)
+for (row in mat211) println(row)
+
+//20212
+func matAdd212(a, b) = {
+  local n = a.listLen()
+  local result = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. a[i].listLen()) row.add(a[i][j] + b[i][j])
+    result.add(row)
+  }
+  result
+}
+local r212 = matAdd212([[1,2,3],[4,5,6],[7,8,9]],[[9,8,7],[6,5,4],[3,2,1]])
+for (row in r212) println(row)
+
+//20213
+func matMul213(a, b) = {
+  local n = a.listLen()
+  local m = b[1].listLen()
+  local p = b.listLen()
+  local result = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. m) {
+      local s = 0
+      for (k: 1 .. p) s = s + a[i][k]*b[k][j]
+      row.add(s)
+    }
+    result.add(row)
+  }
+  result
+}
+println(matMul213([[1,2],[3,4]],[[5,6],[7,8]]))
+
+//20214
+func transpose214(mat) = {
+  local rows = mat.listLen()
+  local cols = mat[1].listLen()
+  local result = []
+  for (j: 1 .. cols) {
+    local row = []
+    for (i: 1 .. rows) row.add(mat[i][j])
+    result.add(row)
+  }
+  result
+}
+println(transpose214([[1,2,3],[4,5,6]]))
+
+//20215
+func matScale(mat, k) = {
+  mat.map { row -> row.map { x -> x * k } }
+}
+for (row in matScale([[1,2,3],[4,5,6],[7,8,9]], 2)) println(row)
+
+//20216
+func identity216(n) = {
+  local result = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. n) row.add(if (i==j) 1 else 0)
+    result.add(row)
+  }
+  result
+}
+for (row in identity216(4)) println(row)
+
+//20217
+func trace(mat) = {
+  local s = 0
+  for (i: 1 .. mat.listLen()) s = s + mat[i][i]
+  s
+}
+println(trace([[1,2,3],[4,5,6],[7,8,9]]))
+
+//20218
+func rowSum(mat) = { mat.map { row -> row.reduce(0) { x, s -> x+s } } }
+func colSum(mat) = {
+  local n = mat[1].listLen()
+  local sums = []
+  for (j: 1 .. n) {
+    local s = 0
+    for (row in mat) s = s + row[j]
+    sums.add(s)
+  }
+  sums
+}
+local m218 = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]
+println(rowSum(m218))
+println(colSum(m218))
+
+//20219
+func matMul219(a, b) = { matMul213(a, b) }
+func matPow219(mat, n) = {
+  local result = identity216(mat.listLen())
+  local base = mat
+  local exp = n
+  while (exp > 0) {
+    if (exp % 2 == 1) result = matMul219(result, base)
+    base = matMul219(base, base)
+    exp = floor(exp / 2)
+  }
+  result
+}
+println(matPow219([[1,1],[1,0]], 3))
+
+//20220
+local mat220 = []
+for (i: 1 .. 5) {
+  local row = []
+  for (j: 1 .. 5) row.add(i*j)
+  mat220.add(row)
+}
+for (row in mat220) {
+  local line = ""
+  for (v in row) line = line _ padLeft("" _ v, 3, " ")
+  println(line)
+}
+
+//20221
+func isLeapYear(y) = {
+  (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
+}
+println(isLeapYear(1900))
+println(isLeapYear(2000))
+println(isLeapYear(2024))
+println(isLeapYear(2023))
+
+//20222
+func daysInMonth(month, year) = {
+  local days = [31,28,31,30,31,30,31,31,30,31,30,31]
+  if (month == 2 && isLeapYear(year)) 29 else days[month]
+}
+println(daysInMonth(2,2024))
+println(daysInMonth(2,2023))
+
+//20223
+func dayOfYear(day, month, year) = {
+  local total = day
+  for (m: 1 .. month-1) total = total + daysInMonth(m, year)
+  total
+}
+println(dayOfYear(31,12,2023))
+println(dayOfYear(1,3,2024))
+
+//20224
+func daysBetween(d1,m1,y1,d2,m2,y2) = {
+  local doy1 = dayOfYear(d1,m1,y1)
+  local doy2 = dayOfYear(d2,m2,y2)
+  if (y1 == y2) doy2 - doy1
+  else {
+    local remaining1 = (if (isLeapYear(y1)) 366 else 365) - doy1
+    local full = 0
+    for (y: y1+1 .. y2-1) full = full + if (isLeapYear(y)) 366 else 365
+    remaining1 + full + doy2
+  }
+}
+println(daysBetween(1,1,2024,1,1,2025))
+
+//20225
+func isPrime225(n) = {
+  if (n < 2) false
+  else {
+    local ok = true
+    for (i: 2 .. floor(sqrt(n))) { if (n % i == 0) ok = false }
+    ok
+  }
+}
+func nextPrime(n) = {
+  local p = n + 1
+  while (!isPrime225(p)) p = p + 1
+  p
+}
+println(nextPrime(10))
+println(nextPrime(13))
+
+//20226
+func primeFactors(n) = {
+  local factors = []
+  local x = n
+  local d = 2
+  while (d * d <= x) {
+    while (x % d == 0) {
+      factors.add(d)
+      x = floor(x / d)
+    }
+    d = d + 1
+  }
+  if (x > 1) factors.add(x)
+  factors
+}
+println(primeFactors(360))
+
+//20227
+func gcd(a, b) = {
+  local x = a
+  local y = b
+  while (y != 0) {
+    local t = y
+    y = x % y
+    x = t
+  }
+  x
+}
+func lcm(a, b) = { a * b / gcd(a, b) }
+println(gcd(48,18))
+println(lcm(4,6))
+
+//20228
+func sieve(n) = {
+  local composite = []
+  for (i: 0 .. n) composite.add(false)
+  composite[1] = true
+  composite[2] = false
+  for (i: 2 .. floor(sqrt(n))) {
+    if (!composite[i+1]) {
+      for (j: i*i .. n step i) composite[j] = true
+    }
+  }
+  local primes = []
+  for (i: 2 .. n) { if (!composite[i]) primes.add(i) }
+  primes
+}
+local primes228 = sieve(50)
+println(primes228.listLen())
+println(primes228)
+
+//20229
+func collatz(n) = {
+  local seq = [n]
+  local x = n
+  while (x != 1) {
+    x = if (x % 2 == 0) floor(x/2) else 3*x+1
+    seq.add(x)
+  }
+  seq
+}
+local c229 = collatz(27)
+println(c229.listLen())
+
+//20230
+func digitalRoot(n) = {
+  local x = n
+  while (x >= 10) {
+    local s = 0
+    local tmp = x
+    while (tmp > 0) { s = s + tmp % 10; tmp = floor(tmp/10) }
+    x = s
+  }
+  x
+}
+println(digitalRoot(9875))
+
+//20231
+local numWords = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen","twenty"]
+for (i: 0 .. 20) println(i _ ": " _ numWords[i+1])
+
+//20232
+func romanToInt(s) = {
+  local vals = {"I":1,"V":5,"X":10,"L":50,"C":100,"D":500,"M":1000}
+  local result = 0
+  for (i: 1 .. s.textLen()) {
+    local cur = vals.get(s.segment(i,1))
+    local nxt = if (i < s.textLen()) vals.get(s.segment(i+1,1)) else 0
+    if (cur < nxt) result = result - cur
+    else result = result + cur
+  }
+  result
+}
+println(romanToInt("XIV"))
+println(romanToInt("IX"))
+println(romanToInt("MCMXCIV"))
+
+//20233
+func intToRoman(n) = {
+  local vals = [[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]]
+  local result = ""
+  local x = n
+  for (pair in vals) {
+    while (x >= pair[1]) {
+      result = result _ pair[2]
+      x = x - pair[1]
+    }
+  }
+  result
+}
+println(intToRoman(1994))
+
+//20234
+func luhn(cardNum) = {
+  local digits = []
+  for (i: 1 .. cardNum.textLen()) digits.add(dec(cardNum.segment(i,1)))
+  local sum = 0
+  local double = false
+  for (i: digits.listLen() .. 1 step -1) {
+    local d = digits[i]
+    if (double) {
+      d = d * 2
+      if (d > 9) d = d - 9
+    }
+    sum = sum + d
+    double = !double
+  }
+  sum % 10 == 0
+}
+println(luhn("4532015112830366"))
+println(luhn("1234567890123456"))
+
+//20235
+func nthFibonacci(n) = {
+  local a = 0
+  local b = 1
+  for (i: 2 .. n) {
+    local c = a + b
+    a = b
+    b = c
+  }
+  b
+}
+for (i: 5 .. 15) {
+  println(formatDecimal(nthFibonacci(i+1) / nthFibonacci(i), 6))
+}
+
+//20236
+func isPerfect(n) = {
+  local s = 0
+  for (i: 1 .. n-1) { if (n % i == 0) s = s + i }
+  s == n
+}
+for (n in [6,28,12,496]) println(n _ ": " _ isPerfect(n))
+
+//20237
+func sumDivisors(n) = {
+  local s = 0
+  for (i: 1 .. n-1) { if (n % i == 0) s = s + i }
+  s
+}
+func amicable(a, b) = {
+  sumDivisors(a) == b && sumDivisors(b) == a
+}
+println(amicable(220, 284))
+
+//20238
+func countDivisors(n) = {
+  local c = 0
+  for (i: 1 .. n) { if (n % i == 0) c = c + 1 }
+  c
+}
+println(countDivisors(12))
+println(countDivisors(100))
+for (i: 1 .. 20) println(i _ ": " _ countDivisors(i))
+
+//20239
+func partitionCount(n) = {
+  local dp = []
+  for (i: 0 .. n) dp.add(0)
+  dp[1] = 1
+  for (k: 1 .. n) {
+    for (i: n .. k step -1) {
+      if (i - k >= 0) dp[i+1] = dp[i+1] + dp[i-k+1]
+    }
+  }
+  dp[n+1]
+}
+println(partitionCount(4))
+println(partitionCount(5))
+
+//20240
+func permutations(lst) = {
+  if (lst.listLen() <= 1) [lst]
+  else {
+    local result = []
+    for (i: 1 .. lst.listLen()) {
+      local el = lst[i]
+      local rest = []
+      for (j: 1 .. lst.listLen()) { if (j != i) rest.add(lst[j]) }
+      for (p in permutations(rest)) {
+        local perm = [el]
+        perm.appendList(p)
+        result.add(perm)
+      }
+    }
+    result
+  }
+}
+local perms240 = permutations([1,2,3])
+println(perms240.listLen())
+
+//20241
+func charFreq(s) = {
+  local h = {}
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    h.set(ch, if (h.containsKey(ch)) h.get(ch)+1 else 1)
+  }
+  h
+}
+func anagram(s1, s2) = {
+  if (s1.textLen() != s2.textLen()) false
+  else {
+    local f1 = charFreq(s1)
+    local f2 = charFreq(s2)
+    local ok = true
+    for (k in f1.keys()) {
+      if (!f2.containsKey(k) || f2.get(k) != f1.get(k)) ok = false
+    }
+    ok
+  }
+}
+println(anagram("listen","silent"))
+println(anagram("hello","world"))
+
+//20242
+func longestCommonPrefix(lst) = {
+  if (lst ? emptyList) ""
+  else {
+    local prefix = lst[1]
+    for (s in lst) {
+      while (!s.startsWith(prefix) && !(prefix ? emptyText)) {
+        prefix = prefix.segment(1, prefix.textLen()-1)
+      }
+    }
+    prefix
+  }
+}
+println(longestCommonPrefix(["flower","flow","flight"]))
+
+//20243
+func editDistance(a, b) = {
+  local m = a.textLen()
+  local n = b.textLen()
+  local dp = []
+  for (i: 0 .. m) {
+    local row = []
+    for (j: 0 .. n) row.add(0)
+    dp.add(row)
+  }
+  for (i: 0 .. m) dp[i+1][1] = i
+  for (j: 0 .. n) dp[1][j+1] = j
+  for (i: 1 .. m) {
+    for (j: 1 .. n) {
+      if (a.segment(i,1) === b.segment(j,1)) dp[i+1][j+1] = dp[i][j]
+      else dp[i+1][j+1] = 1 + min(dp[i][j+1], min(dp[i+1][j], dp[i][j]))
+    }
+  }
+  dp[m+1][n+1]
+}
+println(editDistance("kitten","sitting"))
+
+//20244
+func zigzag(lst) = {
+  local arr = copyList(lst)
+  for (i: 1 .. arr.listLen()-1) {
+    if (i % 2 == 1 && arr[i] > arr[i+1]) {
+      local t = arr[i]; arr[i] = arr[i+1]; arr[i+1] = t
+    } else if (i % 2 == 0 && arr[i] < arr[i+1]) {
+      local t = arr[i]; arr[i] = arr[i+1]; arr[i+1] = t
+    }
+  }
+  arr
+}
+println(zigzag([3,5,2,1,6,4]))
+
+//20245
+func rotateMatrix90(mat) = {
+  local n = mat.listLen()
+  local result = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. n) row.add(mat[n-j+1][i])
+    result.add(row)
+  }
+  result
+}
+local m245 = [[1,2,3],[4,5,6],[7,8,9]]
+println("Before:")
+for (row in m245) println(row)
+println("After:")
+for (row in rotateMatrix90(m245)) println(row)
+
+//20246
+func toCelsius(f) = { (f-32)*5/9 }
+func toFahrenheit(c) = { c*9/5+32 }
+func temperatureTable() = {
+  for (c: 0 .. 100 step 10) {
+    println(c _ "°C = " _ formatDecimal(toFahrenheit(c),1) _ "°F")
+  }
+}
+temperatureTable()
+
+//20247
+func bmi(kg, heightM) = {
+  local b = kg / (heightM*heightM)
+  local cat = if (b < 18.5) "Underweight" else if (b < 25) "Normal" else if (b < 30) "Overweight" else "Obese"
+  {"bmi": formatDecimal(b,1), "category": cat}
+}
+println(bmi(70, 1.75))
+
+//20248
+func compound(principal, rate, years) = {
+  principal * (1+rate)^years
+}
+println(formatDecimal(compound(1000, 0.05, 10), 2))
+
+//20249
+func mortgagePayment(principal, annualRate, months) = {
+  local r = annualRate / 12
+  principal * r * (1+r)^months / ((1+r)^months - 1)
+}
+println(formatDecimal(mortgagePayment(200000, 0.06, 360), 2))
+
+//20250
+func gradeAverage(scores) = {
+  local avg = scores.reduce(0) { x, s -> x+s } / scores.listLen()
+  local grade = if (avg >= 90) "A" else if (avg >= 80) "B" else if (avg >= 70) "C" else if (avg >= 60) "D" else "F"
+  {"average": formatDecimal(avg,1), "grade": grade}
+}
+println(gradeAverage([85,92,78,61,95]))
+
+//20251
+global inventory251 = {"apple":10,"banana":5,"cherry":20}
+func sell(item, qty) = {
+  if (!this.inventory251.containsKey(item)) {
+    println("item not found")
+  } else if (this.inventory251.get(item) < qty) {
+    println("out of stock")
+  } else {
+    this.inventory251.set(item, this.inventory251.get(item) - qty)
+    println("Sold " _ qty _ " " _ item)
+  }
+}
+sell("apple", 3)
+sell("banana", 6)
+sell("cherry", 5)
+println(this.inventory251)
+
+//20252
+func restock(item, qty) = {
+  this.inventory251.set(item, if (this.inventory251.containsKey(item)) this.inventory251.get(item)+qty else qty)
+}
+func lowStock(threshold) = {
+  local result = []
+  for (item, qty in this.inventory251) {
+    if (qty < threshold) result.add(item)
+  }
+  result
+}
+restock("banana", 10)
+println(lowStock(8))
+
+//20253
+func totalValue(quantities, prices) = {
+  local total = 0
+  for (item, qty in quantities) {
+    if (prices.containsKey(item)) total = total + qty * prices.get(item)
+  }
+  total
+}
+println(totalValue({"apple":10,"banana":5,"cherry":20,"mango":3,"grape":15}, {"apple":0.5,"banana":0.3,"cherry":1.2,"mango":0.8,"grape":0.6}))
+
+//20254
+func topSellers(sales, n) = {
+  local pairs = sales.toPairs()
+  local sorted = pairs.sort { a, b -> a[2] > b[2] }
+  sorted.slice(1, n).map { p -> p[1] }
+}
+println(topSellers({"a":5,"b":20,"c":3,"d":15,"e":8,"f":12,"g":1,"h":9}, 3))
+
+//20255
+global ledger = []
+func addEntry(type, amount) = {
+  this.ledger.add({"type":type,"amount":amount})
+}
+func balance255() = {
+  this.ledger.reduce(0) { e, s -> s + if (e.get("type") === "credit") e.get("amount") else -e.get("amount") }
+}
+addEntry("credit",100); addEntry("debit",30); addEntry("credit",50)
+addEntry("debit",20); addEntry("credit",75); addEntry("debit",10)
+println(balance255())
+
+//20256
+func movingAverage(lst, window) = {
+  local result = []
+  for (i: window .. lst.listLen()) {
+    local s = 0
+    for (j: i-window+1 .. i) s = s + lst[j]
+    result.add(s / window)
+  }
+  result
+}
+println(movingAverage([1,2,3,4,5,6,7], 3))
+
+//20257
+func ema(lst, alpha) = {
+  local result = [lst[1]]
+  for (i: 2 .. lst.listLen()) {
+    result.add(alpha*lst[i] + (1-alpha)*result[result.listLen()])
+  }
+  result
+}
+println(ema([10,12,11,14,13], 0.3))
+
+//20258
+func zscore(lst) = {
+  local n = lst.listLen()
+  local mean = lst.reduce(0) { x, s -> x+s } / n
+  local std = sqrt(lst.map { x -> (x-mean)^2 }.reduce(0) { x, s -> x+s } / n)
+  lst.map { x -> formatDecimal((x-mean)/std, 2) }
+}
+println(zscore([2,4,4,4,5,5,7,9]))
+
+//20259
+func percentile(lst, p) = {
+  local sorted = lst.sort()
+  local idx = p / 100 * (sorted.listLen() - 1) + 1
+  local lo = floor(idx)
+  local hi = ceil(idx)
+  local frac = idx - lo
+  sorted[lo] * (1-frac) + sorted[hi] * frac
+}
+local lst259 = []
+for (i: 1 .. 10) lst259.add(i)
+println(percentile(lst259, 75))
+
+//20260
+func correlation(x, y) = {
+  local n = x.listLen()
+  local mx = x.reduce(0) { v, s -> v+s } / n
+  local my = y.reduce(0) { v, s -> v+s } / n
+  local num = 0
+  local dx2 = 0
+  local dy2 = 0
+  for (i: 1 .. n) {
+    num = num + (x[i]-mx)*(y[i]-my)
+    dx2 = dx2 + (x[i]-mx)^2
+    dy2 = dy2 + (y[i]-my)^2
+  }
+  num / sqrt(dx2*dy2)
+}
+println(correlation([1,2,3,4,5],[2,4,6,8,10]))
+
+//20261
+func toBinary(n) = {
+  if (n == 0) "0"
+  else {
+    local result = ""
+    local x = n
+    while (x > 0) {
+      result = (x % 2) _ result
+      x = floor(x / 2)
+    }
+    result
+  }
+}
+func fromBinary(s) = {
+  local result = 0
+  for (i: 1 .. s.textLen()) {
+    result = result * 2 + dec(s.segment(i,1))
+  }
+  result
+}
+println(toBinary(42))
+println(fromBinary(toBinary(42)))
+
+//20262
+func hammingDistance(a, b) = {
+  countBits(a ~ b)
+}
+println(hammingDistance(29, 15))
+
+//20263
+func byteToNibbles(b) = {
+  local hi = floor(b/16)
+  local lo = b % 16
+  println("High: " _ decToHex(hi) _ " Low: " _ decToHex(lo))
+}
+byteToNibbles(171)
+
+//20264
+func bitReverse(n, bits) = {
+  local result = 0
+  local x = n
+  for (i: 1 .. bits) {
+    result = result * 2 + (x % 2)
+    x = floor(x / 2)
+  }
+  result
+}
+println(bitReverse(11, 4))
+
+//20265
+func encodeDelta(lst) = {
+  local result = [lst[1]]
+  for (i: 2 .. lst.listLen()) result.add(lst[i] - lst[i-1])
+  result
+}
+func decodeDelta(lst) = {
+  local result = [lst[1]]
+  for (i: 2 .. lst.listLen()) result.add(result[result.listLen()] + lst[i])
+  result
+}
+local enc265 = encodeDelta([10,13,11,15,14])
+println(enc265)
+println(decodeDelta(enc265))
+
+//20266
+func rleBits(n) = {
+  local bits = toBinary(n)
+  local result = []
+  local cur = bits.segment(1,1)
+  local cnt = 1
+  for (i: 2 .. bits.textLen()) {
+    local ch = bits.segment(i,1)
+    if (ch === cur) cnt = cnt + 1
+    else {
+      result.add([dec(cur), cnt])
+      cur = ch; cnt = 1
+    }
+  }
+  result.add([dec(cur), cnt])
+  result
+}
+println(rleBits(227))
+
+//20267
+func mask(n, hi, lo) = {
+  local width = hi - lo + 1
+  local m = (2^width) - 1
+  floor(n / (2^(lo-1))) & m
+}
+println(mask(218, 5, 3))
+
+//20268
+func adder(a, b) = {
+  local sum = 0
+  local carry = 0
+  for (i: 1 .. 4) {
+    local bit_a = floor(a / (2^(i-1))) % 2
+    local bit_b = floor(b / (2^(i-1))) % 2
+    local s = bit_a ~ bit_b ~ carry
+    carry = (bit_a & bit_b) | (bit_a & carry) | (bit_b & carry)
+    sum = sum + s * (2^(i-1))
+  }
+  sum
+}
+println(adder(5, 3))
+
+//20269
+func checksum8(bytes) = {
+  bytes.reduce(0) { b, s -> (s + b) % 256 }
+}
+println(checksum8([18, 52, 86]))
+
+//20270
+func encode85(n) = {
+  local result = ""
+  local x = n
+  while (x > 0) {
+    result = (x % 85 + 33) _ result
+    x = floor(x / 85)
+  }
+  result
+}
+func decode85(s) = {
+  local result = 0
+  for (i: 1 .. s.textLen()) {
+    result = result * 85 + (dec(s.segment(i,1)) - 33)
+  }
+  result
+}
+local enc270 = encode85(1234567)
+println(enc270)
+println(decode85(enc270))
+
+//20271
+func spiralOrder(n) = {
+  local mat = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. n) row.add(0)
+    mat.add(row)
+  }
+  local top = 1; local bottom = n; local left = 1; local right = n; local num = 1
+  while (num <= n*n) {
+    for (c: left .. right) { mat[top][c] = num; num = num + 1 }
+    top = top + 1
+    for (r: top .. bottom) { mat[r][right] = num; num = num + 1 }
+    right = right - 1
+    for (c: right .. left step -1) { mat[bottom][c] = num; num = num + 1 }
+    bottom = bottom - 1
+    for (r: bottom .. top step -1) { mat[r][left] = num; num = num + 1 }
+    left = left + 1
+  }
+  for (row in mat) println(row)
+}
+spiralOrder(4)
+
+//20272
+func pascalTriangle(rows) = {
+  local triangle = [[1]]
+  for (i: 2 .. rows) {
+    local prev = triangle[i-1]
+    local row = [1]
+    for (j: 2 .. prev.listLen()) row.add(prev[j-1] + prev[j])
+    row.add(1)
+    triangle.add(row)
+  }
+  for (row in triangle) println(row.map { x -> "" _ x }.join(" "))
+}
+pascalTriangle(6)
+
+//20273
+func josephus(n, k) = {
+  local pos = 0
+  for (i: 2 .. n) pos = (pos + k) % i
+  pos + 1
+}
+println(josephus(7,3))
+
+//20274
+func nQueens(n) = {
+  local count = 0
+  func solve(cols, diag1, diag2, row) = {
+    if (row == n) {
+      count = count + 1
+    } else {
+      for (col: 0 .. n-1) {
+        if (!cols.containsItem(col) && !diag1.containsItem(row-col) && !diag2.containsItem(row+col)) {
+          local c2 = copyList(cols); c2.add(col)
+          local d1 = copyList(diag1); d1.add(row-col)
+          local d2 = copyList(diag2); d2.add(row+col)
+          solve(c2, d1, d2, row+1)
+        }
+      }
+    }
+  }
+  solve([],[],[],0)
+  count
+}
+println(nQueens(4))
+println(nQueens(6))
+
+//20275
+func magicSquare(n) = {
+  local mat = []
+  for (i: 1 .. n) {
+    local row = []
+    for (j: 1 .. n) row.add(0)
+    mat.add(row)
+  }
+  local r = 1; local c = ceil(n/2)
+  for (num: 1 .. n*n) {
+    mat[r][c] = num
+    local nr = (r - 2) % n + 1
+    if (nr <= 0) nr = nr + n
+    local nc = c % n + 1
+    if (mat[nr][nc] != 0) {
+      nr = r % n + 1
+      nc = c
+    }
+    r = nr; c = nc
+  }
+  for (row in mat) println(row)
+  mat
+}
+magicSquare(3)
+
+//20276
+func towers(n, from, to, via) = {
+  if (n == 1) {
+    println("Move disk 1 from " _ from _ " to " _ to)
+  } else {
+    towers(n-1, from, via, to)
+    println("Move disk " _ n _ " from " _ from _ " to " _ to)
+    towers(n-1, via, to, from)
+  }
+}
+towers(3, "A", "C", "B")
+
+//20277
+func subsetSum(lst, target) = {
+  local n = lst.listLen()
+  local dp = []
+  for (i: 0 .. n) {
+    local row = []
+    for (j: 0 .. target) row.add(false)
+    dp.add(row)
+  }
+  for (i: 0 .. n) dp[i+1][1] = true
+  for (i: 1 .. n) {
+    for (j: 1 .. target) {
+      dp[i+1][j+1] = dp[i][j+1]
+      if (lst[i] <= j) dp[i+1][j+1] = dp[i+1][j+1] || dp[i][j-lst[i]+1]
+    }
+  }
+  dp[n+1][target+1]
+}
+println(subsetSum([3,1,4,1,5,9,2,6], 10))
+
+//20278
+func longestIncreasing(lst) = {
+  local n = lst.listLen()
+  local dp = []
+  for (i: 1 .. n) dp.add(1)
+  for (i: 2 .. n) {
+    for (j: 1 .. i-1) {
+      if (lst[j] < lst[i] && dp[j]+1 > dp[i]) dp[i] = dp[j]+1
+    }
+  }
+  dp.max { a, b -> a > b }
+}
+println(longestIncreasing([10,9,2,5,3,7,101,18]))
+
+//20279
+func maxSubarraySum(lst) = {
+  local maxSum = lst[1]
+  local curSum = lst[1]
+  for (i: 2 .. lst.listLen()) {
+    curSum = max(lst[i], curSum + lst[i])
+    maxSum = max(maxSum, curSum)
+  }
+  maxSum
+}
+println(maxSubarraySum([-2,1,-3,4,-1,2,1,-5,4]))
+
+//20280
+func twoSum(lst, target) = {
+  local seen = {}
+  for (i: 1 .. lst.listLen()) {
+    local complement = target - lst[i]
+    local key = "" _ complement
+    if (seen.containsKey(key)) return [seen.get(key), i]
+    seen.set("" _ lst[i], i)
+  }
+  []
+}
+println(twoSum([2,7,11,15], 9))
+
+//20281
+func countChange(amount) = {
+  local coins = [1,5,10,25]
+  local dp = []
+  for (i: 0 .. amount) dp.add(0)
+  dp[1] = 1
+  for (c in coins) {
+    for (i: c .. amount) {
+      dp[i+1] = dp[i+1] + dp[i-c+1]
+    }
+  }
+  dp[amount+1]
+}
+println(countChange(10))
+
+//20282
+func wordLadder(start, end, wordList) = {
+  local queue = [[start, 1]]
+  local visited = {}
+  visited.set(start, true)
+  while (!(queue ? emptyList)) {
+    local curr = queue[1]; queue.remove(1)
+    local word = curr[1]; local dist = curr[2]
+    if (word === end) dist
+    else {
+      for (w in wordList) {
+        if (!visited.containsKey(w)) {
+          local diff = 0
+          for (i: 1 .. word.textLen()) {
+            if (word.segment(i,1) !== w.segment(i,1)) diff = diff + 1
+          }
+          if (diff == 1) {
+            visited.set(w, true)
+            queue.add([w, dist+1])
+          }
+        }
+      }
+      0
+    }
+  }
+}
+println(wordLadder("hit","cog",["hot","dot","dog","lot","log","cog"]))
+
+//20283
+func sudokuValid(board) = {
+  local ok = true
+  for (i: 1 .. 9) {
+    local row = {}; local col = {}
+    for (j: 1 .. 9) {
+      local rv = board[i][j]
+      local cv = board[j][i]
+      if (rv !== 0) { if (row.containsKey("" _ rv)) ok = false; row.set("" _ rv, true) }
+      if (cv !== 0) { if (col.containsKey("" _ cv)) ok = false; col.set("" _ cv, true) }
+    }
+  }
+  for (bi: 0 .. 2) {
+    for (bj: 0 .. 2) {
+      local box = {}
+      for (i: 1 .. 3) {
+        for (j: 1 .. 3) {
+          local v = board[bi*3+i][bj*3+j]
+          if (v !== 0) { if (box.containsKey("" _ v)) ok = false; box.set("" _ v, true) }
+        }
+      }
+    }
+  }
+  ok
+}
+local board283 = [[5,3,0,0,7,0,0,0,0],[6,0,0,1,9,5,0,0,0],[0,9,8,0,0,0,0,6,0],[8,0,0,0,6,0,0,0,3],[4,0,0,8,0,3,0,0,1],[7,0,0,0,2,0,0,0,6],[0,6,0,0,0,0,2,8,0],[0,0,0,4,1,9,0,0,5],[0,0,0,0,8,0,0,7,9]]
+println(sudokuValid(board283))
+
+//20284
+func mergeIntervals(intervals) = {
+  local sorted = intervals.sort { a, b -> a[1] < b[1] }
+  local result = [sorted[1]]
+  for (i: 2 .. sorted.listLen()) {
+    local last = result[result.listLen()]
+    if (sorted[i][1] <= last[2]) {
+      last[2] = max(last[2], sorted[i][2])
+    } else {
+      result.add(sorted[i])
+    }
+  }
+  result
+}
+println(mergeIntervals([[1,3],[2,6],[8,10],[15,18]]))
+
+//20285
+func floodFill(grid, row, col, newColor) = {
+  local oldColor = grid[row][col]
+  if (oldColor == newColor) grid
+  else {
+    local queue = [[row, col]]
+    local rows = grid.listLen()
+    local cols = grid[1].listLen()
+    while (!(queue ? emptyList)) {
+      local pos = queue[1]; queue.remove(1)
+      local r = pos[1]; local c = pos[2]
+      if (r >= 1 && r <= rows && c >= 1 && c <= cols && grid[r][c] == oldColor) {
+        grid[r][c] = newColor
+        queue.add([r-1,c]); queue.add([r+1,c]); queue.add([r,c-1]); queue.add([r,c+1])
+      }
+    }
+    grid
+  }
+}
+local grid285 = [[1,1,1,0,0],[1,1,0,0,1],[1,0,0,1,1],[0,0,1,1,1],[0,1,1,1,0]]
+local filled = floodFill(grid285, 1, 1, 2)
+for (row in filled) println(row)
+
+//20286
+func caesarCipher(s, shift) = {
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    local code = dec(ch.segment(1,1))
+    if (ch >= "A" && ch <= "Z") {
+      result = result _ decToHex(((code - 65 + shift) % 26) + 65)
+    } else if (ch >= "a" && ch <= "z") {
+      result = result _ decToHex(((code - 97 + shift) % 26) + 97)
+    } else {
+      result = result _ ch
+    }
+  }
+  result
+}
+println(caesarCipher("Hello, World!", 13))
+
+//20287
+func rot13(s) = { caesarCipher(s, 13) }
+local msg287 = "The Quick Brown Fox"
+println(rot13(rot13(msg287)) === msg287)
+
+//20288
+func vigenere(s, key) = {
+  local result = ""
+  local ki = 1
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    if (ch >= "A" && ch <= "Z") {
+      local shift = dec(key.segment(((ki-1) % key.textLen())+1, 1)) - 65
+      local code = ((dec(ch) - 65 + shift) % 26) + 65
+      result = result _ decToHex(code)
+      ki = ki + 1
+    } else {
+      result = result _ ch
+    }
+  }
+  result
+}
+println(vigenere("ATTACKATDAWN","LEMON"))
+
+//20289
+func atbash(s) = {
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    if (ch >= "a" && ch <= "z") result = result _ decToHex(219 - dec(ch))
+    else if (ch >= "A" && ch <= "Z") result = result _ decToHex(155 - dec(ch))
+    else result = result _ ch
+  }
+  result
+}
+local msg289 = "Hello World"
+println(atbash(atbash(msg289)) === msg289)
+println(atbash(msg289))
+
+//20290
+func columnarTranspose(s, key) = {
+  local n = key.listLen()
+  local rows = ceil(s.textLen() / n)
+  local grid = []
+  for (r: 1 .. rows) {
+    local row = []
+    for (c: 1 .. n) {
+      local idx = (r-1)*n + c
+      row.add(if (idx <= s.textLen()) s.segment(idx,1) else "X")
+    }
+    grid.add(row)
+  }
+  local sortedKey = enumerate(key).sort { a, b -> a[2] < b[2] }
+  local result = ""
+  for (pair in sortedKey) {
+    local c = pair[1]
+    for (r: 1 .. rows) result = result _ grid[r][c]
+  }
+  result
+}
+println(columnarTranspose("WEAREDISCOVEREDRUNATONCE", [3,1,2]))
+
+//20291
+func xorEncrypt(s, key) = {
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local code = dec(s.segment(i,1)) ~ key
+    result = result _ decToHex(code)
+  }
+  result
+}
+func xorDecrypt(s, key) = { xorEncrypt(s, key) }
+local enc291 = xorEncrypt("Hello", 42)
+println(enc291)
+println(xorDecrypt(enc291, 42))
+
+//20292
+func railFenceCipher(s, rails) = {
+  local fence = []
+  for (i: 1 .. rails) fence.add("")
+  local rail = 1
+  local dir = 1
+  for (i: 1 .. s.textLen()) {
+    fence[rail] = fence[rail] _ s.segment(i,1)
+    if (rail == rails) dir = -1
+    else if (rail == 1) dir = 1
+    rail = rail + dir
+  }
+  fence.join("")
+}
+println(railFenceCipher("WEAREDISCOVEREDRUNATONCE", 3))
+
+//20293
+func charFrequency(s) = {
+  local h = charFreq(s)
+  local pairs = h.toPairs()
+  pairs.sort { a, b -> a[2] > b[2] }
+}
+println(charFrequency("mississippi"))
+
+//20294
+local polybius_grid = [["A","B","C","D","E"],["F","G","H","I","J"],["K","L","M","N","O"],["P","Q","R","S","T"],["U","V","W","X","Y"]]
+func polybiusEncode(s) = {
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1).uppercase()
+    for (r: 1 .. 5) {
+      for (c: 1 .. 5) {
+        if (polybius_grid[r][c] === ch) result = result _ r _ c _ " "
+      }
+    }
+  }
+  result
+}
+println(polybiusEncode("HELLO"))
+
+//20295
+func modInverse(a, m) = {
+  local result = extGcd295(a, m)
+  ((result[2] % m) + m) % m
+}
+func extGcd295(a, b) = {
+  if (b == 0) [a, 1, 0]
+  else {
+    local r = extGcd295(b, a % b)
+    [r[1], r[3], r[2] - floor(a/b)*r[3]]
+  }
+}
+func affine(s, a, b) = {
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    if (ch >= "A" && ch <= "Z") result = result _ decToHex(((a*(dec(ch)-65)+b) % 26) + 65)
+    else result = result _ ch
+  }
+  result
+}
+func affineDecrypt(s, a, b) = {
+  local aInv = modInverse(a, 26)
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    if (ch >= "A" && ch <= "Z") result = result _ decToHex((aInv*((dec(ch)-65-b+260)) % 26) + 65)
+    else result = result _ ch
+  }
+  result
+}
+local enc295 = affine("HELLO", 5, 8)
+println(enc295)
+println(affineDecrypt(enc295, 5, 8))
+
+//20296
+func dijkstra(graph, start) = {
+  local dist = {}
+  local visited = {}
+  for (node in graph.keys()) dist.set(node, 999999)
+  dist.set(start, 0)
+  local nodes = graph.keys()
+  for (iter: 1 .. nodes.listLen()) {
+    local u = ""
+    local minD = 999999
+    for (node in nodes) {
+      if (!visited.containsKey(node) && dist.get(node) < minD) {
+        minD = dist.get(node); u = node
+      }
+    }
+    if (u ? emptyText) iter = nodes.listLen()
+    else {
+      visited.set(u, true)
+      for (edge in graph.get(u)) {
+        local v = edge[1]; local w = edge[2]
+        if (dist.get(u) + w < dist.get(v)) dist.set(v, dist.get(u) + w)
+      }
+    }
+  }
+  dist
+}
+local g296 = {"a":[["b",4],["c",2]],"b":[["d",5]],"c":[["b",1],["d",8]],"d":[]}
+println(dijkstra(g296, "a"))
+
+//20297
+func bfs(graph, start) = {
+  local visited = {}
+  local order = []
+  local queue = [start]
+  visited.set(start, true)
+  while (!(queue ? emptyList)) {
+    local node = queue[1]; queue.remove(1)
+    order.add(node)
+    for (neighbor in graph.get(node)) {
+      if (!visited.containsKey(neighbor)) {
+        visited.set(neighbor, true)
+        queue.add(neighbor)
+      }
+    }
+  }
+  order
+}
+local g297 = {"a":["b","c"],"b":["d","e"],"c":["f"],"d":[],"e":[],"f":[]}
+println(bfs(g297, "a"))
+
+//20298
+func dfs(graph, start) = {
+  local visited = {}
+  local order = []
+  local stack = [start]
+  while (!(stack ? emptyList)) {
+    local node = stack[stack.listLen()]; stack.remove(stack.listLen())
+    if (!visited.containsKey(node)) {
+      visited.set(node, true)
+      order.add(node)
+      for (neighbor in graph.get(node)) {
+        if (!visited.containsKey(neighbor)) stack.add(neighbor)
+      }
+    }
+  }
+  order
+}
+println(dfs(g297, "a"))
+
+//20299
+func hasCycle(graph) = {
+  local visited = {}
+  local recStack = {}
+  func dfsCheck(node) = {
+    visited.set(node, true)
+    recStack.set(node, true)
+    local found = false
+    for (neighbor in graph.get(node)) {
+      if (!visited.containsKey(neighbor)) {
+        if (dfsCheck(neighbor)) found = true
+      } else if (recStack.containsKey(neighbor)) {
+        found = true
+      }
+    }
+    recStack.delete(node)
+    found
+  }
+  local cycle = false
+  for (node in graph.keys()) {
+    if (!visited.containsKey(node)) {
+      if (dfsCheck(node)) cycle = true
+    }
+  }
+  cycle
+}
+println(hasCycle({"a":["b"],"b":["c"],"c":["a"]}))
+println(hasCycle({"a":["b"],"b":["c"],"c":[]}))
+
+//20300
+func topoSort(graph) = {
+  local inDegree = {}
+  for (node in graph.keys()) inDegree.set(node, 0)
+  for (node in graph.keys()) {
+    for (neighbor in graph.get(node)) {
+      inDegree.set(neighbor, inDegree.get(neighbor) + 1)
+    }
+  }
+  local queue = graph.keys().filter { n -> inDegree.get(n) == 0 }
+  local order = []
+  while (!(queue ? emptyList)) {
+    local node = queue[1]; queue.remove(1)
+    order.add(node)
+    for (neighbor in graph.get(node)) {
+      inDegree.set(neighbor, inDegree.get(neighbor) - 1)
+      if (inDegree.get(neighbor) == 0) queue.add(neighbor)
+    }
+  }
+  order
+}
+println(topoSort({"a":["b","c"],"b":["d"],"c":["d"],"d":[]}))
+
+//20301
+func kMeans(points, k) = {
+  local centroids = points.slice(1, k)
+  local assign = points.map { p ->
+    local minD = 999999; local minC = 1
+    for (i: 1 .. centroids.listLen()) {
+      local d = sqrt((p[1]-centroids[i][1])^2 + (p[2]-centroids[i][2])^2)
+      if (d < minD) { minD = d; minC = i }
+    }
+    minC
+  }
+  local newCentroids = []
+  for (i: 1 .. k) {
+    local cluster = []
+    for (j: 1 .. points.listLen()) { if (assign[j] == i) cluster.add(points[j]) }
+    if (!(cluster ? emptyList)) {
+      newCentroids.add([cluster.map { p -> p[1] }.reduce(0) { x, s -> x+s } / cluster.listLen(), cluster.map { p -> p[2] }.reduce(0) { x, s -> x+s } / cluster.listLen()])
+    } else newCentroids.add(centroids[i])
+  }
+  {"assignments": assign, "centroids": newCentroids}
+}
+println(kMeans([[1,1],[1,2],[2,1],[8,8],[8,9],[9,8]], 2))
+
+//20302
+func linearRegression(x, y) = {
+  local n = x.listLen()
+  local mx = x.reduce(0) { v, s -> v+s } / n
+  local my = y.reduce(0) { v, s -> v+s } / n
+  local num = 0; local den = 0
+  for (i: 1 .. n) {
+    num = num + (x[i]-mx)*(y[i]-my)
+    den = den + (x[i]-mx)^2
+  }
+  local slope = num/den
+  local intercept = my - slope*mx
+  [formatDecimal(slope,2), formatDecimal(intercept,2)]
+}
+println(linearRegression([1,2,3,4,5],[2,4,5,4,5]))
+
+//20303
+func normalise303(lst) = {
+  local mn = lst.min { a, b -> a < b }
+  local mx = lst.max { a, b -> a > b }
+  lst.map { x -> (x-mn)/(mx-mn) }
+}
+println(normalise303([10,20,30,40,50]))
+
+//20304
+func kNN(points, labels, query, k) = {
+  local dists = []
+  for (i: 1 .. points.listLen()) {
+    local d = sqrt((points[i][1]-query[1])^2 + (points[i][2]-query[2])^2)
+    dists.add([d, labels[i]])
+  }
+  local sorted = dists.sort { a, b -> a[1] < b[1] }
+  local kNearest = sorted.slice(1, k)
+  local votes = {}
+  for (neighbor in kNearest) {
+    local label = neighbor[2]
+    votes.set(label, if (votes.containsKey(label)) votes.get(label)+1 else 1)
+  }
+  votes.toPairs().max { a, b -> a[2] > b[2] }
+}
+println(kNN([[1,1],[2,2],[8,8],[9,9],[1,2]], ["A","A","B","B","A"], [2,1], 3))
+
+//20305
+func entropy(probs) = {
+  probs.reduce(0) { p, s -> if (p > 0) s - p*log(p) else s }
+}
+println(formatDecimal(entropy([0.5,0.5]), 3))
+println(entropy([1.0]))
+
+//20306
+func confusion(predictions, actuals, labels) = {
+  local matrix = {}
+  for (l1 in labels) {
+    matrix.set(l1, {})
+    for (l2 in labels) matrix.get(l1).set(l2, 0)
+  }
+  for (i: 1 .. predictions.listLen()) {
+    local a = actuals[i]; local p = predictions[i]
+    matrix.get(a).set(p, matrix.get(a).get(p) + 1)
+  }
+  matrix
+}
+println(confusion(["A","B","A","C","B"],["A","A","A","C","B"],["A","B","C"]))
+
+//20307
+func precision(tp, fp) = { tp / (tp + fp) }
+func recall(tp, fn) = { tp / (tp + fn) }
+func f1(p, r) = { 2*p*r/(p+r) }
+local p307 = precision(8,2)
+local r307 = recall(8,3)
+println(formatDecimal(p307,3))
+println(formatDecimal(r307,3))
+println(formatDecimal(f1(p307,r307),3))
+
+//20308
+func naiveBayes(trainData, trainLabels, query) = {
+  local classes = {}
+  for (i: 1 .. trainLabels.listLen()) {
+    local label = trainLabels[i]
+    if (!classes.containsKey(label)) classes.set(label, {"count":0,"features":{}})
+    local c = classes.get(label)
+    c.set("count", c.get("count")+1)
+    for (j: 1 .. trainData[i].listLen()) {
+      local fkey = "" _ j _ "_" _ trainData[i][j]
+      c.get("features").set(fkey, if (c.get("features").containsKey(fkey)) c.get("features").get(fkey)+1 else 1)
+    }
+  }
+  local total = trainLabels.listLen()
+  local bestLabel = ""
+  local bestScore = -999999
+  for (label, info in classes) {
+    local score = log(info.get("count") / total)
+    for (j: 1 .. query.listLen()) {
+      local fkey = "" _ j _ "_" _ query[j]
+      local cnt = if (info.get("features").containsKey(fkey)) info.get("features").get(fkey) else 0
+      score = score + log((cnt+1)/(info.get("count")+2))
+    }
+    if (score > bestScore) { bestScore = score; bestLabel = label }
+  }
+  bestLabel
+}
+println(naiveBayes([[1,0],[1,1],[0,0],[0,1]],["Y","Y","N","N"],[1,0]))
+
+//20309
+func perceptron(weights, bias, inputs) = {
+  local sum = bias
+  for (i: 1 .. weights.listLen()) sum = sum + weights[i]*inputs[i]
+  if (sum > 0) 1 else 0
+}
+println(perceptron([0.5,0.5], -0.5, [1,1]))
+println(perceptron([0.5,0.5], -0.5, [0,0]))
+
+//20310
+func softmax(scores) = {
+  local maxS = scores.max { a, b -> a > b }
+  local exps = scores.map { s -> exp(s-maxS) }
+  local total = exps.reduce(0) { x, s -> x+s }
+  exps.map { e -> formatDecimal(e/total, 2) }
+}
+println(softmax([1.0, 2.0, 3.0]))
+
+//20311
+func simulate311(n, prob) = {
+  local count = 0
+  for (i: 1 .. n) { if (randFloat() < prob) count = count + 1 }
+  formatDecimal(count/n, 3)
+}
+println(simulate311(10000, 0.3))
+
+//20312
+func monteCarloPI(n) = {
+  local inside = 0
+  for (i: 1 .. n) {
+    local x = randFloat()*2-1
+    local y = randFloat()*2-1
+    if (x*x+y*y <= 1) inside = inside + 1
+  }
+  formatDecimal(4*inside/n, 4)
+}
+println(monteCarloPI(10000))
+
+//20313
+func bootstrap(lst, n) = {
+  local means = []
+  for (i: 1 .. n) {
+    local sample = []
+    for (j: 1 .. lst.listLen()) sample.add(lst[randInt(1, lst.listLen())])
+    means.add(sample.reduce(0) { x, s -> x+s } / sample.listLen())
+  }
+  means
+}
+println(bootstrap([1,2,3,4,5,6,7,8,9,10], 5))
+
+//20314
+func shuffleLst(lst) = {
+  local arr = copyList(lst)
+  for (i: arr.listLen() .. 2 step -1) {
+    local j = randInt(1, i)
+    local t = arr[i]; arr[i] = arr[j]; arr[j] = t
+  }
+  arr
+}
+local lst314 = []
+for (i: 1 .. 10) lst314.add(i)
+local shuffled314 = shuffleLst(lst314)
+println(shuffled314)
+println(shuffled314.sort())
+
+//20315
+func sampleWithout(lst, k) = {
+  local arr = copyList(lst)
+  local result = []
+  for (i: 1 .. k) {
+    local j = randInt(1, arr.listLen())
+    result.add(arr[j])
+    arr.remove(j)
+  }
+  result
+}
+local lst315 = []
+for (i: 1 .. 20) lst315.add(i)
+println(sampleWithout(lst315, 5))
+
+//20316
+global eventLog316 = []
+global eventCounter316 = 0
+func emit316(event, data) = {
+  this.eventCounter316 = this.eventCounter316 + 1
+  this.eventLog316.add({"event":event,"data":data,"time":this.eventCounter316})
+}
+emit316("login", "user1"); emit316("click", "btn1"); emit316("scroll", 100)
+emit316("logout", "user1"); emit316("login", "user2")
+println(this.eventLog316)
+
+//20317
+global subscribers317 = {}
+func subscribe(event, handler) = {
+  if (!this.subscribers317.containsKey(event)) this.subscribers317.set(event, [])
+  this.subscribers317.get(event).add(handler)
+}
+func publish(event, data) = {
+  if (this.subscribers317.containsKey(event)) {
+    for (h in this.subscribers317.get(event)) {
+      println("Handler " _ h _ " called with " _ data)
+    }
+  }
+}
+subscribe("click","logHandler"); subscribe("click","analyticsHandler"); subscribe("hover","tooltipHandler")
+publish("click", "button1"); publish("hover", "menu")
+
+//20318
+func pipeline318(data, steps) = {
+  local result = data
+  for (step in steps) {
+    result = step.get("fn")(result)
+    println("[" _ step.get("name") _ "] done")
+  }
+  result
+}
+println(pipeline318(5, [{"name":"double","fn":{ x -> x*2 }},{"name":"add10","fn":{ x -> x+10 }},{"name":"square","fn":{ x -> x*x }},{"name":"negate","fn":{ x -> -x }}]))
+
+//20319
+global retryCounter = 0
+func retry319(maxAttempts, fallback) = {
+  local result = fallback
+  local done = false
+  while (this.retryCounter < maxAttempts && !done) {
+    this.retryCounter = this.retryCounter + 1
+    if (this.retryCounter >= 3) {
+      result = "success"
+      done = true
+    } else {
+      println("Attempt " _ this.retryCounter _ " failed")
+    }
+  }
+  result
+}
+println(retry319(5, "fallback"))
+
+//20320
+func trieInsert(root, word) = {
+  local node = root
+  for (i: 1 .. word.textLen()) {
+    local ch = word.segment(i,1)
+    if (!node.containsKey(ch)) node.set(ch, {})
+    node = node.get(ch)
+  }
+  node.set("$", true)
+}
+func trieSearch(root, word) = {
+  local node = root
+  for (i: 1 .. word.textLen()) {
+    local ch = word.segment(i,1)
+    if (!node.containsKey(ch)) false
+    else node = node.get(ch)
+  }
+  node.containsKey("$")
+}
+local trie = {}
+for (w in ["apple","app","apt","bat"]) trieInsert(trie, w)
+println(trieSearch(trie, "app"))
+println(trieSearch(trie, "ap"))
+println(trieSearch(trie, "apple"))
+println(trieSearch(trie, "bat"))
+
+//20321
+func lcs321(a, b) = {
+  local m = a.textLen()
+  local n = b.textLen()
+  local dp = []
+  for (i: 0 .. m) {
+    local row = []
+    for (j: 0 .. n) row.add("")
+    dp.add(row)
+  }
+  for (i: 1 .. m) {
+    for (j: 1 .. n) {
+      if (a.segment(i,1) === b.segment(j,1)) dp[i+1][j+1] = dp[i][j] _ a.segment(i,1)
+      else dp[i+1][j+1] = if (dp[i][j+1].textLen() > dp[i+1][j].textLen()) dp[i][j+1] else dp[i+1][j]
+    }
+  }
+  dp[m+1][n+1]
+}
+println(lcs321("ABCBDAB","BDCAB"))
+
+//20322
+func kmpSearch(text, pattern) = {
+  local n = text.textLen()
+  local m = pattern.textLen()
+  local lps = []
+  for (i: 1 .. m) lps.add(0)
+  local len = 0; local i = 2
+  while (i <= m) {
+    if (pattern.segment(i,1) === pattern.segment(len+1,1)) {
+      len = len + 1; lps[i] = len; i = i + 1
+    } else if (len > 0) { len = lps[len] }
+    else { lps[i] = 0; i = i + 1 }
+  }
+  local result = []
+  local j = 1; i = 1
+  while (i <= n) {
+    if (text.segment(i,1) === pattern.segment(j,1)) {
+      i = i + 1; j = j + 1
+    }
+    if (j > m) {
+      result.add(i - m)
+      j = lps[j-1] + 1
+    } else if (i <= n && text.segment(i,1) !== pattern.segment(j,1)) {
+      if (j > 1) j = lps[j-1] + 1
+      else i = i + 1
+    }
+  }
+  result
+}
+println(kmpSearch("ababcabab","abab"))
+
+//20323
+func heapSort(lst) = {
+  local arr = copyList(lst)
+  local n = arr.listLen()
+  func siftDown(i, end) = {
+    local root = i
+    while (root*2 <= end) {
+      local child = root*2
+      if (child+1 <= end && arr[child] < arr[child+1]) child = child+1
+      if (arr[root] < arr[child]) {
+        local t = arr[root]; arr[root] = arr[child]; arr[child] = t
+        root = child
+      } else root = end+1
+    }
+  }
+  for (i: floor(n/2) .. 1 step -1) siftDown(i, n)
+  for (i: n .. 2 step -1) {
+    local t = arr[1]; arr[1] = arr[i]; arr[i] = t
+    siftDown(1, i-1)
+  }
+  arr
+}
+println(heapSort([4,1,7,3,9,2]))
+
+//20324
+func countingSort(lst, maxVal) = {
+  local count = []
+  for (i: 0 .. maxVal) count.add(0)
+  for (x in lst) count[x+1] = count[x+1] + 1
+  local result = []
+  for (i: 0 .. maxVal) {
+    for (j: 1 .. count[i+1]) result.add(i)
+  }
+  result
+}
+println(countingSort([4,2,2,8,3,3,1], 8))
+
+//20325
+func radixSort(lst) = {
+  local arr = copyList(lst)
+  local mx = arr.max { a, b -> a > b }
+  local exp = 1
+  while (floor(mx/exp) > 0) {
+    local buckets = []
+    for (i: 0 .. 9) buckets.add([])
+    for (x in arr) {
+      local digit = floor(x/exp) % 10
+      buckets[digit+1].add(x)
+    }
+    arr = []
+    for (b in buckets) arr.appendList(b)
+    exp = exp * 10
+  }
+  arr
+}
+println(radixSort([170,45,75,90,802,24,2,66]))
+
+//20326
+func productExceptSelf(lst) = {
+  local n = lst.listLen()
+  local left = []
+  local right = []
+  for (i: 1 .. n) left.add(1)
+  for (i: 1 .. n) right.add(1)
+  for (i: 2 .. n) left[i] = left[i-1]*lst[i-1]
+  for (i: n-1 .. 1 step -1) right[i] = right[i+1]*lst[i+1]
+  local result = []
+  for (i: 1 .. n) result.add(left[i]*right[i])
+  result
+}
+println(productExceptSelf([1,2,3,4]))
+
+//20327
+func trappingRain(heights) = {
+  local n = heights.listLen()
+  local leftMax = copyList(heights)
+  local rightMax = copyList(heights)
+  for (i: 2 .. n) leftMax[i] = max(leftMax[i-1], heights[i])
+  for (i: n-1 .. 1 step -1) rightMax[i] = max(rightMax[i+1], heights[i])
+  local total = 0
+  for (i: 1 .. n) total = total + min(leftMax[i], rightMax[i]) - heights[i]
+  total
+}
+println(trappingRain([0,1,0,2,1,0,1,3,2,1,2,1]))
+
+//20328
+func maxProfit(prices) = {
+  local minP = prices[1]; local maxP = 0
+  for (p in prices) {
+    minP = min(minP, p)
+    maxP = max(maxP, p - minP)
+  }
+  maxP
+}
+println(maxProfit([7,1,5,3,6,4]))
+
+//20329
+func uniquePaths(m, n) = {
+  local dp = []
+  for (i: 1 .. m) {
+    local row = []
+    for (j: 1 .. n) row.add(1)
+    dp.add(row)
+  }
+  for (i: 2 .. m) {
+    for (j: 2 .. n) dp[i][j] = dp[i-1][j] + dp[i][j-1]
+  }
+  dp[m][n]
+}
+println(uniquePaths(3,7))
+
+//20330
+func climbStairs(n) = {
+  if (n <= 2) n
+  else {
+    local a = 1; local b = 2
+    for (i: 3 .. n) { local c = a+b; a = b; b = c }
+    b
+  }
+}
+println(climbStairs(10))
+
+//20331
+func wordBreak(s, wordDict) = {
+  local n = s.textLen()
+  local dp = []
+  for (i: 0 .. n) dp.add(false)
+  dp[1] = true
+  for (i: 1 .. n) {
+    if (dp[i]) {
+      for (w in wordDict) {
+        local end = i + w.textLen() - 1
+        if (end <= n && s.segment(i, w.textLen()) === w) dp[end+1] = true
+      }
+    }
+  }
+  dp[n+1]
+}
+println(wordBreak("leetcode",["leet","code"]))
+
+//20332
+func numIslands(grid) = {
+  local rows = grid.listLen()
+  local cols = grid[1].listLen()
+  local visited = {}
+  local count = 0
+  func bfsIsland(r, c) = {
+    local queue = [[r,c]]
+    visited.set(r _ "," _ c, true)
+    while (!(queue ? emptyList)) {
+      local pos = queue[1]; queue.remove(1)
+      for (d in [[-1,0],[1,0],[0,-1],[0,1]]) {
+        local nr = pos[1]+d[1]; local nc = pos[2]+d[2]
+        if (nr >= 1 && nr <= rows && nc >= 1 && nc <= cols && grid[nr][nc] == 1 && !visited.containsKey(nr _ "," _ nc)) {
+          visited.set(nr _ "," _ nc, true)
+          queue.add([nr,nc])
+        }
+      }
+    }
+  }
+  for (r: 1 .. rows) {
+    for (c: 1 .. cols) {
+      if (grid[r][c] == 1 && !visited.containsKey(r _ "," _ c)) {
+        bfsIsland(r,c)
+        count = count + 1
+      }
+    }
+  }
+  count
+}
+local grid332 = [[1,1,0,0,0],[1,1,0,0,0],[0,0,1,0,0],[0,0,0,1,1]]
+println(numIslands(grid332))
+
+//20333
+func largestRectHistogram(heights) = {
+  local n = heights.listLen()
+  local stack = []
+  local maxArea = 0
+  for (i: 1 .. n+1) {
+    local h = if (i <= n) heights[i] else 0
+    while (!(stack ? emptyList) && heights[stack[stack.listLen()]] > h) {
+      local height = heights[stack[stack.listLen()]]; stack.remove(stack.listLen())
+      local width = if (stack ? emptyList) i-1 else i - stack[stack.listLen()] - 1
+      maxArea = max(maxArea, height*width)
+    }
+    stack.add(i)
+  }
+  maxArea
+}
+func maxRectangle(matrix) = {
+  local rows = matrix.listLen()
+  local cols = matrix[1].listLen()
+  local heights = []
+  for (j: 1 .. cols) heights.add(0)
+  local maxArea = 0
+  for (i: 1 .. rows) {
+    for (j: 1 .. cols) {
+      heights[j] = if (matrix[i][j] == 1) heights[j]+1 else 0
+    }
+    maxArea = max(maxArea, largestRectHistogram(heights))
+  }
+  maxArea
+}
+println(maxRectangle([[1,0,1,0,0],[1,0,1,1,1],[1,1,1,1,1],[1,0,0,1,0]]))
+
+//20334
+func catalan(n) = {
+  local dp = []
+  for (i: 0 .. n) dp.add(0)
+  dp[1] = 1
+  for (i: 2 .. n+1) {
+    for (j: 1 .. i-1) dp[i] = dp[i] + dp[j]*dp[i-j]
+  }
+  dp[n+1]
+}
+for (i: 0 .. 7) println("catalan(" _ i _ ")=" _ catalan(i))
+
+//20335
+func isValidBST(vals) = {
+  local ok = true
+  for (i: 2 .. vals.listLen()) { if (vals[i] <= vals[i-1]) ok = false }
+  ok
+}
+println(isValidBST([1,3,5,7]))
+println(isValidBST([1,5,3,7]))
+
+//20336
+func minPathSum(grid) = {
+  local rows = grid.listLen()
+  local cols = grid[1].listLen()
+  local dp = []
+  for (i: 1 .. rows) {
+    local row = []
+    for (j: 1 .. cols) row.add(0)
+    dp.add(row)
+  }
+  dp[1][1] = grid[1][1]
+  for (i: 2 .. rows) dp[i][1] = dp[i-1][1] + grid[i][1]
+  for (j: 2 .. cols) dp[1][j] = dp[1][j-1] + grid[1][j]
+  for (i: 2 .. rows) {
+    for (j: 2 .. cols) dp[i][j] = grid[i][j] + min(dp[i-1][j], dp[i][j-1])
+  }
+  dp[rows][cols]
+}
+println(minPathSum([[1,3,1],[1,5,1],[4,2,1]]))
+
+//20337
+func numWaysToScore(score, points) = {
+  local dp = []
+  for (i: 0 .. score) dp.add(0)
+  dp[1] = 1
+  for (p in points) {
+    for (i: p .. score) dp[i+1] = dp[i+1] + dp[i-p+1]
+  }
+  dp[score+1]
+}
+println(numWaysToScore(10,[1,2,5]))
+
+//20338
+func bestTimeToBuy(prices, fee) = {
+  local cash = 0; local hold = -prices[1]
+  for (i: 2 .. prices.listLen()) {
+    cash = max(cash, hold + prices[i] - fee)
+    hold = max(hold, cash - prices[i])
+  }
+  cash
+}
+println(bestTimeToBuy([1,3,2,8,4,9],2))
+
+//20339
+func minEditOps(a, b) = {
+  local lcs_len = longestCommonSubsequence(a, b)
+  (a.textLen() - lcs_len) + (b.textLen() - lcs_len)
+}
+println(minEditOps("sea","eat"))
+
+//20340
+func regularExpMatch(s, p) = {
+  local m = s.textLen(); local n = p.textLen()
+  local dp = []
+  for (i: 0 .. m) {
+    local row = []
+    for (j: 0 .. n) row.add(false)
+    dp.add(row)
+  }
+  dp[1][1] = true
+  for (j: 2 .. n+1) {
+    if (p.segment(j-1,1) === "*") dp[1][j] = dp[1][j-2]
+  }
+  for (i: 1 .. m) {
+    for (j: 1 .. n) {
+      local sc = s.segment(i,1); local pc = p.segment(j,1)
+      if (pc === "*") {
+        dp[i+1][j+1] = dp[i+1][j-1]
+        if (p.segment(j-1,1) === "." || p.segment(j-1,1) === sc) {
+          dp[i+1][j+1] = dp[i+1][j+1] || dp[i][j+1]
+        }
+      } else if (pc === "." || pc === sc) {
+        dp[i+1][j+1] = dp[i][j]
+      }
+    }
+  }
+  dp[m+1][n+1]
+}
+println(regularExpMatch("aa","a*"))
+println(regularExpMatch("ab",".*"))
+
+//20341
+global schedule341 = []
+func addTask(name, priority) = {
+  local i = 1
+  while (i <= this.schedule341.listLen() && this.schedule341[i].get("priority") <= priority) i = i+1
+  this.schedule341.insert(i, {"name":name,"priority":priority})
+}
+addTask("low",5); addTask("high",1); addTask("med",3); addTask("urgent",0); addTask("normal",2)
+println(this.schedule341)
+
+//20342
+global tokens342 = 10
+func request342(cost) = {
+  if (this.tokens342 >= cost) {
+    this.tokens342 = this.tokens342 - cost
+    println("Request granted, tokens left: " _ this.tokens342)
+  } else {
+    println("throttled")
+  }
+}
+func tick342(refillRate) = {
+  this.tokens342 = min(10, this.tokens342 + refillRate)
+}
+request342(3); request342(4); request342(5); tick342(5); request342(4)
+
+//20343
+global bloomBits = []
+for (i: 1 .. 64) bloomBits.add(0)
+func bloomHash(v, prime) = { abs((v * prime) % 64) + 1 }
+func bloomAdd(v) = {
+  bloomBits[bloomHash(v,31)] = 1
+  bloomBits[bloomHash(v,37)] = 1
+  bloomBits[bloomHash(v,41)] = 1
+}
+func bloomQuery(v) = {
+  bloomBits[bloomHash(v,31)] == 1 && bloomBits[bloomHash(v,37)] == 1 && bloomBits[bloomHash(v,41)] == 1
+}
+for (i: 1 .. 20) bloomAdd(i)
+println(bloomQuery(5))
+println(bloomQuery(25))
+
+//20344
+global topKList = []
+global topK_k = 5
+func see344(v) = {
+  this.topKList.add(v)
+  this.topKList = this.topKList.sort { a, b -> a > b }
+  if (this.topKList.listLen() > this.topK_k) this.topKList.remove(this.topKList.listLen())
+}
+for (v in [3,1,4,1,5,9,2,6,5,3,5,8,7,2,4]) see344(v)
+println(this.topKList)
+
+//20345
+global seen345 = {}
+func dedupeStream(lst) = {
+  for (x in lst) {
+    local key = "" _ x
+    if (!this.seen345.containsKey(key)) {
+      println(x)
+      this.seen345.set(key, true)
+    }
+  }
+}
+dedupeStream(["a","b","a","c","b","d","a"])
+
+//20346
+func binarySearchFirst(lst, target) = {
+  local lo = 1; local hi = lst.listLen(); local result = -1
+  while (lo <= hi) {
+    local mid = floor((lo+hi)/2)
+    if (lst[mid] == target) { result = mid; hi = mid-1 }
+    else if (lst[mid] < target) lo = mid+1
+    else hi = mid-1
+  }
+  result
+}
+println(binarySearchFirst([1,2,2,2,3,4], 2))
+
+//20347
+func interpolationSearch(lst, target) = {
+  local lo = 1; local hi = lst.listLen()
+  while (lo <= hi && target >= lst[lo] && target <= lst[hi]) {
+    local pos = lo + floor((target-lst[lo])*(hi-lo)/(lst[hi]-lst[lo]))
+    if (lst[pos] == target) pos
+    else if (lst[pos] < target) lo = pos+1
+    else hi = pos-1
+  }
+  -1
+}
+println(interpolationSearch([10,20,30,40,50,60,70,80,90,100], 70))
+
+//20348
+func exponentialSearch(lst, target) = {
+  local n = lst.listLen()
+  if (lst[1] == target) 1
+  else {
+    local i = 1
+    while (i <= n && lst[i] <= target) i = i*2
+    local lo = floor(i/2); local hi = min(i, n)
+    while (lo <= hi) {
+      local mid = floor((lo+hi)/2)
+      if (lst[mid] == target) mid
+      else if (lst[mid] < target) lo = mid+1
+      else hi = mid-1
+    }
+    -1
+  }
+}
+local lst348 = []
+for (i: 1 .. 20) lst348.add(i*3)
+println(exponentialSearch(lst348, 27))
+
+//20349
+func ternarySearch(lst, lo, hi, target) = {
+  if (lo > hi) -1
+  else {
+    local m1 = lo + floor((hi-lo)/3)
+    local m2 = hi - floor((hi-lo)/3)
+    if (lst[m1] == target) m1
+    else if (lst[m2] == target) m2
+    else if (target < lst[m1]) ternarySearch(lst, lo, m1-1, target)
+    else if (target > lst[m2]) ternarySearch(lst, m2+1, hi, target)
+    else ternarySearch(lst, m1+1, m2-1, target)
+  }
+}
+local lst349 = []
+for (i: 1 .. 15) lst349.add(i*2)
+println(ternarySearch(lst349, 1, lst349.listLen(), 16))
+
+//20350
+func jumpSearch(lst, target) = {
+  local n = lst.listLen()
+  local step = floor(sqrt(n))
+  local prev = 1
+  local curr = step
+  while (curr <= n && lst[curr] < target) {
+    prev = curr
+    curr = curr + step
+  }
+  for (i: prev .. min(curr, n)) {
+    if (lst[i] == target) i
+  }
+  -1
+}
+println(jumpSearch([0,1,1,2,3,5,8,13,21,34,55,89], 55))
+
+//20351
+func diffList(a, b) = {
+  local setA = {}; local setB = {}
+  for (x in a) setA.set("" _ x, x)
+  for (x in b) setB.set("" _ x, x)
+  local onlyA = a.filter { x -> !setB.containsKey("" _ x) }
+  local onlyB = b.filter { x -> !setA.containsKey("" _ x) }
+  local both = a.filter { x -> setB.containsKey("" _ x) }
+  [onlyA, onlyB, both]
+}
+println(diffList([1,2,3,4],[3,4,5,6]))
+
+//20352
+func cartesianProduct(a, b) = {
+  local result = []
+  for (x in a) { for (y in b) result.add([x,y]) }
+  result
+}
+println(cartesianProduct([1,2],["a","b"]))
+
+//20353
+func powerSet(lst) = {
+  local n = lst.listLen()
+  local total = 2^n
+  local result = []
+  for (i: 0 .. total-1) {
+    local subset = []
+    for (j: 0 .. n-1) {
+      if (floor(i / (2^j)) % 2 == 1) subset.add(lst[j+1])
+    }
+    result.add(subset)
+  }
+  result
+}
+local ps353 = powerSet([1,2,3])
+println(ps353.listLen())
+
+//20354
+func combinations(lst, k) = {
+  if (k == 0) [[]]
+  else if (lst ? emptyList) []
+  else {
+    local first = lst[1]
+    local rest = lst.allButFirst()
+    local withFirst = combinations(rest, k-1).map { c -> local r = [first]; r.appendList(c); r }
+    local withoutFirst = combinations(rest, k)
+    withFirst.appendList(withoutFirst)
+    withFirst
+  }
+}
+println(combinations([1,2,3,4],2))
+
+//20355
+func derangements(n) = {
+  if (n == 0) 1
+  else if (n == 1) 0
+  else (n-1)*(derangements(n-1)+derangements(n-2))
+}
+println(derangements(4))
+
+//20356
+func spiralMatrix(mat) = {
+  local result = []
+  local top = 1; local bottom = mat.listLen()
+  local left = 1; local right = mat[1].listLen()
+  while (top <= bottom && left <= right) {
+    for (c: left .. right) result.add(mat[top][c])
+    top = top + 1
+    for (r: top .. bottom) result.add(mat[r][right])
+    right = right - 1
+    if (top <= bottom) {
+      for (c: right .. left step -1) result.add(mat[bottom][c])
+      bottom = bottom - 1
+    }
+    if (left <= right) {
+      for (r: bottom .. top step -1) result.add(mat[r][left])
+      left = left + 1
+    }
+  }
+  result
+}
+local mat356 = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]
+println(spiralMatrix(mat356))
+
+//20357
+func gameOfLife(grid) = {
+  local rows = grid.listLen()
+  local cols = grid[1].listLen()
+  local next = []
+  for (i: 1 .. rows) {
+    local row = []
+    for (j: 1 .. cols) row.add(0)
+    next.add(row)
+  }
+  for (r: 1 .. rows) {
+    for (c: 1 .. cols) {
+      local alive = 0
+      for (dr in [-1,0,1]) {
+        for (dc in [-1,0,1]) {
+          if (!(dr == 0 && dc == 0)) {
+            local nr = r+dr; local nc = c+dc
+            if (nr >= 1 && nr <= rows && nc >= 1 && nc <= cols) alive = alive + grid[nr][nc]
+          }
+        }
+      }
+      local cell = grid[r][c]
+      next[r][c] = if (cell == 1 && (alive == 2 || alive == 3)) 1 else if (cell == 0 && alive == 3) 1 else 0
+    }
+  }
+  next
+}
+local g357 = [[0,1,0,0,0],[0,0,1,0,0],[1,1,1,0,0],[0,0,0,0,0],[0,0,0,0,0]]
+for (row in gameOfLife(g357)) println(row)
+
+//20358
+func ant(steps) = {
+  local grid = {}
+  local x = 0; local y = 0; local dir = 0
+  local dx = [0,1,0,-1]; local dy = [1,0,-1,0]
+  for (i: 1 .. steps) {
+    local key = x _ "," _ y
+    local white = !grid.containsKey(key) || grid.get(key) == 0
+    if (white) { grid.set(key, 1); dir = (dir + 1) % 4 }
+    else { grid.set(key, 0); dir = (dir + 3) % 4 }
+    x = x + dx[dir+1]; y = y + dy[dir+1]
+  }
+  local keys = grid.keys()
+  println("Cells visited: " _ keys.listLen())
+}
+ant(200)
+
+//20359
+func cellularAutomaton(rule, state, steps) = {
+  local current = copyList(state)
+  println(current.map { x -> if (x==1) "#" else "." }.join(""))
+  for (i: 1 .. steps) {
+    local next = copyList(current)
+    for (j: 2 .. current.listLen()-1) {
+      local idx = current[j-1]*4 + current[j]*2 + current[j+1]
+      next[j] = floor(rule / (2^idx)) % 2
+    }
+    next[1] = 0; next[current.listLen()] = 0
+    current = next
+    println(current.map { x -> if (x==1) "#" else "." }.join(""))
+  }
+}
+local initState = []
+for (i: 1 .. 21) initState.add(if (i == 11) 1 else 0)
+cellularAutomaton(110, initState, 10)
+
+//20360
+func simulateQueue(arrivals, serviceTime) = {
+  local waitTimes = []
+  local serverFree = 0
+  for (arr in arrivals) {
+    local start = max(arr, serverFree)
+    local wait = start - arr
+    waitTimes.add(wait)
+    serverFree = start + serviceTime
+  }
+  println("Avg wait: " _ formatDecimal(avgOf(waitTimes), 2))
+}
+simulateQueue([0,1,2,5,7,10,12,15], 3)
+
+//20361
+func encodeCaesar(s, alphabet, shift) = {
+  local n = alphabet.textLen()
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    local idx = 0
+    local found = false
+    for (j: 1 .. n) {
+      if (alphabet.segment(j,1) === ch) { idx = j; found = true }
+    }
+    if (found) result = result _ alphabet.segment(((idx-1+shift) % n)+1, 1)
+    else result = result _ ch
+  }
+  result
+}
+println(encodeCaesar("hello world", "abcdefghijklmnopqrstuvwxyz", 13))
+println(encodeCaesar("HELLO", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 3))
+
+//20362
+local morseCode = {"A":".-","B":"-...","C":"-.-.","D":"-..","E":".","F":"..-.","G":"--.","H":"....","I":"..","J":".---","K":"-.-","L":".-..","M":"--","N":"-.","O":"---","P":".--.","Q":"--.-","R":".-.","S":"...","T":"-","U":"..-","V":"...-","W":".--","X":"-..-","Y":"-.--","Z":"--.."}
+func morse(s) = {
+  local result = ""
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1).uppercase()
+    if (morseCode.containsKey(ch)) {
+      if (!(result ? emptyText)) result = result _ " "
+      result = result _ morseCode.get(ch)
+    }
+  }
+  result
+}
+println(morse("SOS"))
+
+//20363
+local brailleDigits = {"0":"010111","1":"100000","2":"101000","3":"110000","4":"110100","5":"100100","6":"111000","7":"111100","8":"101100","9":"011000"}
+func braille(digit) = {
+  local s = "" _ digit
+  local pattern = brailleDigits.get(s)
+  println("Digit " _ digit _ ":")
+  println(pattern.segment(1,1) _ " " _ pattern.segment(2,1))
+  println(pattern.segment(3,1) _ " " _ pattern.segment(4,1))
+  println(pattern.segment(5,1) _ " " _ pattern.segment(6,1))
+}
+braille(4); braille(2)
+
+//20364
+func soundex(s) = {
+  local map = {"B":"1","F":"1","P":"1","V":"1","C":"2","G":"2","J":"2","K":"2","Q":"2","S":"2","X":"2","Z":"2","D":"3","T":"3","L":"4","M":"5","N":"5","R":"6"}
+  local code = s.segment(1,1).uppercase()
+  local prev = ""
+  for (i: 2 .. s.textLen()) {
+    local ch = s.segment(i,1).uppercase()
+    if (map.containsKey(ch) && map.get(ch) !== prev) {
+      code = code _ map.get(ch)
+      prev = map.get(ch)
+    } else if (!map.containsKey(ch)) {
+      prev = ""
+    }
+    if (code.textLen() >= 4) i = s.textLen()
+  }
+  padRight(code, 4, "0").segment(1,4)
+}
+println(soundex("Robert"))
+
+//20365
+func metaphone(s) = {
+  local result = s.uppercase()
+  result = result.replace("PH","F").replace("CK","K").replace("SCH","SK")
+  result = result.replace("TH","0").replace("GN","N")
+  local vowels = ["A","E","I","O","U"]
+  local out = ""
+  for (i: 1 .. result.textLen()) {
+    local ch = result.segment(i,1)
+    if (!(vowels.containsItem(ch)) || i == 1) out = out _ ch
+  }
+  out
+}
+println(metaphone("Smith"))
+println(metaphone("Smythe"))
+
+//20366
+func tokenize(expr) = {
+  local result = []
+  local i = 1
+  while (i <= expr.textLen()) {
+    local ch = expr.segment(i,1)
+    if (ch === " ") { i = i+1 }
+    else if (ch ? base10) {
+      local tok = ""
+      while (i <= expr.textLen() && (expr.segment(i,1) ? base10)) {
+        tok = tok _ expr.segment(i,1); i = i+1
+      }
+      result.add(tok)
+    } else {
+      result.add(ch); i = i+1
+    }
+  }
+  result
+}
+println(tokenize("12 + 34 * (5-2)"))
+
+//20367
+func evalExpr(tokens) = {
+  local postfix = infixToPostfix(tokens)
+  evalRPN(postfix)
+}
+println(evalExpr(tokenize("2 + 3 * 4")))
+
+//20368
+func prettyPrint(value, indent) = {
+  local prefix = ""
+  for (i: 1 .. indent*2) prefix = prefix _ " "
+  if (value ? dict) {
+    local out = "{\n"
+    for (k, v in value) {
+      out = out _ prefix _ "  " _ k _ ": " _ prettyPrint(v, indent+1) _ "\n"
+    }
+    out _ prefix _ "}"
+  } else if (value ? list) {
+    local out = "[\n"
+    for (el in value) out = out _ prefix _ "  " _ prettyPrint(el, indent+1) _ "\n"
+    out _ prefix _ "]"
+  } else {
+    "" _ value
+  }
+}
+println(prettyPrint({"a":{"b":{"c":42},"d":["x","y"]},"e":1}, 0))
+
+//20369
+func deepEqual(a, b) = {
+  if (a ? dict && b ? dict) {
+    if (a.dictLen() != b.dictLen()) false
+    else {
+      local ok = true
+      for (k in a.keys()) {
+        if (!b.containsKey(k) || !deepEqual(a.get(k), b.get(k))) ok = false
+      }
+      ok
+    }
+  } else if (a ? list && b ? list) {
+    if (a.listLen() != b.listLen()) false
+    else {
+      local ok = true
+      for (i: 1 .. a.listLen()) { if (!deepEqual(a[i], b[i])) ok = false }
+      ok
+    }
+  } else {
+    a == b
+  }
+}
+println(deepEqual({"a":1,"b":[2,3]},{"a":1,"b":[2,3]}))
+println(deepEqual({"a":1},{"a":2}))
+
+//20370
+func deepCopy(v) = {
+  if (v ? dict) {
+    local result = {}
+    for (k, val in v) result.set(k, deepCopy(val))
+    result
+  } else if (v ? list) {
+    v.map { el -> deepCopy(el) }
+  } else {
+    v
+  }
+}
+local orig370 = {"a":{"b":[1,2,3]}}
+local copy370 = deepCopy(orig370)
+copy370.get("a").get("b").add(99)
+println(orig370)
+println(copy370)
+
+//20371
+global listeners371 = {}
+func on(event, name) = {
+  if (!this.listeners371.containsKey(event)) this.listeners371.set(event, [])
+  this.listeners371.get(event).add(name)
+}
+func off(event, name) = {
+  if (this.listeners371.containsKey(event)) {
+    local idx = this.listeners371.get(event).indexOf(name)
+    if (idx > 0) this.listeners371.get(event).remove(idx)
+  }
+}
+func fire(event, data) = {
+  if (this.listeners371.containsKey(event)) {
+    for (h in this.listeners371.get(event)) println("Observer " _ h _ " fired with " _ data)
+  }
+}
+on("click","handler1"); on("click","handler2"); on("hover","handler3")
+fire("click","button"); off("click","handler1"); fire("click","link")
+
+//20372
+global history372 = []
+func execute372(cmd, args) = {
+  this.history372.add({"cmd":cmd,"args":args})
+  println("Executed: " _ cmd _ " " _ args)
+}
+func undoLast372() = {
+  if (!(this.history372 ? emptyList)) {
+    local last = this.history372[this.history372.listLen()]
+    this.history372.remove(this.history372.listLen())
+    println("Undone: " _ last.get("cmd"))
+  }
+}
+execute372("create","fileA"); execute372("edit","fileA"); execute372("delete","fileB"); execute372("rename","fileC")
+undoLast372()
+println(this.history372)
+
+//20373
+global instance373 = {}
+func getInstance373() = {
+  if (this.instance373 ? emptyDict || this.instance373.dictLen() == 0) {
+    this.instance373.set("id","singleton"); this.instance373.set("count",0)
+  }
+  this.instance373.set("count", this.instance373.get("count")+1)
+  this.instance373
+}
+local i1 = getInstance373()
+local i2 = getInstance373()
+local i3 = getInstance373()
+println(i3.get("count"))
+
+//20374
+func decorator(fn, before, after) = {
+  before()
+  fn()
+  after()
+}
+func myFunc374() = { println("Function executing") }
+func before374() = { println("Before") }
+func after374() = { println("After") }
+decorator(myFunc374, before374, after374)
+
+//20375
+func strategySort(lst, strategy) = {
+  if (strategy === "asc") lst.sort { a, b -> a << b }
+  else if (strategy === "desc") lst.sort { a, b -> a >> b }
+  else lst.sort { a, b -> a.textLen() < b.textLen() }
+}
+local lst375 = ["banana","fig","apple","kiwi"]
+println(strategySort(lst375,"asc"))
+println(strategySort(lst375,"desc"))
+println(strategySort(lst375,"len"))
+
+//20376
+func factoryShape(type) = {
+  if (type === "circle") {"type":"circle","r":1}
+  else if (type === "rect") {"type":"rect","w":1,"h":1}
+  else {"type":"tri","base":1,"h":1}
+}
+func area376(shape) = {
+  local t = shape.get("type")
+  if (t === "circle") 3.14159*shape.get("r")^2
+  else if (t === "rect") shape.get("w")*shape.get("h")
+  else 0.5*shape.get("base")*shape.get("h")
+}
+println(area376(factoryShape("circle")))
+println(area376(factoryShape("rect")))
+println(area376(factoryShape("tri")))
+
+//20377
+func chainOfResponsibility(handlers, value) = {
+  local result = "unhandled"
+  for (h in handlers) {
+    if (h.get("threshold") >= value) {
+      result = h.get("name") _ " handles " _ value
+      value = 999999
+    }
+  }
+  result
+}
+println(chainOfResponsibility([{"threshold":5,"name":"low"},{"threshold":10,"name":"mid"},{"threshold":50,"name":"high"},{"threshold":100,"name":"vhigh"},{"threshold":999,"name":"max"}], 7))
+
+//20378
+func templateMethod(steps) = {
+  for (step in steps) {
+    println("[" _ step _ "] start")
+    println("[" _ step _ "] done")
+  }
+}
+templateMethod(["init","process","validate","save"])
+
+//20379
+func proxyAccess(resource, allowList) = {
+  { key ->
+    if (allowList.containsKey(key)) resource.get(key)
+    else { println("denied"); "denied" }
+  }
+}
+local res = {"a":1,"b":2,"c":3,"d":4,"e":5}
+local allow = {"a":true,"c":true,"e":true}
+local proxy = proxyAccess(res, allow)
+println(proxy("a")); println(proxy("b")); println(proxy("c")); println(proxy("d")); println(proxy("e"))
+
+//20380
+func bridgePattern(impl, abstraction) = {
+  local themes = {"dark":{"bg":"#000","fg":"#FFF"},"light":{"bg":"#FFF","fg":"#000"}}
+  local comps = {"button":{"border":"1px solid","padding":"8px"},"label":{"border":"none","padding":"2px"}}
+  local theme = themes.get(impl)
+  local comp = comps.get(abstraction)
+  {"bg":theme.get("bg"),"fg":theme.get("fg"),"border":comp.get("border"),"padding":comp.get("padding")}
+}
+for (impl in ["dark","light"]) {
+  for (abs in ["button","label"]) println(bridgePattern(impl,abs))
+}
+
+//20381
+func calcPi(n) = {
+  local sum = 0
+  for (i: 0 .. n-1) {
+    sum = sum + (if (i % 2 == 0) 1 else -1) / (2*i+1)
+  }
+  formatDecimal(4*sum, 6)
+}
+println(calcPi(10000))
+
+//20382
+func calcE(n) = {
+  local sum = 1; local fact = 1
+  for (k: 1 .. n) {
+    fact = fact * k
+    sum = sum + 1/fact
+  }
+  formatDecimal(sum, 8)
+}
+println(calcE(15))
+
+//20383
+func newtonSqrt(n) = {
+  local x = n / 2
+  local prev = 0
+  while (abs(x - prev) >= 0.000001) {
+    prev = x
+    x = (x + n/x) / 2
+  }
+  x
+}
+println(formatDecimal(newtonSqrt(2), 8))
+println(formatDecimal(sqrt(2), 8))
+
+//20384
+func bisection(lo, hi, target) = {
+  local a = lo; local b = hi
+  while (b - a > 0.00001) {
+    local mid = (a+b)/2
+    local fmid = mid^3 - mid - 2
+    if (fmid < 0) a = mid else b = mid
+  }
+  formatDecimal((a+b)/2, 4)
+}
+println(bisection(1, 2, 0))
+
+//20385
+func trapezoidal(lo, hi, n) = {
+  local h = (hi-lo)/n
+  local sum = (lo^2 + hi^2) / 2
+  for (i: 1 .. n-1) {
+    local x = lo + i*h
+    sum = sum + x^2
+  }
+  formatDecimal(sum*h, 4)
+}
+println(trapezoidal(0, 1, 1000))
+
+//20386
+func gradient(fn, x, h) = {
+  (fn(x+h) - fn(x-h)) / (2*h)
+}
+println(formatDecimal(gradient({ x -> x^3 }, 2, 0.0001), 4))
+
+//20387
+func eulerMethod(fn, y0, x0, xEnd, h) = {
+  local x = x0; local y = y0
+  while (x < xEnd) {
+    y = y + h * fn(x, y)
+    x = x + h
+  }
+  y
+}
+println(formatDecimal(eulerMethod({ x, y -> y }, 1, 0, 1, 0.001), 4))
+
+//20388
+func powerSeries(coeffs, x) = {
+  local result = 0
+  for (i: 1 .. coeffs.listLen()) result = result + coeffs[i] * x^(i-1)
+  result
+}
+println(powerSeries([1,2,3], 2))
+
+//20389
+func fftMagnitudes(signal) = {
+  local n = signal.listLen()
+  local mags = []
+  for (k: 0 .. n-1) {
+    local re = 0; local im = 0
+    for (t: 0 .. n-1) {
+      local angle = 2*3.14159265*k*t/n
+      re = re + signal[t+1]*cos(angle)
+      im = im - signal[t+1]*sin(angle)
+    }
+    mags.add(formatDecimal(sqrt(re*re+im*im), 4))
+  }
+  mags
+}
+println(fftMagnitudes([1,0,-1,0]))
+
+//20390
+func convolution(a, b) = {
+  local n = a.listLen(); local m = b.listLen()
+  local result = []
+  for (i: 1 .. n+m-1) result.add(0)
+  for (i: 1 .. n) {
+    for (j: 1 .. m) result[i+j-1] = result[i+j-1] + a[i]*b[j]
+  }
+  result
+}
+println(convolution([1,2,3],[0,1,0.5]))
+
+//20391
+func formatTable2(headers, rows) = {
+  local all = [headers]
+  all.appendList(rows)
+  local colWidths = []
+  for (i: 1 .. headers.listLen()) colWidths.add(0)
+  for (row in all) {
+    for (i: 1 .. row.listLen()) colWidths[i] = max(colWidths[i], ("" _ row[i]).textLen())
+  }
+  local sep = ""
+  for (w in colWidths) sep = sep _ padRight("", w+2, "-") _ "+"
+  local out = sep _ "\n"
+  for (i: 1 .. all.listLen()) {
+    local row = all[i]; local line = ""
+    for (j: 1 .. row.listLen()) line = line _ padRight("" _ row[j], colWidths[j], " ") _ "  "
+    out = out _ line _ "\n"
+    if (i == 1) out = out _ sep _ "\n"
+  }
+  out
+}
+println(formatTable2(["Name","Age","City","Score"],
+  [["Alice",30,"Delhi",92],["Bob",25,"London",78],["Carol",35,"NYC",88],["Dave",28,"Tokyo",95],["Eve",32,"Paris",85]]))
+
+//20392
+func parseINI(text) = {
+  local result = {}
+  local section = "default"
+  for (line in text.split("\n")) {
+    local l = line.trim()
+    if (l.startsWith("[") && l.endsWith("]")) {
+      section = l.segment(2, l.textLen()-2)
+      if (!result.containsKey(section)) result.set(section, {})
+    } else if (l.contains("=")) {
+      local parts = l.splitAtFirst("=")
+      if (!result.containsKey(section)) result.set(section, {})
+      result.get(section).set(parts[1].trim(), parts[2].trim())
+    }
+  }
+  result
+}
+println(parseINI("[db]\nhost=localhost\nport=5432\n[app]\ndebug=true\nname=myapp\n[cache]\nttl=300"))
+
+//20393
+func parseQueryString(qs) = {
+  local result = {}
+  for (pair in qs.split("&")) {
+    local parts = pair.splitAtFirst("=")
+    if (parts.listLen() >= 2) {
+      result.set(parts[1], parts[2].replace("+", " "))
+    }
+  }
+  result
+}
+println(parseQueryString("a=1&b=2&c=hello+world"))
+
+//20394
+func diff394(oldLines, newLines) = {
+  local out = ""
+  local oldSet = {}; local newSet = {}
+  for (l in oldLines) oldSet.set(l, true)
+  for (l in newLines) newSet.set(l, true)
+  for (l in oldLines) {
+    if (!newSet.containsKey(l)) out = out _ "- " _ l _ "\n"
+    else out = out _ "  " _ l _ "\n"
+  }
+  for (l in newLines) {
+    if (!oldSet.containsKey(l)) out = out _ "+ " _ l _ "\n"
+  }
+  out
+}
+println(diff394(["hello","world","foo"],["hello","bar","foo"]))
+
+//20395
+func patch395(original, hunks) = {
+  local lines = copyList(original)
+  local offset = 0
+  for (h in hunks) {
+    local line = h.get("line") + offset
+    if (h.get("op") === "add") {
+      lines.insert(line, h.get("text"))
+      offset = offset + 1
+    } else if (h.get("op") === "remove") {
+      lines.remove(line)
+      offset = offset - 1
+    }
+  }
+  lines
+}
+println(patch395(["line1","line2","line3","line4"],
+  [{"op":"add","line":2,"text":"inserted"},{"op":"remove","line":4},{"op":"add","line":5,"text":"appended"}]))
+
+//20396
+func csvJoin(left, right, key) = {
+  local lRows = left.csvTableToList()
+  local rRows = right.csvTableToList()
+  local lHeaders = lRows[1]; local rHeaders = rRows[1]
+  local lKeyIdx = lHeaders.indexOf(key)
+  local rKeyIdx = rHeaders.indexOf(key)
+  local rMap = {}
+  for (i: 2 .. rRows.listLen()) rMap.set(rRows[i][rKeyIdx], rRows[i])
+  local result = []
+  local headers = copyList(lHeaders)
+  for (h in rHeaders) { if (!(h === key)) headers.add(h) }
+  result.add(headers)
+  for (i: 2 .. lRows.listLen()) {
+    local lRow = lRows[i]
+    local kv = lRow[lKeyIdx]
+    if (rMap.containsKey(kv)) {
+      local combined = copyList(lRow)
+      local rRow = rMap.get(kv)
+      for (j: 1 .. rRow.listLen()) { if (j != rKeyIdx) combined.add(rRow[j]) }
+      result.add(combined)
+    }
+  }
+  result
+}
+local left396 = "id,name\n1,Alice\n2,Bob\n3,Carol"
+local right396 = "id,score\n1,92\n2,78\n3,88"
+println(csvJoin(left396, right396, "id"))
+
+//20397
+func jsonPath(obj, path) = {
+  local parts = path.split(".")
+  local current = obj
+  for (p in parts) {
+    if (current ? dict && current.containsKey(p)) current = current.get(p)
+    else current = "not found"
+  }
+  current
+}
+println(jsonPath({"a":{"b":{"c":42}}}, "a.b.c"))
+
+//20398
+func schemaValidate(doc, schema) = {
+  local errors = []
+  for (field, typeCheck in schema) {
+    if (!doc.containsKey(field)) {
+      errors.add("Missing field: " _ field)
+    } else {
+      local val = doc.get(field)
+      if (typeCheck === "number" && !(val ? number)) errors.add(field _ " should be number")
+      else if (typeCheck === "text" && !(val ? text)) errors.add(field _ " should be text")
+    }
+  }
+  if (errors ? emptyList) "valid" else errors
+}
+println(schemaValidate({"name":"Alice","age":30},{"name":"text","age":"number"}))
+println(schemaValidate({"name":"Bob"},{"name":"text","age":"number"}))
+
+//20399
+func serialize(obj) = {
+  if (obj ? dict) {
+    local parts = []
+    for (k, v in obj) parts.add(k _ ":" _ serialize(v))
+    "{" _ parts.join(",") _ "}"
+  } else if (obj ? list) {
+    "[" _ obj.map { x -> serialize(x) }.join(",") _ "]"
+  } else {
+    "" _ obj
+  }
+}
+func deserialize(s) = {
+  s
+}
+local obj399 = {"a":1,"b":[2,3],"c":{"d":4}}
+local ser = serialize(obj399)
+println(ser)
+
+//20400
+func diffPatch(v1, v2) = {
+  local changes = []
+  for (k in v2.keys()) {
+    if (!v1.containsKey(k)) changes.add({"path":[k],"op":"set","value":v2.get(k)})
+    else if (v1.get(k) ? dict && v2.get(k) ? dict) {
+      local sub = diffPatch(v1.get(k), v2.get(k))
+      for (c in sub) {
+        local path = [k]
+        path.appendList(c.get("path"))
+        changes.add({"path":path,"op":c.get("op"),"value":c.get("value")})
+      }
+    } else if (v1.get(k) != v2.get(k)) {
+      changes.add({"path":[k],"op":"set","value":v2.get(k)})
+    }
+  }
+  for (k in v1.keys()) {
+    if (!v2.containsKey(k)) changes.add({"path":[k],"op":"delete","value":""})
+  }
+  changes
+}
+println(diffPatch({"a":1,"b":2,"c":{"d":3}},{"a":1,"b":99,"c":{"d":4},"e":5}))
+
+//20401
+func flatMap(lst, fn) = {
+  lst.reduce([]) { x, acc -> local r = copyList(acc); r.appendList(fn(x)); r }
+}
+println(flatMap([1,2,3], { x -> [x, x*2] }))
+
+//20402
+func scan(lst, init, fn) = {
+  local result = []
+  local acc = init
+  for (x in lst) {
+    acc = fn(x, acc)
+    result.add(acc)
+  }
+  result
+}
+println(scan([1,2,3,4], 0, { x, acc -> x+acc }))
+
+//20403
+func unfold(seed, fn, n) = {
+  local result = []
+  local s = seed
+  for (i: 1 .. n) {
+    s = fn(s)
+    result.add(s[1])
+  }
+  result
+}
+println(unfold([0,1], { s -> [s[2], s[1]+s[2]] }, 10))
+
+//20404
+func iterate(fn, init, n) = {
+  local result = []
+  local x = init
+  for (i: 1 .. n) {
+    x = fn(x)
+    result.add(x)
+  }
+  result
+}
+println(iterate({ x -> x*2 }, 1, 8))
+
+//20405
+func memoIterFib(n) = {
+  local fibs = [0,1]
+  while (fibs.listLen() <= n) {
+    local len = fibs.listLen()
+    fibs.add(fibs[len] + fibs[len-1])
+  }
+  fibs[n+1]
+}
+println(memoIterFib(20))
+
+//20406
+func groupConsecutive(lst) = {
+  if (lst ? emptyList) []
+  else {
+    local result = [[lst[1]]]
+    for (i: 2 .. lst.listLen()) {
+      if (lst[i] === lst[i-1]) result[result.listLen()].add(lst[i])
+      else result.add([lst[i]])
+    }
+    result
+  }
+}
+println(groupConsecutive([1,1,2,3,3,3,1]))
+
+//20407
+func intersperse(lst, sep) = {
+  local result = []
+  for (i: 1 .. lst.listLen()) {
+    result.add(lst[i])
+    if (i < lst.listLen()) result.add(sep)
+  }
+  result
+}
+println(intersperse([1,2,3], 0))
+
+//20408
+func partition408(lst, pred) = {
+  local yes = lst.filter { x -> pred(x) }
+  local no = lst.filter { x -> !pred(x) }
+  [yes, no]
+}
+println(partition408([1,2,3,4,5,6,7,8,9,10], { x -> x % 3 == 0 }))
+
+//20409
+func nthLargest(lst, n) = {
+  local sorted = lst.sort { a, b -> a > b }
+  sorted[n]
+}
+println(nthLargest([3,1,4,1,5,9,2,6], 3))
+
+//20410
+func medianOfGroup(lst) = {
+  local sorted = lst.sort()
+  sorted[ceil(sorted.listLen()/2)]
+}
+func medianOfMedians(lst) = {
+  local n = lst.listLen()
+  local groups = chunk(lst, 5)
+  local medians = groups.map { g -> medianOfGroup(g) }
+  medianOfGroup(medians)
+}
+local lst410 = [3,1,4,1,5,9,2,6,5,3,5,8,7,2,4]
+println(medianOfMedians(lst410))
+
+//20411
+local knownWords = ["hello","world","the","is","this","test","abc","def"]
+func caesarBreak(ciphertext) = {
+  local bestShift = 0; local bestCount = 0
+  for (shift: 1 .. 25) {
+    local decrypted = caesarCipher(ciphertext, 26-shift)
+    local ws = decrypted.lowercase().splitAtSpaces()
+    local count = ws.filter { w -> knownWords.containsItem(w) }.listLen()
+    if (count > bestCount) { bestCount = count; bestShift = shift }
+  }
+  {"shift":bestShift,"decrypted":caesarCipher(ciphertext, 26-bestShift)}
+}
+println(caesarBreak("Khoor Zruog"))
+
+//20412
+func frequencyAttack(ciphertext) = {
+  local freq = charFrequency(ciphertext.uppercase().replace(" ",""))
+  local mostFreq = freq[1][1]
+  local shift = (dec(mostFreq) - dec("E") + 26) % 26
+  {"suggested_shift":shift,"decrypted":caesarCipher(ciphertext,26-shift)}
+}
+println(frequencyAttack("Wkh txlfn eurzq ira"))
+
+//20413
+func hashSimple413(s, m) = {
+  local hash = 0
+  for (i: 1 .. s.textLen()) {
+    hash = (hash + dec(s.segment(i,1)) * (31^(i-1))) % m
+  }
+  hash
+}
+println(hashSimple413("hello", 1000))
+println(hashSimple413("world", 1000))
+
+//20414
+local bloomArr414 = []
+for (i: 1 .. 100) bloomArr414.add(0)
+func bfHash1(v) = { abs((v*31) % 100) + 1 }
+func bfHash2(v) = { abs((v*37) % 100) + 1 }
+func bfHash3(v) = { abs((v*41) % 100) + 1 }
+func bfAdd(v) = {
+  bloomArr414[bfHash1(v)] = 1
+  bloomArr414[bfHash2(v)] = 1
+  bloomArr414[bfHash3(v)] = 1
+}
+func bfContains(v) = {
+  bloomArr414[bfHash1(v)] == 1 && bloomArr414[bfHash2(v)] == 1 && bloomArr414[bfHash3(v)] == 1
+}
+for (i: 1 .. 50) bfAdd(i)
+local fp = 0
+for (i: 51 .. 100) { if (bfContains(i)) fp = fp + 1 }
+println("False positive rate: " _ formatDecimal(fp/50, 3))
+
+//20415
+func consistentHash415(nodes, key) = {
+  local idx = hashSimple413(key, nodes.listLen()) + 1
+  nodes[idx]
+}
+local nodes415 = ["node1","node2","node3","node4","node5"]
+for (k in ["user1","user2","user3","user4","user5","order1","order2","order3","order4","order5"]) {
+  println(k _ " -> " _ consistentHash415(nodes415, k))
+}
+
+//20416
+func damerauLevenshtein(a, b) = {
+  local m = a.textLen(); local n = b.textLen()
+  local dp = []
+  for (i: 0 .. m) {
+    local row = []
+    for (j: 0 .. n) row.add(0)
+    dp.add(row)
+  }
+  for (i: 0 .. m) dp[i+1][1] = i
+  for (j: 0 .. n) dp[1][j+1] = j
+  for (i: 1 .. m) {
+    for (j: 1 .. n) {
+      local cost = if (a.segment(i,1) === b.segment(j,1)) 0 else 1
+      dp[i+1][j+1] = min(dp[i][j]+cost, min(dp[i+1][j]+1, dp[i][j+1]+1))
+      if (i > 1 && j > 1 && a.segment(i,1) === b.segment(j-1,1) && a.segment(i-1,1) === b.segment(j,1)) {
+        dp[i+1][j+1] = min(dp[i+1][j+1], dp[i-1][j-1]+cost)
+      }
+    }
+  }
+  dp[m+1][n+1]
+}
+println(damerauLevenshtein("CA","ABC"))
+
+//20417
+func longestPalindromicSubstring(s) = {
+  local n = s.textLen()
+  local best = s.segment(1,1)
+  func expand(l, r) = {
+    while (l >= 1 && r <= n && s.segment(l,1) === s.segment(r,1)) {
+      if (r-l+1 > best.textLen()) best = s.segment(l, r-l+1)
+      l = l-1; r = r+1
+    }
+  }
+  for (i: 1 .. n) { expand(i,i); expand(i,i+1) }
+  best
+}
+println(longestPalindromicSubstring("babad"))
+println(longestPalindromicSubstring("cbbd"))
+
+//20418
+func minimumWindowSubstring(s, t) = {
+  local need = {}
+  for (i: 1 .. t.textLen()) {
+    local ch = t.segment(i,1)
+    need.set(ch, if (need.containsKey(ch)) need.get(ch)+1 else 1)
+  }
+  local window = {}
+  local have = 0; local required = need.dictLen()
+  local lo = 1; local result = ""
+  local minLen = s.textLen()+1
+  for (hi: 1 .. s.textLen()) {
+    local ch = s.segment(hi,1)
+    window.set(ch, if (window.containsKey(ch)) window.get(ch)+1 else 1)
+    if (need.containsKey(ch) && window.get(ch) == need.get(ch)) have = have+1
+    while (have == required) {
+      if (hi-lo+1 < minLen) { minLen = hi-lo+1; result = s.segment(lo,minLen) }
+      local lch = s.segment(lo,1)
+      window.set(lch, window.get(lch)-1)
+      if (need.containsKey(lch) && window.get(lch) < need.get(lch)) have = have-1
+      lo = lo+1
+    }
+  }
+  result
+}
+println(minimumWindowSubstring("ADOBECODEBANC","ABC"))
+
+//20419
+func sortedKey(s) = {
+  s.split("").sort().join("")
+}
+func groupAnagrams(words) = {
+  local groups = {}
+  for (w in words) {
+    local key = sortedKey(w)
+    if (!groups.containsKey(key)) groups.set(key, [])
+    groups.get(key).add(w)
+  }
+  groups.values()
+}
+println(groupAnagrams(["eat","tea","tan","ate","nat","bat"]))
+
+//20420
+func longestSubstringNoRepeat(s) = {
+  local seen = {}; local lo = 1; local maxLen = 0
+  for (hi: 1 .. s.textLen()) {
+    local ch = s.segment(hi,1)
+    if (seen.containsKey(ch) && seen.get(ch) >= lo) lo = seen.get(ch)+1
+    seen.set(ch, hi)
+    maxLen = max(maxLen, hi-lo+1)
+  }
+  maxLen
+}
+println(longestSubstringNoRepeat("abcabcbb"))
+println(longestSubstringNoRepeat("pwwkew"))
+
+//20421
+func fibMatrix(n) = {
+  local result = matPow219([[1,1],[1,0]], n)
+  result[1][2]
+}
+println(fibMatrix(10))
+
+//20422
+func chineseRemainder(remainders, moduli) = {
+  local M = moduli.reduce(1) { m, s -> m*s }
+  local x = 0
+  for (i: 1 .. moduli.listLen()) {
+    local mi = moduli[i]; local ri = remainders[i]
+    local Mi = floor(M/mi)
+    local inv = modInverse(Mi, mi)
+    x = x + ri*Mi*inv
+  }
+  x % M
+}
+println(chineseRemainder([2,3,2],[3,5,7]))
+
+//20423
+func modPow(base, exp, mod) = {
+  local result = 1; local b = base % mod; local e = exp
+  while (e > 0) {
+    if (e % 2 == 1) result = (result*b) % mod
+    b = (b*b) % mod
+    e = floor(e/2)
+  }
+  result
+}
+println(modPow(2, 10, 1000))
+
+//20424
+func millerRabin(n, k) = {
+  if (n < 2) false
+  else if (n == 2 || n == 3) true
+  else if (n % 2 == 0) false
+  else {
+    local d = n-1; local r = 0
+    while (d % 2 == 0) { d = floor(d/2); r = r+1 }
+    local prime = true
+    for (i: 1 .. k) {
+      local a = randInt(2, n-2)
+      local x = modPow(a, d, n)
+      if (x != 1 && x != n-1) {
+        local cont = false
+        for (j: 1 .. r-1) {
+          x = (x*x) % n
+          if (x == n-1) { cont = true; j = r }
+        }
+        if (!cont) prime = false
+      }
+    }
+    prime
+  }
+}
+println(millerRabin(17,5))
+println(millerRabin(15,5))
+println(millerRabin(104729,10))
+
+//20425
+func extGcd425(a, b) = {
+  if (b == 0) [a,1,0]
+  else {
+    local r = extGcd425(b, a%b)
+    [r[1], r[3], r[2]-floor(a/b)*r[3]]
+  }
+}
+println(extGcd425(35,15))
+
+//20426
+global accounts426 = {}
+func openAccount(name, balance) = { this.accounts426.set(name, balance) }
+func transfer(from, to, amount) = {
+  if (this.accounts426.get(from) < amount) println("Overdraft!")
+  else {
+    this.accounts426.set(from, this.accounts426.get(from)-amount)
+    this.accounts426.set(to, this.accounts426.get(to)+amount)
+  }
+}
+func statement(name) = { println(name _ ": " _ this.accounts426.get(name)) }
+openAccount("Alice",1000); openAccount("Bob",500)
+transfer("Alice","Bob",200); statement("Alice"); statement("Bob")
+transfer("Bob","Alice",800)
+
+//20427
+global cart427 = []
+global cartTotal = 0
+func addItem(item, price, qty) = {
+  this.cart427.add({"item":item,"price":price,"qty":qty})
+  this.cartTotal = this.cartTotal + price*qty
+}
+func removeItem(item) = {
+  local idx = 0
+  for (i: 1 .. this.cart427.listLen()) { if (this.cart427[i].get("item") === item) idx = i }
+  if (idx > 0) {
+    local removed = this.cart427[idx]
+    this.cartTotal = this.cartTotal - removed.get("price")*removed.get("qty")
+    this.cart427.remove(idx)
+  }
+}
+func checkout() = { println("Total: $" _ formatDecimal(this.cartTotal, 2)); this.cart427 = []; this.cartTotal = 0 }
+addItem("apple",0.5,4); addItem("bread",2.5,1); addItem("milk",1.2,2); addItem("egg",0.2,6)
+removeItem("milk"); checkout()
+
+//20428
+global bookings428 = {}
+global capacity428 = 10
+global booked428 = 0
+func book(name, seats) = {
+  if (this.booked428 + seats > this.capacity428) println("Not enough seats")
+  else {
+    this.bookings428.set(name, seats)
+    this.booked428 = this.booked428 + seats
+    println(name _ " booked " _ seats _ " seats")
+  }
+}
+func cancel428(name) = {
+  if (this.bookings428.containsKey(name)) {
+    this.booked428 = this.booked428 - this.bookings428.get(name)
+    this.bookings428.delete(name)
+    println(name _ " cancelled")
+  }
+}
+func available428() = { this.capacity428 - this.booked428 }
+book("Alice",3); book("Bob",4); book("Carol",5)
+cancel428("Bob")
+println("Available: " _ available428())
+
+//20429
+func taskScheduler(tasks) = {
+  local order = topSortDependencies(tasks.map { t -> t.get("name") }, tasks.reduce({}) { t, acc -> acc.set(t.get("name"), t.get("deps")); acc })
+  local times = {}
+  for (name in order) {
+    local task = tasks.filter { t -> t.get("name") === name }[1]
+    local start = 0
+    for (dep in task.get("deps")) {
+      if (times.containsKey(dep)) start = max(start, times.get(dep))
+    }
+    println(name _ " starts at " _ start _ " duration " _ task.get("duration"))
+    times.set(name, start + task.get("duration"))
+  }
+}
+taskScheduler([{"name":"A","duration":3,"deps":[]},{"name":"B","duration":2,"deps":["A"]},{"name":"C","duration":4,"deps":["A"]},{"name":"D","duration":1,"deps":["B","C"]}])
+
+//20430
+global scores430 = {}
+func submit(player, score) = {
+  if (!this.scores430.containsKey(player) || score > this.scores430.get(player)) {
+    this.scores430.set(player, score)
+  }
+}
+func top430(n) = {
+  this.scores430.toPairs().sort { a, b -> a[2] > b[2] }.slice(1,n).map { p -> p[1] _ ":" _ p[2] }
+}
+submit("Alice",85); submit("Bob",92); submit("Alice",88); submit("Carol",76)
+submit("Bob",95); submit("Dave",89); submit("Alice",91); submit("Carol",82)
+println(top430(3))
+
+//20431
+func parseMarkdown(text) = {
+  local lines = text.split("\n")
+  local result = []
+  for (line in lines) {
+    local l = line
+    if (l.startsWith("# ")) l = "=== " _ l.segment(3, l.textLen()-2) _ " ==="
+    l = l.replace("**", "[").replace("**", "]")
+    l = l.replace("*", "_").replace("*", "_")
+    result.add(l)
+  }
+  result.join("\n")
+}
+println(parseMarkdown("# Hello World\nThis is **bold** and *italic*\nAnother line\n## Subheading"))
+
+//20432
+func buildBreadcrumb(path) = {
+  path.split("/").filter { p -> !(p ? emptyText) }.map { p -> p.segment(1,1).uppercase() _ p.segment(2,p.textLen()-1) }.join(" > ")
+}
+println(buildBreadcrumb("/home/user/docs/file.txt"))
+
+//20433
+func extractEmails(text) = {
+  local words = text.splitAtSpaces()
+  words.filter { w -> w.contains("@") && w.splitAtFirst("@")[2].contains(".") }
+}
+println(extractEmails("Contact us at alice@example.com or bob@test.org and carol@company.co.uk for info."))
+
+//20434
+func censorWords(text, banned) = {
+  local result = text
+  for (word in banned) {
+    result = result.lowercase().replace(word.lowercase(), "***")
+  }
+  result
+}
+println(censorWords("The quick brown fox jumps over the lazy dog", ["quick","fox","lazy"]))
+
+//20435
+func generatePassword(length, useUpper, useDigits, useSymbols) = {
+  local chars = "abcdefghijklmnopqrstuvwxyz"
+  if (useUpper) chars = chars _ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  if (useDigits) chars = chars _ "0123456789"
+  if (useSymbols) chars = chars _ "!@#$%^&*"
+  local n = chars.textLen()
+  for (i: 1 .. 5) {
+    local pwd = ""
+    for (j: 1 .. length) pwd = pwd _ chars.segment(randInt(1,n),1)
+    println(pwd)
+  }
+}
+generatePassword(12, true, true, true)
+
+//20436
+func diff2d(a, b) = {
+  local result = []
+  for (r: 1 .. a.listLen()) {
+    for (c: 1 .. a[r].listLen()) {
+      if (a[r][c] != b[r][c]) result.add({"row":r,"col":c,"old":a[r][c],"new":b[r][c]})
+    }
+  }
+  result
+}
+println(diff2d([[1,2,3],[4,5,6],[7,8,9]],[[1,2,3],[4,0,6],[7,8,0]]))
+
+//20437
+func applyKernel(image, kernel) = {
+  local rows = image.listLen(); local cols = image[1].listLen()
+  local result = []
+  for (i: 1 .. rows) {
+    local row = []
+    for (j: 1 .. cols) row.add(0)
+    result.add(row)
+  }
+  for (r: 2 .. rows-1) {
+    for (c: 2 .. cols-1) {
+      local sum = 0
+      for (kr: 1 .. 3) {
+        for (kc: 1 .. 3) {
+          sum = sum + image[r+kr-2][c+kc-2] * kernel[kr][kc]
+        }
+      }
+      result[r][c] = sum / 9
+    }
+  }
+  result
+}
+local img = [[0,0,0,0,0],[0,255,255,255,0],[0,255,255,255,0],[0,255,255,255,0],[0,0,0,0,0]]
+local blur = [[1,1,1],[1,1,1],[1,1,1]]
+for (row in applyKernel(img, blur)) println(row)
+
+//20438
+func rasterise(points, width, height) = {
+  local grid = []
+  for (r: 1 .. height) {
+    local row = []
+    for (c: 1 .. width) row.add(".")
+    grid.add(row)
+  }
+  for (p in points) {
+    local x = p[1]; local y = p[2]
+    if (x >= 1 && x <= width && y >= 1 && y <= height) grid[y][x] = "*"
+  }
+  for (row in grid) println(row.join(""))
+}
+rasterise([[1,1],[3,2],[5,3],[2,4],[4,5]], 6, 6)
+
+//20439
+func parseCSV2(text, delim) = {
+  local rows = text.split("\n")
+  local result = []
+  for (row in rows) {
+    if (!(row ? emptyText)) {
+      local fields = row.split(delim)
+      result.add(fields)
+    }
+  }
+  result
+}
+println(parseCSV2("a|b|c\n1|2|3\n4|5|6", "|"))
+
+//20440
+func jsonFlatten(obj, sep) = {
+  local result = {}
+  func flatten440(current, prefix) = {
+    if (current ? dict) {
+      for (k, v in current) {
+        local key = if (prefix ? emptyText) k else prefix _ sep _ k
+        flatten440(v, key)
+      }
+    } else {
+      result.set(prefix, current)
+    }
+  }
+  flatten440(obj, "")
+  result
+}
+println(jsonFlatten({"a":{"b":{"c":1},"d":2},"e":3}, "."))
+
+//20441
+func countPaths(grid) = {
+  local rows = grid.listLen(); local cols = grid[1].listLen()
+  local dp = []
+  for (i: 1 .. rows) {
+    local row = []
+    for (j: 1 .. cols) row.add(0)
+    dp.add(row)
+  }
+  dp[1][1] = if (grid[1][1] == 0) 1 else 0
+  for (i: 2 .. rows) dp[i][1] = if (grid[i][1] == 0) dp[i-1][1] else 0
+  for (j: 2 .. cols) dp[1][j] = if (grid[1][j] == 0) dp[1][j-1] else 0
+  for (i: 2 .. rows) {
+    for (j: 2 .. cols) {
+      dp[i][j] = if (grid[i][j] == 1) 0 else dp[i-1][j]+dp[i][j-1]
+    }
+  }
+  dp[rows][cols]
+}
+println(countPaths([[0,0,0,0],[0,1,0,0],[0,0,0,1],[0,0,0,0]]))
+
+//20442
+func shortestPath(grid) = {
+  local rows = grid.listLen(); local cols = grid[1].listLen()
+  if (grid[1][1] == 1 || grid[rows][cols] == 1) -1
+  else {
+    local dist = {}
+    local queue = [[1,1,1]]
+    dist.set("1,1", 1)
+    while (!(queue ? emptyList)) {
+      local curr = queue[1]; queue.remove(1)
+      local r = curr[1]; local c = curr[2]; local d = curr[3]
+      if (r == rows && c == cols) d
+      else {
+        for (dir in [[-1,0],[1,0],[0,-1],[0,1]]) {
+          local nr = r+dir[1]; local nc = c+dir[2]
+          local key = nr _ "," _ nc
+          if (nr >= 1 && nr <= rows && nc >= 1 && nc <= cols && grid[nr][nc] == 0 && !dist.containsKey(key)) {
+            dist.set(key, d+1)
+            queue.add([nr,nc,d+1])
+          }
+        }
+        0
+      }
+    }
+    -1
+  }
+}
+println(shortestPath([[0,0,0,1,0],[0,1,0,1,0],[0,1,0,0,0],[0,0,1,1,0],[1,0,0,0,0]]))
+
+//20443
+func colorGraph(adj, k) = {
+  local colors = {}
+  for (node in adj.keys()) {
+    local neighborColors = {}
+    for (neighbor in adj.get(node)) {
+      if (colors.containsKey(neighbor)) neighborColors.set(colors.get(neighbor), true)
+    }
+    local color = 1
+    while (neighborColors.containsKey(color) && color <= k) color = color+1
+    colors.set(node, color)
+    println(node _ " -> color " _ color)
+  }
+  colors
+}
+colorGraph({"a":["b","c"],"b":["a","c","d"],"c":["a","b","d"],"d":["b","c","e","f"],"e":["d","f"],"f":["d","e"]}, 4)
+
+//20444
+func hamiltonianPath(graph) = {
+  local nodes = graph.keys()
+  local n = nodes.listLen()
+  local found = false
+  local path = []
+  func bt(current, visited) = {
+    if (!found) {
+      path.add(current)
+      visited.set(current, true)
+      if (path.listLen() == n) {
+        found = true
+      } else {
+        for (neighbor in graph.get(current)) {
+          if (!visited.containsKey(neighbor) && !found) bt(neighbor, visited)
+        }
+      }
+      if (!found) {
+        path.remove(path.listLen())
+        visited.delete(current)
+      }
+    }
+  }
+  for (node in nodes) {
+    if (!found) bt(node, {})
+  }
+  if (found) path else []
+}
+println(hamiltonianPath({"a":["b","c"],"b":["a","d"],"c":["a","d","e"],"d":["b","c","e"],"e":["c","d"]}))
+
+//20445
+func vertexCover(adj) = {
+  local edges = []
+  for (node in adj.keys()) {
+    for (neighbor in adj.get(node)) {
+      if (node << neighbor) edges.add([node, neighbor])
+    }
+  }
+  local cover = {}
+  while (!(edges ? emptyList)) {
+    local edge = edges[1]
+    cover.set(edge[1], true)
+    cover.set(edge[2], true)
+    edges = edges.filter { e -> !(e[1] === edge[1] || e[2] === edge[1] || e[1] === edge[2] || e[2] === edge[2]) }
+  }
+  cover.keys()
+}
+println(vertexCover({"a":["b","c"],"b":["a","d"],"c":["a","d"],"d":["b","c","e","f"],"e":["d"],"f":["d"]}))
+
+//20446
+func stringPermutations(s) = {
+  local chars = []
+  for (i: 1 .. s.textLen()) chars.add(s.segment(i,1))
+  local perms = permutations(chars)
+  perms.map { p -> p.join("") }.sort { a, b -> a << b }
+}
+println(stringPermutations("abc"))
+
+//20447
+func longestBitonicSubsequence(lst) = {
+  local n = lst.listLen()
+  local inc = []; local dec = []
+  for (i: 1 .. n) { inc.add(1); dec.add(1) }
+  for (i: 2 .. n) {
+    for (j: 1 .. i-1) { if (lst[j] < lst[i] && inc[j]+1 > inc[i]) inc[i] = inc[j]+1 }
+  }
+  for (i: n-1 .. 1 step -1) {
+    for (j: n .. i+1 step -1) { if (lst[j] < lst[i] && dec[j]+1 > dec[i]) dec[i] = dec[j]+1 }
+  }
+  local best = 1
+  for (i: 1 .. n) { best = max(best, inc[i]+dec[i]-1) }
+  best
+}
+println(longestBitonicSubsequence([1,11,2,10,4,5,2,1]))
+
+//20448
+func stockSpan(prices) = {
+  local n = prices.listLen()
+  local spans = []
+  local stack = []
+  for (i: 1 .. n) {
+    while (!(stack ? emptyList) && prices[stack[stack.listLen()]] <= prices[i]) stack.remove(stack.listLen())
+    spans.add(if (stack ? emptyList) i else i - stack[stack.listLen()])
+    stack.add(i)
+  }
+  spans
+}
+println(stockSpan([100,80,60,70,60,75,85]))
+
+//20449
+func largestRectangleHistogram449(heights) = { largestRectHistogram(heights) }
+println(largestRectangleHistogram449([2,1,5,6,2,3]))
+
+//20450
+func maxCircularSubarray(lst) = {
+  local maxKadane = maxSubarraySum(lst)
+  local total = lst.reduce(0) { x, s -> x+s }
+  local inverted = lst.map { x -> -x }
+  local minKadane = -maxSubarraySum(inverted)
+  if (total == minKadane) maxKadane
+  else max(maxKadane, total - minKadane)
+}
+println(maxCircularSubarray([1,-2,3,-2]))
+println(maxCircularSubarray([5,-3,5]))
+
+//20451
+func scoreGame(rolls) = {
+  local score = 0; local i = 1
+  for (frame: 1 .. 10) {
+    if (rolls[i] == 10) {
+      score = score + 10 + rolls[i+1] + rolls[i+2]
+      i = i + 1
+    } else if (rolls[i] + rolls[i+1] == 10) {
+      score = score + 10 + rolls[i+2]
+      i = i + 2
+    } else {
+      score = score + rolls[i] + rolls[i+1]
+      i = i + 2
+    }
+  }
+  score
+}
+local perfect = []
+for (i: 1 .. 12) perfect.add(10)
+println(scoreGame(perfect))
+
+//20452
+func pokerHand(cards) = {
+  local ranks = cards.map { c -> c.split(" ")[1] }
+  local suits = cards.map { c -> c.split(" ")[2] }
+  local rankFreq = histDict(ranks)
+  local freqs = rankFreq.values().sort { a, b -> a > b }
+  local isFlush = suits.filter { s -> s === suits[1] }.listLen() == 5
+  local rankOrder = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"]
+  local rankNums = ranks.map { r -> rankOrder.indexOf(r) }.sort()
+  local isStraight = rankNums[5] - rankNums[1] == 4 && rankFreq.dictLen() == 5
+  if (isFlush && isStraight) "straight flush"
+  else if (freqs[1] == 4) "four of a kind"
+  else if (freqs[1] == 3 && freqs[2] == 2) "full house"
+  else if (isFlush) "flush"
+  else if (isStraight) "straight"
+  else if (freqs[1] == 3) "three of a kind"
+  else if (freqs[1] == 2 && freqs[2] == 2) "two pair"
+  else if (freqs[1] == 2) "pair"
+  else "high card"
+}
+println(pokerHand(["A H","K H","Q H","J H","10 H"]))
+println(pokerHand(["A S","A H","A D","K H","K C"]))
+println(pokerHand(["2 S","4 H","6 D","8 H","10 C"]))
+println(pokerHand(["A S","K H","Q D","J H","9 C"]))
+
+//20453
+func chessKnightMoves(pos) = {
+  local col = dec(pos.segment(1,1)) - dec("a") + 1
+  local row = dec(pos.segment(2,1))
+  local moves = []
+  for (dc in [-2,-1,1,2]) {
+    for (dr in [-2,-1,1,2]) {
+      if (abs(dc) + abs(dr) == 3) {
+        local nc = col+dc; local nr = row+dr
+        if (nc >= 1 && nc <= 8 && nr >= 1 && nr <= 8) {
+          local colChar = decToHex(dec("a")+nc-1)
+          moves.add(colChar _ nr)
+        }
+      }
+    }
+  }
+  moves
+}
+println(chessKnightMoves("d4"))
+
+//20454
+func mancala(board, startPit) = {
+  local b = copyList(board)
+  local stones = b[startPit]
+  b[startPit] = 0
+  local pos = startPit
+  while (stones > 0) {
+    pos = (pos % b.listLen()) + 1
+    b[pos] = b[pos] + 1
+    stones = stones - 1
+  }
+  b
+}
+println(mancala([4,4,4,4,4,4], 3))
+
+//20455
+func mastermindScore(secret, guess) = {
+  local blacks = 0; local whites = 0
+  local sCount = {}; local gCount = {}
+  for (i: 1 .. secret.listLen()) {
+    if (secret[i] == guess[i]) blacks = blacks + 1
+    else {
+      sCount.set("" _ secret[i], if (sCount.containsKey("" _ secret[i])) sCount.get("" _ secret[i])+1 else 1)
+      gCount.set("" _ guess[i], if (gCount.containsKey("" _ guess[i])) gCount.get("" _ guess[i])+1 else 1)
+    }
+  }
+  for (k in sCount.keys()) {
+    if (gCount.containsKey(k)) whites = whites + min(sCount.get(k), gCount.get(k))
+  }
+  [blacks, whites]
+}
+println(mastermindScore([1,2,3,4],[1,3,2,5]))
+
+//20456
+func loopDetect(f, x0) = {
+  local slow = f(x0); local fast = f(f(x0))
+  while (slow != fast) { slow = f(slow); fast = f(f(fast)) }
+  local mu = 0; slow = x0
+  while (slow != fast) { slow = f(slow); fast = f(fast); mu = mu+1 }
+  local lam = 1; fast = f(slow)
+  while (slow != fast) { fast = f(fast); lam = lam+1 }
+  {"cycle_start": mu, "cycle_length": lam}
+}
+println(loopDetect({ x -> (x*x+1) % 7 }, 3))
+
+//20457
+func countDistinctSubstrings(s) = {
+  local seen = {}
+  for (i: 1 .. s.textLen()) {
+    for (j: i .. s.textLen()) {
+      seen.set(s.segment(i,j-i+1), true)
+    }
+  }
+  seen.dictLen()
+}
+println(countDistinctSubstrings("abab"))
+
+//20458
+func smallestMissingPositive(lst) = {
+  local seen = {}
+  for (x in lst) { if (x > 0) seen.set("" _ x, true) }
+  local i = 1
+  while (seen.containsKey("" _ i)) i = i+1
+  i
+}
+println(smallestMissingPositive([3,4,-1,1]))
+println(smallestMissingPositive([1,2,3]))
+
+//20459
+func longestConsecutiveSequence(lst) = {
+  local seen = {}
+  for (x in lst) seen.set("" _ x, true)
+  local best = 0
+  for (x in lst) {
+    if (!seen.containsKey("" _ (x-1))) {
+      local cur = x; local len = 1
+      while (seen.containsKey("" _ (cur+1))) { cur = cur+1; len = len+1 }
+      best = max(best, len)
+    }
+  }
+  best
+}
+println(longestConsecutiveSequence([100,4,200,1,3,2]))
+
+//20460
+func spiralPrint(mat) = {
+  println(spiralMatrix(mat))
+}
+spiralPrint([[1,2,3],[4,5,6],[7,8,9]])
+spiralPrint([[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]])
+spiralPrint([[1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15]])
+
+//20461
+func setOperations(a, b) = {
+  local setA = {}; local setB = {}
+  for (x in a) setA.set("" _ x, x)
+  for (x in b) setB.set("" _ x, x)
+  local union = copyList(a)
+  for (x in b) { if (!setA.containsKey("" _ x)) union.add(x) }
+  local intersection = a.filter { x -> setB.containsKey("" _ x) }
+  local diff = a.filter { x -> !setB.containsKey("" _ x) }
+  println("Union: " _ union)
+  println("Intersection: " _ intersection)
+  println("Difference: " _ diff)
+}
+setOperations([1,2,3,4],[3,4,5,6])
+
+//20462
+global multiset462 = {}
+func msAdd(v) = {
+  local key = "" _ v
+  this.multiset462.set(key, if (this.multiset462.containsKey(key)) this.multiset462.get(key)+1 else 1)
+}
+func msRemove(v) = {
+  local key = "" _ v
+  if (this.multiset462.containsKey(key)) {
+    if (this.multiset462.get(key) == 1) this.multiset462.delete(key)
+    else this.multiset462.set(key, this.multiset462.get(key)-1)
+  }
+}
+func msCount(v) = {
+  local key = "" _ v
+  if (this.multiset462.containsKey(key)) this.multiset462.get(key) else 0
+}
+func msTotal() = { this.multiset462.values().reduce(0) { x, s -> x+s } }
+msAdd(1); msAdd(2); msAdd(1); msAdd(3); msAdd(2); msAdd(1); msRemove(2); msAdd(4)
+println(msCount(1)); println(msTotal()); println(this.multiset462)
+
+//20463
+func intervalTree(intervals) = {
+  func query463(intervals, point) = {
+    intervals.filter { iv -> iv[1] <= point && point <= iv[2] }
+  }
+  {"intervals":intervals,"query":query463}
+}
+local it = intervalTree([[1,5],[3,8],[6,10],[2,4],[7,12],[9,15]])
+println(it.get("query")(it.get("intervals"), 4))
+println(it.get("query")(it.get("intervals"), 9))
+
+//20464
+func buildSegmentTree(lst) = {
+  local n = lst.listLen()
+  local tree = []
+  for (i: 1 .. 4*n) tree.add(0)
+  func build464(node, start, end) = {
+    if (start == end) tree[node] = lst[start]
+    else {
+      local mid = floor((start+end)/2)
+      build464(2*node, start, mid)
+      build464(2*node+1, mid+1, end)
+      tree[node] = tree[2*node] + tree[2*node+1]
+    }
+  }
+  build464(1, 1, n)
+  func query464(node, start, end, lo, hi) = {
+    if (lo > end || hi < start) 0
+    else if (lo <= start && end <= hi) tree[node]
+    else {
+      local mid = floor((start+end)/2)
+      query464(2*node,start,mid,lo,hi) + query464(2*node+1,mid+1,end,lo,hi)
+    }
+  }
+  {"tree":tree,"n":n,"query":query464}
+}
+local st = buildSegmentTree([1,3,5,7,9,11])
+println(st.get("query")(1,1,6,2,5))
+
+//20465
+global fenwick = []
+global fenwick_n = 10
+for (i: 1 .. fenwick_n) fenwick.add(0)
+func fenwUpdate(i, delta) = {
+  while (i <= this.fenwick_n) {
+    this.fenwick[i] = this.fenwick[i] + delta
+    i = i + (i & (-i))
+  }
+}
+func fenwQuery(i) = {
+  local s = 0
+  while (i > 0) { s = s + this.fenwick[i]; i = i - (i & (-i)) }
+  s
+}
+fenwUpdate(1,5); fenwUpdate(3,3); fenwUpdate(7,2)
+println(fenwQuery(7))
+println(fenwQuery(3))
+
+//20466
+global ufParent = []
+global ufRank = []
+func ufInit(n) = {
+  this.ufParent = []
+  this.ufRank = []
+  for (i: 1 .. n) { this.ufParent.add(i); this.ufRank.add(0) }
+}
+func ufFind(x) = {
+  if (this.ufParent[x] != x) this.ufParent[x] = ufFind(this.ufParent[x])
+  this.ufParent[x]
+}
+func ufUnion(a, b) = {
+  local pa = ufFind(a); local pb = ufFind(b)
+  if (pa == pb) false
+  else {
+    if (this.ufRank[pa] < this.ufRank[pb]) this.ufParent[pa] = pb
+    else if (this.ufRank[pa] > this.ufRank[pb]) this.ufParent[pb] = pa
+    else { this.ufParent[pb] = pa; this.ufRank[pa] = this.ufRank[pa]+1 }
+    true
+  }
+}
+ufInit(6)
+ufUnion(1,2); ufUnion(3,4); ufUnion(5,6); ufUnion(1,3)
+println(ufFind(2) == ufFind(4))
+println(ufFind(1) == ufFind(5))
+
+//20467
+func buildSparseTable(lst) = {
+  local n = lst.listLen()
+  local log2 = floor(log(n)/log(2))
+  local table = []
+  table.add(copyList(lst))
+  for (j: 1 .. log2) {
+    local row = []
+    for (i: 1 .. n-(2^j)+1) {
+      row.add(min(table[j][i], table[j][i+(2^(j-1))]))
+    }
+    table.add(row)
+  }
+  func query467(lo, hi) = {
+    local k = floor(log(hi-lo+1)/log(2))
+    min(table[k+1][lo], table[k+1][hi-(2^k)+1])
+  }
+  query467
+}
+local sparseQ = buildSparseTable([2,4,3,1,6,7,8,9,1,7])
+println(sparseQ(2,8))
+//20468
+global lru2Vals = {}
+global lru2Order = []
+global lru2Cap = 3
+
+func lru2Get(k) = {
+  if (!this.lru2Vals.containsKey(k)) {
+    -1
+  } else {
+    local idx = this.lru2Order.indexOf(k)
+    if (idx > 0) {
+      this.lru2Order.remove(idx)
+      this.lru2Order.add(k)
+    }
+    this.lru2Vals.get(k)
+  }
+}
+
+func lru2Put(k, v) = {
+  if (this.lru2Vals.containsKey(k)) {
+    local idx = this.lru2Order.indexOf(k)
+    if (idx > 0) this.lru2Order.remove(idx)
+  } else if (this.lru2Order.listLen() >= this.lru2Cap) {
+    local evict = this.lru2Order[1]
+    this.lru2Order.remove(1)
+    this.lru2Vals.delete(evict)
+  }
+  this.lru2Vals.set(k, v)
+  this.lru2Order.add(k)
+}
+
+lru2Put("a", 1)
+lru2Put("b", 2)
+lru2Put("c", 3)
+println(lru2Get("a"))
+lru2Put("d", 4)
+println(lru2Get("b"))
+println(lru2Get("c"))
+
+//20469
+global hashMap469 = []
+for (i: 1 .. 16) {
+  hashMap469.add("")
+}
+
+func hmHash(k) = {
+  local h = 0
+  for (i: 1 .. k.textLen()) {
+    h = (h * 31 + dec(k.segment(i,1))) % 16
+  }
+  h + 1
+}
+
+func hmPut(k, v) = {
+  local idx = hmHash(k)
+  while (!(this.hashMap469[idx] ? emptyText) && !(this.hashMap469[idx].startsWith(k _ "="))) {
+    idx = (idx % 16) + 1
+  }
+  this.hashMap469[idx] = k _ "=" _ v
+}
+
+func hmGet(k) = {
+  local idx = hmHash(k)
+  local start = idx
+  while (!(this.hashMap469[idx] ? emptyText)) {
+    if (this.hashMap469[idx].startsWith(k _ "=")) {
+      this.hashMap469[idx].splitAtFirst("=")[2]
+    } else {
+      idx = (idx % 16) + 1
+      if (idx == start) "not found"
+    }
+  }
+  "not found"
+}
+
+hmPut("name", "Alice")
+hmPut("age", "30")
+hmPut("city", "Delhi")
+hmPut("job", "Engineer")
+hmPut("lang", "Falcon")
+hmPut("level", "senior")
+hmPut("team", "core")
+hmPut("dept", "tech")
+println(hmGet("name"))
+println(hmGet("age"))
+println(hmGet("city"))
+
+//20470
+global minHeapArr = []
+
+func hpush(v) = {
+  this.minHeapArr.add(v)
+  local i = this.minHeapArr.listLen()
+  while (i > 1 && this.minHeapArr[floor(i/2)] > this.minHeapArr[i]) {
+    local parent = floor(i/2)
+    local t = this.minHeapArr[parent]
+    this.minHeapArr[parent] = this.minHeapArr[i]
+    this.minHeapArr[i] = t
+    i = parent
+  }
+}
+
+func hpop() = {
+  local top = this.minHeapArr[1]
+  local n = this.minHeapArr.listLen()
+  this.minHeapArr[1] = this.minHeapArr[n]
+  this.minHeapArr.remove(n)
+  local i = 1
+  local size = this.minHeapArr.listLen()
+  local done = false
+  while (!done) {
+    local smallest = i
+    if (2*i <= size && this.minHeapArr[2*i] < this.minHeapArr[smallest]) {
+      smallest = 2*i
+    }
+    if (2*i+1 <= size && this.minHeapArr[2*i+1] < this.minHeapArr[smallest]) {
+      smallest = 2*i+1
+    }
+    if (smallest != i) {
+      local t = this.minHeapArr[i]
+      this.minHeapArr[i] = this.minHeapArr[smallest]
+      this.minHeapArr[smallest] = t
+      i = smallest
+    } else {
+      done = true
+    }
+  }
+  top
+}
+
+for (v in [5,3,7,1,8,2,4]) {
+  hpush(v)
+}
+local sorted470 = []
+while (!(this.minHeapArr ? emptyList)) {
+  sorted470.add(hpop())
+}
+println(sorted470)
+
+//20471
+func parseRLE(s) = {
+  local result = ""
+  local i = 1
+  while (i <= s.textLen()) {
+    local numStr = ""
+    while (i <= s.textLen() && s.segment(i,1) ? base10) {
+      numStr = numStr _ s.segment(i,1)
+      i = i + 1
+    }
+    if (i <= s.textLen()) {
+      local ch = s.segment(i,1)
+      i = i + 1
+      local count = dec(numStr)
+      for (j: 1 .. count) {
+        result = result _ ch
+      }
+    }
+  }
+  result
+}
+
+println(parseRLE("3a2b1c"))
+println(parseRLE("1h2e3l1o"))
+
+//20472
+func compressWhitespace(s) = {
+  s.splitAtSpaces().filter { w -> !(w ? emptyText) }.join(" ")
+}
+
+println(compressWhitespace("a   b   c"))
+println(compressWhitespace("hello   world   foo"))
+
+//20473
+func wrapText(s, width) = {
+  local ws = s.splitAtSpaces().filter { w -> !(w ? emptyText) }
+  local lines = []
+  local current = ""
+  for (w in ws) {
+    if (current ? emptyText) {
+      current = w
+    } else if ((current _ " " _ w).textLen() <= width) {
+      current = current _ " " _ w
+    } else {
+      lines.add(current)
+      current = w
+    }
+  }
+  if (!(current ? emptyText)) {
+    lines.add(current)
+  }
+  lines.join("\n")
+}
+
+println(wrapText("The quick brown fox jumps over the lazy dog and then ran away into the forest", 20))
+
+//20474
+func diffHighlight(a, b) = {
+  local result = ""
+  local len = min(a.textLen(), b.textLen())
+  for (i: 1 .. len) {
+    local ac = a.segment(i,1)
+    local bc = b.segment(i,1)
+    if (ac === bc) {
+      result = result _ ac
+    } else {
+      result = result _ "[" _ ac _ "→" _ bc _ "]"
+    }
+  }
+  if (a.textLen() > len) {
+    result = result _ a.segment(len+1, a.textLen()-len)
+  }
+  result
+}
+
+println(diffHighlight("hello", "hallo"))
+println(diffHighlight("kitten", "sitting"))
+
+//20475
+func slugify475(s) = {
+  s.lowercase().replace(" ", "-")
+}
+
+func slugifyUnique(title, existing) = {
+  local base = slugify475(title)
+  if (!existing.containsKey(base)) {
+    existing.set(base, true)
+    base
+  } else {
+    local i = 2
+    while (existing.containsKey(base _ "-" _ i)) {
+      i = i + 1
+    }
+    local slug = base _ "-" _ i
+    existing.set(slug, true)
+    slug
+  }
+}
+
+local ex475 = {}
+println(slugifyUnique("Hello World", ex475))
+println(slugifyUnique("Hello World", ex475))
+println(slugifyUnique("Hello World", ex475))
+println(slugifyUnique("Hello World", ex475))
+
+//20476
+func mutableString(s) = {
+  local chars = []
+  for (i: 1 .. s.textLen()) {
+    chars.add(s.segment(i,1))
+  }
+  chars
+}
+
+func msSet(ms, i, c) = {
+  ms[i] = c
+}
+
+func msInsert(ms, i, c) = {
+  ms.insert(i, c)
+}
+
+func msDelete(ms, i) = {
+  ms.remove(i)
+}
+
+func msToString(ms) = {
+  ms.join("")
+}
+
+local ms476 = mutableString("hello")
+msSet(ms476, 2, "a")
+msInsert(ms476, 3, "X")
+msDelete(ms476, 5)
+println(msToString(ms476))
+
+//20477
+func parseNumber(s) = {
+  local t = s.trim()
+  if (t ? emptyText) {
+    "null"
+  } else if (t ? base10) {
+    dec(t)
+  } else {
+    local stripped = if (t.startsWith("+") || t.startsWith("-")) t.segment(2, t.textLen()-1) else t
+    if (stripped ? base10) dec(t)
+    else "null"
+  }
+}
+
+println(parseNumber("  -42 "))
+println(parseNumber("3.14"))
+println(parseNumber("abc"))
+println(parseNumber("+7"))
+
+//20478
+func regexLite(pattern, s) = {
+  local pLen = pattern.textLen()
+  local sLen = s.textLen()
+  local found = false
+  for (i: 1 .. sLen - pLen + 1) {
+    local match = true
+    for (j: 1 .. pLen) {
+      local pc = pattern.segment(j,1)
+      local sc = s.segment(i+j-1,1)
+      if (pc !== "." && pc !== sc) {
+        match = false
+      }
+    }
+    if (match) {
+      found = true
+    }
+  }
+  found
+}
+
+println(regexLite("h.llo", "hello world"))
+println(regexLite("xyz", "hello world"))
+println(regexLite("w..ld", "hello world"))
+
+//20479
+func scanTokens(code) = {
+  local result = []
+  local i = 1
+  local syms = ["+","-","*","/","(",")",","]
+  while (i <= code.textLen()) {
+    local ch = code.segment(i,1)
+    if (ch === " ") {
+      i = i + 1
+    } else if (ch ? base10) {
+      local tok = ""
+      while (i <= code.textLen() && code.segment(i,1) ? base10) {
+        tok = tok _ code.segment(i,1)
+        i = i + 1
+      }
+      result.add({"type": "INT", "val": tok})
+    } else if (syms.containsItem(ch)) {
+      result.add({"type": "SYM", "val": ch})
+      i = i + 1
+    } else {
+      local tok = ""
+      while (i <= code.textLen() && !syms.containsItem(code.segment(i,1)) && !(code.segment(i,1) ? base10) && code.segment(i,1) !== " ") {
+        tok = tok _ code.segment(i,1)
+        i = i + 1
+      }
+      result.add({"type": "IDENT", "val": tok})
+    }
+  }
+  result
+}
+
+println(scanTokens("abc 123 + foo(42)"))
+
+//20480
+func parseExprAST(tokens) = {
+  local pos = [1]
+  func peek480() = {
+    if (pos[1] <= tokens.listLen()) tokens[pos[1]] else {"type":"EOF","val":""}
+  }
+  func consume480() = {
+    local tok = peek480()
+    pos[1] = pos[1] + 1
+    tok
+  }
+  func parseNum() = {
+    local tok = consume480()
+    {"kind": "num", "val": dec(tok.get("val"))}
+  }
+  func parseExpr480() = {
+    local left = parseNum()
+    while (peek480().get("type") === "SYM" && (peek480().get("val") === "+" || peek480().get("val") === "-")) {
+      local op = consume480().get("val")
+      local right = parseNum()
+      left = {"kind": "binop", "op": op, "left": left, "right": right}
+    }
+    left
+  }
+  parseExpr480()
+}
+
+local toks480 = scanTokens("1 + 2 + 3")
+println(parseExprAST(toks480))
+
+//20481
+func evalAST(node) = {
+  local kind = node.get("kind")
+  if (kind === "num") {
+    node.get("val")
+  } else if (kind === "binop") {
+    local l = evalAST(node.get("left"))
+    local r = evalAST(node.get("right"))
+    local op = node.get("op")
+    if (op === "+") l + r
+    else if (op === "-") l - r
+    else if (op === "*") l * r
+    else l / r
+  } else {
+    0
+  }
+}
+
+local toks481 = scanTokens("3 + 4 + 2")
+local ast481 = parseExprAST(toks481)
+println(evalAST(ast481))
+
+//20482
+func typecheckAST(node, env) = {
+  local kind = node.get("kind")
+  if (kind === "var") {
+    local name = node.get("name")
+    if (!env.containsKey(name)) {
+      println("Error: undefined variable '" _ name _ "'")
+      false
+    } else {
+      true
+    }
+  } else if (kind === "num") {
+    true
+  } else if (kind === "binop") {
+    typecheckAST(node.get("left"), env) && typecheckAST(node.get("right"), env)
+  } else {
+    true
+  }
+}
+
+local ast482a = {"kind":"binop","op":"+","left":{"kind":"var","name":"x"},"right":{"kind":"num","val":5}}
+println(typecheckAST(ast482a, {"x": "number"}))
+println(typecheckAST(ast482a, {}))
+
+//20483
+func prettyAST(node, indent) = {
+  local prefix = ""
+  for (i: 1 .. indent * 2) {
+    prefix = prefix _ " "
+  }
+  local kind = node.get("kind")
+  if (kind === "num") {
+    prefix _ "num(" _ node.get("val") _ ")"
+  } else if (kind === "var") {
+    prefix _ "var(" _ node.get("name") _ ")"
+  } else if (kind === "binop") {
+    local left = prettyAST(node.get("left"), indent+1)
+    local right = prettyAST(node.get("right"), indent+1)
+    prefix _ "binop(" _ node.get("op") _ ")\n" _ left _ "\n" _ right
+  } else {
+    prefix _ kind
+  }
+}
+
+local ast483 = {"kind":"binop","op":"+","left":{"kind":"binop","op":"*","left":{"kind":"num","val":3},"right":{"kind":"num","val":4}},"right":{"kind":"var","name":"x"}}
+println(prettyAST(ast483, 0))
+
+//20484
+func constantFold(node) = {
+  local kind = node.get("kind")
+  if (kind === "binop") {
+    local left = constantFold(node.get("left"))
+    local right = constantFold(node.get("right"))
+    if (left.get("kind") === "num" && right.get("kind") === "num") {
+      local l = left.get("val")
+      local r = right.get("val")
+      local op = node.get("op")
+      local result = if (op === "+") l+r else if (op === "-") l-r else if (op === "*") l*r else l/r
+      {"kind": "num", "val": result}
+    } else {
+      {"kind": "binop", "op": node.get("op"), "left": left, "right": right}
+    }
+  } else {
+    node
+  }
+}
+
+local ast484 = {"kind":"binop","op":"+","left":{"kind":"num","val":3},"right":{"kind":"binop","op":"*","left":{"kind":"num","val":4},"right":{"kind":"num","val":2}}}
+println(constantFold(ast484))
+
+//20485
+func inOrderTraversal(node) = {
+  if (node ? dict) {
+    if (node.containsKey("left")) inOrderTraversal(node.get("left"))
+    println(node.get("val"))
+    if (node.containsKey("right")) inOrderTraversal(node.get("right"))
+  }
+}
+
+local tree485 = {"val":4,"left":{"val":2,"left":{"val":1},"right":{"val":3}},"right":{"val":6,"left":{"val":5},"right":{"val":7}}}
+inOrderTraversal(tree485)
+
+//20486
+func bstInsert(root, val) = {
+  if (!(root ? dict) || root.dictLen() == 0) {
+    {"val": val}
+  } else if (val < root.get("val")) {
+    local newLeft = bstInsert(if (root.containsKey("left")) root.get("left") else {}, val)
+    root.set("left", newLeft)
+    root
+  } else {
+    local newRight = bstInsert(if (root.containsKey("right")) root.get("right") else {}, val)
+    root.set("right", newRight)
+    root
+  }
+}
+
+local bst486 = {}
+for (v in [5,3,7,1,4,6,8]) {
+  bst486 = bstInsert(bst486, v)
+}
+inOrderTraversal(bst486)
+
+//20487
+func bstSearch(root, val) = {
+  if (!(root ? dict) || root.dictLen() == 0) {
+    "null"
+  } else if (root.get("val") == val) {
+    root
+  } else if (val < root.get("val")) {
+    bstSearch(if (root.containsKey("left")) root.get("left") else {}, val)
+  } else {
+    bstSearch(if (root.containsKey("right")) root.get("right") else {}, val)
+  }
+}
+
+println(bstSearch(bst486, 4))
+println(bstSearch(bst486, 9))
+
+//20488
+func bstHeight(root) = {
+  if (!(root ? dict) || root.dictLen() == 0) {
+    0
+  } else {
+    local lh = bstHeight(if (root.containsKey("left")) root.get("left") else {})
+    local rh = bstHeight(if (root.containsKey("right")) root.get("right") else {})
+    1 + max(lh, rh)
+  }
+}
+
+println(bstHeight(bst486))
+local unbal = bstInsert(bstInsert(bstInsert({}, 1), 2), 3)
+println(bstHeight(unbal))
+
+//20489
+func levelOrder(root) = {
+  if (!(root ? dict) || root.dictLen() == 0) {
+    []
+  } else {
+    local result = []
+    local queue = [root]
+    while (!(queue ? emptyList)) {
+      local levelSize = queue.listLen()
+      local levelVals = []
+      for (i: 1 .. levelSize) {
+        local node = queue[1]
+        queue.remove(1)
+        levelVals.add(node.get("val"))
+        if (node.containsKey("left")) queue.add(node.get("left"))
+        if (node.containsKey("right")) queue.add(node.get("right"))
+      }
+      result.add(levelVals)
+    }
+    result
+  }
+}
+
+println(levelOrder(bst486))
+
+//20490
+func serializeTree(root) = {
+  if (!(root ? dict) || root.dictLen() == 0) {
+    "null"
+  } else {
+    local left = serializeTree(if (root.containsKey("left")) root.get("left") else {})
+    local right = serializeTree(if (root.containsKey("right")) root.get("right") else {})
+    root.get("val") _ "," _ left _ "," _ right
+  }
+}
+
+func deserializeTree(s) = {
+  local parts = s.split(",")
+  local idx = [1]
+  func build490() = {
+    local val = parts[idx[1]]
+    idx[1] = idx[1] + 1
+    if (val === "null") {
+      {}
+    } else {
+      local node = {"val": dec(val)}
+      local left = build490()
+      local right = build490()
+      if (left.dictLen() > 0) node.set("left", left)
+      if (right.dictLen() > 0) node.set("right", right)
+      node
+    }
+  }
+  build490()
+}
+
+local ser490 = serializeTree(bst486)
+println(ser490)
+local deser490 = deserializeTree(ser490)
+println(serializeTree(deser490))
+
+//20491
+func buildHeap(lst) = {
+  local arr = copyList(lst)
+  local n = arr.listLen()
+  func siftDown491(i, size) = {
+    local done = false
+    while (!done) {
+      local largest = i
+      if (2*i <= size && arr[2*i] > arr[largest]) largest = 2*i
+      if (2*i+1 <= size && arr[2*i+1] > arr[largest]) largest = 2*i+1
+      if (largest != i) {
+        local t = arr[i]; arr[i] = arr[largest]; arr[largest] = t
+        i = largest
+      } else {
+        done = true
+      }
+    }
+  }
+  for (i: floor(n/2) .. 1 step -1) {
+    siftDown491(i, n)
+  }
+  arr
+}
+
+local heap491 = buildHeap([4,1,7,3,9,2])
+println(heap491)
+println(heap491[1] >= heap491[2] && heap491[1] >= heap491[3])
+
+//20492
+func huffmanFreq(s) = {
+  local freq = {}
+  for (i: 1 .. s.textLen()) {
+    local ch = s.segment(i,1)
+    freq.set(ch, if (freq.containsKey(ch)) freq.get(ch)+1 else 1)
+  }
+  local pq = freq.toPairs().map { p -> [p[2], p[1]] }.sort { a, b -> a[1] < b[1] }
+  while (pq.listLen() > 1) {
+    local left = pq[1]; pq.remove(1)
+    local right = pq[1]; pq.remove(1)
+    local merged = [left[1] + right[1], "(" _ left[2] _ "+" _ right[2] _ ")"]
+    local i = 1
+    while (i <= pq.listLen() && pq[i][1] < merged[1]) i = i+1
+    pq.insert(i, merged)
+    println("Merged: " _ merged[2] _ " freq=" _ merged[1])
+  }
+  pq[1]
+}
+
+println(huffmanFreq("abracadabra"))
+
+//20493
+func ackermann(m, n) = {
+  if (m > 3) {
+    println("Guard: m > 3 not supported")
+    -1
+  } else if (m == 0) {
+    n + 1
+  } else if (n == 0) {
+    ackermann(m-1, 1)
+  } else {
+    ackermann(m-1, ackermann(m, n-1))
+  }
+}
+
+println(ackermann(0,0))
+println(ackermann(1,1))
+println(ackermann(2,2))
+println(ackermann(3,3))
+
+//20494
+func yangHui(n) = {
+  local triangle = [[1]]
+  for (i: 2 .. n) {
+    local prev = triangle[i-1]
+    local row = [1]
+    for (j: 2 .. prev.listLen()) {
+      row.add(prev[j-1] + prev[j])
+    }
+    row.add(1)
+    triangle.add(row)
+  }
+  local maxWidth = triangle[n].map { x -> ("" _ x).textLen() }.reduce(0) { x, s -> max(x, s) } * triangle[n].listLen()
+  for (i: 1 .. n) {
+    local row = triangle[i]
+    local rowStr = row.map { x -> "" _ x }.join(" ")
+    local spaces = ""
+    local padLen = floor((maxWidth - rowStr.textLen()) / 2)
+    for (j: 1 .. padLen) spaces = spaces _ " "
+    println(spaces _ rowStr)
+  }
+  triangle
+}
+
+yangHui(7)
+
+//20495
+func partitions495(n) = {
+  func generate(remaining, maxVal, current) = {
+    if (remaining == 0) {
+      println(current.map { x -> "" _ x }.join(" + "))
+    } else {
+      for (i: min(remaining, maxVal) .. 1 step -1) {
+        local next = copyList(current)
+        next.add(i)
+        generate(remaining - i, i, next)
+      }
+    }
+  }
+  generate(n, n, [])
+}
+
+partitions495(5)
+
+//20496
+func necklaces(n, k) = {
+  func gcd496(a, b) = {
+    local x = a; local y = b
+    while (y != 0) { local t = y; y = x%y; x = t }
+    x
+  }
+  func binomCoeff(n, k) = {
+    if (k > n) 0
+    else if (k == 0 || k == n) 1
+    else {
+      local result = 1
+      for (i: 1 .. min(k, n-k)) {
+        result = result * (n-i+1) / i
+      }
+      result
+    }
+  }
+  local total = 0
+  for (d: 1 .. n) {
+    if (n % d == 0) {
+      total = total + binomCoeff(d, round(k * d / n))
+    }
+  }
+  round(total / n)
+}
+
+println(necklaces(6, 3))
+
+//20497
+func simulatedAnnealing497(fn, init, temp, cooling) = {
+  local x = init
+  local T = temp
+  local best = x
+  local bestVal = fn(x)
+  for (i: 1 .. 1000) {
+    local xNew = x + (randFloat() - 0.5) * T
+    local delta = fn(xNew) - fn(x)
+    if (delta < 0 || randFloat() < exp(-delta / T)) {
+      x = xNew
+      if (fn(x) < bestVal) {
+        best = x
+        bestVal = fn(x)
+      }
+    }
+    T = T * cooling
+  }
+  {"x_opt": formatDecimal(best, 4), "f_opt": formatDecimal(bestVal, 6)}
+}
+
+println(simulatedAnnealing497({ x -> (x-3)^2 }, 0.0, 10.0, 0.99))
+
+//20498
+func geneticStep(pop, fitFn, mutRate) = {
+  local scored = pop.map { ind -> [fitFn(ind), ind] }
+  local sorted = scored.sort { a, b -> a[1] > b[1] }
+  local half = floor(sorted.listLen() / 2)
+  local survivors = sorted.slice(1, half).map { s -> s[2] }
+  local newPop = copyList(survivors)
+  for (i: 1 .. survivors.listLen() - 1 step 2) {
+    local p1 = survivors[i]
+    local p2 = survivors[i+1]
+    local mid = floor(p1.listLen() / 2)
+    local child = p1.slice(1, mid)
+    child.appendList(p2.slice(mid+1, p2.listLen()))
+    local mutated = child.map { bit -> if (randFloat() < mutRate) (bit ~ 1) else bit }
+    newPop.add(mutated)
+  }
+  newPop
+}
+
+local pop498 = []
+for (i: 1 .. 8) {
+  local ind = []
+  for (j: 1 .. 8) ind.add(randInt(0,1))
+  pop498.add(ind)
+}
+local nextPop = geneticStep(pop498, { ind -> ind.reduce(0) { x, s -> x+s } }, 0.1)
+println(nextPop.listLen())
+println(nextPop[1])
+
+//20499
+func antColony(graph, ants, iters) = {
+  local nodes = graph.keys()
+  local n = nodes.listLen()
+  local pheromones = {}
+  for (i in nodes) {
+    pheromones.set(i, {})
+    for (j in nodes) pheromones.get(i).set(j, 1.0)
+  }
+  local bestPath = []
+  local bestLen = 999999
+  for (iter: 1 .. iters) {
+    for (ant: 1 .. ants) {
+      local path = [nodes[randInt(1, n)]]
+      local visited = {}
+      visited.set(path[1], true)
+      while (path.listLen() < n) {
+        local cur = path[path.listLen()]
+        local neighbors = graph.get(cur)
+        local unvisited = neighbors.filter { nb -> !visited.containsKey(nb[1]) }
+        if (unvisited ? emptyList) {
+          path.listLen()
+        } else {
+          local totalPher = unvisited.reduce(0) { nb, s -> s + pheromones.get(cur).get(nb[1]) }
+          local r = randFloat() * totalPher
+          local chosen = unvisited[1]
+          local cumul = 0
+          for (nb in unvisited) {
+            cumul = cumul + pheromones.get(cur).get(nb[1])
+            if (cumul >= r) { chosen = nb; cumul = totalPher }
+          }
+          path.add(chosen[1])
+          visited.set(chosen[1], true)
+        }
+      }
+      local pathLen = 0
+      for (i: 1 .. path.listLen()-1) {
+        local edges = graph.get(path[i])
+        for (e in edges) {
+          if (e[1] === path[i+1]) pathLen = pathLen + e[2]
+        }
+      }
+      if (pathLen < bestLen && path.listLen() == n) {
+        bestLen = pathLen
+        bestPath = path
+      }
+      for (i: 1 .. path.listLen()-1) {
+        local cur = path[i]; local nxt = path[i+1]
+        pheromones.get(cur).set(nxt, pheromones.get(cur).get(nxt) + 1.0/max(pathLen,1))
+      }
+    }
+    for (i in nodes) {
+      for (j in nodes) {
+        pheromones.get(i).set(j, pheromones.get(i).get(j) * 0.9)
+      }
+    }
+  }
+  {"best_path": bestPath, "best_length": bestLen}
+}
+
+local g499 = {"a":[["b",1],["c",4],["d",5]],"b":[["a",1],["c",2],["d",6]],"c":[["a",4],["b",2],["d",3]],"d":[["a",5],["b",6],["c",3]]}
+println(antColony(g499, 5, 10))
+
+//20500
+func selfReference() = {
+  local src = "func selfReference() = {\n  local src = \"...\"\n  println(src)\n}"
+  println(src)
+}
+
+selfReference()
