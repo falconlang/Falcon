@@ -1,0 +1,206 @@
+{
+  "2790": {
+    "problem": "Write `tspGreedy(dist_matrix, n)` \u2014 greedy nearest-neighbor TSP. Test 4 cities.",
+    "answer": "func tspGreedy(dist_matrix, n) = {\n  local visited = [1]\n  local tour = [1]\n  while (visited.listLen() < n) {\n    local last = tour[tour.listLen()]\n    local best = 999999\n    local bestNode = -1\n    for (j: 1 .. n) {\n      if (!visited.containsItem(j) && dist_matrix[last][j] < best) {\n        best = dist_matrix[last][j]\n        bestNode = j\n      }\n    }\n    visited.add(bestNode)\n    tour.add(bestNode)\n  }\n  tour.add(1)\n  tour\n}\nlocal dm = [[0,10,15,20],[10,0,35,25],[15,35,0,30],[20,25,30,0]]\nprintln(tspGreedy(dm, 4))"
+  },
+  "2829": {
+    "problem": "Write `graphSignature(graph)` \u2014 sorted list of (degree, sorted-neighbor-degrees) tuples. Use for quick isomorphism pruning. Test.",
+    "answer": "func graphSignature(graph) = {\n  local sig = []\n  for (node, neighbors in graph) {\n    local deg = neighbors.listLen()\n    local neighborDegs = []\n    for (nb in neighbors) {\n      neighborDegs.add(graph.get(nb, []).listLen())\n    }\n    neighborDegs.sort()\n    sig.add([deg, neighborDegs])\n  }\n  sig.sort()\n  sig\n}\nlocal g = {\"A\": [\"B\",\"C\"], \"B\": [\"A\",\"C\",\"D\"], \"C\": [\"A\",\"B\"], \"D\": [\"B\"]}\nprintln(graphSignature(g))"
+  },
+  "2880": {
+    "problem": "Write `searchTreeStr(explored, frontier)` \u2014 pretty-print BFS/DFS exploration state. Test.",
+    "answer": "func searchTreeStr(explored, frontier) = {\n  local s = \"Explored: \" _ explored.join(\", \") _ \"\\nFrontier: \" _ frontier.join(\", \")\n  s\n}\nprintln(searchTreeStr([\"A\",\"B\"], [\"C\",\"D\",\"E\"]))"
+  },
+  "2926": {
+    "problem": "Write `matchingList(graph)` \u2014 greedy maximum matching as list of `[u,v]` pairs. Test.",
+    "answer": "func matchingList(graph) = {\n  local matched = []\n  local pairs = []\n  for (u, neighbors in graph) {\n    if (!matched.containsItem(u)) {\n      for (v in neighbors) {\n        if (!matched.containsItem(v) && !matched.containsItem(u)) {\n          pairs.add([u, v])\n          matched.add(u)\n          matched.add(v)\n        }\n      }\n    }\n  }\n  pairs\n}\nlocal g = {\"A\": [\"B\",\"C\"], \"B\": [\"A\",\"D\"], \"C\": [\"A\"], \"D\": [\"B\"]}\nprintln(matchingList(g))"
+  },
+  "2954": {
+    "problem": "Write `treeInorder_BST(tree, root)` \u2014 in-order traversal of BST returning sorted list. Test.",
+    "answer": "func treeInorder_BST(tree, root) = {\n  local result = []\n  func inorder(node) {\n    if (node !== \"\") {\n      local n = tree.get(node, {})\n      inorder(n.get(\"left\", \"\"))\n      result.add(node)\n      inorder(n.get(\"right\", \"\"))\n    }\n  }\n  inorder(root)\n  result\n}\nlocal bst = {\"4\": {\"left\": \"2\", \"right\": \"6\"}, \"2\": {\"left\": \"1\", \"right\": \"3\"}, \"6\": {\"left\": \"5\", \"right\": \"7\"}, \"1\": {\"left\": \"\", \"right\": \"\"}, \"3\": {\"left\": \"\", \"right\": \"\"}, \"5\": {\"left\": \"\", \"right\": \"\"}, \"7\": {\"left\": \"\", \"right\": \"\"}}\nprintln(treeInorder_BST(bst, \"4\"))"
+  },
+  "3086": {
+    "problem": "Write a for-each loop over edges sorted by weight, building MST using union-find. Print each added edge.",
+    "answer": "global ufParent = {}\nfunc ufFind(x) = {\n  if (this.ufParent.get(x, x) === x) {\n    x\n  } else {\n    local root = ufFind(this.ufParent.get(x, x))\n    this.ufParent.set(x, root)\n    root\n  }\n}\nfunc ufUnion(x, y) {\n  local rx = ufFind(x)\n  local ry = ufFind(y)\n  if (rx !== ry) {\n    this.ufParent.set(rx, ry)\n  }\n}\nlocal edges = [[1,\"A\",\"B\"],[2,\"B\",\"C\"],[3,\"A\",\"C\"],[4,\"C\",\"D\"]]\nlocal nodes = [\"A\",\"B\",\"C\",\"D\"]\nfor (n in nodes) { this.ufParent.set(n, n) }\nlocal sortedEdges = edges.sort()\nfor (e in sortedEdges) {\n  local w = e[1]\n  local u = e[2]\n  local v = e[3]\n  if (ufFind(u) !== ufFind(v)) {\n    ufUnion(u, v)\n    println(\"Added edge: \" _ u _ \"-\" _ v _ \" weight=\" _ w)\n  }\n}"
+  },
+  "3162": {
+    "problem": "Write `independentSetApprox(graph)` \u2014 greedy maximum independent set. Return set as list. Test.",
+    "answer": "func independentSetApprox(graph) = {\n  local iset = []\n  local excluded = []\n  local nodes = graph.keys()\n  for (n in nodes) {\n    if (!excluded.containsItem(n)) {\n      iset.add(n)\n      for (nb in graph.get(n, [])) {\n        excluded.add(nb)\n      }\n    }\n  }\n  iset\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"C\",\"D\"],\"C\":[\"A\",\"B\"],\"D\":[\"B\"]}\nprintln(independentSetApprox(g))"
+  },
+  "3190": {
+    "problem": "Write `graphKernel(graph, labels)` \u2014 Weisfeiler-Lehman graph kernel step: relabel each node by sorted neighbor labels. Return new label dict. Test.",
+    "answer": "func graphKernel(graph, labels) = {\n  local newLabels = {}\n  for (node, neighbors in graph) {\n    local nbLabels = []\n    for (nb in neighbors) {\n      nbLabels.add(labels.get(nb, \"\"))\n    }\n    nbLabels.sort()\n    local newLabel = labels.get(node, \"\") _ \"|\" _ nbLabels.join(\",\")\n    newLabels.set(node, newLabel)\n  }\n  newLabels\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\"],\"C\":[\"A\"]}\nlocal labels = {\"A\":\"1\",\"B\":\"2\",\"C\":\"2\"}\nprintln(graphKernel(g, labels))"
+  },
+  "2721": {
+    "problem": "Declare a global `heuristicMap` dict for A*. Write `setHeuristic(node, h)`. Populate for a 6-node graph with a goal node. Print.",
+    "answer": "global heuristicMap = {}\nfunc setHeuristic(node, h) {\n  this.heuristicMap.set(node, h)\n}\nsetHeuristic(\"A\", 6)\nsetHeuristic(\"B\", 4)\nsetHeuristic(\"C\", 2)\nsetHeuristic(\"D\", 3)\nsetHeuristic(\"E\", 1)\nsetHeuristic(\"GOAL\", 0)\nprintln(this.heuristicMap)"
+  },
+  "2745": {
+    "problem": "Declare a global `betweenness` dict initialized to 0 for each node. Write `addBetweenness(node, amt)`. Simulate accumulation for a 4-node graph.",
+    "answer": "global betweenness = {\"A\":0,\"B\":0,\"C\":0,\"D\":0}\nfunc addBetweenness(node, amt) {\n  this.betweenness.set(node, this.betweenness.get(node, 0) + amt)\n}\naddBetweenness(\"B\", 3)\naddBetweenness(\"C\", 2)\naddBetweenness(\"B\", 1)\naddBetweenness(\"A\", 1)\nprintln(this.betweenness)"
+  },
+  "2762": {
+    "problem": "Write `center(graph)` \u2014 nodes with eccentricity equal to radius. Test.",
+    "answer": "func bfsEccentricity(graph, start) = {\n  local dist = {}\n  local queue = [start]\n  dist.set(start, 0)\n  while (queue.listLen() > 0) {\n    local cur = queue[1]\n    queue.remove(1)\n    for (nb in graph.get(cur, [])) {\n      if (!dist.containsKey(nb)) {\n        dist.set(nb, dist.get(cur, 0) + 1)\n        queue.add(nb)\n      }\n    }\n  }\n  local maxDist = 0\n  for (n, d in dist) {\n    if (d > maxDist) { maxDist = d }\n  }\n  maxDist\n}\nfunc center(graph) = {\n  local nodes = graph.keys()\n  local eccs = {}\n  for (n in nodes) {\n    eccs.set(n, bfsEccentricity(graph, n))\n  }\n  local radius = 999999\n  for (n, e in eccs) {\n    if (e < radius) { radius = e }\n  }\n  local result = []\n  for (n, e in eccs) {\n    if (e == radius) { result.add(n) }\n  }\n  result\n}\nlocal g = {\"A\":[\"B\"],\"B\":[\"A\",\"C\",\"D\"],\"C\":[\"B\"],\"D\":[\"B\",\"E\"],\"E\":[\"D\"]}\nprintln(center(g))"
+  },
+  "2776": {
+    "problem": "Write `zagreb1(graph)` \u2014 sum of d_v^2 over all nodes. Test.",
+    "answer": "func zagreb1(graph) = {\n  local sum = 0\n  for (node, neighbors in graph) {\n    local d = neighbors.listLen()\n    sum = sum + d * d\n  }\n  sum\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"C\"],\"C\":[\"A\",\"B\"]}\nprintln(zagreb1(g))"
+  },
+  "2789": {
+    "problem": "Write `cycleLength(graph, cycle)` \u2014 total weight of a cycle. Test.",
+    "answer": "func cycleLength(graph, cycle) = {\n  local total = 0\n  for (i: 1 .. cycle.listLen()) {\n    local u = cycle[i]\n    local v = if (i == cycle.listLen()) cycle[1] else cycle[i+1]\n    total = total + graph.get(u, {}).get(v, 0)\n  }\n  total\n}\nlocal wg = {\"A\":{\"B\":1,\"C\":4},\"B\":{\"A\":1,\"C\":2},\"C\":{\"A\":4,\"B\":2}}\nprintln(cycleLength(wg, [\"A\",\"B\",\"C\"]))"
+  },
+  "2806": {
+    "problem": "Write `networkReliability(graph, p)` \u2014 estimate probability all nodes remain connected with each edge surviving with prob p. Monte Carlo 100 trials.",
+    "answer": "func networkReliability(graph, p) = {\n  local nodes = graph.keys()\n  local n = nodes.listLen()\n  local edges = []\n  for (u, neighbors in graph) {\n    for (v in neighbors) {\n      if (u << v) {\n        edges.add([u, v])\n      }\n    }\n  }\n  local connected = 0\n  for (trial: 1 .. 100) {\n    local activeEdges = {}\n    for (nd in nodes) { activeEdges.set(nd, []) }\n    for (e in edges) {\n      if (randFloat() < p) {\n        activeEdges.get(e[1], []).add(e[2])\n        activeEdges.get(e[2], []).add(e[1])\n      }\n    }\n    local visited = []\n    local queue = [nodes[1]]\n    visited.add(nodes[1])\n    while (queue.listLen() > 0) {\n      local cur = queue[1]\n      queue.remove(1)\n      for (nb in activeEdges.get(cur, [])) {\n        if (!visited.containsItem(nb)) {\n          visited.add(nb)\n          queue.add(nb)\n        }\n      }\n    }\n    if (visited.listLen() == n) {\n      connected = connected + 1\n    }\n  }\n  connected / 100\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"C\"],\"C\":[\"A\",\"B\"]}\nprintln(networkReliability(g, 0.9))"
+  },
+  "2820": {
+    "problem": "Write `powerGraph(graph, k)` \u2014 k-th power: add edge if path of length \u2264 k. Test P5 squared.",
+    "answer": "func powerGraph(graph, k) = {\n  local nodes = graph.keys()\n  local result = {}\n  for (n in nodes) { result.set(n, []) }\n  for (src in nodes) {\n    local dist = {}\n    dist.set(src, 0)\n    local queue = [src]\n    while (queue.listLen() > 0) {\n      local cur = queue[1]\n      queue.remove(1)\n      for (nb in graph.get(cur, [])) {\n        if (!dist.containsKey(nb)) {\n          dist.set(nb, dist.get(cur, 0) + 1)\n          queue.add(nb)\n        }\n      }\n    }\n    for (nd, d in dist) {\n      if (d > 0 && d <= k && !result.get(src, []).containsItem(nd)) {\n        result.get(src, []).add(nd)\n      }\n    }\n  }\n  result\n}\nlocal p5 = {\"1\":[\"2\"],\"2\":[\"1\",\"3\"],\"3\":[\"2\",\"4\"],\"4\":[\"3\",\"5\"],\"5\":[\"4\"]}\nprintln(powerGraph(p5, 2))"
+  },
+  "2833": {
+    "problem": "Write `printAdjMatrix(matrix, nodes)` \u2014 print labeled adjacency matrix. Test 4\u00d74.",
+    "answer": "func printAdjMatrix(matrix, nodes) {\n  local header = \"  \"\n  for (n in nodes) { header = header _ n _ \" \" }\n  println(header)\n  for (i: 1 .. nodes.listLen()) {\n    local row = nodes[i] _ \" \"\n    for (j: 1 .. nodes.listLen()) {\n      row = row _ matrix[i][j] _ \" \"\n    }\n    println(row)\n  }\n}\nlocal mat = [[0,1,1,0],[1,0,1,1],[1,1,0,0],[0,1,0,0]]\nlocal ns = [\"A\",\"B\",\"C\",\"D\"]\nprintAdjMatrix(mat, ns)"
+  },
+  "2847": {
+    "problem": "Write `shortestPathStr(graph, u, v)` \u2014 run Dijkstra and format result as `\"u\u2192...\u2192v (cost: C)\"`. Test.",
+    "answer": "func dijkstra(graph, start) = {\n  local dist = {}\n  local prev = {}\n  local visited = []\n  for (n, edges in graph) {\n    dist.set(n, 999999)\n  }\n  dist.set(start, 0)\n  local queue = [start]\n  while (queue.listLen() > 0) {\n    local best = 999999\n    local cur = queue[1]\n    for (n in queue) {\n      if (dist.get(n, 999999) < best) {\n        best = dist.get(n, 999999)\n        cur = n\n      }\n    }\n    queue.remove(queue.indexOf(cur))\n    visited.add(cur)\n    for (nb, w in graph.get(cur, {})) {\n      local newDist = dist.get(cur, 999999) + w\n      if (newDist < dist.get(nb, 999999)) {\n        dist.set(nb, newDist)\n        prev.set(nb, cur)\n        if (!visited.containsItem(nb) && !queue.containsItem(nb)) {\n          queue.add(nb)\n        }\n      }\n    }\n  }\n  [dist, prev]\n}\nfunc shortestPathStr(graph, u, v) = {\n  local dp = dijkstra(graph, u)\n  local dist = dp[1]\n  local prev = dp[2]\n  local path = []\n  local cur = v\n  while (cur !== u) {\n    path.add(cur)\n    cur = prev.get(cur, u)\n  }\n  path.add(u)\n  path.reverseList()\n  path.join(\"\u2192\") _ \" (cost: \" _ dist.get(v, 999999) _ \")\"\n}\nlocal wg = {\"A\":{\"B\":1,\"C\":4},\"B\":{\"A\":1,\"C\":2,\"D\":5},\"C\":{\"A\":4,\"B\":2,\"D\":1},\"D\":{\"C\":1,\"B\":5}}\nprintln(shortestPathStr(wg, \"A\", \"D\"))"
+  },
+  "2865": {
+    "problem": "Write `communityStr(communities)` \u2014 format communities as numbered groups of nodes. Test.",
+    "answer": "func communityStr(communities) = {\n  local result = \"\"\n  for (i: 1 .. communities.listLen()) {\n    result = result _ \"Group \" _ i _ \": \" _ communities[i].join(\", \") _ \"\\n\"\n  }\n  result\n}\nprintln(communityStr([[\"A\",\"B\",\"C\"],[\"D\",\"E\"],[\"F\",\"G\",\"H\"]]))"
+  },
+  "2879": {
+    "problem": "Write `timelineStr(timeline)` \u2014 format `[{time, node}]` as `\"t=0: A, t=2: B, ...\"`. Test.",
+    "answer": "func timelineStr(timeline) = {\n  local parts = []\n  for (entry in timeline) {\n    parts.add(\"t=\" _ entry.get(\"time\",\"\") _ \": \" _ entry.get(\"node\",\"\"))\n  }\n  parts.join(\", \")\n}\nprintln(timelineStr([{\"time\":0,\"node\":\"A\"},{\"time\":2,\"node\":\"B\"},{\"time\":5,\"node\":\"C\"}]))"
+  },
+  "2899": {
+    "problem": "Write `treeProfile(tree, root)` \u2014 DFS to compute height, leaf count, internal count, branching factor. Format report. Test.",
+    "answer": "func treeProfile(tree, root) = {\n  local height = 0\n  local leafCount = 0\n  local internalCount = 0\n  local branchSum = 0\n  func dfs(node, depth) {\n    local children = tree.get(node, [])\n    if (children.listLen() == 0) {\n      leafCount = leafCount + 1\n      if (depth > height) { height = depth }\n    } else {\n      internalCount = internalCount + 1\n      branchSum = branchSum + children.listLen()\n      for (child in children) {\n        dfs(child, depth + 1)\n      }\n    }\n  }\n  dfs(root, 0)\n  local bf = if (internalCount > 0) branchSum / internalCount else 0\n  \"Height: \" _ height _ \"\\nLeaves: \" _ leafCount _ \"\\nInternal: \" _ internalCount _ \"\\nBranching factor: \" _ bf\n}\nlocal t = {\"A\":[\"B\",\"C\",\"D\"],\"B\":[\"E\",\"F\"],\"C\":[],\"D\":[\"G\"],\"E\":[],\"F\":[],\"G\":[]}\nprintln(treeProfile(t, \"A\"))"
+  },
+  "2911": {
+    "problem": "Write `stronglyConnectedList(graph)` \u2014 Kosaraju's: return list of SCCs, each a list of nodes. Test.",
+    "answer": "func stronglyConnectedList(graph) = {\n  local nodes = graph.keys()\n  local visited = []\n  local order = []\n  func dfs1(n) {\n    if (!visited.containsItem(n)) {\n      visited.add(n)\n      for (nb in graph.get(n, [])) {\n        dfs1(nb)\n      }\n      order.add(n)\n    }\n  }\n  for (n in nodes) { dfs1(n) }\n  local reversed = {}\n  for (u, neighbors in graph) {\n    for (v in neighbors) {\n      if (!reversed.containsKey(v)) { reversed.set(v, []) }\n      reversed.get(v, []).add(u)\n    }\n  }\n  local visited2 = []\n  local sccs = []\n  local revOrder = copyList(order)\n  revOrder.reverseList()\n  for (n in revOrder) {\n    if (!visited2.containsItem(n)) {\n      local comp = []\n      local stack = [n]\n      while (stack.listLen() > 0) {\n        local cur = stack[stack.listLen()]\n        stack.remove(stack.listLen())\n        if (!visited2.containsItem(cur)) {\n          visited2.add(cur)\n          comp.add(cur)\n          for (nb in reversed.get(cur, [])) {\n            if (!visited2.containsItem(nb)) {\n              stack.add(nb)\n            }\n          }\n        }\n      }\n      sccs.add(comp)\n    }\n  }\n  sccs\n}\nlocal dg = {\"A\":[\"B\"],\"B\":[\"C\"],\"C\":[\"A\",\"D\"],\"D\":[\"E\"],\"E\":[\"F\"],\"F\":[\"D\"]}\nprintln(stronglyConnectedList(dg))"
+  },
+  "2927": {
+    "problem": "Write `independentSets(graph)` \u2014 all maximal independent sets (brute force n\u22646). Test.",
+    "answer": "func independentSets(graph) = {\n  local nodes = graph.keys()\n  local n = nodes.listLen()\n  local results = []\n  func isIndependent(subset) = {\n    local ok = true\n    for (i: 1 .. subset.listLen()) {\n      for (j: i+1 .. subset.listLen()) {\n        if (graph.get(subset[i], []).containsItem(subset[j])) {\n          ok = false\n        }\n      }\n    }\n    ok\n  }\n  func isMaximal(subset) = {\n    local maximal = true\n    for (nd in nodes) {\n      if (!subset.containsItem(nd)) {\n        local canAdd = true\n        for (s in subset) {\n          if (graph.get(nd, []).containsItem(s)) {\n            canAdd = false\n          }\n        }\n        if (canAdd) { maximal = false }\n      }\n    }\n    maximal\n  }\n  for (mask: 0 .. (1 << n) - 1) {\n    local subset = []\n    for (i: 1 .. n) {\n      if (floor(mask / (2 ^ (i-1))) % 2 == 1) {\n        subset.add(nodes[i])\n      }\n    }\n    if (isIndependent(subset) && isMaximal(subset)) {\n      results.add(subset)\n    }\n  }\n  results\n}\nlocal g = {\"A\":[\"B\"],\"B\":[\"A\",\"C\"],\"C\":[\"B\"],\"D\":[\"E\"],\"E\":[\"D\"]}\nprintln(independentSets(g))"
+  },
+  "2943": {
+    "problem": "Write `graphCuts(graph, k)` \u2014 enumerate all cuts of at most k edges. Return list of edge sets. Brute force n\u22645.",
+    "answer": "func graphCuts(graph, k) = {\n  local edges = []\n  for (u, neighbors in graph) {\n    for (v in neighbors) {\n      if (u << v) {\n        edges.add([u, v])\n      }\n    }\n  }\n  local results = []\n  local ne = edges.listLen()\n  for (mask: 1 .. (1 << ne) - 1) {\n    local cut = []\n    local bits = 0\n    for (i: 1 .. ne) {\n      if (floor(mask / (2 ^ (i-1))) % 2 == 1) {\n        cut.add(edges[i])\n        bits = bits + 1\n      }\n    }\n    if (bits <= k) {\n      results.add(cut)\n    }\n  }\n  results\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"C\"],\"C\":[\"A\",\"B\"]}\nprintln(graphCuts(g, 2).listLen())"
+  },
+  "2957": {
+    "problem": "Write `subtreeNodes(tree, root, node)` \u2014 all nodes in subtree rooted at `node`. Return list. Test.",
+    "answer": "func subtreeNodes(tree, root, node) = {\n  local result = []\n  local stack = [node]\n  while (stack.listLen() > 0) {\n    local cur = stack[stack.listLen()]\n    stack.remove(stack.listLen())\n    result.add(cur)\n    for (child in tree.get(cur, [])) {\n      stack.add(child)\n    }\n  }\n  result\n}\nlocal t = {\"A\":[\"B\",\"C\"],\"B\":[\"D\",\"E\"],\"C\":[\"F\"],\"D\":[],\"E\":[],\"F\":[]}\nprintln(subtreeNodes(t, \"A\", \"B\"))"
+  },
+  "2972": {
+    "problem": "Write `graphIsomorphisms(g1, g2)` \u2014 enumerate all isomorphisms (brute force n\u22644). Return list of permutation dicts.",
+    "answer": "func graphIsomorphisms(g1, g2) = {\n  local n1 = g1.keys()\n  local n2 = g2.keys()\n  if (n1.listLen() != n2.listLen()) {\n    []\n  } else {\n    local n = n1.listLen()\n    local results = []\n    func permute(perm, remaining) {\n      if (remaining.listLen() == 0) {\n        local valid = true\n        for (i: 1 .. n) {\n          for (j: 1 .. n) {\n            local u = n1[i]\n            local v = n1[j]\n            local pu = perm.get(u, \"\")\n            local pv = perm.get(v, \"\")\n            local e1 = g1.get(u, []).containsItem(v)\n            local e2 = g2.get(pu, []).containsItem(pv)\n            if (e1 != e2) { valid = false }\n          }\n        }\n        if (valid) { results.add(copyDict(perm)) }\n      } else {\n        local src = n1[n - remaining.listLen() + 1]\n        for (i: 1 .. remaining.listLen()) {\n          perm.set(src, remaining[i])\n          local rem2 = copyList(remaining)\n          rem2.remove(i)\n          permute(perm, rem2)\n          perm.delete(src)\n        }\n      }\n    }\n    permute({}, copyList(n2))\n    results\n  }\n}\nlocal g1 = {\"1\":[\"2\",\"3\"],\"2\":[\"1\"],\"3\":[\"1\"]}\nlocal g2 = {\"A\":[\"B\",\"C\"],\"B\":[\"A\"],\"C\":[\"A\"]}\nprintln(graphIsomorphisms(g1, g2))"
+  },
+  "2986": {
+    "problem": "Write `distDict(graph, source)` \u2014 run BFS and return distances as dict. Test.",
+    "answer": "func distDict(graph, source) = {\n  local dist = {}\n  local queue = [source]\n  dist.set(source, 0)\n  while (queue.listLen() > 0) {\n    local cur = queue[1]\n    queue.remove(1)\n    for (nb in graph.get(cur, [])) {\n      if (!dist.containsKey(nb)) {\n        dist.set(nb, dist.get(cur, 0) + 1)\n        queue.add(nb)\n      }\n    }\n  }\n  dist\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"D\"],\"C\":[\"A\"],\"D\":[\"B\"]}\nprintln(distDict(g, \"A\"))"
+  },
+  "3002": {
+    "problem": "Write `distMatDict(graph, nodes)` \u2014 all-pairs shortest paths as dict of dicts. Test.",
+    "answer": "func distMatDict(graph, nodes) = {\n  local result = {}\n  for (n in nodes) {\n    result.set(n, distDict(graph, n))\n  }\n  result\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"C\"],\"C\":[\"A\",\"B\"]}\nprintln(distMatDict(g, [\"A\",\"B\",\"C\"]))"
+  },
+  "3017": {
+    "problem": "Write `bipartiteDict(graph)` \u2014 `{node: side}` for bipartite check. Return `\"NOT_BIPARTITE\"` if fails. Test.",
+    "answer": "func bipartiteDict(graph) = {\n  local color = {}\n  local nodes = graph.keys()\n  local isBipartite = true\n  for (start in nodes) {\n    if (!color.containsKey(start) && isBipartite) {\n      local queue = [start]\n      color.set(start, 0)\n      while (queue.listLen() > 0 && isBipartite) {\n        local cur = queue[1]\n        queue.remove(1)\n        for (nb in graph.get(cur, [])) {\n          if (!color.containsKey(nb)) {\n            color.set(nb, 1 - color.get(cur, 0))\n            queue.add(nb)\n          } else if (color.get(nb, 0) == color.get(cur, 0)) {\n            isBipartite = false\n          }\n        }\n      }\n    }\n  }\n  if (isBipartite) { color } else { \"NOT_BIPARTITE\" }\n}\nlocal bg = {\"A\":[\"B\",\"D\"],\"B\":[\"A\",\"C\"],\"C\":[\"B\",\"D\"],\"D\":[\"A\",\"C\"]}\nprintln(bipartiteDict(bg))\nlocal ng = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"C\"],\"C\":[\"A\",\"B\"]}\nprintln(bipartiteDict(ng))"
+  },
+  "3032": {
+    "problem": "Write `subtreeSizeDict(tree, root)` \u2014 dict of node \u2192 subtree size. Test.",
+    "answer": "func subtreeSizeDict(tree, root) = {\n  local sizes = {}\n  func dfs(node) {\n    local children = tree.get(node, [])\n    local size = 1\n    for (child in children) {\n      dfs(child)\n      size = size + sizes.get(child, 0)\n    }\n    sizes.set(node, size)\n  }\n  dfs(root)\n  sizes\n}\nlocal t = {\"A\":[\"B\",\"C\"],\"B\":[\"D\",\"E\"],\"C\":[\"F\"],\"D\":[],\"E\":[],\"F\":[]}\nprintln(subtreeSizeDict(t, \"A\"))"
+  },
+  "3045": {
+    "problem": "Write `orientationDict(graph)` \u2014 acyclic orientation: assign direction to each undirected edge. Return edge direction dict. Test.",
+    "answer": "func orientationDict(graph) = {\n  local oriented = {}\n  local visited = []\n  local nodes = graph.keys()\n  for (start in nodes) {\n    if (!visited.containsItem(start)) {\n      local queue = [start]\n      visited.add(start)\n      while (queue.listLen() > 0) {\n        local cur = queue[1]\n        queue.remove(1)\n        for (nb in graph.get(cur, [])) {\n          local key = cur _ \"->\" _ nb\n          local rkey = nb _ \"->\" _ cur\n          if (!oriented.containsKey(key) && !oriented.containsKey(rkey)) {\n            oriented.set(key, [cur, nb])\n          }\n          if (!visited.containsItem(nb)) {\n            visited.add(nb)\n            queue.add(nb)\n          }\n        }\n      }\n    }\n  }\n  oriented\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"C\"],\"C\":[\"A\",\"B\"]}\nprintln(orientationDict(g))"
+  },
+  "3060": {
+    "problem": "Write `weightedEdgePalette(weights)` \u2014 normalize weights and assign colors. Return edge \u2192 color dict. Test.",
+    "answer": "func weightedEdgePalette(weights) = {\n  local minW = 999999\n  local maxW = -999999\n  for (e, w in weights) {\n    if (w < minW) { minW = w }\n    if (w > maxW) { maxW = w }\n  }\n  local palette = {}\n  for (e, w in weights) {\n    local t = if (maxW == minW) 0 else (w - minW) / (maxW - minW)\n    local r = round(t * 255)\n    local g = round((1 - t) * 255)\n    palette.set(e, makeColor([r, g, 0]))\n  }\n  palette\n}\nlocal weights = {\"A-B\": 1, \"B-C\": 5, \"C-D\": 3, \"A-D\": 8}\nprintln(weightedEdgePalette(weights))"
+  },
+  "3105": {
+    "problem": "Write a for-each loop over edges to build the line graph (edges become nodes connected if they share an endpoint).",
+    "answer": "local edges = [[\"A\",\"B\"],[\"B\",\"C\"],[\"A\",\"C\"],[\"C\",\"D\"]]\nlocal lineGraph = {}\nfor (i: 1 .. edges.listLen()) {\n  local key = edges[i][1] _ \"-\" _ edges[i][2]\n  lineGraph.set(key, [])\n}\nfor (i: 1 .. edges.listLen()) {\n  for (j: 1 .. edges.listLen()) {\n    if (i != j) {\n      local ei = edges[i]\n      local ej = edges[j]\n      local ki = ei[1] _ \"-\" _ ei[2]\n      local kj = ej[1] _ \"-\" _ ej[2]\n      if (ei[1] === ej[1] || ei[1] === ej[2] || ei[2] === ej[1] || ei[2] === ej[2]) {\n        if (!lineGraph.get(ki, []).containsItem(kj)) {\n          lineGraph.get(ki, []).add(kj)\n        }\n      }\n    }\n  }\n}\nprintln(lineGraph)"
+  },
+  "3146": {
+    "problem": "Write `kruskal(edges, n)` \u2014 union-find Kruskal. Return `{\"mst\": [...], \"cost\": total}`. Test.",
+    "answer": "func kruskal(edges, n) = {\n  local parent = {}\n  for (i: 1 .. n) { parent.set(i, i) }\n  func find(x) = {\n    if (parent.get(x, x) == x) { x } else {\n      local r = find(parent.get(x, x))\n      parent.set(x, r)\n      r\n    }\n  }\n  func unite(x, y) {\n    parent.set(find(x), find(y))\n  }\n  local sorted = copyList(edges)\n  sorted.sort()\n  local mst = []\n  local cost = 0\n  for (e in sorted) {\n    local w = e[1]\n    local u = e[2]\n    local v = e[3]\n    if (find(u) != find(v)) {\n      unite(u, v)\n      mst.add(e)\n      cost = cost + w\n    }\n  }\n  {\"mst\": mst, \"cost\": cost}\n}\nlocal edges = [[1,1,2],[2,2,3],[3,1,3],[4,3,4]]\nprintln(kruskal(edges, 4))"
+  },
+  "3159": {
+    "problem": "Write `christofidesApprox(dist, n)` \u2014 MST + minimum weight matching on odd-degree nodes \u2192 TSP. Return tour. Test.",
+    "answer": "func christofidesApprox(dist, n) = {\n  local inMST = [1]\n  local inSet = []\n  for (i: 1 .. n) { inSet.add(false) }\n  inSet[1] = true\n  local parent = []\n  for (i: 1 .. n) { parent.add(1) }\n  local key = []\n  for (i: 1 .. n) { key.add(999999) }\n  key[1] = 0\n  for (iter: 1 .. n - 1) {\n    local minKey = 999999\n    local u = -1\n    for (i: 1 .. n) {\n      if (!inSet[i] && key[i] < minKey) {\n        minKey = key[i]\n        u = i\n      }\n    }\n    inSet[u] = true\n    for (v: 1 .. n) {\n      if (!inSet[v] && dist[u][v] < key[v]) {\n        key[v] = dist[u][v]\n        parent[v] = u\n      }\n    }\n  }\n  local mstAdj = {}\n  for (i: 1 .. n) { mstAdj.set(i, []) }\n  for (i: 2 .. n) {\n    mstAdj.get(i, []).add(parent[i])\n    mstAdj.get(parent[i], []).add(i)\n  }\n  local oddNodes = []\n  for (i: 1 .. n) {\n    if (mstAdj.get(i, []).listLen() % 2 != 0) {\n      oddNodes.add(i)\n    }\n  }\n  local matched = []\n  for (i: 1 .. oddNodes.listLen() step 2) {\n    if (i + 1 <= oddNodes.listLen()) {\n      mstAdj.get(oddNodes[i], []).add(oddNodes[i+1])\n      mstAdj.get(oddNodes[i+1], []).add(oddNodes[i])\n      matched.add([oddNodes[i], oddNodes[i+1]])\n    }\n  }\n  local visited = []\n  local tour = []\n  local stack = [1]\n  while (stack.listLen() > 0) {\n    local cur = stack[stack.listLen()]\n    local nb = mstAdj.get(cur, [])\n    if (nb.listLen() == 0) {\n      stack.remove(stack.listLen())\n      if (!tour.containsItem(cur)) {\n        tour.add(cur)\n      }\n    } else {\n      local next = nb[1]\n      mstAdj.get(cur, []).remove(1)\n      local idx = mstAdj.get(next, []).indexOf(cur)\n      if (idx > 0) { mstAdj.get(next, []).remove(idx) }\n      stack.add(next)\n    }\n  }\n  tour\n}\nlocal d = [[0,10,15,20],[10,0,35,25],[15,35,0,30],[20,25,30,0]]\nprintln(christofidesApprox(d, 4))"
+  },
+  "3174": {
+    "problem": "Write `graphFeedback(graph)` \u2014 feedback arc set approximation for DAG. Return edges to remove. Test.",
+    "answer": "func graphFeedback(graph) = {\n  local removed = []\n  local remaining = copyDict(graph)\n  local changed = true\n  while (changed) {\n    changed = false\n    local nodes = remaining.keys()\n    for (n in nodes) {\n      local inDeg = 0\n      for (u, neighbors in remaining) {\n        if (neighbors.containsItem(n)) {\n          inDeg = inDeg + 1\n        }\n      }\n      if (inDeg == 0 || remaining.get(n, []).listLen() == 0) {\n        remaining.delete(n)\n        changed = true\n      }\n    }\n  }\n  for (u, neighbors in remaining) {\n    for (v in neighbors) {\n      removed.add([u, v])\n    }\n  }\n  removed\n}\nlocal dag = {\"A\":[\"B\",\"C\"],\"B\":[\"D\"],\"C\":[\"B\"],\"D\":[\"A\"],\"E\":[\"D\"]}\nprintln(graphFeedback(dag))"
+  },
+  "3188": {
+    "problem": "Write `parallelBFS(graph, sources)` \u2014 multi-source BFS. Return shortest distance from any source. Test.",
+    "answer": "func parallelBFS(graph, sources) = {\n  local dist = {}\n  local queue = []\n  for (s in sources) {\n    dist.set(s, 0)\n    queue.add(s)\n  }\n  while (queue.listLen() > 0) {\n    local cur = queue[1]\n    queue.remove(1)\n    for (nb in graph.get(cur, [])) {\n      if (!dist.containsKey(nb)) {\n        dist.set(nb, dist.get(cur, 0) + 1)\n        queue.add(nb)\n      }\n    }\n  }\n  dist\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"D\"],\"C\":[\"A\",\"E\"],\"D\":[\"B\"],\"E\":[\"C\",\"F\"],\"F\":[\"E\"]}\nprintln(parallelBFS(g, [\"A\",\"F\"]))"
+  },
+  "2962": {
+    "problem": "Write `dominatorTree(graph, source)` \u2014 compute dominator tree (simplified: for each node, remove it and BFS). Return dominator dict. Test.",
+    "answer": "func dominatorTree(graph, source) = {\n  local nodes = graph.keys()\n  local dominators = {}\n  for (n in nodes) {\n    if (n === source) {\n      dominators.set(n, source)\n    } else {\n      local tempGraph = copyDict(graph)\n      tempGraph.delete(n)\n      local reachable = []\n      local queue = [source]\n      while (queue.listLen() > 0) {\n        local cur = queue[1]\n        queue.remove(1)\n        if (!reachable.containsItem(cur)) {\n          reachable.add(cur)\n          for (nb in tempGraph.get(cur, [])) {\n            if (!reachable.containsItem(nb)) {\n              queue.add(nb)\n            }\n          }\n        }\n      }\n      if (!reachable.containsItem(n)) {\n        dominators.set(n, source)\n      } else {\n        dominators.set(n, \"none\")\n      }\n    }\n  }\n  dominators\n}\nlocal g = {\"start\":[\"A\",\"B\"],\"A\":[\"C\"],\"B\":[\"C\"],\"C\":[\"end\"],\"end\":[]}\nprintln(dominatorTree(g, \"start\"))"
+  },
+  "3109": {
+    "problem": "Write nested for loops finding all cliques of size 3 in a 6-node graph.",
+    "answer": "local nodes6 = [\"A\",\"B\",\"C\",\"D\",\"E\",\"F\"]\nlocal graph6 = {\"A\":[\"B\",\"C\",\"D\"],\"B\":[\"A\",\"C\",\"E\"],\"C\":[\"A\",\"B\",\"F\"],\"D\":[\"A\",\"E\"],\"E\":[\"B\",\"D\",\"F\"],\"F\":[\"C\",\"E\"]}\nlocal cliques3 = []\nfor (i: 1 .. 4) {\n  for (j: i+1 .. 5) {\n    for (k: j+1 .. 6) {\n      local u = nodes6[i]\n      local v = nodes6[j]\n      local w = nodes6[k]\n      if (graph6.get(u,[]).containsItem(v) && graph6.get(v,[]).containsItem(w) && graph6.get(u,[]).containsItem(w)) {\n        cliques3.add([u,v,w])\n      }\n    }\n  }\n}\nprintln(cliques3)"
+  },
+  "3135": {
+    "problem": "Write a for loop generating the De Bruijn sequence for alphabet size 2 and order 3 by following the De Bruijn graph.",
+    "answer": "local db = []\nlocal dbState = [0,0,0]\nlocal dbVisited = []\nlocal dbSteps = 0\nwhile (dbSteps < 8) {\n  local key = dbState.join(\"\")\n  if (!dbVisited.containsItem(key)) {\n    dbVisited.add(key)\n  }\n  local newBit = (dbState[1] + dbState[2]) % 2\n  db.add(dbState[3])\n  dbState = [newBit, dbState[1], dbState[2]]\n  dbSteps = dbSteps + 1\n}\nprintln(db)"
+  },
+  "3098": {
+    "problem": "Write a while loop implementing iterative deepening DFS. Print each depth limit and nodes visited.",
+    "answer": "local iiddfsTarget = \"G\"\nlocal iiddfsGraph = {\"A\":[\"B\",\"C\"],\"B\":[\"D\",\"E\"],\"C\":[\"F\",\"G\"],\"D\":[],\"E\":[],\"F\":[],\"G\":[]}\nlocal iiddfsFound = false\nlocal iiddfsDepth = 0\nwhile (!iiddfsFound && iiddfsDepth <= 10) {\n  println(\"Depth limit: \" _ iiddfsDepth)\n  local visited = []\n  local stack = [[\"A\", 0]]\n  while (stack.listLen() > 0 && !iiddfsFound) {\n    local cur = stack[stack.listLen()]\n    stack.remove(stack.listLen())\n    local node = cur[1]\n    local depth = cur[2]\n    if (!visited.containsItem(node _ \",\" _ depth)) {\n      visited.add(node _ \",\" _ depth)\n      println(\"  Visited: \" _ node)\n      if (node === iiddfsTarget) {\n        iiddfsFound = true\n        println(\"Found at depth \" _ depth)\n      } else if (depth < iiddfsDepth) {\n        for (nb in iiddfsGraph.get(node, [])) {\n          stack.add([nb, depth + 1])\n        }\n      }\n    }\n  }\n  iiddfsDepth = iiddfsDepth + 1\n}"
+  },
+  "3125": {
+    "problem": "Write a while loop simulating diffusion on a graph: each tick, each node's value spreads to neighbors. Run 5 ticks.",
+    "answer": "local diffGraph = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"C\"],\"C\":[\"A\",\"B\",\"D\"],\"D\":[\"C\"]}\nlocal diffVals = {\"A\":100,\"B\":0,\"C\":0,\"D\":0}\nfor (tick: 1 .. 5) {\n  local newVals = {}\n  for (n, neighbors in diffGraph) {\n    local sum = diffVals.get(n, 0)\n    for (nb in neighbors) {\n      sum = sum + diffVals.get(nb, 0)\n    }\n    newVals.set(n, sum / (neighbors.listLen() + 1))\n  }\n  diffVals = newVals\n  println(\"Tick \" _ tick _ \": \" _ diffVals)\n}"
+  },
+  "2775": {
+    "problem": "Write `randic(graph)` \u2014 sum of 1/sqrt(d_u * d_v) over all edges. Test.",
+    "answer": "func randic(graph) = {\n  local sum = 0\n  for (u, neighbors in graph) {\n    local du = neighbors.listLen()\n    for (v in neighbors) {\n      if (u << v) {\n        local dv = graph.get(v, []).listLen()\n        sum = sum + 1 / sqrt(du * dv)\n      }\n    }\n  }\n  sum\n}\nlocal g = {\"A\":[\"B\",\"C\"],\"B\":[\"A\",\"C\"],\"C\":[\"A\",\"B\"]}\nprintln(randic(g))"
+  },
+  "2791": {
+    "problem": "Write `tsp2Opt(tour, dist_matrix)` \u2014 2-opt improvement on an initial TSP tour. Apply one pass.",
+    "answer": "func tsp2Opt(tour, dist_matrix) = {\n  local improved = copyList(tour)\n  local n = tour.listLen() - 1\n  for (i: 1 .. n - 1) {\n    for (j: i+2 .. n) {\n      local d1 = dist_matrix[improved[i]][improved[i+1]] + dist_matrix[improved[j]][improved[j+1]]\n      local d2 = dist_matrix[improved[i]][improved[j]] + dist_matrix[improved[i+1]][improved[j+1]]\n      if (d2 < d1) {\n        local seg = []\n        for (k: i+1 .. j) { seg.add(improved[k]) }\n        seg.reverseList()\n        for (k: i+1 .. j) { improved[k] = seg[k-i] }\n      }\n    }\n  }\n  improved\n}\nlocal dm = [[0,10,15,20],[10,0,35,25],[15,35,0,30],[20,25,30,0]]\nprintln(tsp2Opt([1,2,3,4,1], dm))"
+  },
+  "2857": {
+    "problem": "Write `floydTrace(dist, i, j, k)` \u2014 print when a shorter path is found: `\"dist[i][j] updated via k\"`. Test.",
+    "answer": "func floydTrace(dist, n) {\n  for (k: 1 .. n) {\n    for (i: 1 .. n) {\n      for (j: 1 .. n) {\n        if (dist[i][k] + dist[k][j] < dist[i][j]) {\n          println(\"dist[\" _ i _ \"][\" _ j _ \"] updated via \" _ k)\n          dist[i][j] = dist[i][k] + dist[k][j]\n        }\n      }\n    }\n  }\n}\nlocal d = [[0,999,3,999],[2,0,999,999],[999,7,0,1],[6,999,999,0]]\nfloydTrace(d, 4)"
+  },
+  "2892": {
+    "problem": "Write `matrixStr(matrix, labels)` \u2014 print a matrix with row/col labels aligned. Test 4\u00d74.",
+    "answer": "func matrixStr(matrix, labels) {\n  local header = \"    \"\n  for (l in labels) { header = header _ l _ \"   \" }\n  println(header)\n  for (i: 1 .. labels.listLen()) {\n    local row = labels[i] _ \" [ \"\n    for (j: 1 .. labels.listLen()) {\n      row = row _ matrix[i][j] _ \" \"\n    }\n    println(row _ \"]\")\n  }\n}\nlocal mat = [[0,1,0,1],[1,0,1,0],[0,1,0,1],[1,0,1,0]]\nmatrixStr(mat, [\"A\",\"B\",\"C\",\"D\"])"
+  },
+  "3000": {
+    "problem": "Write `flowDict(network, source, sink)` \u2014 run max-flow, return flow values as nested dict. Test.",
+    "answer": "func flowDict(network, source, sink) = {\n  local flow = {}\n  for (u, edges in network) {\n    flow.set(u, {})\n    for (v, cap in edges) {\n      flow.get(u, {}).set(v, 0)\n    }\n  }\n  local totalFlow = 0\n  local running = true\n  while (running) {\n    local parent = {}\n    local visited = [source]\n    local queue = [source]\n    while (queue.listLen() > 0) {\n      local cur = queue[1]\n      queue.remove(1)\n      for (v, cap in network.get(cur, {})) {\n        local f = flow.get(cur, {}).get(v, 0)\n        if (!visited.containsItem(v) && cap - f > 0) {\n          parent.set(v, cur)\n          visited.add(v)\n          queue.add(v)\n        }\n      }\n    }\n    if (!visited.containsItem(sink)) {\n      running = false\n    } else {\n      local pathFlow = 999999\n      local cur = sink\n      while (cur !== source) {\n        local prev = parent.get(cur, \"\")\n        local cap = network.get(prev, {}).get(cur, 0)\n        local f = flow.get(prev, {}).get(cur, 0)\n        if (cap - f < pathFlow) { pathFlow = cap - f }\n        cur = prev\n      }\n      cur = sink\n      while (cur !== source) {\n        local prev = parent.get(cur, \"\")\n        flow.get(prev, {}).set(cur, flow.get(prev, {}).get(cur, 0) + pathFlow)\n        flow.get(cur, {}).set(prev, flow.get(cur, {}).get(prev, 0) - pathFlow)\n        cur = prev\n      }\n      totalFlow = totalFlow + pathFlow\n    }\n  }\n  flow\n}\nlocal net = {\"S\":{\"A\":10,\"B\":10},\"A\":{\"T\":10},\"B\":{\"T\":10},\"T\":{}}\nprintln(flowDict(net, \"S\", \"T\"))"
+  },
+  "3057": {
+    "problem": "Write `flowColor(utilization)` \u2014 utilization 0\u2192green (#00FF00), 0.5\u2192yellow (#FFFF00), 1\u2192red (#FF0000). Interpolate. Test.",
+    "answer": "func flowColor(utilization) = {\n  if (utilization <= 0.5) {\n    local t = utilization * 2\n    local r = round(t * 255)\n    makeColor([r, 255, 0])\n  } else {\n    local t = (utilization - 0.5) * 2\n    local g = round((1 - t) * 255)\n    makeColor([255, g, 0])\n  }\n}\nprintln(flowColor(0))\nprintln(flowColor(0.5))\nprintln(flowColor(1))"
+  },
+  "3067": {
+    "problem": "Write `directionColor(direction)` \u2014 `\"in\"` \u2192 #00AAFF, `\"out\"` \u2192 #FF6600, `\"both\"` \u2192 #AA44AA. Test.",
+    "answer": "func directionColor(direction) = {\n  if (direction === \"in\") {\n    makeColor([0, 170, 255])\n  } else if (direction === \"out\") {\n    makeColor([255, 102, 0])\n  } else {\n    makeColor([170, 68, 170])\n  }\n}\nprintln(directionColor(\"in\"))\nprintln(directionColor(\"out\"))\nprintln(directionColor(\"both\"))"
+  },
+  "3072": {
+    "problem": "Write `trafficLight(status)` \u2014 `\"go\"` \u2192 #00CC00, `\"caution\"` \u2192 #FFCC00, `\"stop\"` \u2192 #FF2200. Test all three.",
+    "answer": "func trafficLight(status) = {\n  if (status === \"go\") {\n    makeColor([0, 204, 0])\n  } else if (status === \"caution\") {\n    makeColor([255, 204, 0])\n  } else {\n    makeColor([255, 34, 0])\n  }\n}\nprintln(trafficLight(\"go\"))\nprintln(trafficLight(\"caution\"))\nprintln(trafficLight(\"stop\"))"
+  },
+  "2840": {
+    "problem": "Write `printTree(tree, root, indent)` \u2014 recursively print a tree dict `{node: [children]}` with indentation. Test.",
+    "answer": "func printTree(tree, root, indent) {\n  println(indent _ root)\n  for (child in tree.get(root, [])) {\n    printTree(tree, child, indent _ \"  \")\n  }\n}\nlocal t = {\"A\":[\"B\",\"C\"],\"B\":[\"D\",\"E\"],\"C\":[\"F\"],\"D\":[],\"E\":[],\"F\":[]}\nprintTree(t, \"A\", \"\")"
+  },
+  "2756": {
+    "problem": "Write `avgClusteringCoeff(graph)` \u2014 average clustering coefficient across all nodes. Test.",
+    "answer": "func clusteringCoeff(graph, node) = {\n  local neighbors = graph.get(node, [])\n  local k = neighbors.listLen()\n  if (k < 2) {\n    0\n  } else {\n    local links = 0\n    for (i: 1 .. k) {\n      for (j: i+1 .. k) {\n        if (graph.get(neighbors[i], []).containsItem(neighbors[j])) {\n          links = links + 1\n        }\n      }\n    }\n    2 * links / (k * (k - 1))\n  }\n}\nfunc avgClusteringCoeff(graph) = {\n  local nodes = graph.keys()\n  local total = 0\n  for (n in nodes) {\n    total = total + clusteringCoeff(graph, n)\n  }\n  total / nodes.listLen()\n}\nlocal g = {\"A\":[\"B\",\"C\",\"D\"],\"B\":[\"A\",\"C\"],\"C\":[\"A\",\"B\",\"D\"],\"D\":[\"A\",\"C\"]}\nprintln(avgClusteringCoeff(g))"
+  }
+}
