@@ -395,12 +395,11 @@ func (i *Interpreter) question(e *common.Question) Value {
 func (i *Interpreter) ifSmt(e *control.If) Value {
 	for k, cond := range e.Conditions {
 		if i.Eval(cond).AsBool() {
-			i.execBody(e.Bodies[k])
-			return VoidVal()
+			return i.execBody(e.Bodies[k])
 		}
 	}
 	if e.ElseBody != nil {
-		i.execBody(e.ElseBody)
+		return i.execBody(e.ElseBody)
 	}
 	return VoidVal()
 }
