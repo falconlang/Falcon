@@ -32,14 +32,44 @@ func main() {
 			}
 			runFile(os.Args[2])
 			return
+		case "format":
+			formatStdin()
+			return
 		}
 	}
-	repl()
+	//repl()
 	//diffTest()
-	//analyzeSyntax()
+	analyzeSyntax()
 	//xmlTest()
 	//designTest()
 	//runProgram()
+}
+
+func formatStdin() {
+	codeBytes, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+	source := string(codeBytes)
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintln(os.Stderr, "Error:", r)
+			os.Exit(1)
+		}
+	}()
+	codeContext := &context.CodeContext{SourceCode: &source, FileName: "<format>"}
+	tokens := lex.NewLexer(codeContext).Lex()
+	langParser := mistParser.NewLangParser(false, tokens)
+	exprs := langParser.ParseAll()
+	var out strings.Builder
+	for i, expr := range exprs {
+		if i > 0 {
+			out.WriteRune('\n')
+		}
+		out.WriteString(expr.String())
+	}
+	fmt.Print(out.String())
 }
 
 func runFile(path string) {
