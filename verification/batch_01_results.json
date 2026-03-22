@@ -1,0 +1,1210 @@
+{
+  "1": {
+    "status": "PASS",
+    "reason": "global score=0, println(this.score) correctly prints 0",
+    "expected": "0",
+    "actual": "0"
+  },
+  "2": {
+    "status": "PASS",
+    "reason": "local name='Falcon', println(name) correctly prints Falcon",
+    "expected": "Falcon",
+    "actual": "Falcon"
+  },
+  "13": {
+    "status": "PASS",
+    "reason": "globals firstName='John', lastName='Doe', concat prints 'John Doe'",
+    "expected": "John Doe",
+    "actual": "John Doe"
+  },
+  "14": {
+    "status": "PASS",
+    "reason": "n=7 > 5, prints 'Greater'",
+    "expected": "Greater",
+    "actual": "Greater"
+  },
+  "26": {
+    "status": "PASS",
+    "reason": "age=17 < 18, prints 'Minor'",
+    "expected": "Minor",
+    "actual": "Minor"
+  },
+  "36": {
+    "status": "PASS",
+    "reason": "hexToDec('1F') = 0x1F = 31",
+    "expected": "31",
+    "actual": "31"
+  },
+  "37": {
+    "status": "PASS",
+    "reason": "average of 1 and 100 = 50.5",
+    "expected": "50.5",
+    "actual": "50.5"
+  },
+  "49": {
+    "status": "PASS",
+    "reason": "sin(pi/4)=0.70710..., formatDecimal to 4dp=0.7071",
+    "expected": "0.7071",
+    "actual": "0.7071"
+  },
+  "61": {
+    "status": "PASS",
+    "reason": "sum 1..5 = n*(n+1)/2 = 15",
+    "expected": "15",
+    "actual": "15"
+  },
+  "68": {
+    "status": "PASS",
+    "reason": "adds 'abc' then revokes it, list is empty []",
+    "expected": "[]",
+    "actual": "[]"
+  },
+  "70": {
+    "status": "PASS",
+    "reason": "sum of weekday hours: 8+7+9+6+8=38",
+    "expected": "38",
+    "actual": "38"
+  },
+  "73": {
+    "status": "PASS",
+    "reason": "floor(3.999)=3",
+    "expected": "3",
+    "actual": "3"
+  },
+  "83": {
+    "status": "PASS",
+    "reason": "sqrt(3^2+4^2)=sqrt(25)=5",
+    "expected": "5",
+    "actual": "5"
+  },
+  "84": {
+    "status": "PASS",
+    "reason": "sqrt(2) formatted to 6dp=1.414214",
+    "expected": "1.414214",
+    "actual": "1.414214"
+  },
+  "89": {
+    "status": "PASS",
+    "reason": "exp(2)=7.38905..., formatDecimal to 4dp=7.3891",
+    "expected": "7.3891",
+    "actual": "7.3891"
+  },
+  "93": {
+    "status": "PASS",
+    "reason": "0xDEAD = 13*4096+14*256+10*16+13 = 57005",
+    "expected": "57005",
+    "actual": "57005"
+  },
+  "97": {
+    "status": "PASS",
+    "reason": "123=7*17+4, so mod=rem=4, quot=17",
+    "expected": "4\n4\n17",
+    "actual": "4\n4\n17"
+  },
+  "104": {
+    "status": "PASS",
+    "reason": "13.5*7.2=97.2",
+    "expected": "97.2",
+    "actual": "97.2"
+  },
+  "106": {
+    "status": "PASS",
+    "reason": "sqrt(25+144)=13, sqrt(64+225)=17 (Pythagorean triples)",
+    "expected": "13\n17",
+    "actual": "13\n17"
+  },
+  "115": {
+    "status": "PASS",
+    "reason": "sqrt(9+16)=sqrt(25)=5",
+    "expected": "5",
+    "actual": "5"
+  },
+  "118": {
+    "status": "PASS",
+    "reason": "sum of squares 1..10 = 385",
+    "expected": "385",
+    "actual": "385"
+  },
+  "120": {
+    "status": "PASS",
+    "reason": "all 14 multiples of 7 from 7 to 98",
+    "expected": "7..98 (14 values)",
+    "actual": "7\n14\n...\n98"
+  },
+  "122": {
+    "status": "PASS",
+    "reason": "12! = 479001600",
+    "expected": "479001600",
+    "actual": "479001600"
+  },
+  "128": {
+    "status": "PASS",
+    "reason": "sum of even numbers 2..50 = 650",
+    "expected": "650",
+    "actual": "650"
+  },
+  "133": {
+    "status": "PASS",
+    "reason": "60 has 12 divisors: 1,2,3,4,5,6,10,12,15,20,30,60",
+    "expected": "12",
+    "actual": "12"
+  },
+  "137": {
+    "status": "PASS",
+    "reason": "Collatz from 27 takes 111 steps",
+    "expected": "111",
+    "actual": "111"
+  },
+  "141": {
+    "status": "FAIL",
+    "reason": "Problem says test 255, 4096, 65535 but code only tests 255 and 65535 (missing 4096 test)",
+    "expected": "FF\n1000\nFFFF",
+    "actual": "FF\nFFFF"
+  },
+  "145": {
+    "status": "PASS",
+    "reason": "harmonic sum 1+1/2+...+1/10 = 2.9289682...",
+    "expected": "2.9289682539682538",
+    "actual": "2.9289682539682538"
+  },
+  "150": {
+    "status": "PASS",
+    "reason": "lerp(0,10,t) for t in [0,0.25,0.5,0.75,1] produces [0,2.5,5,7.5,10]",
+    "expected": "0\n2.5\n5\n7.5\n10",
+    "actual": "0\n2.5\n5\n7.5\n10"
+  },
+  "151": {
+    "status": "PASS",
+    "reason": "(75-0)/(100-0)=0.75",
+    "expected": "0.75",
+    "actual": "0.75"
+  },
+  "156": {
+    "status": "PASS",
+    "reason": "Lucas sequence 2,1,3,4,7,11,18,29,47,76 is correct",
+    "expected": "[2, 1, 3, 4, 7, 11, 18, 29, 47, 76]",
+    "actual": "[2, 1, 3, 4, 7, 11, 18, 29, 47, 76]"
+  },
+  "160": {
+    "status": "PASS",
+    "reason": "(5*(5+1)/2)^2 = 15^2 = 225",
+    "expected": "225",
+    "actual": "225"
+  },
+  "161": {
+    "status": "PASS",
+    "reason": "There are 25 primes up to 100",
+    "expected": "25",
+    "actual": "25"
+  },
+  "166": {
+    "status": "PASS",
+    "reason": "gcd(48,18)=6 correctly printed",
+    "expected": "6",
+    "actual": "6"
+  },
+  "170": {
+    "status": "PASS",
+    "reason": "relu maps negatives to 0, keeps positives: [0,0,2,5]",
+    "expected": "[0, 0, 2, 5]",
+    "actual": "[0, 0, 2, 5]"
+  },
+  "172": {
+    "status": "PASS",
+    "reason": "BMI = 70/1.75^2 = 22.86, 'Normal' category",
+    "expected": "Normal",
+    "actual": "Normal"
+  },
+  "184": {
+    "status": "PASS",
+    "reason": "8^2+9^2=64+81=145",
+    "expected": "145",
+    "actual": "145"
+  },
+  "186": {
+    "status": "PASS",
+    "reason": "2^2-1=3, 2^3-1=7, 2^5-1=31, 2^7-1=127 all prime",
+    "expected": "true\ntrue\ntrue\ntrue",
+    "actual": "true\ntrue\ntrue\ntrue"
+  },
+  "188": {
+    "status": "PASS",
+    "reason": "round(3.14159*100)/100 = 314/100 = 3.14",
+    "expected": "3.14",
+    "actual": "3.14"
+  },
+  "192": {
+    "status": "PASS",
+    "reason": "sqrt(3^2+4^2+5^2)=sqrt(50)=7.0710678118654755",
+    "expected": "7.0710678118654755",
+    "actual": "7.0710678118654755"
+  },
+  "204": {
+    "status": "PASS",
+    "reason": "255=11111111 in binary, 8 set bits",
+    "expected": "8",
+    "actual": "8"
+  },
+  "211": {
+    "status": "PASS",
+    "reason": "Pascal's triangle rows 0-6 correctly computed",
+    "expected": "[1]\n[1,1]\n...\n[1,6,15,20,15,6,1]",
+    "actual": "[1]\n[1, 1]\n[1, 2, 1]\n[1, 3, 3, 1]\n[1, 4, 6, 4, 1]\n[1, 5, 10, 10, 5, 1]\n[1, 6, 15, 20, 15, 6, 1]"
+  },
+  "225": {
+    "status": "PASS",
+    "reason": "cumulative sums of [1,2,3,4,5] = [1,3,6,10,15]",
+    "expected": "[1, 3, 6, 10, 15]",
+    "actual": "[1, 3, 6, 10, 15]"
+  },
+  "226": {
+    "status": "FAIL",
+    "reason": "entropy([0.5,0.25,0.25]) returns NaN; Falcon's log() returns NaN for fractional inputs < 1",
+    "expected": "~1.0397",
+    "actual": "NaN"
+  },
+  "235": {
+    "status": "PASS",
+    "reason": "'javascript' contains substring 'java'",
+    "expected": "true",
+    "actual": "true"
+  },
+  "239": {
+    "status": "PASS",
+    "reason": "splitAtFirst('=') on 'key=value' gives ['key','value'], concat = 'key and value'",
+    "expected": "key and value",
+    "actual": "key and value"
+  },
+  "243": {
+    "status": "PASS",
+    "reason": "1-indexed segment(2,4) from 'abcdefgh' = 'bcde'",
+    "expected": "bcde",
+    "actual": "bcde"
+  },
+  "247": {
+    "status": "FAIL",
+    "reason": "Code uses wrong string 'onetwo|three.four' (missing semicolon) and wrong separator list ['','|','.'] where '' splits every character",
+    "expected": "[one, two, three, four]",
+    "actual": "[o, n, e, t, w, o, |, t, h, r, e, e, ., f, o, u, r]"
+  },
+  "249": {
+    "status": "PASS",
+    "reason": "toCsvRow(['Bob','25','Engineer']) = 'Bob,25,Engineer'",
+    "expected": "Bob,25,Engineer",
+    "actual": "Bob,25,Engineer"
+  },
+  "257": {
+    "status": "PASS",
+    "reason": "pads '42' to width 6 with '0' = '000042'",
+    "expected": "000042",
+    "actual": "000042"
+  },
+  "373": {
+    "status": "FAIL",
+    "reason": "Dict only has A-E but H,L,O not defined. Encoding 'HELLO' only gets '.' (E's code), others map to empty string",
+    "expected": ".... . .-.. .-.. ---",
+    "actual": "."
+  },
+  "383": {
+    "status": "PASS",
+    "reason": "adds 'kiwi' to ['apple','banana'], prints [apple, banana, kiwi]",
+    "expected": "[apple, banana, kiwi]",
+    "actual": "[apple, banana, kiwi]"
+  },
+  "387": {
+    "status": "PASS",
+    "reason": "7 is not in [2,4,6,8,10], prints false",
+    "expected": "false",
+    "actual": "false"
+  },
+  "391": {
+    "status": "PASS",
+    "reason": "slice(2,4) = elements at positions 2,3,4 = [20,30,40]",
+    "expected": "[20, 30, 40]",
+    "actual": "[20, 30, 40]"
+  },
+  "393": {
+    "status": "PASS",
+    "reason": "allButFirst=[2,3,4,5], allButLast=[1,2,3,4]",
+    "expected": "[2, 3, 4, 5]\n[1, 2, 3, 4]",
+    "actual": "[2, 3, 4, 5]\n[1, 2, 3, 4]"
+  },
+  "397": {
+    "status": "PASS",
+    "reason": "reduce(1){acc*val} on [1,2,3,4,5] = 120",
+    "expected": "120",
+    "actual": "120"
+  },
+  "398": {
+    "status": "PASS",
+    "reason": "alphabetical sort: apple < banana < cherry < date",
+    "expected": "[apple, banana, cherry, date]",
+    "actual": "[apple, banana, cherry, date]"
+  },
+  "403": {
+    "status": "PASS",
+    "reason": "lookupInPairs finds 'Japan' and returns 'Tokyo'",
+    "expected": "Tokyo",
+    "actual": "Tokyo"
+  },
+  "404": {
+    "status": "PASS",
+    "reason": "pairsToDict([[a,1],[b,2],[c,3]])={a:1,b:2,c:3}",
+    "expected": "{a: 1, b: 2, c: 3}",
+    "actual": "{a: 1, b: 2, c: 3}"
+  },
+  "561": {
+    "status": "PASS",
+    "reason": "d.get('name',[]) returns 'Alice' from {name:Alice, age:30}",
+    "expected": "Alice",
+    "actual": "Alice"
+  },
+  "568": {
+    "status": "PASS",
+    "reason": "mergeInto adds keys from {c:3,d:4} into {a:1,b:2}",
+    "expected": "{a: 1, b: 2, c: 3, d: 4}",
+    "actual": "{a: 1, b: 2, c: 3, d: 4}"
+  },
+  "571": {
+    "status": "PASS",
+    "reason": "getAtPath(['user','profile','age']) navigates nested dict to return 25",
+    "expected": "25",
+    "actual": "25"
+  },
+  "573": {
+    "status": "PASS",
+    "reason": "walkTree(['root','child']) returns {val: 1}",
+    "expected": "{val: 1}",
+    "actual": "{val: 1}"
+  },
+  "691": {
+    "status": "PASS",
+    "reason": "prints color literal #FF0000 (only first color printed)",
+    "expected": "#FF0000",
+    "actual": "#FF0000"
+  },
+  "726": {
+    "status": "FAIL",
+    "reason": "Problem says 'Print 3' dark colors but code only calls println once. Output shows 1 random dark color.",
+    "expected": "3 dark colors printed",
+    "actual": "1 color: #FF2E1239"
+  },
+  "778": {
+    "status": "PASS",
+    "reason": "iterates {a:1,b:2} and prints 'a: 1' then 'b: 2'",
+    "expected": "a: 1\nb: 2",
+    "actual": "a: 1\nb: 2"
+  },
+  "784": {
+    "status": "PASS",
+    "reason": "for i 1..9 prints 10-i stars in each row: 9,8,...,1 stars",
+    "expected": "*********\n...\n*",
+    "actual": "*********\n********\n...\n*"
+  },
+  "790": {
+    "status": "PASS",
+    "reason": "all 90 palindromic 3-digit numbers (101-999) listed correctly",
+    "expected": "90 palindromes",
+    "actual": "all 90 correct"
+  },
+  "797": {
+    "status": "PASS",
+    "reason": "first duplicate in [3,1,4,1,5,9,2,6,5] is 1",
+    "expected": "1",
+    "actual": "1"
+  },
+  "800": {
+    "status": "PASS",
+    "reason": "10 in binary = 1010",
+    "expected": "1010",
+    "actual": "1010"
+  },
+  "805": {
+    "status": "PASS",
+    "reason": "first 3 perfect numbers: 6, 28, 496",
+    "expected": "6\n28\n496",
+    "actual": "6\n28\n496"
+  },
+  "813": {
+    "status": "PASS",
+    "reason": "all 39 two-digit numbers where digit product > 20, all correct",
+    "expected": "39 numbers starting at 37",
+    "actual": "39 correct values"
+  },
+  "823": {
+    "status": "PASS",
+    "reason": "running max/min for [4,2,8,1] correctly tracks both",
+    "expected": "Max: 4 Min: 4\nMax: 4 Min: 2\nMax: 8 Min: 2\nMax: 8 Min: 1",
+    "actual": "Max: 4 Min: 4\nMax: 4 Min: 2\nMax: 8 Min: 2\nMax: 8 Min: 1"
+  },
+  "826": {
+    "status": "PASS",
+    "reason": "[1,2,3] doubled manually = [2,4,6]",
+    "expected": "[2, 4, 6]",
+    "actual": "[2, 4, 6]"
+  },
+  "832": {
+    "status": "PASS",
+    "reason": "running harmonic sum 1..10 printed correctly, final value 2.9289682...",
+    "expected": "10 running totals",
+    "actual": "all 10 values correct"
+  },
+  "836": {
+    "status": "PASS",
+    "reason": "[1,2,4,3,5] violates ascending order at i=3 (4>3)",
+    "expected": "Violated at 3",
+    "actual": "Violated at 3"
+  },
+  "852": {
+    "status": "PASS",
+    "reason": "1000 doubles to exceed 1000000 in 10 iterations",
+    "expected": "10",
+    "actual": "10"
+  },
+  "857": {
+    "status": "PASS",
+    "reason": "28 numbers from 100-200 with strictly increasing digits, all correct",
+    "expected": "123,124,...,189",
+    "actual": "all 28 correct"
+  },
+  "859": {
+    "status": "PASS",
+    "reason": "while loop drains [1,2,3] by removing from front, prints each",
+    "expected": "1\n2\n3",
+    "actual": "1\n2\n3"
+  },
+  "860": {
+    "status": "PASS",
+    "reason": "nested loops compute outer product of [1,2,3] x [4,5,6]",
+    "expected": "4\n5\n6\n8\n10\n12\n12\n15\n18",
+    "actual": "4\n5\n6\n8\n10\n12\n12\n15\n18"
+  },
+  "867": {
+    "status": "PASS",
+    "reason": "local maxima in [1,3,2,4,1] are 3 and 4, count=2",
+    "expected": "2",
+    "actual": "2"
+  },
+  "881": {
+    "status": "PASS",
+    "reason": "void function called 3 times prints 'Hello, Alice!' 3 times",
+    "expected": "Hello, Alice!\nHello, Alice!\nHello, Alice!",
+    "actual": "Hello, Alice!\nHello, Alice!\nHello, Alice!"
+  },
+  "199": {
+    "status": "PASS",
+    "reason": "interpolate([[0,0],[10,10]],5)=5 and [[0,0],[10,20]],5)=10 verified correct",
+    "expected": "5 and 10",
+    "actual": "5\n10 (test run)"
+  },
+  "217": {
+    "status": "PASS",
+    "reason": "cubeRoot uses n^(1/3), gives approximately 3, 4, 5 for 27, 64, 125",
+    "expected": "~3, ~4, ~5",
+    "actual": "2.999..., 3.999..., 5.000... (test run)"
+  },
+  "230": {
+    "status": "PASS",
+    "reason": "nthRoot uses x^(1/n), gives approximate roots for 81, 32, 64",
+    "expected": "~3, ~2, ~2",
+    "actual": "3.000..., 2.0, 1.999... (test run)"
+  },
+  "252": {
+    "status": "PASS",
+    "reason": "wordCount('  one  two   three  ')=3 via trim+splitAtSpaces+filter",
+    "expected": "3",
+    "actual": "3 (test run)"
+  },
+  "260": {
+    "status": "PASS",
+    "reason": "startsWith('foobar','foo')=true, startsWith('foobar','bar')=false",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "263": {
+    "status": "FAIL",
+    "reason": "Falcon RTL arithmetic: s.textLen()-suffix.textLen()+1 evaluates as len-(slen+1), wrong segment extracted. removeSuffix('index.html','.html') returns 'index.html' unchanged",
+    "expected": "index",
+    "actual": "index.html (RTL bug)"
+  },
+  "264": {
+    "status": "PASS",
+    "reason": "countWords('  one  two   three  ')=3, same as wordCount",
+    "expected": "3",
+    "actual": "3 (test run)"
+  },
+  "268": {
+    "status": "PASS",
+    "reason": "isAnagram('listen','silent')=true, isAnagram('hello','world')=false",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "272": {
+    "status": "PASS",
+    "reason": "removeDigits('h3ll0 w0rld')='hll wrld'",
+    "expected": "hll wrld",
+    "actual": "hll wrld (test run)"
+  },
+  "275": {
+    "status": "PASS",
+    "reason": "isAllUppercase('HELLO')=true, isAllUppercase('Hello')=false",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "277": {
+    "status": "PASS",
+    "reason": "alternatingCase('hello')='HeLlO'",
+    "expected": "HeLlO",
+    "actual": "HeLlO (test run)"
+  },
+  "278": {
+    "status": "PASS",
+    "reason": "slugify('Hello World')='hello-world'",
+    "expected": "hello-world",
+    "actual": "hello-world (test run)"
+  },
+  "282": {
+    "status": "PASS",
+    "reason": "allStartWith(['apple','apricot','avocado'],'a')=true, mixed list=false",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "288": {
+    "status": "FAIL",
+    "reason": "Falcon RTL arithmetic: len-show+1 = len-(show+1), shows wrong digits. maskNumber('1234567890',4) returns '******5678' showing 5678 instead of 7890",
+    "expected": "******7890",
+    "actual": "******5678"
+  },
+  "294": {
+    "status": "FAIL",
+    "reason": "Falcon RTL arithmetic: listLen-n+1 = listLen-(n+1), slice starts at 1 (all words). lastNWords returns all words instead of last n",
+    "expected": "[three, four, five]",
+    "actual": "[one, two, three, four, five]"
+  },
+  "300": {
+    "status": "PASS",
+    "reason": "encodeRLE('aaabbc')='3a2b1c'",
+    "expected": "3a2b1c",
+    "actual": "3a2b1c (test run)"
+  },
+  "304": {
+    "status": "PASS",
+    "reason": "stripPunctuation removes .!?, etc from sentence",
+    "expected": "Hello World How are you",
+    "actual": "Hello World How are you (test run)"
+  },
+  "308": {
+    "status": "PASS",
+    "reason": "countLines('line1\\nline2\\nline3')=3",
+    "expected": "3",
+    "actual": "3 (test run)"
+  },
+  "312": {
+    "status": "PASS",
+    "reason": "swapCase('Hello World')='hELLO wORLD'",
+    "expected": "hELLO wORLD",
+    "actual": "hELLO wORLD (test run)"
+  },
+  "315": {
+    "status": "FAIL",
+    "reason": "RTL arithmetic limits loop range: s.textLen()-sub.textLen()+1 = len-(slen+1), misses last occurrence. lastIndexOf('abcabc','b')=2 instead of 5",
+    "expected": "5",
+    "actual": "2"
+  },
+  "318": {
+    "status": "FAIL",
+    "reason": "RTL arithmetic: textLen()-pos+1 = len-(pos+1), truncates tail. insertAt('helloworld',6,' ')='hello wor' instead of 'hello world'",
+    "expected": "hello world",
+    "actual": "hello wor"
+  },
+  "322": {
+    "status": "FAIL",
+    "reason": "Function returns placeholder string 'Not easily viable...' instead of actual binary conversion",
+    "expected": "binary string",
+    "actual": "Not easily viable without charCodeAt..."
+  },
+  "326": {
+    "status": "PASS",
+    "reason": "parseQueryString('a=1&b=2&c=3')={a:1,b:2,c:3}",
+    "expected": "{a:1,b:2,c:3}",
+    "actual": "{a: 1, b: 2, c: 3} (test run)"
+  },
+  "331": {
+    "status": "PASS",
+    "reason": "stripHTMLTags('<h1>Hello</h1> <p>World</p>')='Hello World'",
+    "expected": "Hello World",
+    "actual": "Hello World (test run)"
+  },
+  "336": {
+    "status": "PASS",
+    "reason": "longestWordLength('hello beautiful world')=9",
+    "expected": "9",
+    "actual": "9 (test run)"
+  },
+  "341": {
+    "status": "PASS",
+    "reason": "removeWordAt('one two three four', 2)='one three four'",
+    "expected": "one three four",
+    "actual": "one three four (test run)"
+  },
+  "346": {
+    "status": "PASS",
+    "reason": "isAlphanumeric('abc123')=true, isAlphanumeric('abc 123')=false",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "350": {
+    "status": "PASS",
+    "reason": "pluralize('cat',1)='cat', pluralize('cat',3)='cats'",
+    "expected": "cat/cats",
+    "actual": "cat\ncats (test run)"
+  },
+  "355": {
+    "status": "PASS",
+    "reason": "isValidHex('1A3F')=true, isValidHex('1G3F')=false",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "359": {
+    "status": "PASS",
+    "reason": "countSpaces('hello world foo')=2",
+    "expected": "2",
+    "actual": "2 (test run)"
+  },
+  "364": {
+    "status": "PASS",
+    "reason": "startsWithVowel('apple')=true, startsWithVowel('banana')=false",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "365": {
+    "status": "PASS",
+    "reason": "longestWordStartingWith('apple apricot avocado ant','a')='apricot' (7 chars, tied with avocado)",
+    "expected": "apricot or avocado",
+    "actual": "apricot (test run)"
+  },
+  "369": {
+    "status": "PASS",
+    "reason": "toPhoneFormat('1234567890')='(123) 456-7890'",
+    "expected": "(123) 456-7890",
+    "actual": "(123) 456-7890 (test run)"
+  },
+  "375": {
+    "status": "PASS",
+    "reason": "rotateChars('Hello',13)='Uryyb' (correct ROT13)",
+    "expected": "Uryyb",
+    "actual": "Uryyb (test run)"
+  },
+  "409": {
+    "status": "PASS",
+    "reason": "chunk([1..9],3)=[[1,2,3],[4,5,6],[7,8,9]]",
+    "expected": "[[1,2,3],[4,5,6],[7,8,9]]",
+    "actual": "[[1, 2, 3], [4, 5, 6], [7, 8, 9]] (test run)"
+  },
+  "414": {
+    "status": "PASS",
+    "reason": "countOccurrences([1,2,2,3,2],2)=3",
+    "expected": "3",
+    "actual": "3 (test run)"
+  },
+  "418": {
+    "status": "PASS",
+    "reason": "difference([1,2,3,4,5],[2,4])=[1,3,5]",
+    "expected": "[1,3,5]",
+    "actual": "[1, 3, 5] (test run)"
+  },
+  "422": {
+    "status": "PASS",
+    "reason": "matMul([[1,2],[3,4]],[[5,6],[7,8]])=[[19,22],[43,50]]",
+    "expected": "[[19,22],[43,50]]",
+    "actual": "[[19, 22], [43, 50]] (test run)"
+  },
+  "426": {
+    "status": "PASS",
+    "reason": "diagonalSum([[1,2,3],[4,5,6],[7,8,9]])=1+5+9=15",
+    "expected": "15",
+    "actual": "15 (test run)"
+  },
+  "434": {
+    "status": "PASS",
+    "reason": "dotProduct([1,2,3],[4,5,6])=1*4+2*5+3*6=32",
+    "expected": "32",
+    "actual": "32 (test run)"
+  },
+  "439": {
+    "status": "PASS",
+    "reason": "histogram function correctly counts element frequencies",
+    "expected": "frequency dict",
+    "actual": "correct dict (test run)"
+  },
+  "440": {
+    "status": "PASS",
+    "reason": "mostCommon([1,2,2,3,1,1])=1 (appears 3 times, most frequent)",
+    "expected": "1",
+    "actual": "1 (test run)"
+  },
+  "445": {
+    "status": "PASS",
+    "reason": "bottomN([5,1,3,2,4],3)=[1,2,3] via chained sort().slice()",
+    "expected": "[1,2,3]",
+    "actual": "[1, 2, 3] (test run)"
+  },
+  "452": {
+    "status": "PASS",
+    "reason": "indexOfManual([10,20,30,40],30)=3",
+    "expected": "3",
+    "actual": "3 (test run)"
+  },
+  "455": {
+    "status": "PASS",
+    "reason": "replaceAll([1,2,3,2,1],2,99)=[1,99,3,99,1]",
+    "expected": "[1,99,3,99,1]",
+    "actual": "[1, 99, 3, 99, 1] (test run)"
+  },
+  "460": {
+    "status": "PASS",
+    "reason": "mergeAlternating([1,3,5],[2,4,6])=[1,2,3,4,5,6]",
+    "expected": "[1,2,3,4,5,6]",
+    "actual": "[1, 2, 3, 4, 5, 6] (test run)"
+  },
+  "464": {
+    "status": "PASS",
+    "reason": "anyEquals uses containsItem correctly",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "468": {
+    "status": "FAIL",
+    "reason": "Falcon max{m,n->m>n} finds minimum not maximum (inverted comparator semantics). maxIf([1,5,2,8,3,6],4) returns 5 (min of [5,8,6]) instead of 8",
+    "expected": "8",
+    "actual": "5"
+  },
+  "476": {
+    "status": "FAIL",
+    "reason": "Falcon sort() returns new sorted list but does not mutate original. res.sort{} result is discarded. insertSorted([1,3,5,7],4)=[1,3,5,7,4] (unsorted)",
+    "expected": "[1,3,4,5,7]",
+    "actual": "[1,3,5,7,4]"
+  },
+  "481": {
+    "status": "PASS",
+    "reason": "countSortedPairs([1,3,2,4])=5 (5 pairs where list[i]<list[j])",
+    "expected": "5",
+    "actual": "5 (test run)"
+  },
+  "482": {
+    "status": "PASS",
+    "reason": "LIS of [3,1,4,1,5,9,2,6]=4 (e.g. [1,4,5,9])",
+    "expected": "4",
+    "actual": "4 (test run)"
+  },
+  "487": {
+    "status": "PASS",
+    "reason": "majorityElement([1,1,1,2,2])=1 (appears 3>5/2=2.5 times)",
+    "expected": "1",
+    "actual": "1 (test run)"
+  },
+  "491": {
+    "status": "PASS",
+    "reason": "addMatrix2x2([[1,2],[3,4]],[[5,6],[7,8]])=[[6,8],[10,12]]",
+    "expected": "[[6,8],[10,12]]",
+    "actual": "[[6, 8], [10, 12]] (test run)"
+  },
+  "495": {
+    "status": "PASS",
+    "reason": "rotateMatrix90 CW: [[1,2,3],[4,5,6],[7,8,9]]->[[7,4,1],[8,5,2],[9,6,3]]",
+    "expected": "[[7,4,1],[8,5,2],[9,6,3]]",
+    "actual": "[[7, 4, 1], [8, 5, 2], [9, 6, 3]] (test run)"
+  },
+  "499": {
+    "status": "PASS",
+    "reason": "rollingMax([3,1,4,1,5,9,2,6])=[3,3,4,4,5,9,9,9]",
+    "expected": "[3,3,4,4,5,9,9,9]",
+    "actual": "[3, 3, 4, 4, 5, 9, 9, 9] (test run)"
+  },
+  "503": {
+    "status": "PASS",
+    "reason": "pairwiseSum([1,2,3,4,5])=[3,5,7,9]",
+    "expected": "[3,5,7,9]",
+    "actual": "[3, 5, 7, 9] (test run)"
+  },
+  "508": {
+    "status": "PASS",
+    "reason": "cartesianProduct([1,2],['a','b'])=[[1,a],[1,b],[2,a],[2,b]]",
+    "expected": "[[1,a],[1,b],[2,a],[2,b]]",
+    "actual": "[[1, a], [1, b], [2, a], [2, b]] (test run)"
+  },
+  "512": {
+    "status": "PASS",
+    "reason": "shuffle returns list of same length with pseudo-random reorder",
+    "expected": "list of length 5",
+    "actual": "length=5 (test run)"
+  },
+  "516": {
+    "status": "PASS",
+    "reason": "percentile([1..10],50)=5, percentile([1..10],90)=9",
+    "expected": "5 and 9",
+    "actual": "5\n9 (test run)"
+  },
+  "519": {
+    "status": "PASS",
+    "reason": "removeOutliers([1,2,3,4,5,100]) removes 100 as outlier, returns [1,2,3,4,5]",
+    "expected": "[1,2,3,4,5]",
+    "actual": "[1, 2, 3, 4, 5] (test run)"
+  },
+  "524": {
+    "status": "PASS",
+    "reason": "zipToDict(['a','b','c'],[1,2,3])={a:1,b:2,c:3}",
+    "expected": "{a:1,b:2,c:3}",
+    "actual": "{a: 1, b: 2, c: 3} (test run)"
+  },
+  "528": {
+    "status": "PASS",
+    "reason": "compact removes falsy: [1,0,'hello','',false,true,2]->[1,'hello',true,2]",
+    "expected": "[1,'hello',true,2]",
+    "actual": "[1, hello, true, 2] (test run)"
+  },
+  "532": {
+    "status": "PASS",
+    "reason": "kMostFrequent([1,2,2,3,3,3,4],2)=[3,2]",
+    "expected": "[3,2]",
+    "actual": "[3, 2] (test run)"
+  },
+  "536": {
+    "status": "PASS",
+    "reason": "countAfter([1,2,3,2,4,5],2)=2 (elements after last 2 at pos 4)",
+    "expected": "2",
+    "actual": "2 (test run)"
+  },
+  "540": {
+    "status": "PASS",
+    "reason": "applyToOddIndices([1,2,3,4,5],10)=[10,2,30,4,50]",
+    "expected": "[10,2,30,4,50]",
+    "actual": "[10, 2, 30, 4, 50] (test run)"
+  },
+  "544": {
+    "status": "PASS",
+    "reason": "IQR([1..10])=percentile(75)-percentile(25)=8-3=5",
+    "expected": "5",
+    "actual": "5 (test run)"
+  },
+  "549": {
+    "status": "PASS",
+    "reason": "chebyshevDistance([1,2,3],[4,0,3])=max(3,2,0)=3",
+    "expected": "3",
+    "actual": "3 (test run)"
+  },
+  "576": {
+    "status": "PASS",
+    "reason": "word frequency dict for 'the cat sat on the mat the cat' correct",
+    "expected": "{the:3,cat:2,sat:1,on:1,mat:1}",
+    "actual": "{the: 3, cat: 2, sat: 1, on: 1, mat: 1} (test run)"
+  },
+  "581": {
+    "status": "PASS",
+    "reason": "merge({x:1},{y:2})={x:1,y:2}",
+    "expected": "{x:1,y:2}",
+    "actual": "{x: 1, y: 2} (test run)"
+  },
+  "582": {
+    "status": "PASS",
+    "reason": "deepMerge({'a':{'x':1}},{'a':{'y':2}})={'a':{'x':1,'y':2}}",
+    "expected": "{a:{x:1,y:2}}",
+    "actual": "{a: {x: 1, y: 2}} (test run)"
+  },
+  "586": {
+    "status": "PASS",
+    "reason": "keyWithMaxValue({a:5,b:10,c:3})='b'",
+    "expected": "b",
+    "actual": "b (test run)"
+  },
+  "594": {
+    "status": "PASS",
+    "reason": "minValue({a:5,b:10,c:3})=3",
+    "expected": "3",
+    "actual": "3 (test run)"
+  },
+  "598": {
+    "status": "PASS",
+    "reason": "subdict({a:1,b:2,c:3,d:4},'b','c')={b:2,c:3}",
+    "expected": "{b:2,c:3}",
+    "actual": "{b: 2, c: 3} (test run)"
+  },
+  "603": {
+    "status": "PASS",
+    "reason": "intersection({a:1,b:2,c:3},{b:4,c:5,d:6})={b:2,c:3}",
+    "expected": "{b:2,c:3}",
+    "actual": "{b: 2, c: 3} (test run)"
+  },
+  "607": {
+    "status": "PASS",
+    "reason": "bottomNDict({a:5,b:1,c:3},2)=[[b,1],[c,3]]",
+    "expected": "[[b,1],[c,3]]",
+    "actual": "[[b, 1], [c, 3]] (test run)"
+  },
+  "612": {
+    "status": "PASS",
+    "reason": "decrement({a:5,b:3},'a') -> {a:4,b:3}",
+    "expected": "{a:4,b:3}",
+    "actual": "{a: 4, b: 3} (test run)"
+  },
+  "616": {
+    "status": "PASS",
+    "reason": "jsonLike({a:1,b:2})='{\"a\": 1, \"b\": 2}'",
+    "expected": "{\"a\": 1, \"b\": 2}",
+    "actual": "{\"a\": 1, \"b\": 2} (test run)"
+  },
+  "620": {
+    "status": "PASS",
+    "reason": "setConfig/getConfig correctly manages nested config store",
+    "expected": "localhost\n5432",
+    "actual": "localhost\n5432 (test run)"
+  },
+  "622": {
+    "status": "PASS",
+    "reason": "valuesMatchingKey({foo:1,foobar:2,baz:3},'foo')=[1,2]",
+    "expected": "[1,2]",
+    "actual": "[1, 2] (test run)"
+  },
+  "626": {
+    "status": "PASS",
+    "reason": "mergeLists on 'id' field correctly joins dicts from two lists",
+    "expected": "merged list",
+    "actual": "correct merged list (test run)"
+  },
+  "630": {
+    "status": "PASS",
+    "reason": "avgField([{age:10},{age:20},{age:30}],'age')=20",
+    "expected": "20",
+    "actual": "20 (test run)"
+  },
+  "638": {
+    "status": "PASS",
+    "reason": "memoFib(10)=55, memoFib(15)=610 with global cache",
+    "expected": "55\n610",
+    "actual": "55\n610 (test run)"
+  },
+  "642": {
+    "status": "PASS",
+    "reason": "mergeWith({a:1,b:2},{b:3,c:4}) sums conflicts: {a:1,b:5,c:4}",
+    "expected": "{a:1,b:5,c:4}",
+    "actual": "{a: 1, b: 5, c: 4} (test run)"
+  },
+  "646": {
+    "status": "PASS",
+    "reason": "histogramDict verified by checking all count values sum to list length",
+    "expected": "sum of counts = list length",
+    "actual": "verified true (test run)"
+  },
+  "647": {
+    "status": "PASS",
+    "reason": "bimap({a:1,b:2}) uppercases keys and doubles values: {A:2,B:4}",
+    "expected": "{A:2,B:4}",
+    "actual": "{A: 2, B: 4} (test run)"
+  },
+  "652": {
+    "status": "PASS",
+    "reason": "freqSorted('to be or not to be')=[to,be,or,not] sorted by frequency desc",
+    "expected": "[to,be,or,not]",
+    "actual": "[to, be, or, not] (test run)"
+  },
+  "653": {
+    "status": "PASS",
+    "reason": "reverseIndex('the cat sat the')={the:[1,4],cat:[2],sat:[3]}",
+    "expected": "{the:[1,4],cat:[2],sat:[3]}",
+    "actual": "{the: [1, 4], cat: [2], sat: [3]} (test run)"
+  },
+  "658": {
+    "status": "PASS",
+    "reason": "patchDict correctly applies updates and DELETE operations",
+    "expected": "patched dict",
+    "actual": "correct (test run)"
+  },
+  "662": {
+    "status": "FAIL",
+    "reason": "Falcon max{a,b->a.field>b.field} returns min not max (inverted semantics). maxByField([{age:25},{age:40},{age:30}],'age') returns {age:25} not {age:40}",
+    "expected": "{age: 40}",
+    "actual": "{age: 25}"
+  },
+  "668": {
+    "status": "PASS",
+    "reason": "deepGet navigates nested paths with default fallback: returns 30 and 'N/A'",
+    "expected": "30 and N/A",
+    "actual": "30\nN/A (test run)"
+  },
+  "670": {
+    "status": "PASS",
+    "reason": "flatKeys({a:{b:1,c:2},d:3},'')=['a.b','a.c','d']",
+    "expected": "['a.b','a.c','d']",
+    "actual": "[a.b, a.c, d] (test run)"
+  },
+  "675": {
+    "status": "PASS",
+    "reason": "setJsonPath(d,'a.b',42) sets nested value via setAtPath",
+    "expected": "{a:{b:42}}",
+    "actual": "{a: {b: 42}} (test run)"
+  },
+  "680": {
+    "status": "PASS",
+    "reason": "toDotNotation({a:{b:1},c:2})={'a.b':1,'c':2}",
+    "expected": "{'a.b':1,'c':2}",
+    "actual": "{a.b: 1, c: 2} (test run)"
+  },
+  "685": {
+    "status": "PASS",
+    "reason": "toListDict({x:1,y:2})=[{key:x,value:1},{key:y,value:2}]",
+    "expected": "list of key-value dicts",
+    "actual": "[{key: x, value: 1}, {key: y, value: 2}] (test run)"
+  },
+  "695": {
+    "status": "PASS",
+    "reason": "darken(#FF8040,30) subtracts 30 from each RGB channel: [225,98,34]=#FFE16222",
+    "expected": "#FFE16222",
+    "actual": "#FFE16222 (test run)"
+  },
+  "697": {
+    "status": "PASS",
+    "reason": "toGrayscale(#FF0000): avg=(255+0+0)/3=85=0x55, result=#FF555555",
+    "expected": "#FF555555",
+    "actual": "#FF555555 (test run)"
+  },
+  "700": {
+    "status": "FAIL",
+    "reason": "decToHex(0)='0' not '00', so rgbToHex(255,128,0)='FF800' instead of 'FF8000' (missing leading zero)",
+    "expected": "FF8000",
+    "actual": "FF800"
+  },
+  "704": {
+    "status": "PASS",
+    "reason": "triadic returns 3 colors via channel rotation [RGB]->[GBR]->[BRG]",
+    "expected": "3 rotated colors",
+    "actual": "[#FF0000, #FF0000FF, #FF00FF00] (test run)"
+  },
+  "708": {
+    "status": "PASS",
+    "reason": "setBlue(#FF8040,200) sets B channel to 200=0xC8: #FFFF80C8",
+    "expected": "#FFFF80C8",
+    "actual": "#FFFF80C8 (test run)"
+  },
+  "712": {
+    "status": "FAIL",
+    "reason": "makeColor([a,r,g,b]) treats args as [R,G,B,A], so first arg is R not alpha. withAlpha(#FF0000,128) gives wrong #0080FF00 instead of #80FF0000",
+    "expected": "#80FF0000",
+    "actual": "#0080FF00"
+  },
+  "716": {
+    "status": "FAIL",
+    "reason": "Falcon min{a,b->da<db} returns farthest not nearest (inverted semantics). nearestColor(#804020,[#FF0000,#008000,#0000FF]) returns #0000FF (farthest)",
+    "expected": "#FF0000",
+    "actual": "#0000FF"
+  },
+  "720": {
+    "status": "PASS",
+    "reason": "desaturate(#FF0000,0.5): channels move toward avg 85. R=170=0xAA, G=B=43=0x2B. #FFAA2B2B",
+    "expected": "#FFAA2B2B",
+    "actual": "#FFAA2B2B (test run)"
+  },
+  "730": {
+    "status": "PASS",
+    "reason": "redChannel(#FF0000)=255, redChannel(#00FF00)=0",
+    "expected": "255\n0",
+    "actual": "255\n0 (test run)"
+  },
+  "734": {
+    "status": "PASS",
+    "reason": "colorToString(#FF8040)='rgb(255, 128, 64)'",
+    "expected": "rgb(255, 128, 64)",
+    "actual": "rgb(255, 128, 64) (test run)"
+  },
+  "739": {
+    "status": "PASS",
+    "reason": "tint(#FF0000,0.3): R stays 255, G=B=round(76.5)=77=0x4D. #FFFF4D4D",
+    "expected": "#FFFF4D4D",
+    "actual": "#FFFF4D4D (test run)"
+  },
+  "743": {
+    "status": "PASS",
+    "reason": "colorFromHSV(0,1,1)=makeColor([255,0,0])=#FFFF0000 (simplified impl)",
+    "expected": "#FFFF0000",
+    "actual": "#FFFF0000 (test run)"
+  },
+  "747": {
+    "status": "PASS",
+    "reason": "colorHistogram delegates to histogram, correctly counts color frequencies",
+    "expected": "frequency dict",
+    "actual": "correct dict (test run)"
+  },
+  "751": {
+    "status": "PASS",
+    "reason": "applyMask(#FF8040,240): 255&240=240=0xF0, 128&240=128=0x80, 64&240=64=0x40. #FFF08040",
+    "expected": "#FFF08040",
+    "actual": "#FFF08040 (test run)"
+  },
+  "757": {
+    "status": "PASS",
+    "reason": "colorLerp(#FF0000,#0000FF,0.5): R=128, G=0, B=128. #FF800080",
+    "expected": "#FF800080",
+    "actual": "#FF800080 (test run)"
+  },
+  "763": {
+    "status": "PASS",
+    "reason": "colorSolarize(#FF8040,100): R>100->0, G>100->127, B<=100->64. #FF007F40",
+    "expected": "#FF007F40",
+    "actual": "#FF007F40 (test run)"
+  },
+  "768": {
+    "status": "PASS",
+    "reason": "colorIsGreenish(#00FF00)=true (G>R&&G>B), colorIsGreenish(#FF0000)=false",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "772": {
+    "status": "PASS",
+    "reason": "if-else expression assigns 'A' since 85>80. Tested and verified",
+    "expected": "A",
+    "actual": "A (test run)"
+  },
+  "844": {
+    "status": "PASS",
+    "reason": "for-each builds {a:2,b:1} from ['a','b','a']",
+    "expected": "{a:2,b:1}",
+    "actual": "{a: 2, b: 1} (test run)"
+  },
+  "887": {
+    "status": "PASS",
+    "reason": "isOdd(3)=true (3%2!=0), isOdd(4)=false (4%2==0)",
+    "expected": "true/false",
+    "actual": "true\nfalse (test run)"
+  },
+  "891": {
+    "status": "PASS",
+    "reason": "min2(3,5)=3, min2(8,2)=2",
+    "expected": "3 and 2",
+    "actual": "3\n2 (test run)"
+  },
+  "896": {
+    "status": "PASS",
+    "reason": "factorial 0..10 = 1,1,2,6,...,3628800 all correct",
+    "expected": "0!=1..10!=3628800",
+    "actual": "all correct (test run)"
+  },
+  "898": {
+    "status": "PASS",
+    "reason": "gcdRec(24,36)=12",
+    "expected": "12",
+    "actual": "12 (test run)"
+  },
+  "901": {
+    "status": "PASS",
+    "reason": "sumList([1,2,3,4,5])=15 using reduce",
+    "expected": "15",
+    "actual": "15 (test run)"
+  },
+  "_summary": {
+    "batch": "batch_01",
+    "total": 200,
+    "PASS": 183,
+    "FAIL": 17,
+    "SKIP": 0,
+    "notes": "Falcon DSL has RTL (right-to-left) arithmetic evaluation for same-precedence ops, and max/min comparator semantics are inverted vs typical expectations."
+  }
+}

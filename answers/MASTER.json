@@ -1591,10 +1591,6 @@
     "problem": "A sports app stores a team's all-time win-loss record by opponent. Use `.containsKey(opponent)` to check if a record exists and update it with `.set()`, or initialize if not found.",
     "answer": "local records = {\"TeamA\": {\"wins\": 5, \"losses\": 3}, \"TeamC\": {\"wins\": 2, \"losses\": 6}}\nlocal opponent = \"TeamB\"\nif (records.containsKey(opponent)) {\n \nlocal rec = records.get(opponent, {})\n  rec.set(\"wins\", rec.get(\"wins\",0) + 1)\n  records.set(opponent, rec)\n} else {\n  records.set(opponent, {\"wins\": 1, \"losses\": 0})\n}\nprintln(records)"
   },
-  "6565": {
-    "problem": "A sports analyst stores weekly performance metrics in a dict. Use `.mergeInto()` to add this week's metrics and use `.toPairs()` to identify any metric that declined from last week.",
-    "answer": "local lastWeek = {\"points\": 22.5, \"rebounds\": 8.1, \"assists\": 5.3}\nlocal thisWeek = {\"points\": 19.2, \"rebounds\": 9.0, \"assists\": 4.8}\nlastWeek.mergeInto(thisWeek)\nfor (pair in lastWeek.toPairs()) {\n \nlocal old = lastWeek.get(pair[1], 0)\n  if (thisWeek.containsKey(pair[1]) && thisWeek.get(pair[1],0) < old) {\n    println(pair[1] _ \" declined\")\n  }\n}"
-  },
   "6567": {
     "problem": "A cooking app stores the flavor profile of dishes: `{\"spicy\":3,\"sweet\":1,\"sour\":2,\"salty\":4,\"bitter\":1}`. Use `.toPairs()` to find the dominant flavor and print a pairing recommendation.",
     "answer": "local flavors = {\"spicy\": 3, \"sweet\": 1, \"sour\": 2, \"salty\": 4, \"bitter\": 1}\nlocal maxFlavor = \"\"\nlocal maxVal = 0\nfor (pair in flavors.toPairs()) {\n  if (pair[2] > maxVal) { maxVal = pair[2] maxFlavor = pair[1] }\n}\nprintln(\"Dominant flavor: \" _ maxFlavor)\nif (maxFlavor === \"salty\") { println(\"Pairs well with: acidic or sweet elements\") }\nelse if (maxFlavor === \"spicy\") { println(\"Pairs well with: cooling dairy or sweet\") }\nelse { println(\"Pairs well with: complementary flavors\") }"
@@ -4179,10 +4175,6 @@
     "problem": "Write `applyN(fn_name, x, n)` — alias for `iterate`. Test.",
     "answer": "func applyN(fn, x, n) = {\n \nlocal res = x\n  for (i: 1 .. n) { res = fn(res) }\n  res\n}"
   },
-  "1681": {
-    "problem": "Write `trace(fn_name, x)` — call fn, print `\"Called fn_name with x → result\"`, return result. Test.",
-    "answer": "func trace(fn, x) = {\n \nlocal res = fn(x)\n  println(\"Called fn with \" _ x _ \" -> \" _ res)\n  res\n}"
-  },
   "1689": {
     "problem": "Write `when(condition, fn_name, x)` — call fn only if condition is true. Test.",
     "answer": "func whenCondition(condition, fn, x) = {\n  if (condition) fn(x) else x\n}"
@@ -4458,10 +4450,6 @@
   "2068": {
     "problem": "Implement a traffic-light encoding for a dashboard: given a list of `{\"metric\": m, \"value\": v, \"target\": t}` dicts, color each metric green if `value >= target`, yellow if within 10% below target, and red if more than 10% below target, using `makeColor`.",
     "answer": "func trafficLightEncoding(metrics) = {\n  metrics.map { m ->\n \nlocal v = m.get(\"value\", [])\n \nlocal t = m.get(\"target\", [])\n \nlocal c = #FF0000\n    if (v >= t) c = #00FF00\n    else if (v >= t * 0.9) c = #FFFF00\n \nlocal nm = copyDict(m)\n    nm.set(\"color\", c)\n    nm\n  }\n}"
-  },
-  "2116": {
-    "problem": "Write a waterfall computation loop: given a list of percentage-adjustment values and a starting amount, use a `for x in list` loop to apply each adjustment multiplicatively in sequence, printing the intermediate amount after each step and returning the final amount.",
-    "answer": "func waterfallLoop(adjustments, start) = {\n \nlocal amt = start\n  for (adj in adjustments) {\n    amt = amt * (1 + adj)\n    println(amt)\n  }\n  amt\n}"
   },
   "2186": {
     "problem": "Implement a returning function `computeSlidingCorrelation(seriesA, seriesB, window)` that computes the Pearson correlation between the two series in each window of the given size, returning a list of correlation values.",
@@ -5258,10 +5246,6 @@
   "3602": {
     "problem": "Implement `buildSyntaxColorMap(keywords, types, literals)` creating a syntax-coloring dict mapping each keyword to `#FF0000`, each type to `#0000FF`, and each literal to `#008000`. Merge all three dicts.",
     "answer": "func buildSyntaxColorMap(keywords, types, literals) = {\n \nlocal result = {}\n  for (k in keywords) { result.set(k, #FF0000) }\n  for (t in types) { result.set(t, #0000FF) }\n  for (l in literals) { result.set(l, #008000) }\n  result\n}\nprintln(buildSyntaxColorMap([\"if\",\"else\",\"while\"],[\"int\",\"string\",\"bool\"],[\"true\",\"false\",\"null\"]))"
-  },
-  "3624": {
-    "problem": "Write a `for` loop implementing naive string matching: for `text = \"abacabab\"` and `pattern = \"abab\"`, check every possible starting position and print each match start (1-based).",
-    "answer": "local text3624 = \"abacabab\"\nlocal pattern3624 = \"abab\"\nfor (i: 1 .. text3624.textLen() - pattern3624.textLen() + 1) {\n  if (text3624.segment(i, pattern3624.textLen()) === pattern3624) {\n    println(\"Match at position: \" _ i)\n  }\n}"
   },
   "3631": {
     "problem": "Implement a program using `for` loops to build a suffix automaton for `\"abbc\"`: create states and transitions iteratively. Print the number of states (should be at most `2n-1`).",

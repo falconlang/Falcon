@@ -422,7 +422,7 @@ func (p *LangParser) expr(minPrecedence int) ast.Expr {
 		if opToken.HasFlag(l.PreserveOrder) {
 			right = p.element()
 		} else {
-			right = p.expr(precedence)
+			right = p.expr(precedence + 1)
 		}
 		if rBinExpr, ok := right.(*common.BinaryExpr); ok && rBinExpr.CanRepeat(opToken.Type) {
 			// for NoPreserveOrder: merge binary expr with same operator (towards right)
