@@ -1,4 +1,19 @@
-func factorial(n) = {
-  if (n == 0) 1 else n * factorial(n-1)
-}
-println(factorial(5))
+func rleEncode(s) =
+  {
+    local res = ""
+    local cur = s.segment(1, 1)
+    local count = 1
+    for (i: 2 .. s.textLen() step 1) {
+      local ch = s.segment(i, 1)
+      if (ch === cur) {
+        count = count + 1
+      } else {
+        res = res _ count _ cur
+        cur = ch
+        count = 1
+      }
+    }
+    res _ count _ cur
+  }
+
+println(rleEncode("aaabbbbbcc"))
