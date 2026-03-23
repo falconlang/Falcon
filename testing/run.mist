@@ -1,22 +1,4 @@
 func factorial(n) = {
-  if (n <= 1) {
-    1
-  } else {
-    n * factorial(n - 1)
-  }
+  if (n == 0) 1 else n * factorial(n-1)
 }
-
-func RamanujanPi(terms) = {
-  local sum = [0]
-
-  for (k: 0 .. terms - 1) {
-    local num = factorial(4 * k) * (1103 + 26390 * k)
-    local den = factorial(k) ^ 4 * 396 ^ (4 * k)
-    sum[1] = sum[1] + num / den
-  }
-
-  local factor = (2 * sqrt(2)) / 9801
-  1 / (factor * sum[1])
-}
-
-println(RamanujanPi(3))
+println(factorial(5))

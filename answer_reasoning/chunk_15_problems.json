@@ -1,0 +1,402 @@
+[
+  {
+    "idx": 1514,
+    "problem": "Write `isHomogeneous(lst)` — returns `true` if all elements share the same type (`? number` or `? text` or `? list`). Test `[1,2,3]`, `[\"a\",\"b\"]`, `[1,\"a\"]`."
+  },
+  {
+    "idx": 1515,
+    "problem": "Declare a local `matrix` set to `[[1,2],[3,4]]`. Print `matrix ? list`, `matrix[1] ? list`, `matrix[1][1] ? number`."
+  },
+  {
+    "idx": 1516,
+    "problem": "Write `coerceList(v)` — if `v ? list` return `v`, else return `[v]`. Test with `5`, `\"hi\"`, `[1,2]`."
+  },
+  {
+    "idx": 1517,
+    "problem": "Declare a local `d` set to `{}`. Print `d ? dict`. Add a key and print `d.keys() ? list`."
+  },
+  {
+    "idx": 1518,
+    "problem": "Write `strictAdd(a, b)` — panics with a printed error if either argument is not a number (check with `?`), else returns `a + b`. Test with `(3,4)` and `(3,\"x\")`."
+  },
+  {
+    "idx": 1519,
+    "problem": "Build the string `\"Name: Falcon, Version: 2\"` using only the `_` join operator and separate local variables for each word and value. Print it."
+  },
+  {
+    "idx": 1520,
+    "problem": "Declare locals `first` = `\"John\"`, `last` = `\"Doe\"`, `age` = `30`. Print `\"Hello, \" _ first _ \" \" _ last _ \"! You are \" _ age _ \" years old.\"`."
+  },
+  {
+    "idx": 1521,
+    "problem": "Write `repeat(s, n)` that returns `s` joined `n` times using a `for` loop and `_`. Test `repeat(\"ab\", 4)`."
+  },
+  {
+    "idx": 1522,
+    "problem": "Write `joinWith(lst, sep)` without using `.join()` — iterate and build with `_`. Test `([\"a\",\"b\",\"c\"], \"-\")`."
+  },
+  {
+    "idx": 1523,
+    "problem": "Declare a local `words` set to `[\"The\", \"quick\", \"brown\", \"fox\"]`. Build the sentence using `.reduce(\"\") { w, acc -> if (acc ? emptyText) w else acc _ \" \" _ w }`. Print."
+  },
+  {
+    "idx": 1524,
+    "problem": "Write `padLeft(s, width, ch)` — prepend `ch` until `s.textLen() >= width`. Test `(\"7\", 4, \"0\")` → `\"0007\"`."
+  },
+  {
+    "idx": 1525,
+    "problem": "Write `padRight(s, width, ch)` — append `ch` until `s.textLen() >= width`. Test `(\"hi\", 6, \".\")` → `\"hi....\"` ."
+  },
+  {
+    "idx": 1526,
+    "problem": "Declare a local `items` set to `[\"apple\", \"banana\", \"cherry\"]`. Print a numbered list: `\"1. apple\\n2. banana…\"` using a `for` loop and `_`."
+  },
+  {
+    "idx": 1527,
+    "problem": "Write `titleCase(s)` — capitalise the first letter of each word (split at spaces, uppercase first char, rejoin with `_`). Test `\"hello world from falcon\"`."
+  },
+  {
+    "idx": 1528,
+    "problem": "Write `wrapLine(s, maxLen)` — if `s.textLen() > maxLen` truncate and append `\"…\"`, else return `s`. Test `(\"Hello World\", 7)` → `\"Hello W…\"`."
+  },
+  {
+    "idx": 1529,
+    "problem": "Declare `rows` = `[\"Name\", \"Age\", \"City\"]` and `vals` = `[\"Alice\", \"30\", \"Delhi\"]`. Print each as `\"Name: Alice\"` using `_` and parallel indexing."
+  },
+  {
+    "idx": 1530,
+    "problem": "Write `formatList(lst)` that returns `\"[\" _ lst.join(\", \") _ \"]\"`. Test with `[1,2,3]` — should match Falcon's own list printing style."
+  },
+  {
+    "idx": 1531,
+    "problem": "Write `abbreviate(s)` — takes a multi-word string, returns initials joined by `\".\"`. Test `\"National Aeronautics and Space Administration\"` → `\"N.A.a.S.A\"`."
+  },
+  {
+    "idx": 1532,
+    "problem": "Write `snakeToTitle(s)` — converts `\"hello_world_foo\"` to `\"Hello World Foo\"` by splitting at `\"_\"` and capitalising. Test the example."
+  },
+  {
+    "idx": 1533,
+    "problem": "Declare a local `template` = `\"Dear {name}, your order {id} is ready.\"`. Replace `{name}` and `{id}` using `.replaceFrom({\"\\{name\\}\": \"Alice\", \"\\{id\\}\": \"#42\"})`. Print."
+  },
+  {
+    "idx": 1534,
+    "problem": "Write `slugify(s)` — lowercases `s` and replaces spaces with `\"-\"`. Test `\"Hello World Example\"` → `\"hello-world-example\"`."
+  },
+  {
+    "idx": 1535,
+    "problem": "Write `countChar(s, ch)` — count occurrences of character `ch` in `s` using `.split(ch).listLen() - 1`. Test `(\"banana\", \"a\")` → `3`."
+  },
+  {
+    "idx": 1536,
+    "problem": "Declare locals `a` = `\"Falcon\"`, `b` = `\" Language\"`, `c` = `\" v2\"`. Build and print the full string in a single `println` using `_`."
+  },
+  {
+    "idx": 1537,
+    "problem": "Write `interleave(s1, s2)` — interleave characters of two strings using `segment(i, 1)` in a loop. Test `(\"abc\", \"123\")` → `\"a1b2c3\"`."
+  },
+  {
+    "idx": 1538,
+    "problem": "Declare a local `color` set to `makeColor([255, 128, 0])`. Print the color value. Then call `splitColor(color)` and print the RGBA list."
+  },
+  {
+    "idx": 1539,
+    "problem": "Write `blendColors(c1, c2)` — split both colors, average each channel, make a new color. Test with `makeColor([200,100,50])` and `makeColor([100,200,150])`."
+  },
+  {
+    "idx": 1540,
+    "problem": "Write `brightness(c)` — splits the color, computes `(r + g + b) / 3`, returns the value. Test with `makeColor([200, 100, 50])`."
+  },
+  {
+    "idx": 1541,
+    "problem": "Write `invertColor(c)` — splits the color and returns `makeColor([255-r, 255-g, 255-b])`. Test with `makeColor([100, 150, 200])`."
+  },
+  {
+    "idx": 1542,
+    "problem": "Write `toGreyscale(c)` — computes the average of R, G, B and returns `makeColor([avg, avg, avg])`. Test with `makeColor([80, 160, 240])`."
+  },
+  {
+    "idx": 1543,
+    "problem": "Declare a global `theme` set to `makeColor([30, 30, 30])`. Write `setTheme(r, g, b)` that updates `this.theme`. Call it with `(255, 87, 34)` and print."
+  },
+  {
+    "idx": 1544,
+    "problem": "Write `colorDistance(c1, c2)` — returns the sum of absolute differences of R, G, B channels. Test with two different colors."
+  },
+  {
+    "idx": 1545,
+    "problem": "Declare a list `stops` of 3 colors from dark to light using `makeColor`. Print each split as `[r, g, b]` on its own line."
+  },
+  {
+    "idx": 1546,
+    "problem": "Write `clampChannel(v)` — returns `v` if between `0` and `255`, else `0` or `255`. Use it inside a `safeColor(r,g,b)` function. Test with `(-10, 300, 128)`."
+  },
+  {
+    "idx": 1547,
+    "problem": "Declare a local `row` set to `\"Alice,30,Engineer\"`. Call `.csvRowToList()` and print each field separately."
+  },
+  {
+    "idx": 1548,
+    "problem": "Declare a local `fields` set to `[\"Bob\", \"25\", \"New York\", \"true\"]`. Call `.toCsvRow()` and print the resulting CSV string."
+  },
+  {
+    "idx": 1549,
+    "problem": "Declare a local `table` set to `\"Name,Age\\nAlice,30\\nBob,25\"`. Call `.csvTableToList()` and print the number of rows and columns in the first row."
+  },
+  {
+    "idx": 1550,
+    "problem": "Declare a list of lists `data` = `[[\"Alice\",\"30\"],[\"Bob\",\"25\"]]`. Call `.toCsvTable()` and print the result."
+  },
+  {
+    "idx": 1551,
+    "problem": "Write `parseCsvColumn(csv, colIdx)` — parses a CSV table string and returns all values in the given column as a list. Test with a 3-row, 3-column CSV."
+  },
+  {
+    "idx": 1552,
+    "problem": "Write `csvToDict(headerRow, dataRow)` — zips two CSV row strings into a dict. Test `(\"name,age\", \"Alice,30\")` → `{\"name\":\"Alice\", \"age\":\"30\"}`."
+  },
+  {
+    "idx": 1553,
+    "problem": "Declare a local `escaped` set to `\"\"\"quoted,field\"\",normal\"`. Parse with `.csvRowToList()` and print each field."
+  },
+  {
+    "idx": 1554,
+    "problem": "Write `filterCsvRows(table, colIdx, value)` — parse the table, keep rows where column `colIdx` equals `value`. Test on a 4-row CSV."
+  },
+  {
+    "idx": 1555,
+    "problem": "Declare a local `n` set to `255`. Print `decToHex(n)`, `decToBin(n)`, and `n` side by side in one `println` using `_`."
+  },
+  {
+    "idx": 1556,
+    "problem": "Write `hexToRgb(hex)` — splits a 6-char hex string into two-char chunks and converts each to decimal. Test `\"FF8000\"` → `[255, 128, 0]`."
+  },
+  {
+    "idx": 1557,
+    "problem": "Write `isPowerOfTwo(n)` — returns `true` if `n & (n-1) == 0` and `n > 0`. Test for `1, 2, 3, 4, 7, 8, 16`."
+  },
+  {
+    "idx": 1558,
+    "problem": "Write `countBits(n)` — counts the number of `1`-bits in `n` using bitwise `&` and a loop shifting right. Test `n=13` (binary `1101`) → `3`."
+  },
+  {
+    "idx": 1559,
+    "problem": "Write `xorSwap(a, b)` — swaps two numbers using only the `~` (xor) operator, no temp variable. Print before and after."
+  },
+  {
+    "idx": 1560,
+    "problem": "Write `setBit(n, pos)` — sets bit at position `pos` (1-based from right) using `|`. Test `(8, 1)` → `9`."
+  },
+  {
+    "idx": 1561,
+    "problem": "Write `clearBit(n, pos)` — clears bit at position `pos` using `&` with an inverted mask. Test `(15, 2)` → `13`."
+  },
+  {
+    "idx": 1562,
+    "problem": "Write `grayCode(n)` — returns the Gray code of `n` as `n ~ (n / 2)` (xor with right-shift). Print for `0` through `7`."
+  },
+  {
+    "idx": 1563,
+    "problem": "Declare a local `a` = `12` and `b` = `10`. Print `a & b`, `a | b`, `a ~ b` (xor) and explain each result with `_` in the same println."
+  },
+  {
+    "idx": 1564,
+    "problem": "Write `octalStr(n)` — converts an integer to its octal representation string using repeated `% 8` and `quot`. Test `n=255` → `\"377\"`."
+  },
+  {
+    "idx": 1565,
+    "problem": "Declare a local `flags` set to `0`. Set bits 1 and 3 using `|`. Check bit 2 using `& 4`. Print the flag value and the check."
+  },
+  {
+    "idx": 1566,
+    "problem": "Write `nibbles(n)` — splits a byte `n` into high nibble `(n / 16)` and low nibble `(n % 16)`. Print both as hex. Test `n=171` (0xAB)."
+  },
+  {
+    "idx": 1567,
+    "problem": "Write `rotateBitsLeft(n, bits, width)` — rotates the `width`-bit value `n` left by `bits` positions using `|`, `&`, and power. Test `(0b1011, 1, 4)` → `0b0111`."
+  },
+  {
+    "idx": 1568,
+    "problem": "Print a 4x4 truth table for XOR: for `a` in `[0,1]` and `b` in `[0,1]` print `a ~ b`."
+  },
+  {
+    "idx": 1569,
+    "problem": "Declare locals `s1` = `\"apple\"` and `s2` = `\"banana\"`. Print whether `s1 << s2` and `s1 >> s2` using the text relational operators."
+  },
+  {
+    "idx": 1570,
+    "problem": "Write `lexMin(lst)` — returns the lexicographically smallest string in a list. Use a `for` loop and `<<`. Test `[\"zebra\",\"apple\",\"mango\"]`."
+  },
+  {
+    "idx": 1571,
+    "problem": "Write `lexMax(lst)` — returns the lexicographically largest string using `>>`. Test `[\"cat\",\"dog\",\"ant\",\"zoo\"]`."
+  },
+  {
+    "idx": 1572,
+    "problem": "Write `lexSort(lst)` — sorts a list of strings lexicographically using insertion sort with `<<`. Test `[\"fig\",\"apple\",\"date\",\"banana\"]`."
+  },
+  {
+    "idx": 1573,
+    "problem": "Write `strictEquals(a, b)` — returns `true` if `a === b` (text equals). Test `(\"42\", 42)` — should be `false`. Then `(\"42\", \"42\")` — `true`."
+  },
+  {
+    "idx": 1574,
+    "problem": "Declare a list `names` = `[\"Alice\",\"alice\",\"ALICE\"]`. Check `names[1] === names[2]` and `names[1].lowercase() === names[2]`. Print both."
+  },
+  {
+    "idx": 1575,
+    "problem": "Write `between(s, lo, hi)` — returns `true` if `lo << s` or `lo === s`, and `s << hi` or `s === hi`. Test `(\"mango\", \"apple\", \"zebra\")`."
+  },
+  {
+    "idx": 1576,
+    "problem": "Write `groupByInitial(words)` — returns a dict mapping first character to a list of words starting with it. Test `[\"ant\",\"bee\",\"bat\",\"cat\",\"ape\"]`."
+  },
+  {
+    "idx": 1577,
+    "problem": "Write `versionCompare(v1, v2)` — splits two version strings `\"1.2.3\"` at `\".\"`, compares segments lexicographically. Returns `\"older\"`, `\"same\"`, or `\"newer\"`."
+  },
+  {
+    "idx": 1578,
+    "problem": "Declare a local `words` = `[\"delta\",\"alpha\",\"gamma\",\"beta\"]`. Sort using `.sort { a, b -> a << b }` and print."
+  },
+  {
+    "idx": 1579,
+    "problem": "Write `distinctSorted(lst)` — returns a sorted, deduplicated list of strings. Test `[\"b\",\"a\",\"b\",\"c\",\"a\"]` → `[\"a\",\"b\",\"c\"]`."
+  },
+  {
+    "idx": 1580,
+    "problem": "Write `textBetween(s, open, close)` — returns the substring between the first `open` and first `close` markers. Test `(\"say \\\"hello\\\"\", \"\\\"\", \"\\\"\")` → `\"hello\"`."
+  },
+  {
+    "idx": 1581,
+    "problem": "Declare a list `codes` = `[\"en\",\"fr\",\"de\",\"zh\"]`. Sort and print using `<<` comparator in `.sort { a, b -> a << b }`."
+  },
+  {
+    "idx": 1582,
+    "problem": "Write `isSortedAsc(lst)` — returns `true` if the string list is in ascending lexicographic order. Test `[\"ant\",\"bee\",\"cat\"]` and `[\"cat\",\"ant\"]`."
+  },
+  {
+    "idx": 1583,
+    "problem": "Declare a local `lst` = `[10, 20, 30, 40, 50]`. Print `lst.slice(2, 4)` and `lst.allButFirst()` and `lst.allButLast()` on separate lines."
+  },
+  {
+    "idx": 1584,
+    "problem": "Write `tail(lst, n)` — returns the last `n` elements using `slice`. Test `([1,2,3,4,5], 3)` → `[3,4,5]`."
+  },
+  {
+    "idx": 1585,
+    "problem": "Write `head(lst, n)` — returns the first `n` elements using `slice`. Test `([\"a\",\"b\",\"c\",\"d\"], 2)` → `[\"a\",\"b\"]`."
+  },
+  {
+    "idx": 1586,
+    "problem": "Write `middle(lst)` — removes first and last elements using `allButFirst` chained with `allButLast`. Test `[1,2,3,4,5]` → `[2,3,4]`."
+  },
+  {
+    "idx": 1587,
+    "problem": "Write `windows(lst, size)` — returns all contiguous sublists of length `size`. Test `([1,2,3,4,5], 3)` → `[[1,2,3],[2,3,4],[3,4,5]]`."
+  },
+  {
+    "idx": 1588,
+    "problem": "Declare a local `nums` = `[3,1,4,1,5,9,2,6]`. Print a random element using `.random()`. Then shuffle by calling `.random()` ten times and recording results."
+  },
+  {
+    "idx": 1589,
+    "problem": "Write `rotateLeft(lst, n)` — rotates the list left by `n` positions using `allButFirst` and `slice`. Test `([1,2,3,4,5], 2)` → `[3,4,5,1,2]`."
+  },
+  {
+    "idx": 1590,
+    "problem": "Write `rotateRight(lst, n)` — rotates right by `n` positions. Test `([1,2,3,4,5], 2)` → `[4,5,1,2,3]`."
+  },
+  {
+    "idx": 1591,
+    "problem": "Write `chunk(lst, size)` — splits a list into sublists of `size` using `slice` in a loop. Test `([1..8], 3)` → `[[1,2,3],[4,5,6],[7,8]]`."
+  },
+  {
+    "idx": 1592,
+    "problem": "Declare a local `words` = `[\"one\",\"two\",\"three\",\"four\"]`. Print `words.reverseList()` and verify that `words.reverseList().reverseList()` equals the original."
+  },
+  {
+    "idx": 1593,
+    "problem": "Write `flatten(lst)` — flattens a list of lists one level deep using `appendList`. Test `([[1,2],[3,4],[5]])` → `[1,2,3,4,5]`."
+  },
+  {
+    "idx": 1594,
+    "problem": "Write `zip(a, b)` — returns a list of two-element lists pairing elements by index. Test `([1,2,3],[\"a\",\"b\",\"c\"])` → `[[1,\"a\"],[2,\"b\"],[3,\"c\"]]`."
+  },
+  {
+    "idx": 1595,
+    "problem": "Write `enumerate(lst)` — returns a list of `[index, value]` pairs (1-based). Test `[\"a\",\"b\",\"c\"]` → `[[1,\"a\"],[2,\"b\"],[3,\"c\"]]`."
+  },
+  {
+    "idx": 1596,
+    "problem": "Declare a local `nested` set to `{}`. Call `nested.setAtPath([\"a\",\"b\",\"c\"], 42)`. Then call `nested.getAtPath([\"a\",\"b\",\"c\"], 0)` and print."
+  },
+  {
+    "idx": 1597,
+    "problem": "Write `deepMerge(base, patch)` — for each key in `patch`, if value is a dict recurse, else overwrite in `base`. Test with two nested dicts."
+  },
+  {
+    "idx": 1598,
+    "problem": "Declare a local `config` set to `{\"db\": {\"host\": \"localhost\", \"port\": 5432}, \"app\": {\"debug\": true}}`. Print `config.getAtPath([\"db\",\"host\"], \"unknown\")`."
+  },
+  {
+    "idx": 1599,
+    "problem": "Write `flattenDict(d, prefix)` — returns a flat dict with dot-joined keys (e.g. `\"db.host\"`). Test with a 2-level dict."
+  },
+  {
+    "idx": 1600,
+    "problem": "Declare a local `d` set to `{\"x\": 1, \"y\": 2, \"z\": 3}`. Print `d.keys()`, `d.values()`, and `d.toPairs()` each on a separate line."
+  },
+  {
+    "idx": 1601,
+    "problem": "Write `invertDict(d)` — swaps keys and values. Test `{\"a\":1,\"b\":2,\"c\":3}` → `{\"1\":\"a\",\"2\":\"b\",\"3\":\"c\"}`."
+  },
+  {
+    "idx": 1602,
+    "problem": "Write `mergeSum(d1, d2)` — merges two dicts, summing values for shared keys. Test `{\"a\":1,\"b\":2}` and `{\"b\":3,\"c\":4}` → `{\"a\":1,\"b\":5,\"c\":4}`."
+  },
+  {
+    "idx": 1603,
+    "problem": "Declare a local `registry` set to `{}`. Write `register(name, val)` that sets `this.registry` key. Register 5 items and then print all keys."
+  },
+  {
+    "idx": 1604,
+    "problem": "Write `pick(d, keys)` — returns a new dict with only the given keys. Test `({\"a\":1,\"b\":2,\"c\":3}, [\"a\",\"c\"])` → `{\"a\":1,\"c\":3}`."
+  },
+  {
+    "idx": 1605,
+    "problem": "Write `omit(d, keys)` — returns a dict without the listed keys. Test `({\"a\":1,\"b\":2,\"c\":3}, [\"b\"])` → `{\"a\":1,\"c\":3}`."
+  },
+  {
+    "idx": 1606,
+    "problem": "Write `histDict(lst)` — returns a dict of element → count. Test `[\"a\",\"b\",\"a\",\"c\",\"b\",\"a\"]` → `{\"a\":3,\"b\":2,\"c\":1}`."
+  },
+  {
+    "idx": 1607,
+    "problem": "Declare a local `s` = `\"hello world falcon\"`. Call `s.splitAtFirst(\" \")` and print both parts. Then call `s.splitAtAny([\" \",\"o\"])` and print the result list."
+  },
+  {
+    "idx": 1608,
+    "problem": "Write `words(s)` — splits `s` at spaces using `.splitAtSpaces()` and filters out empty strings. Test `\"  hello   world  \"`."
+  },
+  {
+    "idx": 1609,
+    "problem": "Write `extractBetween(s, open, close)` — finds the first occurrence of `open`, then the next `close`, returns the segment between. Test `(\"(abc)\", \"(\", \")\")`."
+  },
+  {
+    "idx": 1610,
+    "problem": "Declare a local `csv` = `\"alpha;beta;gamma\"`. Split at `\";\"` and print the second field."
+  },
+  {
+    "idx": 1611,
+    "problem": "Write `camelToWords(s)` — converts `\"helloWorldFoo\"` to `[\"hello\", \"World\", \"Foo\"]` by splitting at uppercase boundaries. Use `segment` in a loop."
+  },
+  {
+    "idx": 1612,
+    "problem": "Write `truncate(s, n, ellipsis)` — returns `s.segment(1, n) _ ellipsis` if `s.textLen() > n`, else `s`. Test `(\"Hello World\", 5, \"…\")`."
+  },
+  {
+    "idx": 1613,
+    "problem": "Declare a local `template` = `\"{{first}} {{last}}\"`. Replace placeholders using `.replaceFrom({\"{{first}}\": \"Jane\", \"{{last}}\": \"Smith\"})`. Print."
+  }
+]

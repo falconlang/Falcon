@@ -1,0 +1,402 @@
+[
+  {
+    "idx": 604,
+    "problem": "Implement `dungeonCrawlLoop(player, floors)` using a `for` range loop over floor numbers, generating enemies per floor, running combat, and healing the player between floors."
+  },
+  {
+    "idx": 605,
+    "problem": "Write a function `processTileEffects(player, tileEffectMap)` using an `if-else if` chain to apply effects based on the player's current tile type, handling `\"fire\"`, `\"ice\"`, `\"heal\"`, and `\"warp\"`."
+  },
+  {
+    "idx": 606,
+    "problem": "Declare a global variable `gameState` initialized to the string `\"menu\"` and a global `score` initialized to 0. Write a function `startGame()` that sets `this.gameState` to `\"playing\"` and resets `this.score` to 0."
+  },
+  {
+    "idx": 607,
+    "problem": "Declare a global `activeBuffs` as an empty list. Write a function `addBuff(buff)` that appends the buff string to `this.activeBuffs` only if it is not already present, and `hasBuff(buff)` that returns whether `this.activeBuffs` contains it."
+  },
+  {
+    "idx": 608,
+    "problem": "Write a function `buildPathWithBFS(grid, size, sR, sC, eR, eC)` using a `while`-based BFS with a queue list, maintaining a `visited` dict and a `cameFrom` dict to reconstruct the path."
+  },
+  {
+    "idx": 609,
+    "problem": "Write a function `inventoryAdd(inventory, item, maxSize)` that appends `item` to `inventory` only if the list length is less than `maxSize`, returning `true` on success."
+  },
+  {
+    "idx": 610,
+    "problem": "Write a function `generateTreasureRooms(rooms, fraction)` that randomly selects `floor(rooms.listLen() * fraction)` rooms from a list and marks them as treasure rooms."
+  },
+  {
+    "idx": 611,
+    "problem": "Implement `removeDeadEntities(entities)` that filters a list of entity dicts, keeping only those where `\"hp\"` is greater than 0, using `.filter { e -> e.get(\"hp\",0) >> 0 }`."
+  },
+  {
+    "idx": 612,
+    "problem": "Write a function `buildShopInventory(itemList, priceList)` that creates a shop dict mapping item name to `{\"price\": p, \"stock\": 10}` for each item."
+  },
+  {
+    "idx": 613,
+    "problem": "Write a void function `printQuestLog(quests)` that iterates over a list of quest dicts and prints a formatted quest log entry for each, showing title, status, and progress."
+  },
+  {
+    "idx": 614,
+    "problem": "Write a function `dropRate(baseRate, floor)` that models increasing loot drop rates with dungeon depth: `min(1.0, baseRate * (1 + floor * 0.05))` as a decimal probability."
+  },
+  {
+    "idx": 615,
+    "problem": "In a tile-based game, calculate how many tiles are within a diamond (Manhattan) radius `r` from a center. Write `diamondArea(r)` returning `2 * r^2 + 2 * r + 1`."
+  },
+  {
+    "idx": 616,
+    "problem": "Write a function `pixelToTile(pixelX, pixelY, tileSize)` that converts pixel coordinates back to 1-based tile coordinates using `floor` division, returning `[tileRow, tileCol]`."
+  },
+  {
+    "idx": 617,
+    "problem": "Calculate experience penalty for dying in a game. Write `deathXpPenalty(currentXp, penaltyPct)` returning `max(0, floor(currentXp - currentXp * penaltyPct / 100))`."
+  },
+  {
+    "idx": 618,
+    "problem": "Write a function `heatDecay(currentHeat, coolRate)` that simulates a heat gauge cooling down, returning `max(0, currentHeat - coolRate)` each frame."
+  },
+  {
+    "idx": 619,
+    "problem": "Calculate a card game hand value. Write `handValue(cardValues)` taking a list of integer card values and returning the sum, then checking if any ace (value 11) should be downgraded to 1 to stay under 22."
+  },
+  {
+    "idx": 620,
+    "problem": "Calculate how many tiles a unit can move given its movement points and terrain costs. Write `movesRemaining(movePts, terrainCostList)` by subtracting costs from `movePts` iteratively and returning the count before going negative."
+  },
+  {
+    "idx": 621,
+    "problem": "Create a function `chessPieceNotation(piece, fromRow, fromCol, toRow, toCol)` that formats a move as algebraic notation like `\"Nb1c3\"` using the piece code and column letters a–h."
+  },
+  {
+    "idx": 622,
+    "problem": "Create a function `inventorySlotText(item, quantity)` that formats an inventory display entry as `\"Potion x3\"` or `\"Empty\"` if the item is an empty string."
+  },
+  {
+    "idx": 623,
+    "problem": "Create a function `achievementUnlocked(achievName, points)` returning `\"Achievement Unlocked: \" _ achievName _ \" (+\" _ points _ \" pts)\"`."
+  },
+  {
+    "idx": 624,
+    "problem": "Write a function `mapCoordToChess(row, col)` that converts 1-based grid coordinates to chess notation like `\"e4\"`, mapping col 1–8 to letters a–h and row 1–8 to digits 1–8."
+  },
+  {
+    "idx": 625,
+    "problem": "Create a function `buildRoomLabel(roomId, roomType, cleared)` returning `\"[Room #4 - Armory] ✓\"` or `\"[Room #4 - Armory]\"` based on whether the room was cleared (avoid emoji unless asked — use `\"(cleared)\"` suffix instead)."
+  },
+  {
+    "idx": 626,
+    "problem": "Create a function `dungeon floor message(floor, isBossFloor)` (name it `floorMessage`) returning `\"Entering Floor 5...\"` or `\"Entering Floor 5... BOSS AWAITS\"` if it is a boss floor."
+  },
+  {
+    "idx": 627,
+    "problem": "Create a function `directionArrow(direction)` returning `\"^\"`, `\"v\"`, `\"<\"`, `\">\"` for `\"up\"`, `\"down\"`, `\"left\"`, `\"right\"`, and `\"?\"` for unknown directions."
+  },
+  {
+    "idx": 628,
+    "problem": "Write a function `setCell(board, row, col, val)` that sets `board[row][col]` to `val` (1-based indices), leaving the board unchanged if coordinates are out of bounds."
+  },
+  {
+    "idx": 629,
+    "problem": "Implement `floodFill(board, row, col, oldVal, newVal)` that performs a flood fill on a 2D board using an iterative stack-based approach, replacing connected cells of `oldVal` with `newVal`."
+  },
+  {
+    "idx": 630,
+    "problem": "Write a function `deckCut(deck, cutPoint)` that splits `deck` at `cutPoint` and reorders it so the second half comes first, simulating a deck cut."
+  },
+  {
+    "idx": 631,
+    "problem": "Implement `dungeonGenRooms(mapW, mapH, count)` that generates `count` random non-overlapping room dicts `{\"row\",\"col\",\"w\",\"h\"}` on a map of given dimensions."
+  },
+  {
+    "idx": 632,
+    "problem": "Implement `timedEventList(events, currentTime)` that filters a list of event dicts `{\"time\",\"name\"}` to return only those whose `\"time\"` is ≤ `currentTime`."
+  },
+  {
+    "idx": 633,
+    "problem": "Write a function `chunkList(lst, chunkSize)` that splits a flat list into a list of sub-lists of size `chunkSize` (last chunk may be smaller)."
+  },
+  {
+    "idx": 634,
+    "problem": "Implement `buildEntitySnapshot(entities)` that creates a snapshot list of entity states by copying each entity dict (deep copy pattern), so future changes do not affect the snapshot."
+  },
+  {
+    "idx": 635,
+    "problem": "Write a function `initStatusEffects(effectNames)` that converts a list of effect name strings into a list of dicts `{\"name\",\"active\",\"duration\"}` with `active` set to `false` and `duration` to 0."
+  },
+  {
+    "idx": 636,
+    "problem": "Implement `applyStatusToEntity(entity, statusName, duration)` that adds a nested dict `{\"active\": true, \"duration\": duration}` under key `statusName` in the entity's dict."
+  },
+  {
+    "idx": 637,
+    "problem": "Implement `clearRoom(room)` that sets `\"cleared\"` to `true` in the room dict and empties the `\"entities\"` list."
+  },
+  {
+    "idx": 638,
+    "problem": "Implement `craftItem(recipe, inventory)` where `recipe` is a dict of `{itemName: quantity}` required materials, checking if `inventory` (a dict of same format) has enough of each, returning `true` if all are available."
+  },
+  {
+    "idx": 639,
+    "problem": "Implement `createChessPiece(type, color, row, col)` returning a piece dict with those fields plus `\"hasMoved\"` set to `false`, used for chess move validation."
+  },
+  {
+    "idx": 640,
+    "problem": "Implement `createPowerup(type, duration, effect)` returning a powerup dict with those keys plus `\"active\"` set to `false` and `\"remainingTime\"` set to `duration`."
+  },
+  {
+    "idx": 641,
+    "problem": "Implement `getMapTile(mapDict, row, col)` that retrieves a tile value from a map dict using the `\"r_c\"` key format, returning a default wall value if not found."
+  },
+  {
+    "idx": 642,
+    "problem": "Write a function `createBoss(name, phase)` that builds a boss entity dict with increased stats based on phase: each phase multiplies base stats by `1 + (phase - 1) * 0.5`."
+  },
+  {
+    "idx": 643,
+    "problem": "Implement `buildEquipmentSlots()` returning a dict with keys `\"head\"`, `\"chest\"`, `\"legs\"`, `\"feet\"`, `\"mainHand\"`, `\"offHand\"`, each initialized to `null`."
+  },
+  {
+    "idx": 644,
+    "problem": "Implement `unlockAchievement(map, id)` that sets `\"unlocked\"` to `true` for the given achievement ID in the achievement map dict."
+  },
+  {
+    "idx": 645,
+    "problem": "Implement `buildStatusEffectRegistry(effects)` that creates a dict from a list of effect dicts `{\"name\",\"type\",\"power\"}`, keyed by `\"name\"`."
+  },
+  {
+    "idx": 646,
+    "problem": "Write a function `buildBuffRegistry(buffs)` that creates a dict mapping buff names to their effect dicts, from a list of buff dicts each with a `\"name\"` key."
+  },
+  {
+    "idx": 647,
+    "problem": "Write a function `buildTrapDict(trapList)` that converts a list of trap dicts `{\"row\",\"col\",\"type\",\"damage\",\"triggered\"}` into a position-keyed dict for fast lookup."
+  },
+  {
+    "idx": 648,
+    "problem": "Write a function `blendColors(color1, color2, t)` that linearly interpolates between two colors at factor `t` (0–1) by splitting both colors, blending each channel, and calling `makeColor`."
+  },
+  {
+    "idx": 649,
+    "problem": "Write a function `mapRegionColor(regionType)` returning colors for world map regions: `#33AA33` for `\"forest\"`, `#DDDD55` for `\"desert\"`, `#6699FF` for `\"ocean\"`, `#AAAAAA` for `\"mountain\"`, `#885522` for `\"swamp\"`."
+  },
+  {
+    "idx": 650,
+    "problem": "Write a function `spellChargeColor(charge, maxCharge)` that interpolates from dark grey `[50,50,50]` to bright white `[255,255,255]` based on charge fraction, using `makeColor`."
+  },
+  {
+    "idx": 651,
+    "problem": "Implement `dungeonAmbientColor(floor)` that shifts ambient lighting deeper into red and darkens it as `floor` increases: start at `#FFEECC` for floor 1 and decrease each channel slightly per floor."
+  },
+  {
+    "idx": 652,
+    "problem": "Write a function `clearFullRows(board, size)` that uses a `while` loop to repeatedly find and remove full rows from a 2D board, shifting rows down and prepending a new empty row."
+  },
+  {
+    "idx": 653,
+    "problem": "Write a function `timerCountdown(seconds)` using a `while` loop that decrements a counter each tick, triggering an event function every 10 ticks."
+  },
+  {
+    "idx": 654,
+    "problem": "Write a function `generateRandomMap(width, height, wallPct)` using nested `for` loops to fill a 2D grid: each cell is a wall with probability `wallPct` using `randFloat()`, otherwise floor."
+  },
+  {
+    "idx": 655,
+    "problem": "Implement `buildTileTransitions(tileList)` using a `for k,v in dict` loop over a tile definition dict to build a transition-cost matrix as a dict of dicts."
+  },
+  {
+    "idx": 656,
+    "problem": "Write `waveSort(list)` — same as zigzag but using sort-then-swap approach. Test."
+  },
+  {
+    "idx": 657,
+    "problem": "Write `buildHeap(list)` — simulate a min-heap using a list. Write `heapPush(heap, val)` and `heapPop(heap)`. Test."
+  },
+  {
+    "idx": 658,
+    "problem": "Write `pipeline(value, stages)` — each stage is a string name of a transform. Apply sequentially. Return result. Test `(10, [\"double\",\"increment\",\"square\"])`."
+  },
+  {
+    "idx": 659,
+    "problem": "Write `bfsDict(graph, start)` — BFS traversal. Test."
+  },
+  {
+    "idx": 660,
+    "problem": "Write `floydWarshall(matrix)` — all-pairs shortest path on adjacency matrix. Test 4-node graph."
+  },
+  {
+    "idx": 661,
+    "problem": "Write a loop to detect whether a list forms a palindrome. Print result and do not use `reverseList`."
+  },
+  {
+    "idx": 662,
+    "problem": "Declare a local `prev` and `curr` both set to `1`. Advance the pair 8 times using Fibonacci stepping (no function). Print each `curr`."
+  },
+  {
+    "idx": 663,
+    "problem": "Use a while loop to generate the Padovan sequence (each term = sum of two terms before the previous). Print first 15."
+  },
+  {
+    "idx": 664,
+    "problem": "Write `isSmith(n)` — a composite whose digit sum equals the sum of digits of its prime factors. Test `4`, `22`, `27`, `121`."
+  },
+  {
+    "idx": 665,
+    "problem": "Declare locals `x0`, `y0`, `x1`, `y1` as two 2D points. Compute midpoint and distance. Print both."
+  },
+  {
+    "idx": 666,
+    "problem": "Compute `pi` via the Monte Carlo method: generate `10000` random `(x, y)` pairs in `[0,1]` and count how many fall inside the unit circle. Print the approximation."
+  },
+  {
+    "idx": 667,
+    "problem": "Write `jacobiSymbol(a, n)` — simplified Jacobi symbol computation for odd `n`. Test `(2, 15)`."
+  },
+  {
+    "idx": 668,
+    "problem": "Write `collatzMax(n)` — the maximum value reached in the Collatz sequence starting at `n`. Test `n=27`."
+  },
+  {
+    "idx": 669,
+    "problem": "Write `odious(n)` — odd number of `1` bits. Collect first 10 odious numbers."
+  },
+  {
+    "idx": 670,
+    "problem": "Write `intToBijective(n)` — bijective base-10 (digits 1–9 only, no zero). Test `9`, `10`, `19`, `100`."
+  },
+  {
+    "idx": 671,
+    "problem": "Write `longestWordNoRepeats(sentence)` — word with no repeated characters. Test."
+  },
+  {
+    "idx": 672,
+    "problem": "Write `longestNonRepeatSubstring(s)` — length of longest substring with no repeating characters. Test `\"abcabcbb\"`."
+  },
+  {
+    "idx": 673,
+    "problem": "Write `countBracketDepth(s)` — maximum nesting depth of `(`. Test `\"((a)(b(c)))\"`"
+  },
+  {
+    "idx": 674,
+    "problem": "Write `expandContractions(s)` using `replaceFrom` with a contraction dict. Test `\"I can't don't won't\"`."
+  },
+  {
+    "idx": 675,
+    "problem": "Write `toCurrencyString(amount)` — format `1234567.89` as `\"1,234,567.89\"`. Test."
+  },
+  {
+    "idx": 676,
+    "problem": "Write `slidingWindowMax(list, k)` — max in each sliding window of size `k`. Test `([1,3,-1,-3,5,3,6,7], 3)`."
+  },
+  {
+    "idx": 677,
+    "problem": "Write `stockBuySellMultiple(prices)` — maximum profit with unlimited transactions. Test."
+  },
+  {
+    "idx": 678,
+    "problem": "Write `subarrayCount(list, target)` — number of subarrays summing to `target`. Test."
+  },
+  {
+    "idx": 679,
+    "problem": "Write `longestSublistWithUniqueElems(list)` — length of longest contiguous section with all unique elements. Test."
+  },
+  {
+    "idx": 680,
+    "problem": "Write `rangeSum(prefixSums, l, r)` — sum of elements from `l` to `r` using prefix sums. Test."
+  },
+  {
+    "idx": 681,
+    "problem": "Write `interweave(a, b, c)` — interleave three lists. Test."
+  },
+  {
+    "idx": 682,
+    "problem": "Write `listMax(a, b)` — element-wise maximum. Test."
+  },
+  {
+    "idx": 683,
+    "problem": "Write `countByRange(d, lo, hi)` — count values within `[lo, hi]`. Test."
+  },
+  {
+    "idx": 684,
+    "problem": "Write `mergeWithConflict(a, b, strategy)` — on conflict, pick `\"first\"`, `\"second\"`, or `\"sum\"`. Test all three."
+  },
+  {
+    "idx": 685,
+    "problem": "Write `dictToCSV(headers, rows)` — list of dicts to CSV string. Test 3 rows."
+  },
+  {
+    "idx": 686,
+    "problem": "Write `neonify(color)` — boost saturation by pushing channels toward their extreme. Test."
+  },
+  {
+    "idx": 687,
+    "problem": "Write `hexToColor(hex)` — parse 6-char hex to `makeColor`. Test `\"FF8000\"`."
+  },
+  {
+    "idx": 688,
+    "problem": "Write `colorDelta(a, b)` — return new color representing absolute channel-wise difference. Test."
+  },
+  {
+    "idx": 689,
+    "problem": "Write a loop that collapses consecutive equal elements: `[1,1,2,2,2,3,1,1]` → `[1,2,3,1]`. Print result."
+  },
+  {
+    "idx": 690,
+    "problem": "Simulate a rain gauge: a list of hourly readings. Use a loop to find the longest dry spell (consecutive zeros). Test."
+  },
+  {
+    "idx": 691,
+    "problem": "Write a for-each loop over a nested list, printing the index and sum of each inner list."
+  },
+  {
+    "idx": 692,
+    "problem": "Use a for-each loop over a list of strings and collect only those that are palindromes. Print the result list."
+  },
+  {
+    "idx": 693,
+    "problem": "Write `coroutineSim(steps)` — simulate cooperative multitasking with a list of `[name, action]` steps. Print each task's turn."
+  },
+  {
+    "idx": 694,
+    "problem": "Write `generate(seed, fn, n)` — produce a list of `n` values where each is derived from the previous by named function dispatch. Test."
+  },
+  {
+    "idx": 695,
+    "problem": "Write `geneticStep(population, fitnessFn, mutationRate)` — one generation of selection, crossover, and mutation on lists of bits. Test on a simple target bit string."
+  },
+  {
+    "idx": 696,
+    "problem": "Write `sortAndDedupe_secure(bytes)` — sort byte list and remove duplicates in constant-ish time. Test."
+  },
+  {
+    "idx": 697,
+    "problem": "Write `byteFrequency(ciphertext)` — count frequency of each hex byte pair. Test a 20-char hex string."
+  },
+  {
+    "idx": 698,
+    "problem": "Write `chaoCipher_encrypt(text, cipherWheel, plainWheel)` — Chaocipher: encrypt and rotate wheels. Test 5 chars."
+  },
+  {
+    "idx": 699,
+    "problem": "Write `detectECB(cipherblocks)` — detect ECB mode by finding duplicate 16-byte blocks. Return bool. Test."
+  },
+  {
+    "idx": 700,
+    "problem": "Write `formatCiphertext(header, body, mac)` — format an encrypted message envelope as a dict. Test."
+  },
+  {
+    "idx": 701,
+    "problem": "Write `ecbDecrypt(blocks, key, inv_sbox)` — reverse ECB. Test round-trip."
+  },
+  {
+    "idx": 702,
+    "problem": "Write `aes128CBC_encrypt(plaintext, key, iv)` — full AES-128-CBC encryption. Test."
+  },
+  {
+    "idx": 703,
+    "problem": "Write `lweEncrypt(msg, A, s, e, q)` — LWE encryption: b = A*s + e + msg*(q/2). Test."
+  }
+]

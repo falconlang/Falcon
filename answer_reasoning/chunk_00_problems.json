@@ -1,0 +1,402 @@
+[
+  {
+    "idx": 0,
+    "problem": "Write `isAnagram(a, b)` by comparing sorted character lists. Test `(\"listen\", \"silent\")`."
+  },
+  {
+    "idx": 1,
+    "problem": "Sort `[\"banana\", \"apple\", \"date\", \"cherry\"]` alphabetically."
+  },
+  {
+    "idx": 2,
+    "problem": "Write `insertSorted(list, val)` — insert into already-sorted list. Test."
+  },
+  {
+    "idx": 3,
+    "problem": "Write `countSortedPairs(list)` — count pairs `(i,j)` where `i<j` and `list[i] < list[j]`."
+  },
+  {
+    "idx": 4,
+    "problem": "Build a frequency-sorted word list from a sentence. Test `\"to be or not to be\"`."
+  },
+  {
+    "idx": 5,
+    "problem": "Write a loop to detect if a list is sorted ascending. Stop at first violation."
+  },
+  {
+    "idx": 6,
+    "problem": "Write `linearSearch(list, val)`. Test."
+  },
+  {
+    "idx": 7,
+    "problem": "Write `topologicalSort(graph)` — Kahn's algorithm. Test DAG."
+  },
+  {
+    "idx": 8,
+    "problem": "Write `rotateChars(s, n)` — ROT-n cipher. Test `(\"Hello\", 13)` for ROT13."
+  },
+  {
+    "idx": 9,
+    "problem": "Write `normalize(x, min, max)` = `(x - min) / (max - min)`. Test with `(75, 0, 100)`."
+  },
+  {
+    "idx": 10,
+    "problem": "Write `bimap(d, keyFn, valFn)` — transform both keys and values. Test."
+  },
+  {
+    "idx": 11,
+    "problem": "Convert pairs `[[\"a\",1],[\"b\",2],[\"c\",3]]` to a dict using `pairsToDict`."
+  },
+  {
+    "idx": 12,
+    "problem": "Merge `{\"a\":1,\"b\":2}` with `{\"c\":3,\"d\":4}` using `mergeInto`."
+  },
+  {
+    "idx": 13,
+    "problem": "Use `getAtPath` to get `\"age\"` from `{\"user\":{\"profile\":{\"age\":25}}}`."
+  },
+  {
+    "idx": 14,
+    "problem": "Use `walkTree` to reach `[\"root\",\"child\"]` in a nested dict."
+  },
+  {
+    "idx": 15,
+    "problem": "Write a function `hypotenuse(a, b) = { sqrt(a^2 + b^2) }`. Test with `(5, 12)` and `(8, 15)`."
+  },
+  {
+    "idx": 16,
+    "problem": "Write `countWords(s)` that returns number of words. Test with `\"  one  two   three  \"`."
+  },
+  {
+    "idx": 17,
+    "problem": "Write `histogram(list)` — returns dict of value frequencies. Test."
+  },
+  {
+    "idx": 18,
+    "problem": "Write `isOdd(n) = { n % 2 != 0 }`. Test."
+  },
+  {
+    "idx": 19,
+    "problem": "Write a void function `printGreeting(name)` that prints `\"Hello, name!\"`. Call it 3 times."
+  },
+  {
+    "idx": 20,
+    "problem": "Build a config store: nested dict with `get` and `set`. Test two levels of nesting."
+  },
+  {
+    "idx": 21,
+    "problem": "Declare a global variable `score` initialized to `0`, then print it using `this.score`."
+  },
+  {
+    "idx": 22,
+    "problem": "Declare a global `sessionTokens` as an empty list. Write `addToken(t)` and `revokeToken(t)` functions. Simulate and print."
+  },
+  {
+    "idx": 23,
+    "problem": "Write `sumOfSquaredDigits(n)`. Test `89` (enters cycle) and `1` (happy number)."
+  },
+  {
+    "idx": 24,
+    "problem": "Write `countNodes(tree)`. Test."
+  },
+  {
+    "idx": 25,
+    "problem": "Create a list `[\"Bob\", \"25\", \"Engineer\"]` and convert to CSV row with `toCsvRow`."
+  },
+  {
+    "idx": 26,
+    "problem": "Write `lastIndexOf(s, sub)` — last occurrence index. Test `(\"abcabc\", \"b\")`."
+  },
+  {
+    "idx": 27,
+    "problem": "Print `[10, 20, 30, 40, 50, 60].slice(2, 4)`."
+  },
+  {
+    "idx": 28,
+    "problem": "Write `indexOf(list, val)` manually. Confirm with built-in."
+  },
+  {
+    "idx": 29,
+    "problem": "Declare a local variable `name` set to `\"Falcon\"` and print it."
+  },
+  {
+    "idx": 30,
+    "problem": "Declare a local variable `n` set to `7`. Print whether it is greater than `5` using an if expression."
+  },
+  {
+    "idx": 31,
+    "problem": "Declare a local `age` set to `17`. Print `\"Minor\"` if under 18, else `\"Adult\"`."
+  },
+  {
+    "idx": 32,
+    "problem": "Declare a local `hexVal` set to `\"1F\"`. Print `hexToDec(hexVal)`."
+  },
+  {
+    "idx": 33,
+    "problem": "Declare a local `angle` set to `45`. Compute `sin(radians(angle))` and print formatted to 4 decimal places."
+  },
+  {
+    "idx": 34,
+    "problem": "Declare a local `n` set to `5`. Print the sum of integers from `1` to `n` using the formula `n*(n+1)/2`."
+  },
+  {
+    "idx": 35,
+    "problem": "Declare a local `x` set to `3.999`. Print the result of casting to integer via `floor(x)`."
+  },
+  {
+    "idx": 36,
+    "problem": "Write `alternatingCase(s)` that alternates upper/lower for each character. Test `\"hello\"`."
+  },
+  {
+    "idx": 37,
+    "problem": "Print the sum of squares from `1` to `10` using a for loop."
+  },
+  {
+    "idx": 38,
+    "problem": "Use a for loop to implement `map` manually: double each element and collect."
+  },
+  {
+    "idx": 39,
+    "problem": "Use nested for loops to compute the outer product of `[1,2,3]` and `[4,5,6]`."
+  },
+  {
+    "idx": 40,
+    "problem": "Compute `n!` for `n = 12` using a while loop."
+  },
+  {
+    "idx": 41,
+    "problem": "Use a while loop to convert a decimal number to binary step-by-step."
+  },
+  {
+    "idx": 42,
+    "problem": "Write a while loop to drain a queue (list). Pop from front until empty."
+  },
+  {
+    "idx": 43,
+    "problem": "Print `sqrt(2)` formatted to 6 decimal places."
+  },
+  {
+    "idx": 44,
+    "problem": "Write `countPrimes(n)` that counts all primes up to `n`. Print for `n=100`."
+  },
+  {
+    "idx": 45,
+    "problem": "Write `isMersennePrime(p)` checking if `2^p - 1` is prime. Test `p=2,3,5,7`."
+  },
+  {
+    "idx": 46,
+    "problem": "Write `entropy(probList)` = `-sum(p * log(p))`. Test `[0.5, 0.25, 0.25]`."
+  },
+  {
+    "idx": 47,
+    "problem": "Compute BMI from weight `70` kg and height `1.75` m. Print category."
+  },
+  {
+    "idx": 48,
+    "problem": "Write `knapsack(weights, values, cap)` — 0/1 knapsack DP. Test small example."
+  },
+  {
+    "idx": 49,
+    "problem": "Declare two globals `firstName` and `lastName`. Print the full name joined by a space."
+  },
+  {
+    "idx": 50,
+    "problem": "Declare locals `monday` through `friday` each set to hours worked (e.g. `8, 7, 9, 6, 8`). Print total weekly hours."
+  },
+  {
+    "idx": 51,
+    "problem": "Compute and print the hypotenuse of a right triangle with legs `3` and `4`."
+  },
+  {
+    "idx": 52,
+    "problem": "Compute `exp(2)` and print it formatted to 4 decimal places."
+  },
+  {
+    "idx": 53,
+    "problem": "Print the decimal value of hex `\"DEAD\"`."
+  },
+  {
+    "idx": 54,
+    "problem": "Compute `mod(123, 7)`, `rem(123, 7)`, and `quot(123, 7)` and print all three."
+  },
+  {
+    "idx": 55,
+    "problem": "Compute the area of a rectangle with width `13.5` and height `7.2` and print."
+  },
+  {
+    "idx": 56,
+    "problem": "Compute the distance between `(1, 2)` and `(4, 6)` and print."
+  },
+  {
+    "idx": 57,
+    "problem": "Print all multiples of `7` from `1` to `100`."
+  },
+  {
+    "idx": 58,
+    "problem": "Print the sum of all even numbers from `2` to `50`."
+  },
+  {
+    "idx": 59,
+    "problem": "Write `countDivisors(n)`. Print how many divisors `60` has."
+  },
+  {
+    "idx": 60,
+    "problem": "Write `collatzLength(n)` that counts steps to reach 1. Test `27`, `6`, `1`."
+  },
+  {
+    "idx": 61,
+    "problem": "Write `toHex(n)` using `decToHex`. Test `255`, `4096`, `65535`."
+  },
+  {
+    "idx": 62,
+    "problem": "Write `harmonicSum(n)` = sum of `1/i` for `i` from 1 to n. Print for `n=10`."
+  },
+  {
+    "idx": 63,
+    "problem": "Write `lerp(a, b, t)` = `a + (b - a) * t`. Print values for `t` in `[0, 0.25, 0.5, 0.75, 1]`."
+  },
+  {
+    "idx": 64,
+    "problem": "Write `lucas(n)` — Lucas sequence starting `2, 1`. Print first 10."
+  },
+  {
+    "idx": 65,
+    "problem": "Compute the sum of the first `n` cubes: `(n*(n+1)/2)^2`. Test `n=5`."
+  },
+  {
+    "idx": 66,
+    "problem": "Write `relu(x) = max(0, x)` equivalent using if expression. Test `[-3, 0, 2, 5]`."
+  },
+  {
+    "idx": 67,
+    "problem": "Write `roundTo(x, decimals)` using `round(x * 10^decimals) / 10^decimals`. Test `(3.14159, 2)`."
+  },
+  {
+    "idx": 68,
+    "problem": "Compute the magnitude of vector `[3, 4, 5]` using `sqrt`."
+  },
+  {
+    "idx": 69,
+    "problem": "Write `interpolate(points, x)` that does linear interpolation between two nearest points in a list of `[x, y]` pairs."
+  },
+  {
+    "idx": 70,
+    "problem": "Write `popcount(n)` that counts the number of `1` bits. Test `255`, `256`, `170`."
+  },
+  {
+    "idx": 71,
+    "problem": "Write `binomial(n, k)` using `nCr`. Print Pascal's triangle for `n=0..6`."
+  },
+  {
+    "idx": 72,
+    "problem": "Write `cubeRoot(n) = n ^ (1/3)`. Test `27`, `64`, `125`."
+  },
+  {
+    "idx": 73,
+    "problem": "Compute cumulative sums of `[1, 2, 3, 4, 5]` and print the resulting list."
+  },
+  {
+    "idx": 74,
+    "problem": "Write `nthRoot(x, n) = x ^ (1/n)`. Test `(81, 4)`, `(32, 5)`, `(64, 6)`."
+  },
+  {
+    "idx": 75,
+    "problem": "Print whether `\"javascript\"` contains the substring `\"java\"`."
+  },
+  {
+    "idx": 76,
+    "problem": "Split `\"key=value\"` at first `\"=\"` and print the key and value separately."
+  },
+  {
+    "idx": 77,
+    "problem": "Extract the substring from index `2` to length `4` from `\"abcdefgh\"`."
+  },
+  {
+    "idx": 78,
+    "problem": "Split `\"one;two|three.four\"` at any of `[\";\", \"|\", \".\"]` and print the parts."
+  },
+  {
+    "idx": 79,
+    "problem": "Write a function `wordCount(s)` using `trim` and `splitAtSpaces`. Test with various sentences."
+  },
+  {
+    "idx": 80,
+    "problem": "Write `padLeft(s, width, ch)` that pads the string on the left. Test `(\"42\", 6, \"0\")`."
+  },
+  {
+    "idx": 81,
+    "problem": "Write `removeSuffix(s, suffix)` that strips a suffix if present. Test `(\"index.html\", \".html\")`."
+  },
+  {
+    "idx": 82,
+    "problem": "Write `removeDigits(s)` that strips numeric characters. Test `\"h3ll0 w0rld\"`."
+  },
+  {
+    "idx": 83,
+    "problem": "Write `slugify(s)` that lowercases and replaces spaces with `\"-\"`. Test `\"Hello World\"`."
+  },
+  {
+    "idx": 84,
+    "problem": "Write `allStartWith(list, prefix)` — true if every string starts with prefix. Test."
+  },
+  {
+    "idx": 85,
+    "problem": "Write `maskNumber(s, show)` that masks all but last `show` digits with `*`. Test `(\"1234567890\", 4)`."
+  },
+  {
+    "idx": 86,
+    "problem": "Write `lastNWords(sentence, n)`."
+  },
+  {
+    "idx": 87,
+    "problem": "Write `encodeRLE(s)` (Run-Length Encoding): `\"aaabbc\"` → `\"3a2b1c\"`. Test."
+  },
+  {
+    "idx": 88,
+    "problem": "Write `stripPunctuation(s)` that removes common punctuation characters."
+  },
+  {
+    "idx": 89,
+    "problem": "Write `countLines(s)` by splitting on `\"\\n\"`. Test."
+  },
+  {
+    "idx": 90,
+    "problem": "Write `swapCase(s)` — lowercase becomes uppercase and vice versa. Test `\"Hello World\"`."
+  },
+  {
+    "idx": 91,
+    "problem": "Write `insertAt(s, pos, insert)` — inserts string at position. Test `(\"helloworld\", 6, \" \")`."
+  },
+  {
+    "idx": 92,
+    "problem": "Write `toBinaryString(s)` that converts each character to its ASCII code then binary. Test `\"Hi\"`."
+  },
+  {
+    "idx": 93,
+    "problem": "Write `parseQueryString(qs)` like `\"a=1&b=2\"` into a dictionary. Test."
+  },
+  {
+    "idx": 94,
+    "problem": "Write `stripHTMLTags(s)` by detecting `<` and `>` brackets and removing content inside."
+  },
+  {
+    "idx": 95,
+    "problem": "Write `longestWordLength(sentence)` using `maxOf` on the word-length list."
+  },
+  {
+    "idx": 96,
+    "problem": "Write `removeWordAt(sentence, pos)` — remove the word at position."
+  },
+  {
+    "idx": 97,
+    "problem": "Write `isAlphanumeric(s)` — all chars are letters or digits."
+  },
+  {
+    "idx": 98,
+    "problem": "Write `pluralize(word, count)` — appends `\"s\"` if count != 1. Test `(1, \"cat\")`, `(3, \"cat\")`."
+  },
+  {
+    "idx": 99,
+    "problem": "Write `isValidHex(s)` — only digits `0-9` and letters `A-F`. Use `containsAll` approach."
+  }
+]

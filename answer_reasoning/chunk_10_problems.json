@@ -1,0 +1,402 @@
+[
+  {
+    "idx": 1005,
+    "problem": "Write `compact(list)` — remove falsy values (0, false, empty string). Test `[0, 1, false, \"hi\", \"\", 2]`."
+  },
+  {
+    "idx": 1006,
+    "problem": "Write `cumSum(list)` — running cumulative sum. Test `[1, 2, 3, 4, 5]` → `[1, 3, 6, 10, 15]`."
+  },
+  {
+    "idx": 1007,
+    "problem": "Write `runningMin(list)` — running minimum. Test same list."
+  },
+  {
+    "idx": 1008,
+    "problem": "Write `cartesian(a, b)` — all pairs `[x, y]` from a × b. Test `([1,2], [\"a\",\"b\"])`."
+  },
+  {
+    "idx": 1009,
+    "problem": "Write `findIndex(list, pred_fn)` — 1-based index of first matching element, or -1. Find first even in `[1,3,5,4,2]`."
+  },
+  {
+    "idx": 1010,
+    "problem": "Write `none(list, pred_fn)` — true if no element satisfies pred. Test."
+  },
+  {
+    "idx": 1011,
+    "problem": "Write `pairs(list)` — all consecutive pairs. Test `[1,2,3,4]` → `[[1,2],[2,3],[3,4]]`."
+  },
+  {
+    "idx": 1012,
+    "problem": "Write `powerset(list)` — all subsets of a 3-element list. Test `[1,2,3]`."
+  },
+  {
+    "idx": 1013,
+    "problem": "Write `firstN(list, n)` — first n elements. Test `([1..10], 4)`."
+  },
+  {
+    "idx": 1014,
+    "problem": "Write `flatten_pairs(dict)` — convert dict to `[key, value, key, value, ...]` flat list. Test a 3-entry dict."
+  },
+  {
+    "idx": 1015,
+    "problem": "Write `flatten_matrix(matrix)` — flatten a 2D matrix to a 1D list. Test 3×3 identity."
+  },
+  {
+    "idx": 1016,
+    "problem": "Write `mergeWith(d1, d2, combiner)` — merge two dicts, combining values for shared keys. Sum shared numeric values."
+  },
+  {
+    "idx": 1017,
+    "problem": "Write `pick(d, keys)` — return a new dict with only the listed keys. Test `pick({\"a\":1,\"b\":2,\"c\":3}, [\"a\",\"c\"])`."
+  },
+  {
+    "idx": 1018,
+    "problem": "Write `flattenDict(d, prefix)` — flatten nested dict to dot-separated keys. Test `{\"a\": {\"b\": 1, \"c\": 2}}` → `{\"a.b\":1, \"a.c\":2}`."
+  },
+  {
+    "idx": 1019,
+    "problem": "Write `bottomN(d, n)` — return the n keys with smallest values. Test same."
+  },
+  {
+    "idx": 1020,
+    "problem": "Write `allValues(d, pred)` — true if all values satisfy pred. Test same."
+  },
+  {
+    "idx": 1021,
+    "problem": "Write `diffDict(d1, d2)` — return keys whose values differ between d1 and d2. Test two similar configs."
+  },
+  {
+    "idx": 1022,
+    "problem": "Write `maxValue(d)` — key-value pair with the maximum value as a dict. Test `{\"x\":5,\"y\":9,\"z\":3}`."
+  },
+  {
+    "idx": 1023,
+    "problem": "Write `containsAll(d, keys)` — true if all keys exist in dict. Test."
+  },
+  {
+    "idx": 1024,
+    "problem": "Write `nested_get(d, keys_list)` — navigate nested dicts by list of keys. Test `({\"a\": {\"b\": {\"c\": 42}}}, [\"a\",\"b\",\"c\"])` → 42."
+  },
+  {
+    "idx": 1025,
+    "problem": "Write `frequencies_2d(matrix)` — count each distinct value across a 2D list (list of lists). Test a 3×3 grid."
+  },
+  {
+    "idx": 1026,
+    "problem": "Write `chunkDict(d, size)` — split a dict into a list of smaller dicts of at most `size` entries each. Test a 7-entry dict with size 3."
+  },
+  {
+    "idx": 1027,
+    "problem": "Write `sliding_window_dict(list, k, fn)` — apply fn to each window of size k, collecting results. Test computing window sums."
+  },
+  {
+    "idx": 1028,
+    "problem": "Write `histogramBuckets(list, buckets)` — classify each number into named buckets defined by `[label, max]` pairs. Test data with 4 buckets."
+  },
+  {
+    "idx": 1029,
+    "problem": "Write `toRGB(color)` — use `splitColor` to get a list of RGBA components and return a dict `{\"r\":r,\"g\":g,\"b\":b}`. Test with `#FFA500`."
+  },
+  {
+    "idx": 1030,
+    "problem": "Write `blendColors(c1, c2, t)` — linearly interpolate each RGB channel by factor t. Test `(#FF0000, #0000FF, 0.5)`."
+  },
+  {
+    "idx": 1031,
+    "problem": "Write `hexToColor(hexStr)` — parse `\"RRGGBB\"` string (without #) to a color using `hexToDec` per channel pair. Test `\"FF0080\"`."
+  },
+  {
+    "idx": 1032,
+    "problem": "Write `lighten(color, amount)` — add `amount` to each channel clamped to 255. Test `lighten(#406080, 40)`."
+  },
+  {
+    "idx": 1033,
+    "problem": "Write `withAlpha(color, alpha)` — return `makeColor([r, g, b, alpha])` where r/g/b come from the original. Test setting alpha to 128."
+  },
+  {
+    "idx": 1034,
+    "problem": "Write a for-each loop over `[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\",\"Sat\",\"Sun\"]` and print only weekdays."
+  },
+  {
+    "idx": 1035,
+    "problem": "Write a for-each loop over strings and build a dict counting words by first letter."
+  },
+  {
+    "idx": 1036,
+    "problem": "Write a for-each loop over a sentence's words to build a reversed-word dict: word → reversed word."
+  },
+  {
+    "idx": 1037,
+    "problem": "Write a for-each loop over a list of intervals `[{\"start\":s,\"end\":e}]` to merge overlapping intervals."
+  },
+  {
+    "idx": 1038,
+    "problem": "Write `throttle(key, max_calls)` — track call counts per key in a global dict and block calls beyond max. Test with 5 calls and max 3."
+  },
+  {
+    "idx": 1039,
+    "problem": "Write `partialApply(fn_name, arg1)` — store arg1 and return a tag. Write `callPartial(tag, arg2)` to complete the call. Test with an addition function."
+  },
+  {
+    "idx": 1040,
+    "problem": "Write `reduceFn(fn_name, list, init)` — fold with a named binary function. Test with addition."
+  },
+  {
+    "idx": 1041,
+    "problem": "Write `anyWith(pred_name, list)` — any element satisfies pred. Test."
+  },
+  {
+    "idx": 1042,
+    "problem": "Write `scanLeft(fn_name, list, init)` — running fold, return list of all intermediate results. Test with addition on `[1,2,3,4,5]`."
+  },
+  {
+    "idx": 1043,
+    "problem": "Write `applyN(fn_name, x, n)` — alias for `iterate`. Test."
+  },
+  {
+    "idx": 1044,
+    "problem": "Write `when(condition, fn_name, x)` — call fn only if condition is true. Test."
+  },
+  {
+    "idx": 1045,
+    "problem": "Write `memoKey(fn_name, a, b)` — two-argument memoization keyed by `fn_name _ a _ \"_\" _ b`. Test with a multiplication function."
+  },
+  {
+    "idx": 1046,
+    "problem": "Write `memoFib(n)` using a global dict cache. Compute `memoFib(40)` and print it along with the cache size."
+  },
+  {
+    "idx": 1047,
+    "problem": "Write `flatten_deep(list)` — recursively flatten arbitrarily nested lists. Test `[1, [2, [3, [4, 5]]]]`."
+  },
+  {
+    "idx": 1048,
+    "problem": "Write `quickSort(list)` — recursive quicksort with first element as pivot. Test same input."
+  },
+  {
+    "idx": 1049,
+    "problem": "Write `movingAvg(list, k)` — sliding window average of size k. Test `([1,2,3,4,5,6,7], 3)`."
+  },
+  {
+    "idx": 1050,
+    "problem": "Write `truncate(s, maxLen)` — if s.textLen() > maxLen, return first `maxLen - 3` chars + `\"...\"`. Test `\"Hello World\"` with maxLen 8."
+  },
+  {
+    "idx": 1051,
+    "problem": "Write `removePunctuation(s)` — remove `.`, `,`, `!`, `?`, `\"`, `'` using repeated `.replace()`. Test a sentence."
+  },
+  {
+    "idx": 1052,
+    "problem": "Write `startsWith_manual(s, prefix)` without using `.startsWith()`. Test two examples."
+  },
+  {
+    "idx": 1053,
+    "problem": "Implement the Gini coefficient for a list of income values: sort the list, compute the cumulative share of income vs the cumulative share of population, and return the area-based Gini formula result."
+  },
+  {
+    "idx": 1054,
+    "problem": "Implement a Levenshtein distance approximation for short strings: given two text values, compute the edit distance by building a row-by-row dynamic programming table stored as a list of lists."
+  },
+  {
+    "idx": 1055,
+    "problem": "Implement a search-and-replace pipeline: given a text and a list of `[pattern, replacement]` two-element lists, apply each replacement in order using `.replace` and return the fully transformed text."
+  },
+  {
+    "idx": 1056,
+    "problem": "Implement the bucket sort algorithm: given a list of floats in `[0, 1)` and a number of buckets B, distribute values into B buckets, sort each bucket using `.sort()`, and concatenate to return a fully sorted list."
+  },
+  {
+    "idx": 1057,
+    "problem": "Given a list of records and a multi-key sort specification (a list of `{\"field\": f, \"desc\": bool}` dicts), sort the records by the specified fields in order, with descending support by negating numeric values."
+  },
+  {
+    "idx": 1058,
+    "problem": "Given a dict of feature importances (feature name → score), normalize the scores to sum to 1, sort by normalized score descending, and return a list of `{\"feature\": f, \"importance\": s}` dicts."
+  },
+  {
+    "idx": 1059,
+    "problem": "Implement a leader-follower aggregation loop: given a list of `{\"leaderId\": l, \"value\": v}` dicts, use a `for x in list` loop to maintain a local dict accumulating totals per leader, and after the loop use a `for k,v in dict` loop to produce a sorted results list."
+  },
+  {
+    "idx": 1060,
+    "problem": "Implement a function `computeRankings(records, scoreField)` that assigns ordinal rankings to records sorted by `scoreField` descending, handling ties by assigning the same rank and skipping subsequent ranks (dense ranking vs standard), returning the annotated list."
+  },
+  {
+    "idx": 1061,
+    "problem": "Implement a simple diff between two versions of a record text: split both by `\"\\n\"`, compare line by line, and return a list of `{\"line\": n, \"old\": oldText, \"new\": newText}` dicts for lines that differ."
+  },
+  {
+    "idx": 1062,
+    "problem": "Implement a key-normalizer for a dict: given a dict whose keys may have mixed casing and spaces, return a new dict where each key is transformed to lowercase with spaces replaced by underscores, preserving the original values."
+  },
+  {
+    "idx": 1063,
+    "problem": "A data quality check needs to find records that appear in list A but not list B (by a key field `\"id\"`). Return the list of records in A with IDs not present in B."
+  },
+  {
+    "idx": 1064,
+    "problem": "A dataset contains a list of `{\"before\": text, \"after\": text}` transformation records. Compute how many unique before-values exist, how many unique after-values exist, and how many transformations were no-ops (before equals after)."
+  },
+  {
+    "idx": 1066,
+    "problem": "A reporting function produces nested KPI dicts. Write a flatten-and-export function that takes such a nested dict and converts it to a list of `{\"path\": dotSeparatedPath, \"value\": v}` records for tabular output."
+  },
+  {
+    "idx": 1067,
+    "problem": "Given a dict of raw API responses (endpoint text → response dict), extract and normalize a specific field (field path as dot-separated text passed as parameter) from each response, returning a new dict of endpoint-to-normalized-value mappings."
+  },
+  {
+    "idx": 1068,
+    "problem": "A data visualization maps two numeric dimensions to color. Given a value pair `(x, y)` normalized to `[0,1]`, encode x as the red channel, y as the green channel, and `(1 - x*y)` as the blue channel using `makeColor`, and return the resulting color."
+  },
+  {
+    "idx": 1069,
+    "problem": "Implement a returning function `aggregateByGroup(records, groupField, aggField, operation)` that groups records by `groupField` and applies the specified aggregation operation (`\"sum\"`, `\"avg\"`, `\"max\"`, `\"min\"`, `\"count\"`) to `aggField`, returning a dict of group-to-result mappings."
+  },
+  {
+    "idx": 1070,
+    "problem": "Implement a function `validateDataContract(records, contract)` where `contract` is a dict with `\"required\"` (list of field names), `\"unique\"` (list of field names that must be unique across all records), and `\"ranges\"` (dict of field to `{\"min\": m, \"max\": x}` dicts). Return a list of all violation dicts."
+  },
+  {
+    "idx": 1071,
+    "problem": "A record dict may have nested dicts up to 3 levels deep. Write a function that extracts all leaf-level numeric values and returns their sum using `getAtPath` and iterative path exploration."
+  },
+  {
+    "idx": 1072,
+    "problem": "A metadata field stores key-value pairs inline as `\"key1:val1,key2:val2\"`. Write a parser that splits on `\",\"` then `\":\"` and returns a dict, also handling the case where a value itself may contain colons by splitting only on the first `\":\"`."
+  },
+  {
+    "idx": 1073,
+    "problem": "A dataset dict has string keys and list values. Write a function that returns the key associated with the longest list, breaking ties by returning the lexicographically first key."
+  },
+  {
+    "idx": 1074,
+    "problem": "Implement a returning function `buildPivot(records, rowField, colField, valueField)` that constructs and returns a pivot table as a dict of dicts, aggregating values by summing where the row and column keys match."
+  },
+  {
+    "idx": 1075,
+    "problem": "Implement a function `computeKlDivergence(pDist, qDist)` that takes two frequency dicts (probability distributions over the same keys), computes the KL divergence `sum(p * log(p / q))` for keys where p > 0, and returns the result."
+  },
+  {
+    "idx": 1076,
+    "problem": "Given a hierarchical dict of organizational units (each with `\"name\"`, `\"budget\"`, and `\"children\"` list), compute the total budget at each level and return a flat list of `{\"name\": n, \"level\": l, \"budget\": b, \"subtotalBudget\": sb}` dicts."
+  },
+  {
+    "idx": 1077,
+    "problem": "Declare a global `dimensionMap` as a dict mapping integer IDs to descriptive text labels (e.g., category names). Write a function that takes a list of integer IDs and returns a new list where each ID is replaced by its label from `this.dimensionMap`, using `\"unknown\"` as a default."
+  },
+  {
+    "idx": 1078,
+    "problem": "A multi-tenant pipeline uses a global `tenantContext` dict to hold current tenant settings such as `\"id\"`, `\"locale\"`, and `\"currencySymbol\"`. Write a formatter that formats a monetary amount using the currency symbol from `this.tenantContext` and 2 decimal places."
+  },
+  {
+    "idx": 1079,
+    "problem": "Write a scheduler that uses a `while` loop and a global `taskQueue` list of `{\"time\": t, \"task\": text}` dicts: repeatedly pick the task with the smallest `\"time\"` value (by scanning), execute it (simulated by printing), remove it, and advance a local `currentTime` variable until the queue is empty."
+  },
+  {
+    "idx": 1080,
+    "problem": "Write a void procedure `pipelineLog(stage, status, details)` that appends a structured log entry dict to a global `pipelineAuditLog` list, including the stage name, status text, details dict, and a sequence number auto-incremented from a global `logSeq` counter."
+  },
+  {
+    "idx": 1081,
+    "problem": "Implement a dict-based graph shortest path using BFS: given an adjacency dict (node text → list of neighbor texts), and start and end nodes, return the shortest path as a list of node texts."
+  },
+  {
+    "idx": 1082,
+    "problem": "A dataset contains a list of response-time measurements in milliseconds. Compute the 90th percentile by sorting the list and returning the value at index `floor(0.9 * listLen)`."
+  },
+  {
+    "idx": 1085,
+    "problem": "Given a list of numbers, compute a 5-point centered moving average: for each index (clamping edges), average the value with its two left and two right neighbors."
+  },
+  {
+    "idx": 1086,
+    "problem": "Implement a sliding window maximum over a list of numbers with window size W: for each window position, return the maximum of the W elements in that window."
+  },
+  {
+    "idx": 1087,
+    "problem": "A pipeline logs task execution times in a dict mapping task-id to list of duration measurements. Write a function that computes, for each task, the mean, p95, and max duration, and returns a sorted list of task summary dicts ordered by mean duration descending."
+  },
+  {
+    "idx": 1088,
+    "problem": "Implement a procedure `coalesceMissingValues(record, fieldPriority, defaultValues)` that for each field listed in `fieldPriority` (a list), checks the record for the first non-null value among a list of candidate source fields, and fills the target field with the first found value or the default."
+  },
+  {
+    "idx": 1090,
+    "problem": "Given a list of numeric features and a list of feature weights, compute the weighted feature vector: multiply each feature by its weight and return the resulting list. Also compute the L2 norm of the weighted vector."
+  },
+  {
+    "idx": 1091,
+    "problem": "Implement a simple linear regression: given parallel `x` and `y` number lists, compute slope `m` and intercept `b` using the least-squares formulas and return them as a dict `{\"slope\": m, \"intercept\": b}`."
+  },
+  {
+    "idx": 1092,
+    "problem": "Given a list of prices and a list of quantities, compute the dot product (sum of price * quantity) to get total revenue."
+  },
+  {
+    "idx": 1093,
+    "problem": "Given a list of conversion rates across multiple steps in a funnel, compute the overall conversion as the product of all rates. Also compute the step with the greatest drop-off by finding the minimum rate."
+  },
+  {
+    "idx": 1094,
+    "problem": "Compute the Jaccard similarity between two lists treated as sets: `|intersection| / |union|`. Implement intersection and union counting by iterating and checking membership."
+  },
+  {
+    "idx": 1095,
+    "problem": "Compute the mode(s) of a list of numbers: find the frequency of each value using a dict, then return all values sharing the maximum frequency as a list."
+  },
+  {
+    "idx": 1096,
+    "problem": "A dataset of session durations follows a power law. Fit the exponent by computing the slope of a log-log linear regression on the rank-frequency data."
+  },
+  {
+    "idx": 1097,
+    "problem": "A time series exhibits a linear trend. Estimate the trend slope using simple linear regression of values against their indices (1, 2, ..., N), then return the detrended series by subtracting the fitted trend from each value."
+  },
+  {
+    "idx": 1098,
+    "problem": "Given a block of text representing a TSV (tab-separated values) file where rows are separated by `\"\\n\"` and fields by `\"\\t\"`, parse it into a list of row dicts using the first row as headers."
+  },
+  {
+    "idx": 1099,
+    "problem": "Implement run-length decoding: given an RLE-encoded text like `\"3a2b1c\"`, decode it back to the original string by parsing pairs of digit and character."
+  },
+  {
+    "idx": 1100,
+    "problem": "Given a text containing embedded base64-like encoding (alphanumeric blocks separated by spaces), count the distinct blocks and return the one that appears most frequently."
+  },
+  {
+    "idx": 1101,
+    "problem": "Implement a text column deduplicator: given a list of texts, return only the first occurrence of each distinct value while preserving original order, using a dict to track seen values."
+  },
+  {
+    "idx": 1102,
+    "problem": "Given two lists of the same length representing keys and values respectively, construct a dict from them using a loop and `.set`."
+  },
+  {
+    "idx": 1103,
+    "problem": "Given a list of stock price lists (each sub-list being a time series for one stock), compute the cross-stock correlation matrix and return it as a list of lists."
+  },
+  {
+    "idx": 1104,
+    "problem": "Implement list-based matrix multiplication: given two matrices as lists of lists (A is M×K, B is K×N), return the product matrix C as a list of lists."
+  },
+  {
+    "idx": 1105,
+    "problem": "A dataset has a list of boolean outcome values (true/false). Compute the Kelly criterion optimal bet fraction: `p - (1-p) / b` where `p` is the win fraction and `b` is the payout ratio (passed as parameter)."
+  },
+  {
+    "idx": 1106,
+    "problem": "Given a list of purchase event dicts with `\"userId\"` and `\"productId\"` fields, build a user-product co-purchase matrix as a dict of dicts and return the top-5 most frequently co-purchased product pairs."
+  },
+  {
+    "idx": 1107,
+    "problem": "Given two dicts representing the same entity at two different times, produce a diff dict with keys `\"added\"` (keys in new but not old), `\"removed\"` (keys in old but not new), and `\"changed\"` (keys in both with different values)."
+  },
+  {
+    "idx": 1108,
+    "problem": "Implement a dict-based cache with TTL: each entry is `{\"value\": v, \"expires\": timestamp}`. Write get and set functions that check expiry against a current time parameter and evict expired entries before returning."
+  }
+]

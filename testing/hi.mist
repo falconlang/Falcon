@@ -1,22 +1,23 @@
-func factorial(n) = {
-  if (n <= 1) {
-    1
-  } else {
-    n * factorial(n - 1)
+func rleEncode(s) = {
+
+local res = []
+
+local i = 1
+
+local len = s.textLen()
+  while (i <= len) {
+
+local ch = s.segment(i,1)
+    if (i == len) { res.add([ch, i]) }
+    else {
+
+local count = 1
+      while (i+1 <= len && s.segment(i+1,1) === ch) { count = count+1 i = i+1 }
+      res.add([ch, count])
+    i = i+count
+      
+    }
   }
+  res
 }
-
-func RamanujanPi(terms) = {
-  local sum = [0]
-
-  for (k: 0 .. terms - 1) {
-    local num = factorial(4 * k) * (1103 + 26390 * k)
-    local den = factorial(k) ^ 4 * 396 ^ (4 * k)
-    sum[1] = sum[1] + num / den
-  }
-
-  local factor = (2 * sqrt(2)) / 9801
-  1 / (factor * sum[1])
-}
-
-println(RamanujanPi(3))
+println(rleEncode("aabcccdd"))

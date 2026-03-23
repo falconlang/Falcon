@@ -1,0 +1,402 @@
+[
+  {
+    "idx": 1413,
+    "problem": "Given the sequence `\"1, 1, 2, 3, 5, 8, 13, 21, 34, 55\"`, split by `\", \"` and compute the average. Print with `formatDecimal(result, 2)` (expected: `14.30`)."
+  },
+  {
+    "idx": 1414,
+    "problem": "Implement a simple hash function: sum the ASCII values (character code) of all characters in the string, modulo 97. For `\"hello\"`: h=104, e=101, l=108, l=108, o=111, sum=532, 532 mod 97=47. Print `47`. Use `.split(\"\")` and character position logic or iterate characters."
+  },
+  {
+    "idx": 1415,
+    "problem": "Given a list of 3D triangles, sort them by their centroid's z-coordinate for painter's algorithm (back-to-front rendering order)."
+  },
+  {
+    "idx": 1416,
+    "problem": "Write a `while` loop for the A* path search: continue while the open set is non-empty, each iteration extracting the minimum-f-cost node and expanding its neighbors."
+  },
+  {
+    "idx": 1417,
+    "problem": "Normalize all points in a list to fit within `[0,1] x [0,1]` by computing the bounding box and remapping each coordinate linearly."
+  },
+  {
+    "idx": 1418,
+    "problem": "Write a returning function `func rotate2D(pt, theta) = { ... }` that rotates a 2D point `[x,y]` around the origin by `theta` radians and returns the new point."
+  },
+  {
+    "idx": 1419,
+    "problem": "Write a returning function `func bezierPoint(controls, t) = { ... }` that evaluates a cubic Bezier curve at parameter `t` given four control points, returning the `[x,y]` position."
+  },
+  {
+    "idx": 1420,
+    "problem": "Write a returning function `func polarToCartesian(r, theta) = { ... }` that converts polar coordinates to Cartesian `[x,y]` using `cos` and `sin`."
+  },
+  {
+    "idx": 1421,
+    "problem": "Write a returning function `func computeSDF(polygons, queryPt) = { ... }` that computes the signed distance from `queryPt` to the nearest polygon boundary in a list of polygons: positive if outside all polygons, negative if inside any polygon."
+  },
+  {
+    "idx": 1422,
+    "problem": "Declare global variables `slopeM` and `interceptB` both initialized to `0.0`. They store the slope-intercept form of a line equation `y = mx + b`."
+  },
+  {
+    "idx": 1423,
+    "problem": "Declare global variables `terrainRows` and `terrainCols` each initialized to `20`. They define the resolution of a height-map grid."
+  },
+  {
+    "idx": 1424,
+    "problem": "Given a geographic bounding box `[minLon, minLat, maxLon, maxLat]`, format it as a string `\"Bounds: W lonW, S latS, E lonE, N latN\"`."
+  },
+  {
+    "idx": 1425,
+    "problem": "Given a quadtree and a query rectangle, return the list of points in the tree that fall within the rectangle."
+  },
+  {
+    "idx": 1426,
+    "problem": "Given a dict of 3D points, compute a dict of point-to-point distances for all pairs within a given radius, creating a radius graph."
+  },
+  {
+    "idx": 1427,
+    "problem": "Sort a list of 2D points by their distance from the origin in ascending order using `.sort { a,b -> distFromOrigin(a) < distFromOrigin(b) }`."
+  },
+  {
+    "idx": 1428,
+    "problem": "Build a neighbor dict for a grid: for each cell `\"r,c\"`, the value is the list of valid 4-connected neighbor keys."
+  },
+  {
+    "idx": 1429,
+    "problem": "Use a `for (point in pointList)` loop to compute the bounding box of a point cloud by updating `minX`, `minY`, `maxX`, `maxY` variables."
+  },
+  {
+    "idx": 1430,
+    "problem": "Given a tetrahedron with edge length `a`, compute its volume as `a*a*a / (6 * sqrt(2))`."
+  },
+  {
+    "idx": 1431,
+    "problem": "Given a point `[px,py]` and a circle center `[cx,cy]` with radius `r`, compute the tangent length from the point to the circle as `sqrt((px-cx)^2 + (py-cy)^2 - r*r)`."
+  },
+  {
+    "idx": 1432,
+    "problem": "Apply a rotation about the x-axis by angle `t` to 3D point `[x,y,z]`: `[x, y*cos(t)-z*sin(t), y*sin(t)+z*cos(t)]`."
+  },
+  {
+    "idx": 1433,
+    "problem": "Given terrain altitude values, classify each as `\"water\"` (< 0), `\"lowland\"` (0–100), `\"highland\"` (100–500), or `\"mountain\"` (> 500) and join classifications into a space-separated string."
+  },
+  {
+    "idx": 1434,
+    "problem": "Given a 3D mesh with vertex normals, compute per-vertex colors for Gouraud shading by evaluating the Phong lighting model at each vertex."
+  },
+  {
+    "idx": 1435,
+    "problem": "Compute the midpoint of two 2D points `[x1, y1]` and `[x2, y2]` as `[(x1+x2)/2, (y1+y2)/2]` and store in `midPt`."
+  },
+  {
+    "idx": 1436,
+    "problem": "Compute the area of a triangle with vertices `[x1,y1]`, `[x2,y2]`, `[x3,y3]` using the shoelace formula: `abs((x1*(y2-y3) + x2*(y3-y1) + x3*(y1-y2)) / 2)`."
+  },
+  {
+    "idx": 1437,
+    "problem": "Compute the reflection of a 2D point `[px, py]` across the x-axis as `[px, -py]`, and across the y-axis as `[-px, py]`."
+  },
+  {
+    "idx": 1438,
+    "problem": "Compute the interior angle of a regular n-gon as `(n - 2) * 180 / n` degrees."
+  },
+  {
+    "idx": 1439,
+    "problem": "Compute the cross product of two 3D vectors `[ax,ay,az]` and `[bx,by,bz]` as `[ay*bz-az*by, az*bx-ax*bz, ax*by-ay*bx]`."
+  },
+  {
+    "idx": 1440,
+    "problem": "Given two circles with centers `[c1x,c1y]`, `[c2x,c2y]` and radii `r1`, `r2`, compute the distance between centers and determine if they intersect: `abs(r1-r2) <= dist <= r1+r2`."
+  },
+  {
+    "idx": 1441,
+    "problem": "Given a grid with cell size `cellSize`, convert world coordinates `[wx,wy]` to grid cell indices `[floor(wx/cellSize), floor(wy/cellSize)]`."
+  },
+  {
+    "idx": 1442,
+    "problem": "Compute the overlap area of two axis-aligned rectangles. Each rectangle is given as `[x, y, w, h]`. Return `0` if they do not overlap."
+  },
+  {
+    "idx": 1443,
+    "problem": "Compute the centroid of a triangle with vertices `[x1,y1]`, `[x2,y2]`, `[x3,y3]` as `[(x1+x2+x3)/3, (y1+y2+y3)/3]`."
+  },
+  {
+    "idx": 1444,
+    "problem": "Compute the Hausdorff distance between two finite sets of 2D points: the maximum over all points in set A of the minimum distance to any point in set B, and vice versa."
+  },
+  {
+    "idx": 1445,
+    "problem": "Compute the number of lattice points on the boundary of a rectangle with corners at `(0,0)` and `(w,h)` as `2*(w + h)`."
+  },
+  {
+    "idx": 1446,
+    "problem": "Compute the orthocenter of a triangle with vertices `A`, `B`, `C` by finding the intersection of two altitudes using the parametric line intersection formula."
+  },
+  {
+    "idx": 1447,
+    "problem": "Compute the reflection of a 3D ray direction `D` off a surface with normal `N` as `D - 2*dot(D,N)*N`."
+  },
+  {
+    "idx": 1448,
+    "problem": "Compute the area of the union of two overlapping circles with radii `r1`, `r2` and center distance `d` using the lens area formula."
+  },
+  {
+    "idx": 1449,
+    "problem": "Given two 3D points and a parametric `t` in `[0,1]`, compute the point on the line segment: `P(t) = (1-t)*P0 + t*P1` component-wise."
+  },
+  {
+    "idx": 1450,
+    "problem": "Compute the trilinear interpolation of a value at position `[s,t,u]` within a unit cube given the eight corner values."
+  },
+  {
+    "idx": 1451,
+    "problem": "Format an angle in degrees as a string like `\"45.00°\"` using `formatDecimal` with 2 places and appending the degree symbol `\"°\"`."
+  },
+  {
+    "idx": 1452,
+    "problem": "Generate an ASCII art row of a height map: given a list of altitude values from `0` to `9`, replace each value with a character from `\".-:=+*#%@\"` and join into a string."
+  },
+  {
+    "idx": 1453,
+    "problem": "Parse an SVG path command string like `\"M 10 20 L 30 40 L 50 60\"` by splitting on spaces and extracting the coordinate pairs following each `L` command."
+  },
+  {
+    "idx": 1454,
+    "problem": "Generate a table header string for a coordinate report: `\"Point    X        Y        Distance\"` with fixed-width spacing using text padding."
+  },
+  {
+    "idx": 1455,
+    "problem": "Given a 3D vector `[x,y,z]`, format it as a column vector string `\"[x]\\n[y]\\n[z]\"` for display purposes."
+  },
+  {
+    "idx": 1456,
+    "problem": "Generate a Markdown table row for a point: given `[id, x, y, dist]`, produce the string `\"| id | x.xx | y.yy | d.dd |\"` with `formatDecimal` for numeric values."
+  },
+  {
+    "idx": 1457,
+    "problem": "Parse a WKT (Well-Known Text) point string `\"POINT (3.0 4.0)\"` by removing the `\"POINT (\"` prefix and `\")\"` suffix, then splitting on space."
+  },
+  {
+    "idx": 1458,
+    "problem": "Generate a path direction string from a list of `[dx,dy]` step vectors: map each to `\"U\"`, `\"D\"`, `\"L\"`, `\"R\"`, `\"UL\"`, `\"UR\"`, `\"DL\"`, `\"DR\"` and join without separator."
+  },
+  {
+    "idx": 1459,
+    "problem": "Produce a compass rose label list: format the 16 compass directions `[\"N\",\"NNE\",\"NE\",\"ENE\",\"E\",...]` as a numbered list string with their degree values."
+  },
+  {
+    "idx": 1460,
+    "problem": "Given a list of 2D points, extract only the y-coordinates into a new list using `.map`."
+  },
+  {
+    "idx": 1461,
+    "problem": "Given a list of 3D points, project all of them onto the z=0 plane by dropping the z-coordinate, producing a list of 2D points with `.map`."
+  },
+  {
+    "idx": 1462,
+    "problem": "Compute the Delaunay triangulation of a set of points using the Bowyer-Watson incremental algorithm, returning a list of triangles as index triples."
+  },
+  {
+    "idx": 1463,
+    "problem": "Given a list of segments, find all T-intersections where an endpoint of one segment lies on the interior of another segment."
+  },
+  {
+    "idx": 1464,
+    "problem": "Compute the list of all 4-connected neighbors of a cell `[r,c]`, filtering out out-of-bounds positions."
+  },
+  {
+    "idx": 1465,
+    "problem": "Given a list of 2D points, compute the smallest enclosing circle using Welzl's randomized algorithm."
+  },
+  {
+    "idx": 1466,
+    "problem": "Given a list of 2D points on a parametric curve, estimate the curvature at each interior point using finite differences."
+  },
+  {
+    "idx": 1467,
+    "problem": "Given a list of 2D points, compute the farthest pair (the diameter of the point set) using rotating calipers on the convex hull."
+  },
+  {
+    "idx": 1468,
+    "problem": "Compute the ridge lines of a terrain height map: find pairs of adjacent cells where both are local maxima along the perpendicular axis."
+  },
+  {
+    "idx": 1469,
+    "problem": "Given a dict of named waypoints `{\"A\":[0,0], \"B\":[3,4]}`, compute a dict of all pairwise distances between waypoints."
+  },
+  {
+    "idx": 1470,
+    "problem": "Given a dict of obstacle positions `{\"obs1\":[x,y], ...}`, compute the dict of distances from a robot position `[rx,ry]` to each obstacle."
+  },
+  {
+    "idx": 1471,
+    "problem": "Given a height map dict (key `\"r,c\"`, value altitude), compute the dict of all local minima cells."
+  },
+  {
+    "idx": 1472,
+    "problem": "Given a dict of triangle vertices `{\"id\": [A,B,C]}`, compute a new dict mapping each triangle ID to its circumcenter."
+  },
+  {
+    "idx": 1473,
+    "problem": "Build a scene dict for a 3D renderer: `{\"objects\": [...], \"lights\": [...], \"camera\": {...}, \"background\": \"#000000\"}`."
+  },
+  {
+    "idx": 1474,
+    "problem": "Given a dict of polygon IDs to vertex lists, compute the dict of polygon centroids using the formula for the centroid of a polygon."
+  },
+  {
+    "idx": 1475,
+    "problem": "Given a dict of GPS track segments, merge overlapping or touching segments into unified track segments."
+  },
+  {
+    "idx": 1476,
+    "problem": "Given a dict of animation keyframes with 2D position and orientation, compute intermediate frames by linearly interpolating between keyframes."
+  },
+  {
+    "idx": 1477,
+    "problem": "Compute a grayscale color for a height map cell: map altitude to `[r,r,r]` where `r = floor(altitude * 255 / maxAlt)` using `makeColor`."
+  },
+  {
+    "idx": 1478,
+    "problem": "Compute the ambient-diffuse lighting color for a surface point: given base color, ambient coefficient `ka`, diffuse coefficient `kd`, and the dot product of normal with light direction, return `makeColor([r*(ka + kd*dot), g*(ka + kd*dot), b*(ka + kd*dot)])`."
+  },
+  {
+    "idx": 1479,
+    "problem": "Implement color-coded path visualization: color each segment of a path from start (blue) to end (red) by linearly interpolating RGB channels with the segment's progress fraction."
+  },
+  {
+    "idx": 1480,
+    "problem": "Compute the color for a Mandelbrot set visualization: points that don't escape are black `#000000`; escape-time `n` is mapped to a hue `360*n/maxIter` via `makeColor`."
+  },
+  {
+    "idx": 1481,
+    "problem": "Compute a temperature color map: map temperature values from `-30°C` to `+50°C` to colors from deep blue (cold) through white (zero) to deep red (hot)."
+  },
+  {
+    "idx": 1482,
+    "problem": "Given a terrain grid with seasonal variation, blend between a summer color palette and a winter palette using a `season` factor in `[0,1]` per channel."
+  },
+  {
+    "idx": 1483,
+    "problem": "Implement a checkerboard pattern for a 2D grid: assign color `#FFFFFF` or `#000000` based on `mod(row + col, 2)` and store in a color grid list."
+  },
+  {
+    "idx": 1484,
+    "problem": "Write a `while` loop that marches along a ray from origin in direction `[dx,dy]` with step size `0.1` until the ray hits a circular obstacle or reaches a maximum distance of `100`."
+  },
+  {
+    "idx": 1485,
+    "problem": "Implement the Jarvis march step using a `for` loop over all candidate points to find the one with the smallest polar angle from the current hull point."
+  },
+  {
+    "idx": 1487,
+    "problem": "Use a `for` range loop to animate a camera orbit around a 3D scene: at each frame index `i`, compute the camera position as a point on a circle at height `h`."
+  },
+  {
+    "idx": 1488,
+    "problem": "Use nested `for` loops to compute the intersection area of two convex polygons using the Sutherland-Hodgman clipping algorithm and the shoelace area formula."
+  },
+  {
+    "idx": 1489,
+    "problem": "Compute the Douglas-Peucker simplification of a polyline: recursively remove points within `epsilon` of the line between endpoints."
+  },
+  {
+    "idx": 1490,
+    "problem": "Build a bounding volume hierarchy (BVH) dict: recursively split a list of objects by the longest axis of their combined bounding box, storing left/right child dicts."
+  },
+  {
+    "idx": 1491,
+    "problem": "Implement recursive subdivision of a triangle using an `if` depth check: at each level, split the triangle into four sub-triangles by connecting edge midpoints."
+  },
+  {
+    "idx": 1492,
+    "problem": "Given a list of 3D points sampled from a plane, fit the best-fit plane using principal component analysis on the point covariances."
+  },
+  {
+    "idx": 1493,
+    "problem": "Write a returning function `func closestPointOnSegment(pt, segA, segB) = { ... }` that returns the point on segment `[segA, segB]` closest to `pt` using the clamped parametric formula."
+  },
+  {
+    "idx": 1494,
+    "problem": "Declare a local `x` set to `\"42\"`. Use the `?` operator to print whether it is a `number`, a `text`, and whether it is `base10`."
+  },
+  {
+    "idx": 1495,
+    "problem": "Declare a local `flag` set to `\"true\"`. Print whether it is `text` type and whether it is a `number` type using `?`."
+  },
+  {
+    "idx": 1496,
+    "problem": "Declare a local list `mixed` set to `[1, \"hello\", true, []]`. For each element print its type using `? text`, `? number`, `? list`."
+  },
+  {
+    "idx": 1497,
+    "problem": "Write `classify(v)` that returns `\"num\"` if `v ? number`, `\"text\"` if `v ? text`, `\"list\"` if `v ? list`, else `\"other\"`. Test with `42`, `\"hi\"`, `[]`, `true`."
+  },
+  {
+    "idx": 1498,
+    "problem": "Declare a local `s` set to `\"1010\"`. Print whether it is `bin`, `base10`, and `hexa` using `?`. Then print the results as a list."
+  },
+  {
+    "idx": 1499,
+    "problem": "Declare a local `h` set to `\"1F3A\"`. Print `h ? hexa` and `h ? base10` and `h ? bin`."
+  },
+  {
+    "idx": 1500,
+    "problem": "Write `isNumericString(s)` that returns `true` if `s ? base10`. Test with `\"123\"`, `\"12.3\"`, `\"abc\"`, `\"007\"`."
+  },
+  {
+    "idx": 1501,
+    "problem": "Declare a local `arr` set to `[]`. Print `arr ? emptyList`, then add one item and print `arr ? emptyList` again."
+  },
+  {
+    "idx": 1502,
+    "problem": "Declare a local `t` set to `\"   \"`. Print `t ? emptyText` and `t.trim() ? emptyText`."
+  },
+  {
+    "idx": 1503,
+    "problem": "Write `safeDiv(a, b)` that returns `a / b` if `b ? number` and `b != 0`, else returns `0`. Test with `(10, 2)`, `(10, 0)`, `(10, \"x\")`."
+  },
+  {
+    "idx": 1504,
+    "problem": "Declare a local `val` set to `\"FF\"`. Print `val ? hexa`, then convert with `hexToDec(val)` and print whether the result `? number`."
+  },
+  {
+    "idx": 1505,
+    "problem": "Write `allNumbers(lst)` that returns `true` if every element of `lst ? number`. Use a `for` loop. Test with `[1,2,3]` and `[1,\"x\",3]`."
+  },
+  {
+    "idx": 1506,
+    "problem": "Declare a local `items` set to `[1, \"two\", 3, \"four\", 5]`. Filter for only numeric items using `.filter { x -> x ? number }` and print."
+  },
+  {
+    "idx": 1507,
+    "problem": "Declare a local `code` set to `\"101\"`. Print whether it is simultaneously `bin` and `base10`. Explain the output with a printed message."
+  },
+  {
+    "idx": 1508,
+    "problem": "Write `parseOrZero(s)` that returns `dec(s)` if `s ? base10`, else `0`. Test with `\"99\"`, `\"\"`, `\"abc\"`, `\"0\"`."
+  },
+  {
+    "idx": 1509,
+    "problem": "Declare a local `pairs` set to `[[\"a\", 1], [\"b\", 2]]`. Check `pairs ? list` and `pairs[1] ? list`. Print both."
+  },
+  {
+    "idx": 1510,
+    "problem": "Write `typeHistogram(lst)` that returns a dict counting how many elements are `number`, `text`, and `list`. Test on `[1, \"a\", [], 2, \"b\", [1]]`."
+  },
+  {
+    "idx": 1511,
+    "problem": "Declare a local `s` set to `\"0\"`. Print `s ? base10`, `s ? bin`, and `s ? hexa` — all three should be true. Then explain why with a printed message."
+  },
+  {
+    "idx": 1512,
+    "problem": "Write `requireNumber(v, fallback)` — returns `v` if `v ? number`, else `fallback`. Chain three calls: `requireNumber(requireNumber(\"x\", \"y\"), 0)`. Print result."
+  },
+  {
+    "idx": 1513,
+    "problem": "Declare a local `data` set to `[\"10\", \"FF\", \"1010\", \"99\", \"GG\"]`. Partition into `hexValid` and `hexInvalid` lists using `? hexa`. Print both."
+  }
+]

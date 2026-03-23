@@ -1,0 +1,202 @@
+[
+  {
+    "idx": 1814,
+    "problem": "Write `longestSubstringNoRepeat(s)` — length of longest substring without repeating chars. Test `\"abcabcbb\"` → `3`, `\"pwwkew\"` → `3`."
+  },
+  {
+    "idx": 1815,
+    "problem": "Write `modPow(base, exp, mod)` — fast modular exponentiation by repeated squaring. Test `modPow(2, 10, 1000)` → `24`."
+  },
+  {
+    "idx": 1816,
+    "problem": "Write `simulateBank()` — global accounts dict. `open(name, balance)`, `transfer(from, to, amount)` (with overdraft check), `statement(name)`. Simulate 5 operations."
+  },
+  {
+    "idx": 1817,
+    "problem": "Write `shoppingCart()` — global `cart` list and `total`. `add(item, price, qty)`, `remove(item)`, `checkout()`. Simulate adding 4 items, removing 1, checking out."
+  },
+  {
+    "idx": 1818,
+    "problem": "Write `bookingSystem(capacity)` — global `bookings` dict. `book(name, seats)`, `cancel(name)`, `available()`. Test 3 bookings, 1 cancel on a 10-seat venue."
+  },
+  {
+    "idx": 1819,
+    "problem": "Write `leaderboard()` — global `scores` dict. `submit(player, score)` keeps only the best per player. `top(n)` returns `n` highest. Simulate 8 submissions from 4 players."
+  },
+  {
+    "idx": 1820,
+    "problem": "Write `parseMarkdown(text)` — converts `**bold**` → `[bold]`, `*italic*` → `_italic_`, `# Heading` → `=== Heading ===`. Test a 4-line markdown snippet."
+  },
+  {
+    "idx": 1821,
+    "problem": "Write `buildBreadcrumb(path)` — splits `\"/home/user/docs/file.txt\"` at `\"/\"` and builds `\"Home > User > Docs > File.txt\"`. Handle capitalisation."
+  },
+  {
+    "idx": 1822,
+    "problem": "Write `extractEmails(text)` — returns a list of substrings that look like email addresses (contain `@` and a `.` after it). Test a paragraph with 3 emails."
+  },
+  {
+    "idx": 1823,
+    "problem": "Write `censorWords(text, banned)` — replaces each banned word with `***` (case-insensitive). Test with a sentence and 3 banned words."
+  },
+  {
+    "idx": 1824,
+    "problem": "Write `generatePassword(length, useUpper, useDigits, useSymbols)` — builds a password by sampling from allowed character categories. Print 5 generated passwords."
+  },
+  {
+    "idx": 1825,
+    "problem": "Write `diff2d(a, b)` — compares two 2D grids (same size), returns a list of `{\"row\":r,\"col\":c,\"old\":x,\"new\":y}` for differing cells. Test on 3x3 grids."
+  },
+  {
+    "idx": 1826,
+    "problem": "Write `applyKernel(image, kernel)` — 2D convolution of a grayscale image (list of lists) with a 3x3 kernel. Test a 5x5 image with a blur kernel `[[1,1,1],[1,1,1],[1,1,1]]` / 9."
+  },
+  {
+    "idx": 1827,
+    "problem": "Write `rasterise(points, width, height)` — given a list of `[x,y]` points, build a 2D char grid placing `\"*\"` at each point and `\".\"` elsewhere. Print it."
+  },
+  {
+    "idx": 1828,
+    "problem": "Write `parseCSV2(text, delim)` — generic CSV parser with configurable delimiter and quote char `\"`. Handle `\"\"` escape inside quoted fields. Test with `|` delimiter."
+  },
+  {
+    "idx": 1829,
+    "problem": "Write `countPaths(grid)` — count all paths from top-left to bottom-right in a binary grid (0=open,1=blocked) moving right/down. Test a 4x4 grid."
+  },
+  {
+    "idx": 1830,
+    "problem": "Write `colorGraph(adj, k)` — greedy graph coloring with at most `k` colors. Test on a 6-node graph. Print each node's color."
+  },
+  {
+    "idx": 1831,
+    "problem": "Write `vertexCover(adj)` — greedy vertex cover: repeatedly pick an edge, add both endpoints, remove incident edges. Test on a 6-node graph."
+  },
+  {
+    "idx": 1832,
+    "problem": "Write `longestBitonicSubsequence(lst)` — longest subsequence that first increases then decreases. Test `[1,11,2,10,4,5,2,1]` → `6`."
+  },
+  {
+    "idx": 1833,
+    "problem": "Write `stockSpan(prices)` — for each day, the span is how many consecutive days before it had price <= today. Test `[100,80,60,70,60,75,85]` → `[1,1,1,2,1,4,6]`."
+  },
+  {
+    "idx": 1834,
+    "problem": "Write `scoreGame(rolls)` — calculate a bowling score from a list of pin counts. Handle strikes (10 followed by next 2) and spares (10 in two rolls plus next 1). Test a perfect game → 300."
+  },
+  {
+    "idx": 1835,
+    "problem": "Write `mancala(board, startPit)` — one move of the Mancala game: distribute stones from `startPit` counter-clockwise. Test on a 6-pit board."
+  },
+  {
+    "idx": 1836,
+    "problem": "Write `mastermindScore(secret, guess)` — returns `[blacks, whites]`: blacks = exact matches, whites = right digit wrong position. Test `([1,2,3,4],[1,3,2,5])` → `[1,2]`."
+  },
+  {
+    "idx": 1837,
+    "problem": "Write `smallestMissingPositive(lst)` — returns the smallest positive integer not in `lst`. Test `[3,4,-1,1]` → `2` and `[1,2,3]` → `4`."
+  },
+  {
+    "idx": 1838,
+    "problem": "Write `longestConsecutiveSequence(lst)` — without sorting, find the longest run of consecutive integers. Test `[100,4,200,1,3,2]` → `4` (1-2-3-4)."
+  },
+  {
+    "idx": 1839,
+    "problem": "Write `setOperations(a, b)` — given two lists, compute and print union, intersection, and difference (using dict-as-set pattern). Test `[1,2,3,4]` and `[3,4,5,6]`."
+  },
+  {
+    "idx": 1840,
+    "problem": "Write `multiSet(lst)` — counts multiplicity. Implement `add(v)`, `remove(v)`, `count(v)`, `total()`. Simulate 8 operations. Print final state."
+  },
+  {
+    "idx": 1841,
+    "problem": "Write `fenwickTree(n)` — Binary Indexed Tree for prefix sums. `update(i,delta)` and `prefixSum(i)`. Test point updates and range queries."
+  },
+  {
+    "idx": 1842,
+    "problem": "Write `unionFind(n)` — disjoint set union-find with path compression. `union(a,b)` and `find(a)`. Test connecting nodes in a graph and querying connectivity."
+  },
+  {
+    "idx": 1843,
+    "problem": "Write `lruCache2(cap)` — LRU cache using an ordered dict pattern (list of keys for recency + dict for values). Test cap=3 with 6 puts and 4 gets."
+  },
+  {
+    "idx": 1844,
+    "problem": "Write `minHeap(lst)` — simulate a min-heap using a list. `heapPush(v)` and `heapPop()` using sift-up/sift-down. Test inserting 7 elements then extracting all in sorted order."
+  },
+  {
+    "idx": 1845,
+    "problem": "Write `compressWhitespace(s)` — replaces any run of whitespace (spaces, tabs represented as multiple spaces) with a single space. Test `\"a   b\\t\\tc\"`."
+  },
+  {
+    "idx": 1846,
+    "problem": "Write `wrapText(s, width)` — greedy word-wrap: break text into lines of at most `width` chars, breaking at word boundaries. Test `width=20` on a 100-char sentence."
+  },
+  {
+    "idx": 1847,
+    "problem": "Write `diffHighlight(a, b)` — character-level diff: prints `a` with changed chars replaced by `\"[old→new]\"`. Test `(\"hello\",\"hallo\")` → `\"h[e→a]llo\"`."
+  },
+  {
+    "idx": 1848,
+    "problem": "Write `slugifyUnique(title, existing)` — creates a slug from `title` and appends `-2`, `-3`... if already in `existing` dict. Test 4 calls with duplicates."
+  },
+  {
+    "idx": 1849,
+    "problem": "Write `mutableString(s)` — since strings are immutable, simulate a mutable string as a list of characters. Implement `set(i,c)`, `insert(i,c)`, `delete(i)`, `toString()`. Test."
+  },
+  {
+    "idx": 1850,
+    "problem": "Write `parseNumber(s)` — parses integers and floats, handles leading `+`/`-`, rejects invalid input by returning `null`. Test `\"  -42 \"`, `\"3.14\"`, `\"abc\"`, `\"+7\"`."
+  },
+  {
+    "idx": 1851,
+    "problem": "Write `regexLite(pattern, s)` — supports only `.` (any char) and literal chars. Returns `true` if `pattern` matches anywhere in `s`. Test `(\"h.llo\", \"hello world\")` → `true`."
+  },
+  {
+    "idx": 1852,
+    "problem": "Write `scanTokens(code)` — tokenizes a tiny language with identifiers, integers, and symbols `+,-,*,/,(,)`. Return list of `{\"type\":\"...\",\"val\":\"...\"}` dicts."
+  },
+  {
+    "idx": 1853,
+    "problem": "Write `typecheckAST(node, env)` — walks an AST, checks that referenced variables exist in `env` dict. Return `true` if type-safe, else print the missing var."
+  },
+  {
+    "idx": 1854,
+    "problem": "Write `prettyAST(node, indent)` — pretty-prints a nested AST dict with indentation. Test on a 3-level expression tree."
+  },
+  {
+    "idx": 1855,
+    "problem": "Write `constantFold(node)` — simplifies an AST by evaluating sub-expressions whose children are both literals. Test `3 + (4 * 2)` → folded to `11`."
+  },
+  {
+    "idx": 1856,
+    "problem": "Write `inOrderTraversal(node)` — traverses a binary tree stored as nested dicts `{\"val\":N,\"left\":...,\"right\":...}`. Print values in order."
+  },
+  {
+    "idx": 1857,
+    "problem": "Write `huffmanFreq(s)` — counts character frequencies in `s`, builds a priority queue of `[freq, char]` pairs (sorted list), and simulates Huffman tree merges. Print final tree structure."
+  },
+  {
+    "idx": 1858,
+    "problem": "Write `ackermann(m, n)` — Ackermann function. Test only for small inputs: `A(0,0)=1`, `A(1,1)=3`, `A(2,2)=7`, `A(3,3)=61`. Guard against `m>3`."
+  },
+  {
+    "idx": 1859,
+    "problem": "Write `yangHui(n)` — Pascal's triangle (Yang Hui triangle) to `n` rows stored as a list of lists. Print formatted so each row is centered."
+  },
+  {
+    "idx": 1860,
+    "problem": "Write `partitions(n)` — print all integer partitions of `n` in lexicographically descending order. Test `n=5`."
+  },
+  {
+    "idx": 1861,
+    "problem": "Write `necklaces(n, k)` — count distinct binary necklaces of length `n` with exactly `k` ones (using Burnside's lemma approximation). Test `(6,3)` → `3`."
+  },
+  {
+    "idx": 1862,
+    "problem": "Write `antColony(graph, ants, iters)` — ACO on a weighted graph. Pheromone matrix starts uniform. Each iter: ants traverse, update pheromones. Print best path after `iters`."
+  },
+  {
+    "idx": 1863,
+    "problem": "Write `selfReference()` — a function that prints its own source code (a quine-style challenge). Declare the code as a string, store it, and print it. Verify the output matches."
+  }
+]

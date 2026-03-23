@@ -1,0 +1,402 @@
+[
+  {
+    "idx": 503,
+    "problem": "Given a feature importance dict from a trained model, merge it with a secondary model's importance dict using `.mergeInto`. Given `d1={\"f1\":0.4,\"f2\":0.3}` and `d2={\"f3\":0.2,\"f4\":0.1}`, merge and print the combined dict length."
+  },
+  {
+    "idx": 504,
+    "problem": "Given a feature statistics dict `stats = {\"mean\":0.0,\"std\":1.0,\"min\":-2.0,\"max\":2.0}`, compute z-score normalization for `x = 1.5` using `(x - stats.get(\"mean\",0)) / stats.get(\"std\",1)`. Print."
+  },
+  {
+    "idx": 505,
+    "problem": "Write a returning function `computeAccuracy(predicted, actual)` that returns the classification accuracy for two equal-length label lists. Test with `predicted=[1,0,1,1]` and `actual=[1,1,1,0]`."
+  },
+  {
+    "idx": 506,
+    "problem": "Write a void function `printConfusionMatrix(tp, fp, fn, tn)` that prints a formatted 2x2 confusion matrix as a string. Call with `tp=45,fp=5,fn=10,tn=40`."
+  },
+  {
+    "idx": 507,
+    "problem": "Write a void function `runMLPipeline(data, labels, modelType, epochs)` that prints a summary of the ML pipeline: dataset info, model type, training loop (simplified), and final mock evaluation metrics. Call with `data=[[1,2],[3,4],[5,6]]`, `labels=[0,1,0]`, `modelType=\"logistic\"`, `epochs=5`."
+  },
+  {
+    "idx": 508,
+    "problem": "Declare a global dict `confusionMatrix` initialized to `{\"TP\":0,\"FP\":0,\"TN\":0,\"FN\":0}`. Print the value at key `\"TP\"`."
+  },
+  {
+    "idx": 509,
+    "problem": "Declare a global list `residuals` as an empty list and a global `rSquared` initialized to `0.0`. Print `rSquared`."
+  },
+  {
+    "idx": 510,
+    "problem": "Given a text string `\"feature1 feature2 feature3\"`, split at spaces and check that `listLen() === 3`. Print `\"valid feature row\"` or `\"invalid\"`."
+  },
+  {
+    "idx": 511,
+    "problem": "Given a dataset as a list of feature vectors `[[1,2,3],[4,5,6],[7,8,9],[10,11,12]]`, implement a train/test split at index 3: create `train` as the first 3 rows using `.slice(1,3)` and `test` as the last row. Print both."
+  },
+  {
+    "idx": 512,
+    "problem": "Implement list-based feature concatenation: given feature vector `a = [1,2,3]` and `b = [4,5,6]`, use `a.appendList(b)` (or build a new list) to create a concatenated vector. Print the result."
+  },
+  {
+    "idx": 513,
+    "problem": "Build a preprocessing pipeline config dict: `{\"steps\":[\"normalize\",\"pca\",\"classify\"],\"pca_components\":10,\"scaler\":\"standard\"}`. Check if `\"normalize\"` is in the steps list using `.containsItem`. Print."
+  },
+  {
+    "idx": 514,
+    "problem": "Given feature descriptions as multiword strings `[\"petal length (cm)\",\"sepal width (cm)\",\"petal width (cm)\"]`, use `.map { x -> x.split(\" \") }` to tokenize each, then print the number of tokens in the first feature name."
+  },
+  {
+    "idx": 515,
+    "problem": "Given a label list `[0,1,0,1,1,0,1,0]`, count the number of `1`s using `.filter { x -> x === 1 }.listLen()` and print the positive class count."
+  },
+  {
+    "idx": 516,
+    "problem": "Given a list of predictions `[0.8, 0.3, 0.9, 0.4, 0.7, 0.2]` and threshold `0.5`, convert to binary labels using `.map { p -> if (p >= 0.5) { 1 } else { 0 } }`. Print the binary prediction list."
+  },
+  {
+    "idx": 517,
+    "problem": "Given feature importance scores `[0.15, 0.30, 0.25, 0.20, 0.10]`, find the top-2 important features by sorting in descending order using `.sort { a,b -> a > b }` and taking the first 2. Print them."
+  },
+  {
+    "idx": 518,
+    "problem": "Given encoded predictions `[0,1,2,1,0,2,1,0]` and class names `[\"dog\",\"cat\",\"bird\"]`, decode using `.map { x -> classNames[x+1] }` (1-based). Print the decoded label list."
+  },
+  {
+    "idx": 519,
+    "problem": "Given a dataset split into 3 features and 1 label in `[[1.0,2.0,3.0,0],[4.0,5.0,6.0,1],[7.0,8.0,9.0,0]]`, extract all rows with label `0` using `.filter { row -> row[4] === 0 }`. Print the filtered samples."
+  },
+  {
+    "idx": 520,
+    "problem": "Given a list of 4 feature values `[3.0,1.0,4.0,1.5]` and 4 decision tree thresholds `[2.0,1.5,3.5,2.0]`, for each feature compare with threshold and output `1` (above) or `0` (below). Print the binary feature representation."
+  },
+  {
+    "idx": 521,
+    "problem": "Implement k-fold cross-validation control flow: use a for range loop over `k=5` folds, printing `\"Training fold \" _ k _ \" of 5\"` for each iteration."
+  },
+  {
+    "idx": 522,
+    "problem": "Compute the Euclidean distance between two feature vectors `a = [1.0, 2.0, 3.0]` and `b = [4.0, 6.0, 3.0]`. Sum the squared differences element-wise using a for loop, then take `sqrt` and print."
+  },
+  {
+    "idx": 523,
+    "problem": "Given a list of stop words `[\"the\",\"a\",\"an\",\"is\",\"are\"]` and a document word `\"the\"`, check if the word appears using a for loop with `===` comparisons. Print `\"stop word\"` or `\"keep\"`."
+  },
+  {
+    "idx": 524,
+    "problem": "Given a list of weight updates `[0.01,-0.02,0.015,-0.005,0.008]`, apply them to a weight vector `[0.5,0.3,-0.2,0.8,0.1]`. Use `.map` with index-based addition via a for loop. Print the updated weights."
+  },
+  {
+    "idx": 525,
+    "problem": "Implement the perceptron learning rule with a for loop: iterate over samples `[(x=[1,1],y=1),(x=[0,0],y=0),(x=[1,0],y=0)]`, compute prediction, update weights if wrong. Print final weights."
+  },
+  {
+    "idx": 526,
+    "problem": "Use a while loop with a break to implement the bisection method for finding a decision boundary: given a monotone function, narrow the interval until width < `0.01`. Simulate with 10 halving steps. Print the final midpoint."
+  },
+  {
+    "idx": 527,
+    "problem": "Compute the inverse document frequency (IDF) of a term appearing in `5` of `100` documents. Use `log(100 / 5)` and print."
+  },
+  {
+    "idx": 528,
+    "problem": "Compute the log-likelihood of Gaussian data: given `n=5` observations, variance `sigma2 = 1.0`, and sum of squared residuals `SSR = 2.5`, use `-(n/2)*log(2*3.14159*sigma2) - SSR/(2*sigma2)` and print."
+  },
+  {
+    "idx": 529,
+    "problem": "Compute the information gain numerically: given entropy before split `H = 0.9` and weighted child entropies `H_left = 0.4` (weight `0.6`) and `H_right = 0.2` (weight `0.4`), compute `H - (0.6*H_left + 0.4*H_right)` and print."
+  },
+  {
+    "idx": 530,
+    "problem": "Compute the output of a two-layer linear network: given input `x = 2.0`, layer 1 weight `w1 = 0.5`, bias `b1 = 0.1`, layer 2 weight `w2 = 0.8`, bias `b2 = -0.2`. Compute `w2*(w1*x + b1) + b2` and print."
+  },
+  {
+    "idx": 531,
+    "problem": "Compute the adjusted R-squared: given `R2 = 0.85`, `n = 100` samples, `p = 5` predictors. Use `1 - (1 - R2) * (n-1) / (n - p - 1)` and print."
+  },
+  {
+    "idx": 532,
+    "problem": "Given class weights for imbalanced classification `[1.0, 5.0]` (minority class has higher weight), compute the weighted accuracy: given correct predictions per class `[90, 8]` and totals `[100, 10]`, compute `sum(w * acc) / sum(w)`. Print."
+  },
+  {
+    "idx": 533,
+    "problem": "Convert a numeric class prediction `2` to a label using a lookup string `\"class_0,class_1,class_2\"`. Split on `\",\"` and retrieve the element at index `3` (1-based). Print."
+  },
+  {
+    "idx": 534,
+    "problem": "Check the text type of a prediction output: given a variable `pred = \"positive\"`, use `pred ? text` to verify it is a text type and print `\"text type confirmed\"`."
+  },
+  {
+    "idx": 535,
+    "problem": "Construct a prediction interval string: `\"[\" _ formatDecimal(lower, 3) _ \", \" _ formatDecimal(upper, 3) _ \"]\"` where `lower = 1.234`, `upper = 5.678`. Print it."
+  },
+  {
+    "idx": 536,
+    "problem": "Implement a simple voting ensemble: given 5 binary predictions `[1,0,1,1,0]` from 5 classifiers, count votes for class 1 and class 0. Print the majority vote result."
+  },
+  {
+    "idx": 537,
+    "problem": "Given a neural net layer's weight list `[0.5,0.3,0.8,-0.2,0.1,-0.5]`, compute the L1 and L2 norms. For L1 sum `abs` values; for L2 sum squares then `sqrt`. Print both."
+  },
+  {
+    "idx": 538,
+    "problem": "Given a model performance dict `{\"accuracy\":0.85,\"precision\":0.88,\"recall\":0.82,\"f1\":0.85}`, find the metric with the maximum value by iterating over `.keys()` and comparing. Print the best metric name."
+  },
+  {
+    "idx": 539,
+    "problem": "Given a sparse feature dict `{\"feature_2\":0.5,\"feature_5\":1.2,\"feature_8\":0.3}` representing non-zero features, compute the L2 norm by iterating `.values()`, squaring, summing, and taking `sqrt`. Print."
+  },
+  {
+    "idx": 540,
+    "problem": "Given a SVM model dict `{\"support_vectors\":[[1,2],[3,4]],\"dual_coef\":[1.0,-1.0],\"intercept\":0.5}`, compute the decision function for point `[2,3]`: `sum(dual_coef[i] * kernel(sv[i], x)) + intercept` using linear kernel (dot product). Print."
+  },
+  {
+    "idx": 541,
+    "problem": "Build a confusion matrix dict for a 3-class problem with predictions `[0,1,2,0,1,2,0,1,2]` and true `[0,1,2,1,0,2,0,2,1]`. Count each `true_pred` pair as keys `\"0_0\",\"1_0\"` etc. Print the dict."
+  },
+  {
+    "idx": 542,
+    "problem": "Given a model output probability dict `{\"positive\":0.75,\"negative\":0.25}`, apply Laplace smoothing with `alpha=0.01` and vocabulary size `2`: `p_smooth = (count + alpha) / (total + alpha*V)`. Print the smoothed positive probability."
+  },
+  {
+    "idx": 543,
+    "problem": "Use `#RRGGBB` color literals to define a training progress indicator: epoch 1 as `#FF0000`, epoch 5 as `#FFFF00`, epoch 10 as `#00FF00`. Store in a list and print the color for epoch 5."
+  },
+  {
+    "idx": 544,
+    "problem": "Use a conditional expression (if as expression) to implement the sign function for SVM prediction: given `decision_value = -0.5`, compute `if (decision_value >= 0) { 1 } else { -1 }`. Print."
+  },
+  {
+    "idx": 545,
+    "problem": "Using the slope computed from a simple linear regression, compute the intercept as `intercept = (sumY - slope * sumX) / n`. Given `sumY = 30`, `sumX = 15`, `slope = 2.0`, `n = 5`, print the intercept."
+  },
+  {
+    "idx": 546,
+    "problem": "Compute cosine similarity between vectors `a = [1.0, 0.0, 1.0]` and `b = [0.0, 1.0, 1.0]`. Use dot product divided by product of magnitudes. Print the result."
+  },
+  {
+    "idx": 547,
+    "problem": "Compute the within-cluster sum of squares (WCSS) contribution for cluster assignments: given distances squared `[4.0, 1.0, 9.0, 0.25]`, sum them and print."
+  },
+  {
+    "idx": 548,
+    "problem": "Given `TP=50, FN=5`, compute recall `TP/(TP+FN)` and print."
+  },
+  {
+    "idx": 549,
+    "problem": "Compute the Minkowski distance with `p = 3` between `a = [1.0, 2.0]` and `b = [4.0, 6.0]`. Use `(sum(abs(a[i]-b[i])^3))^(1/3)` and print."
+  },
+  {
+    "idx": 550,
+    "problem": "Compute the receptive field size after two convolutional layers each with kernel size `3` and stride `1`. Use `RF = 1 + (3-1) + (3-1) = 5` and print."
+  },
+  {
+    "idx": 551,
+    "problem": "Compute the Spearman rank correlation: given ranks `r1 = [1,2,3,4,5]` and `r2 = [2,1,4,3,5]`, compute `d = [r1[i]-r2[i]]`, then `1 - 6*sum(d^2) / (n*(n^2-1))` and print."
+  },
+  {
+    "idx": 552,
+    "problem": "Compute the Dice coefficient for binary segmentation: given `TP = 45`, `FP = 5`, `FN = 10`, compute `2*TP / (2*TP + FP + FN)` and print."
+  },
+  {
+    "idx": 553,
+    "problem": "Build a cross-validation summary: given fold scores `[0.85, 0.87, 0.83, 0.88, 0.86]`, join them as a comma-separated string using `.join(\",\")` after mapping to text with `formatDecimal`. Print."
+  },
+  {
+    "idx": 554,
+    "problem": "Given tokenized document words `[\"the\",\"cat\",\"sat\",\"on\",\"the\",\"mat\"]`, compute the type-token ratio as unique tokens / total tokens. First deduplicate, then divide. Print the TTR value."
+  },
+  {
+    "idx": 555,
+    "problem": "Given a bootstrap sample created by sampling with replacement from `[1,2,3,4,5]` (pick 5 with `.random()`), simulate it by repeatedly calling `.random()` 5 times and building a list. Print the bootstrap sample."
+  },
+  {
+    "idx": 556,
+    "problem": "Implement list-based label encoding: given labels `[\"red\",\"green\",\"blue\",\"red\",\"green\"]`, build a unique list first, then map each label to its index in the unique list. Print the encoded label list."
+  },
+  {
+    "idx": 557,
+    "problem": "Given a binary label list `[1,0,1,1,0,1,0,0]`, split into positive and negative sample indices. Print both index lists."
+  },
+  {
+    "idx": 558,
+    "problem": "Given a list `[1,2,3,4,5,6,7,8,9,10]`, create mini-batches of size 3 by slicing: `[1..3],[4..6],[7..9]` and remainder. Print all mini-batches."
+  },
+  {
+    "idx": 559,
+    "problem": "Given a layer configuration dict `{\"type\":\"dense\",\"input_size\":128,\"output_size\":64,\"activation\":\"relu\"}`, compute the number of parameters as `input_size * output_size + output_size`. Print."
+  },
+  {
+    "idx": 560,
+    "problem": "Given an embedding lookup dict `{\"cat\":[0.5,0.3,0.1],\"dog\":[0.4,0.6,0.2],\"bird\":[0.1,0.2,0.9]}`, retrieve the embedding for `\"dog\"` and compute its L2 norm. Print."
+  },
+  {
+    "idx": 561,
+    "problem": "Build a vocabulary inverse index: given `{\"the\":0,\"cat\":1,\"sat\":2,\"on\":3,\"mat\":4}`, create the reverse mapping `{0:\"the\",1:\"cat\",...}` by iterating `.keys()`. Print the word at index `2`."
+  },
+  {
+    "idx": 562,
+    "problem": "Split the color `#3A7FCC` using `splitColor(#3A7FCC)` to extract `[alpha, r, g, b]` components. Print the red channel value."
+  },
+  {
+    "idx": 563,
+    "problem": "Create a diverging colormap value for a correlation coefficient `r = -0.7`: negative correlations map to blue `[0, 0, round(abs(r)*255)]` and positive to red. Print the color."
+  },
+  {
+    "idx": 564,
+    "problem": "Build a ROC curve point color scheme: use `#FF0000` for high FPR points and `#00FF00` for low FPR points. Given FPR `= 0.1`, assign the appropriate color and print."
+  },
+  {
+    "idx": 565,
+    "problem": "Use a for range loop to simulate learning rate warmup: for steps `1..10`, compute `lr = maxLr * step / warmup_steps` where `maxLr=0.001` and `warmup_steps=10`. Print the LR at each step."
+  },
+  {
+    "idx": 566,
+    "problem": "Write a returning function `softmax(logits)` that takes a list of logits, applies `exp` to each, sums, and divides each by the sum. Return the probability list. Test with `[1.0,2.0,3.0]`."
+  },
+  {
+    "idx": 567,
+    "problem": "Compute the covariance between `x = [1,2,3,4,5]` and `y = [2,3,5,4,6]`. Use `sum((xi - meanX)(yi - meanY)) / n` and print. Use `avgOf` for means."
+  },
+  {
+    "idx": 568,
+    "problem": "Compute the cumulative explained variance for PCA eigenvalues `[3.2, 1.8, 0.5, 0.1]`. Divide each by the sum to get proportions, then compute cumulative sums. Print the cumulative variance list."
+  },
+  {
+    "idx": 569,
+    "problem": "Given a list of 5 model accuracy scores from cross-validation `[0.82,0.85,0.79,0.88,0.83]`, compute the mean, standard deviation, and 95% confidence interval approximation `mean ± 2*std`. Print all three values."
+  },
+  {
+    "idx": 570,
+    "problem": "Build a feature drift detection dict: given current feature stats `{\"mean\":1.5,\"std\":0.8}` and reference stats `{\"mean\":1.2,\"std\":0.7}`, compute drift score as `abs(mean_curr - mean_ref) / std_ref`. Print the drift score."
+  },
+  {
+    "idx": 571,
+    "problem": "Given a feature label string `\"sepal_length\"`, convert it to a human-readable form by replacing `\"_\"` with `\" \"` and calling `.uppercase()`. Print the result."
+  },
+  {
+    "idx": 572,
+    "problem": "Given a confusion matrix label `\"TP\"`, check if it `.startsWith(\"T\")` and `.contains(\"P\")`. Print `\"true positive\"` if both conditions are met, else `\"other\"`."
+  },
+  {
+    "idx": 573,
+    "problem": "Parse a weight initialization string `\"weights: [0.1, 0.2, 0.3, 0.4]\"`. Use `.segment(10, 20)` or `.replace` to extract the bracket content, split on `\",\"`, and print the token count."
+  },
+  {
+    "idx": 574,
+    "problem": "Given a feature name `\"feature_03\"`, check if it `.contains(\"_\")`. Split on `\"_\"` and print the numeric part (index 2)."
+  },
+  {
+    "idx": 575,
+    "problem": "Given a model version string `\"v2.3.1\"`, remove the leading `\"v\"` using `.replace(\"v\",\"\")`, split on `\".\"`, and print the major version number (index 1)."
+  },
+  {
+    "idx": 576,
+    "problem": "Given a list of model names `[\"KNN\",\"SVM\",\"RF\",\"LR\",\"NB\"]`, find the longest name using `.textLen()` comparisons. Print the longest model name."
+  },
+  {
+    "idx": 577,
+    "problem": "Given a text feature `\"Hello World this is a test\"`, split at spaces, filter words with `.textLen() > 3` using `.filter`, and join remaining words with `\" \"`. Print the filtered text."
+  },
+  {
+    "idx": 578,
+    "problem": "Write a returning function `computeGiniSplit(leftCounts, rightCounts)` that returns the weighted Gini impurity of a split. Given `left=[30,10]` and `right=[5,55]`, compute and print."
+  },
+  {
+    "idx": 579,
+    "problem": "Write a function `aStarPath(grid, size, startR, startC, goalR, goalC)` that implements A* pathfinding on a 2D grid (0 = open, 1 = wall), returning the path as a list of `[row, col]` pairs."
+  },
+  {
+    "idx": 580,
+    "problem": "Write a function `rankLeaderboard(entries)` that takes a list of score entry dicts, sorts by `\"score\"` descending, and updates each entry's `\"rank\"` field with its 1-based position."
+  },
+  {
+    "idx": 581,
+    "problem": "Write a function `expToNextLevel(level)` that returns the experience needed to reach the next level using the formula `floor(100 * level^1.5)`, representing an RPG leveling curve."
+  },
+  {
+    "idx": 582,
+    "problem": "Write a function `treasureRarity(roll)` that maps a d100 roll (1–100) to a rarity: 1–50 returns `\"common\"`, 51–80 returns `\"uncommon\"`, 81–95 returns `\"rare\"`, 96–100 returns `\"legendary\"`."
+  },
+  {
+    "idx": 583,
+    "problem": "Create a function `statusBarText(current, maximum, label)` that returns a string like `\"HP: 75/100\"` using the label and values joined with appropriate separators."
+  },
+  {
+    "idx": 584,
+    "problem": "Write a function `countdownText(secondsLeft)` that returns `\"Time: 0:45\"` style strings by formatting `floor(secondsLeft/60)` minutes and `mod(secondsLeft, 60)` seconds with a leading zero on seconds if needed."
+  },
+  {
+    "idx": 585,
+    "problem": "Write a function `buildMapKey(tileTypes)` that takes a list of distinct tile type strings and returns a numbered key string like `\"1=Wall 2=Floor 3=Door\"`, joining each with a space."
+  },
+  {
+    "idx": 586,
+    "problem": "Implement `chessBoardInit()` that returns an 8x8 2D list representing the initial chess position, with row 1 having pieces `[\"R\",\"N\",\"B\",\"Q\",\"K\",\"B\",\"N\",\"R\"]`, row 2 all `\"P\"`, rows 3–6 `\".\"`, row 7 all `\"p\"`, row 8 `[\"r\",\"n\",\"b\",\"q\",\"k\",\"b\",\"n\",\"r\"]`."
+  },
+  {
+    "idx": 587,
+    "problem": "Implement `pawnMoves(row, col, color, boardSize)` that returns valid pawn move positions: one step forward for `\"white\"` (row+1) and `\"black\"` (row-1), plus initial two-step if on starting row."
+  },
+  {
+    "idx": 588,
+    "problem": "Implement `generateCheckerboard(size)` that returns a flat list of `size*size` values alternating 0 and 1 in a checkerboard pattern, based on `mod(row + col, 2)`."
+  },
+  {
+    "idx": 589,
+    "problem": "Implement `playerStats(name, classType)` that returns an RPG stats dict with `\"name\"`, `\"class\"`, and stats `\"str\"`, `\"dex\"`, `\"int\"`, `\"wis\"`, `\"con\"`, `\"cha\"` each initialized to 10."
+  },
+  {
+    "idx": 590,
+    "problem": "Implement `buildCombatLog(maxEntries)` that returns a dict with `\"entries\"` as an empty list and `\"max\"` set to `maxEntries`, maintaining a rolling combat history."
+  },
+  {
+    "idx": 592,
+    "problem": "Write a function `timeOfDayTint(hour)` that returns a multiplicative tint color: warm orange at sunrise (hour 6), neutral at noon, warm amber at sunset (hour 18), and dark blue at night."
+  },
+  {
+    "idx": 593,
+    "problem": "Implement a returning function `checkVictoryConditions(state)` that evaluates all possible victory conditions (boss defeated, all objectives complete, score reached) and returns a dict with `\"victory\"` boolean and `\"reason\"` string."
+  },
+  {
+    "idx": 594,
+    "problem": "Write a void function `renderMinimap(grid, size, playerR, playerC)` that constructs and prints a minimap string, marking the player position with `\"@\"` and using tile symbols for other cells."
+  },
+  {
+    "idx": 595,
+    "problem": "Write a void function `decodeAndApplyState(saveString)` that parses a save string produced by `encodeGameState` and restores all global game variables to the saved values."
+  },
+  {
+    "idx": 596,
+    "problem": "Create globals `gold` initialized to 0 and `experience` initialized to 0. Write a function `rewardPlayer(g, xp)` that adds `g` to `this.gold` and `xp` to `this.experience`, printing the new totals."
+  },
+  {
+    "idx": 597,
+    "problem": "Calculate the angle in degrees between a player and a target for aiming. Write `aimAngle(px, py, tx, ty)` returning `atan2(ty - py, tx - px) * 180 / 3.14159`, using `sin` and `cos` composition if `atan2` is unavailable."
+  },
+  {
+    "idx": 598,
+    "problem": "Calculate the score for clearing a level. Write `levelScore(timeLeft, enemiesKilled, diffMult)` returning `floor((timeLeft * 10 + enemiesKilled * 50) * diffMult)`."
+  },
+  {
+    "idx": 599,
+    "problem": "Write a function `buildingCost(type, level)` returning the resource cost: `100 * level^2` for `\"tower\"`, `50 * level^2` for `\"wall\"`, `200 * level^2` for `\"castle\"`."
+  },
+  {
+    "idx": 600,
+    "problem": "Create a function `perkDescription(perkName, effect, value)` returning `\"[Blood Fury] Deal +25% attack damage\"` style perk description strings."
+  },
+  {
+    "idx": 601,
+    "problem": "Implement `mergeWaveLists(wave1, wave2)` that combines two enemy lists, removing duplicates based on `\"id\"` field, keeping the entry from `wave2` on conflict."
+  },
+  {
+    "idx": 602,
+    "problem": "Implement `aggregateDamage(logs, entityId)` that sums the `\"damage\"` values from all combat log dicts where `\"attackerId\"` equals `entityId`."
+  },
+  {
+    "idx": 603,
+    "problem": "Implement `playerTeamTint(playerIndex, baseColor)` that applies a team tint to a base color by splitting it and boosting a specific channel based on `mod(playerIndex, 4)`."
+  }
+]
