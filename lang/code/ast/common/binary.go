@@ -18,13 +18,19 @@ func (b *BinaryExpr) String() string {
 	stringified := make([]string, len(b.Operands))
 	for i, operand := range b.Operands {
 		operandStr := operand.String()
+		needsParens := false
 		// If operand is a BinaryExpr with lower precedence, wrap it
 		if binExpr, ok := operand.(*BinaryExpr); ok {
 			if lex.PrecedenceOf(binExpr.Where.Flags[0]) < myPrecedence {
-				operandStr = "(" + operandStr + ")"
+				needsParens = true
 			}
+		} else if !operand.Continuous() {
+			// Non-continuous expressions (e.g. if-else) need parens as binary operands
+			needsParens = true
 		}
-
+		if needsParens {
+			operandStr = "(" + operandStr + ")"
+		}
 		stringified[i] = operandStr
 	}
 	return strings.Join(stringified, " "+*b.Where.Content+" ")
