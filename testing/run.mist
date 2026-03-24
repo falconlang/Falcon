@@ -1,13 +1,28 @@
-func stripPunctuation(s) = {
-    local punct = [".", ",", "!", "?", ";", ":", "'", "\"", "(", ")", "[", "]", "{", "}", "-", "_", "/", "@", "#", "$", "%", "&", "*", "+", "=", "<", ">", "~", "`", "^", "|", "\\"]
-    local result = ""
-    for (i: 1 .. s.textLen()) {
+func encodeRLE(s) =
+  {
+    if (s.textLen() == 0) {
+      ""
+    } else {
+      local result = ""
+      local curr = s.segment(1, 1)
+      local count = 1
+
+      for (i: 2 .. s.textLen() step 1) {
         local ch = s.segment(i, 1)
-        if (!punct.containsItem(ch)) {
-            result = result _ ch
+        if (ch === curr) {
+          count = count + 1
+        } else {
+          result = result _ count _ curr
+          curr = ch
+          count = 1
         }
+      }
+
+      result _ count _ curr
     }
-    result
-}
-println(stripPunctuation("Hello, World! How's it going?"))
-println(stripPunctuation("Price: $9.99 (sale!)"))
+  }
+
+println(encodeRLE("aaabbc"))   // 3a2b1c
+println(encodeRLE("aabbcc"))   // 2a2b2c
+println(encodeRLE("abcdef"))   // 1a1b1c1d1e1f
+println(encodeRLE(""))         // ""

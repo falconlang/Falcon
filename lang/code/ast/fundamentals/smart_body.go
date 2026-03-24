@@ -69,14 +69,32 @@ func (s *SmartBody) createDoSmt(doResult ast.Expr, doBody []ast.Expr) ast.Block 
 		}
 		doExpr = doResult.Blockly(false)
 	} else {
-		if !doResult.Consumable() {
-			panic("Cannot include a statement for the required variable result")
-		}
-		doExpr = ast.Block{
-			Type:       "controls_do_then_return",
-			Statements: ast.OptionalStatement("STM", doBody),
-			// TODO: we have set the flag to false, previously was true, verify effects
-			Values: []ast.Value{{Name: "VALUE", Block: doResult.Blockly(false)}},
+		if v, ok := doResult.(*variables.Var); ok {
+			// The result is a var-body (non-consumable), but it contains a
+			// consumable result buried inside. Build a local_declaration_expression
+			// for the Var, then wrap the whole thing in a controls_do_then_return.
+			var innerDoExpr ast.Block
+			if len(v.Body) > 0 {
+				innerDoExpr = s.createDoSmt(v.Body[len(v.Body)-1], v.Body[:len(v.Body)-1])
+			} else {
+				innerDoExpr = createEmptyDoSmt(v)
+			}
+			valueExpr := s.createLocalResult(v.Names, v.Values, innerDoExpr)
+			doExpr = ast.Block{
+				Type:       "controls_do_then_return",
+				Statements: ast.OptionalStatement("STM", doBody),
+				Values:     []ast.Value{{Name: "VALUE", Block: valueExpr}},
+			}
+		} else {
+			if !doResult.Consumable() {
+				panic("Cannot include a statement for the required variable result")
+			}
+			doExpr = ast.Block{
+				Type:       "controls_do_then_return",
+				Statements: ast.OptionalStatement("STM", doBody),
+				// TODO: we have set the flag to false, previously was true, verify effects
+				Values: []ast.Value{{Name: "VALUE", Block: doResult.Blockly(false)}},
+			}
 		}
 	}
 	return doExpr
