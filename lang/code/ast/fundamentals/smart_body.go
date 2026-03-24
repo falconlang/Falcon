@@ -11,6 +11,11 @@ type SmartBody struct {
 }
 
 func (s *SmartBody) String() string {
+	if len(s.Body) == 1 {
+		if _, ok := s.Body[0].(*variables.VarResult); ok {
+			return s.Body[0].String()
+		}
+	}
 	return sugar.Format("{\n%}", ast.PadBody(s.Body))
 }
 

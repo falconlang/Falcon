@@ -1,27 +1,8 @@
-func rleEncode(s) =
+func relativeLuminance(c) =
   {
-    local chars = {  }
-    for (i: 1 .. s.textLen() step 1) {
-      local ch = s.segment(i, i)
-      if (chars.containsKey(ch)) {
-        chars[ch] = chars[ch] + 1
-      } else {
-        chars.set(ch, 1)
-      }
-    }
-    local runs = []
-    for (k: 1 .. chars.keys() step 1) {
-      local count = chars[k]
-      if (count > 1) {
-        runs.add(k _ "x" _ count)
-      }
-    }
-    local encoded = ""
-    for (r in runs) {
-      encoded = encoded _ r
-    }
-    encoded
+    local rgbC = splitColor(c)
+    local r = rgbC[1] / 255.0
+    local g = rgbC[2] / 255.0
+    local b = rgbC[3] / 255.0
+    0.2126 * r + 0.7152 * g + 0.0722 * b
   }
-
-println(rleEncode("AAAAABBBCC"))
-println(rleEncode("abcdef"))
