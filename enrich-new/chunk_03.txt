@@ -1,0 +1,1408 @@
+=== ENTRY 401 ===
+Goal: Record a new nested score in a student's portfolio dictionary and print the result.
+
+1. Declare a local dictionary `portfolio` with Q1 and Q2 exam/project scores.
+2. Call `.setAtPath(["Q3", "project", "score"], 88)` to create nested keys and set the value 88.
+3. Print the updated portfolio.
+
+=== ENTRY 402 ===
+Goal: Compute total transit time from a flight schedule dictionary.
+
+1. Declare a local dictionary `flights6580` with two flights, each having departure and arrival times in minutes.
+2. Initialize `transit` to 0.
+3. Loop over each flight using `for (id, f in ...)`, computing arrival minus departure and adding to `transit`.
+4. Print the total transit time in minutes.
+
+=== ENTRY 403 ===
+Goal: Define a void function to print a formatted box score line and call it for five players.
+
+1. Define `printStatLine(player, pts, reb, ast)` as a void function.
+2. Inside, print a formatted string joining player name, points, rebounds, and assists with separators.
+3. Call the function five times with different player names and stats.
+
+=== ENTRY 404 ===
+Goal: Define a void function to print flight details and call it for three flight options.
+
+1. Define `printFlightSummary(origin, dest, duration, price)` as a void function.
+2. Inside, print a formatted string with origin, destination, duration, and price.
+3. Call the function three times with different flight data.
+
+=== ENTRY 405 ===
+Goal: Compute points-per-game for players in a roster using a returning function.
+
+1. Define `pointsPerGame(totalPoints, gamesPlayed)` returning `totalPoints / gamesPlayed`.
+2. Declare a roster list where each entry contains player name, total points, and games played.
+3. Loop over each player, call `pointsPerGame` with their stats, and print the result formatted to 1 decimal.
+
+=== ENTRY 406 ===
+Goal: Compute the cumulative GPA from a course transcript using a returning function.
+
+1. Define `gpaPoints(letterGrade)` returning the GPA value from a lookup dictionary.
+2. Declare a transcript list with course name, grade, and credit hours.
+3. Loop over each course, accumulate weighted grade points and total hours.
+4. Print the GPA as `totalPoints / totalHours` formatted to 2 decimal places.
+
+=== ENTRY 407 ===
+Goal: Compute layover duration between connecting flights using a returning function.
+
+1. Define `layoverTime(arrivalMin, departureMin)` returning `mod(departureMin - arrivalMin + 1440, 1440)` to handle midnight wrapping.
+2. Call the function three times with different arrival and departure times.
+3. Print each result as a layover duration in minutes.
+
+=== ENTRY 408 ===
+Goal: Identify honor roll students using a returning boolean function.
+
+1. Define `honorRoll(gpa, threshold)` returning `gpa >= threshold`.
+2. Declare a class list of student name and GPA pairs.
+3. Loop over each student, call `honorRoll` with their GPA and threshold 3.5.
+4. Print a message for each qualifying student.
+
+=== ENTRY 409 ===
+Goal: Compute a baseball player's OPS+ from on-base and slugging percentages.
+
+1. Declare local variables for player OBP, SLG, league OBP, and league SLG.
+2. Compute `opsPlus` using the formula `round(100 * (obp/lgObp + slg/lgSlg - 1))`.
+3. Print the OPS+ value.
+
+=== ENTRY 410 ===
+Goal: Generate a fantasy sports trade proposal string comparing two players' point values.
+
+1. Declare local variables for two player names and their point values.
+2. Compute the net gain as `ptsA - ptsB`.
+3. Print a formatted trade offer string with both players, their points, and the net gain.
+
+=== ENTRY 411 ===
+Goal: Compute a blue-intensity hydration color based on a level from 0 to 100.
+
+1. Declare `level` as 75.
+2. Compute `hydrationColor` using `makeColor([0, round(level * 2.55), 255])`.
+3. Print the color value.
+
+=== ENTRY 412 ===
+Goal: Extract the first marking period scores and compute their average.
+
+1. Declare a list of 10 test scores for the semester.
+2. Use `.slice(1, 5)` to extract the first 5 scores into `period1`.
+3. Print the average of `period1` formatted to 2 decimal places using `avgOf`.
+
+=== ENTRY 413 ===
+Goal: Reverse an ingredient list to simulate a reversed prep checklist.
+
+1. Declare a list of ingredients.
+2. Call `.reverseList()` on the list to reverse it in place.
+3. Print the reversed list.
+
+=== ENTRY 414 ===
+Goal: Find the index of the first occurrence of temperature 350 in a rack temperatures list.
+
+1. Declare `rackTemps` as `[325, 350, 375, 350, 325]`.
+2. Call `.indexOf(350)` on the list.
+3. Print the returned index.
+
+=== ENTRY 415 ===
+Goal: Remove the slowest relay leg and compute the best-3-legs total time.
+
+1. Declare `splitTimes` as a list of 4 leg times.
+2. Copy the list and sort it ascending using `.sort()`.
+3. Use `.slice(1, 3)` to get the 3 fastest legs.
+4. Use `.reduce` to sum the best 3 legs and print the result formatted to 2 decimal places.
+
+=== ENTRY 416 ===
+Goal: Replace an item in a packing list at position 2 with "power bank".
+
+1. Declare a packing list of 5 items.
+2. Call `.remove(2)` to delete the item at index 2.
+3. Call `.insert(2, "power bank")` to insert the new item at the same position.
+4. Print the updated list.
+
+=== ENTRY 417 ===
+Goal: Merge two quiz score sections and compare individual and combined averages.
+
+1. Declare two score lists for section 1 and section 2.
+2. Copy section 1 into `combined` and call `.appendList(section2)` to merge.
+3. Print the average of section 1, section 2, and the combined list, each formatted to 2 decimal places.
+
+=== ENTRY 418 ===
+Goal: Compare total spending between week 1 and week 2 of a trip.
+
+1. Declare a 14-element daily spending list.
+2. Use `.slice(1, 7)` to get week 1 and `.slice(8, 14)` to get week 2.
+3. Use `.reduce` to sum each week's spending.
+4. Print both totals.
+
+=== ENTRY 419 ===
+Goal: Remove the two slowest gate times and compute the adjusted total for the best 4.
+
+1. Declare `gateTimes` as a list of 6 slalom gate times.
+2. Copy the list and sort it ascending.
+3. Use `.slice(1, 4)` to extract the 4 fastest times.
+4. Use `.reduce` to sum them and print the result formatted to 2 decimal places.
+
+=== ENTRY 420 ===
+Goal: Scale all recipe ingredient amounts by 1.5x using a map lambda.
+
+1. Declare `amounts` as a list of ingredient quantities in grams.
+2. Apply `.map { x -> x * 1.5 }` to produce the scaled list.
+3. Print the resulting scaled list.
+
+=== ENTRY 421 ===
+Goal: Count the number of games where a player scored more than 20 points.
+
+1. Declare `gamePts` as a list of per-game point totals.
+2. Apply `.filter { x -> x > 20 }` to keep only scores above 20.
+3. Call `.listLen()` on the filtered list and print the count.
+
+=== ENTRY 422 ===
+Goal: Find the fastest lap time and compute the improvement from the first lap.
+
+1. Declare `lapTimes` as a list of 5 lap times in seconds.
+2. Use `.min { a, b -> a < b }` to find the fastest lap.
+3. Subtract the fastest from the first lap time and print both values formatted to 1 decimal.
+
+=== ENTRY 423 ===
+Goal: Rank the top 3 teams by win total using index-based sorting.
+
+1. Declare parallel lists of team names and win totals.
+2. Build an index list `[1, 2, 3, 4, 5]` and sort it by comparing win values at each index.
+3. Loop over the top 3 sorted indices and print each team's rank, name, and win count.
+
+=== ENTRY 424 ===
+Goal: Apply a grade curve that adds 5 points to each score but caps the result at 100.
+
+1. Declare `rawScores` as a list of student scores.
+2. Apply `.map { x -> if (x + 5 > 100) { 100 } else { x + 5 } }` to curve each score.
+3. Print the curved score list.
+
+=== ENTRY 425 ===
+Goal: Categorize passengers by age and compute ticket costs for each group.
+
+1. Declare `ages` as a list of passenger ages.
+2. Filter for children (under 12), adults (18 and over), and teens (12–17) using `.filter`.
+3. Print the count and total ticket cost for each group.
+
+=== ENTRY 426 ===
+Goal: Convert vegetable yield percentages to decimals and compute the average yield.
+
+1. Declare `yields` as a list of yield percentages.
+2. Apply `.map { x -> x / 100.0 }` to convert to decimals.
+3. Use `.reduce` to sum the decimals, divide by list length, and print the average formatted to 3 decimal places.
+
+=== ENTRY 427 ===
+Goal: Identify students at risk by filtering for homework completion below 50%.
+
+1. Declare `completions` as a list of homework completion percentages.
+2. Apply `.filter { x -> x < 50 }` to keep only at-risk values.
+3. Print the filtered list.
+
+=== ENTRY 428 ===
+Goal: Compute a basketball player's average assists per game using reduce.
+
+1. Declare `assists` as a list of 10 per-game assist totals.
+2. Use `.reduce(0) { x, acc -> acc + x }` to sum all assists.
+3. Divide by `.listLen()` and print the average formatted to 1 decimal place.
+
+=== ENTRY 429 ===
+Goal: Identify perishable ingredients with shelf life under 30 days.
+
+1. Declare `shelfLife` as a list of shelf-life durations in days.
+2. Apply `.filter { x -> x < 30 }` to keep only perishables.
+3. Print the filtered list.
+
+=== ENTRY 430 ===
+Goal: Convert tablespoon measurements to cups and print each formatted to 3 decimal places.
+
+1. Declare `tablespoons` as a list of measurements.
+2. Apply `.map { x -> x / 16.0 }` to convert each to cups.
+3. Loop over the resulting list and print each value formatted to 3 decimal places with the label "cups".
+
+=== ENTRY 431 ===
+Goal: Identify overweight bags and compute total overage fees at $15/kg over 23 kg.
+
+1. Declare `bagWeights` as a list of baggage weights in kg.
+2. Apply `.filter { x -> x > 23 }` to isolate overweight bags.
+3. Use `.reduce` to sum `(x - 23) * 15` for each overweight bag.
+4. Print the count of overweight bags and the total fees formatted to 2 decimal places.
+
+=== ENTRY 432 ===
+Goal: Convert correct answer counts to percentages and count passing students.
+
+1. Declare `correct` as a list of correct answer counts out of 20.
+2. Apply `.map { x -> x / 20.0 * 100 }` to convert to percentages.
+3. Apply `.filter { x -> x >= 70 }` and print the count of passing students.
+
+=== ENTRY 433 ===
+Goal: Rank students by semester grade using sorted pairs from a dictionary.
+
+1. Declare `semGrades` as a dictionary of student names to grade values.
+2. Call `.toPairs()` to convert to a list of pairs.
+3. Sort the pairs by the grade value at index 2 in descending order.
+4. Loop and print each student's rank, name, and grade.
+
+=== ENTRY 434 ===
+Goal: Compute the percentile rank for the top 5 scores in a class.
+
+1. Define `percentile(score, allScores)` returning the fraction of scores at or below `score` multiplied by 100.
+2. Declare and sort `allScores`, then use `.slice` to extract the top 5.
+3. Call `percentile` for each top score and print the result formatted to 1 decimal place.
+
+=== ENTRY 435 ===
+Goal: Find missing assignments for a student by comparing submitted to required lists.
+
+1. Define `missingAssignments(submitted, required)` returning items in `required` not found in `submitted` using `.filter` and `.containsItem`.
+2. Declare the submitted and required assignment lists.
+3. Call the function and print the missing assignments list.
+
+=== ENTRY 436 ===
+Goal: Store and print the current school year as a global and today's date as a local variable.
+
+1. Declare a global `schoolYear` set to `"2025-2026"`.
+2. Declare a local `todayDate` set to `"2025-03-21"`.
+3. Print both variables using `this.schoolYear` for the global.
+
+=== ENTRY 437 ===
+Goal: Compare a student's score to a global passing threshold and print pass or fail.
+
+1. Declare global `passingGrade` as 60.
+2. Declare local `studentScore` as 74.
+3. Print `"Passed"` if `studentScore >= passingGrade`, otherwise print `"Failed"`.
+
+=== ENTRY 438 ===
+Goal: Convert a time from one city's timezone to another using UTC offsets.
+
+1. Declare global UTC offsets for city A and city B.
+2. Declare a local hour value for city A.
+3. Compute the equivalent time in city B using `mod(hourCityA + utcCityB - utcCityA, 24)`.
+4. Print the result.
+
+=== ENTRY 439 ===
+Goal: Compute and print cumulative GPA after three courses using global and local variables.
+
+1. Declare a global `totalCreditHours` initialized to 0.
+2. Declare local credit hours and grade points for three courses.
+3. Update `this.totalCreditHours` with the sum of all credit hours.
+4. Compute and print the weighted GPA formatted to 2 decimal places.
+
+=== ENTRY 440 ===
+Goal: Compute the number of standard drinks from a given volume of wine.
+
+1. Declare global `alcoholPct` as 12.
+2. Declare local `volumemL` as 150.
+3. Compute pure alcohol as `volumemL * alcoholPct / 100`.
+4. Divide by 17.7 and print the result formatted to 2 decimal places.
+
+=== ENTRY 441 ===
+Goal: Warn a student if their absence count exceeds the global maximum allowed.
+
+1. Declare global `maxAbsences` as 5.
+2. Declare local `absences` as 7.
+3. Print a warning if `absences > maxAbsences`, otherwise print an attendance OK message.
+
+=== ENTRY 442 ===
+Goal: Generate a red-scale color for each activity intensity level from 0 to 5.
+
+1. Declare `levels` as `[0, 1, 2, 3, 4, 5]`.
+2. Loop over each intensity value.
+3. Compute `makeColor([255, 200 - intensity * 20, 200 - intensity * 20])` and print the color.
+
+=== ENTRY 443 ===
+Goal: Print a Gantt-style cooking timeline showing start and end time for each recipe step.
+
+1. Define void `cookingTimeline(recipe)` that retrieves the steps dictionary from the recipe.
+2. Initialize a running time counter to 0.
+3. Loop over each step key, print its start and end time, then add its duration to the counter.
+4. Call the function with a roast dinner recipe dictionary.
+
+=== ENTRY 444 ===
+Goal: Find the first game where a team's cumulative points exceed 100.
+
+1. Declare `gamePts2` as a list of per-game point totals.
+2. Initialize `cumTotal`, `gameNum`, and `found`.
+3. Use a while loop to accumulate points game by game until the total exceeds 100.
+4. Print the game number and the cumulative total.
+
+=== ENTRY 445 ===
+Goal: Determine how many students need an A to raise the class average from 73.5 to 75.0.
+
+1. Declare class average, class size, target average, and the A score value.
+2. Use a while loop, incrementing `needed` until the formula `(classAvg * classSize + aScore * needed) / (classSize + needed)` reaches the target.
+3. Print the minimum number of A students needed.
+
+=== ENTRY 446 ===
+Goal: Compute the weight in grams of 2.75 cups of all-purpose flour.
+
+1. Multiply 2.75 cups by 125 grams per cup.
+2. Print the result formatted to 1 decimal place with the label "grams".
+
+=== ENTRY 447 ===
+Goal: Compute the usable weight and cost per usable kg after trimming broccoli.
+
+1. Declare starting weight as 1.5 kg and waste percentage as 30.
+2. Compute usable weight as `startKg * (1 - wastePercent / 100)`.
+3. Compute cost per usable kg as `costPerKg / (1 - wastePercent / 100)`.
+4. Print both values formatted to 2 decimal places.
+
+=== ENTRY 448 ===
+Goal: Scale recipe ingredients when switching from an 8-inch to a 9-inch baking pan.
+
+1. Declare global pan areas for 8-inch and 9-inch pans.
+2. Compute `scaleFactor` as `pan9 / pan8`.
+3. Multiply base flour and sugar amounts by `scaleFactor`.
+4. Print the adjusted quantities formatted to 2 decimal places.
+
+=== ENTRY 449 ===
+Goal: Compute the number of days between two dates using the day-of-year formula.
+
+1. Define returning function `dayOfYear(m, d, y)` that sums days for each prior month, accounting for leap years.
+2. Compute day-of-year for January 15 and March 21, 2025.
+3. Subtract and print the difference.
+
+=== ENTRY 450 ===
+Goal: Compute total recipe time and print it formatted as hours and minutes.
+
+1. Declare prep, marinate, and cook times in minutes.
+2. Sum them into `totalMin`.
+3. Print `floor(totalMin / 60)` hours and `mod(totalMin, 60)` minutes.
+
+=== ENTRY 451 ===
+Goal: Convert 3.5 ounces of chocolate to grams.
+
+1. Multiply 3.5 by the conversion factor 28.3495.
+2. Print the result formatted to 1 decimal place with the label "grams".
+
+=== ENTRY 452 ===
+Goal: Compute the total cost of a road trip including fuel, tolls, meals, and lodging.
+
+1. Compute fuel cost as `250 * 0.15`.
+2. Declare tolls, meals, and lodging costs.
+3. Sum all costs and print the total formatted to 2 decimal places with a dollar sign.
+
+=== ENTRY 453 ===
+Goal: Compute the total recipe ingredient cost and cost per serving.
+
+1. Declare `ingredients6286` as a list of 5 ingredient costs.
+2. Use `.reduce` to sum the costs into `total6286`.
+3. Print the total and `total6286 / 8` for cost per serving, each formatted to 2 decimal places.
+
+=== ENTRY 454 ===
+Goal: Compute the sugar concentration of a syrup in grams per mL.
+
+1. Divide 200 g of sugar by 450 mL total volume.
+2. Print the result formatted to 3 decimal places with the label "g/mL".
+
+=== ENTRY 455 ===
+Goal: Compute absorbance using the Beer-Lambert law.
+
+1. Multiply extinction coefficient 0.025, concentration 0.05, and path length 1.
+2. Print the result directly.
+
+=== ENTRY 456 ===
+Goal: Adjust baking time when switching from an 8-inch to a 9-inch pan using the area scaling formula.
+
+1. Declare `t1` as 35 minutes and compute areas for both pan sizes using π * r².
+2. Apply the formula `(t1 * area1 / area2) ^ 0.9` to get `t2`.
+3. Print the adjusted time formatted to 1 decimal place.
+
+=== ENTRY 457 ===
+Goal: Compare the true cost of a direct flight versus a connecting flight when accounting for time value.
+
+1. Declare direct and connection ticket prices.
+2. Compute the time cost of the connection as `4.5 * 25`.
+3. Print the direct cost and the connection true cost (ticket + time value).
+
+=== ENTRY 458 ===
+Goal: Compute total calories and each macronutrient's percentage of total calories.
+
+1. Declare fat, protein, and carb amounts in grams.
+2. Compute total calories using 9 cal/g for fat and 4 cal/g for protein and carbs.
+3. Print total calories and the percentage contribution of each macro formatted to 1 decimal place.
+
+=== ENTRY 459 ===
+Goal: Determine whether a rail pass saves money compared to buying individual tickets.
+
+1. Declare the pass cost and a list of individual ticket prices.
+2. Use `.reduce` to sum the ticket prices.
+3. Print whether the pass saves money and by how much, or if individual tickets are cheaper.
+
+=== ENTRY 460 ===
+Goal: Assign plus/minus letter grades to scores using a returning function.
+
+1. Define `plusMinusGrade(score)` using nested if-else expressions to return a letter grade.
+2. Loop over a list of test scores.
+3. Call `plusMinusGrade` for each and print the score with its grade.
+
+=== ENTRY 461 ===
+Goal: Parse a box score string and print each stat label and value on a separate line.
+
+1. Declare `boxScore` as `"PTS:28 REB:11 AST:7"`.
+2. Split by `" "` to get individual stat strings.
+3. For each, split by `":"` and print the label and value.
+
+=== ENTRY 462 ===
+Goal: Generate a student ID from first name, last name, and year.
+
+1. Extract the first 3 letters of `firstName` and `lastName` using `.segment(1, 3).uppercase()`.
+2. Extract the last 2 digits of `year` using `.segment(3, 2)` on the year as a string.
+3. Concatenate and print the ID.
+
+=== ENTRY 463 ===
+Goal: Expand abbreviated units in a recipe instruction string.
+
+1. Declare the instruction string with abbreviations.
+2. Chain `.replace("tsp", "teaspoon")`, `.replace("tbsp", "tablespoon")`, and `.replace("oz", "ounce")`.
+3. Print the expanded instruction.
+
+=== ENTRY 464 ===
+Goal: Print a histogram bar of `#` characters proportional to a score value.
+
+1. Declare `score6359` as 78.
+2. Use a for loop from 1 to the score to build a string of `#` characters.
+3. Print the bar followed by the numeric score.
+
+=== ENTRY 465 ===
+Goal: Parse a game clock string and print a natural language description of the time remaining.
+
+1. Split `"Q3 08:42"` by `" "` to get the quarter and time parts.
+2. Extract the quarter digit using `.segment(2, 1)` and look up the quarter name.
+3. Split the time by `":"` and print the formatted description.
+
+=== ENTRY 466 ===
+Goal: Validate a date string by checking that month is 1–12 and day is 1–31.
+
+1. Split `"2025-13-45"` by `"-"` to extract month and day.
+2. Check that `month >= 1 && month <= 12` and `day >= 1 && day <= 31`.
+3. Print `"valid"` or `"invalid"` accordingly.
+
+=== ENTRY 467 ===
+Goal: Print a grade feedback message with an appropriate encouragement phrase.
+
+1. Declare `score6377` as 85.
+2. Use a conditional expression to assign an encouragement message based on score range.
+3. Print a formatted string with the score, percentage, and message.
+
+=== ENTRY 468 ===
+Goal: Format a timezone display string handling both positive and negative UTC offsets.
+
+1. Define `timezoneStr(city, offset)` returning `city _ " (UTC+" _ offset _ ")"` for non-negative offsets, or `city _ " (UTC" _ offset _ ")"` for negative.
+2. Call the function for Tokyo (+9) and New York (-5) and print both results.
+
+=== ENTRY 469 ===
+Goal: Format game scores into a single sports ticker string joined by `" | "`.
+
+1. Declare `games` as a list of game data with team names and scores.
+2. Loop over each game, build a formatted score string, and add it to `tickers`.
+3. Join all ticker strings with `" | "` and print.
+
+=== ENTRY 470 ===
+Goal: Print ingredient substitution notes for common baking substitutes.
+
+1. Declare `subs` as a dictionary mapping ingredient names to substitution instructions.
+2. Loop over each key-value pair.
+3. Print a formatted substitution note for each ingredient.
+
+=== ENTRY 471 ===
+Goal: Print numbered step-by-step cooking instructions.
+
+1. Declare `steps6398` as a list of instruction strings.
+2. Use a for range loop from 1 to `listLen()`.
+3. Print each step prefixed with its step number.
+
+=== ENTRY 472 ===
+Goal: Format a GPA for a transcript with the appropriate Latin honor designation.
+
+1. Declare `gpa6405` as 3.7.
+2. Use conditional expressions to assign the honor string based on GPA thresholds.
+3. Print the formatted GPA line with the honor appended if applicable.
+
+=== ENTRY 473 ===
+Goal: Print a substitution ratio note for all-purpose flour replaced with almond flour.
+
+1. Print the hardcoded substitution string directly.
+
+=== ENTRY 474 ===
+Goal: Format and print a compact luggage tag string with name, address, and phone.
+
+1. Print the formatted luggage tag string directly with all provided fields.
+
+=== ENTRY 475 ===
+Goal: Print a formatted seating chart label with student name, row, seat, and notes.
+
+1. Declare `sName`, `row`, `seat`, and `notes` as local variables.
+2. Print a formatted label joining all fields with `" | "` separators.
+
+=== ENTRY 476 ===
+Goal: Compute and print a running cumulative expense total for each day of a trip.
+
+1. Declare `expenses` as a list of daily spending values.
+2. Initialize `cumulative` as an empty list and `running` as 0.
+3. Loop over each expense, add to `running`, and append to `cumulative`.
+4. Print the cumulative list.
+
+=== ENTRY 477 ===
+Goal: Randomly select a travel destination from a list and print a travel message.
+
+1. Declare `cities` as a list of destination names.
+2. Call `.random()` on the list to pick a random city.
+3. Print a travel message including the selected city.
+
+=== ENTRY 478 ===
+Goal: Compute and print weekly calorie totals from a two-week meal plan.
+
+1. Declare `mealPlan` as a 2D list where each row is a week of daily calorie counts.
+2. Loop over each week using a for range loop.
+3. Use `.reduce` to sum each week's calories and print the weekly total.
+
+=== ENTRY 479 ===
+Goal: Add a difficulty key to a recipe dictionary after creation and print the full recipe card.
+
+1. Declare `recipe6501` as a dictionary with name, servings, prep time, cook time, and ingredients.
+2. Call `.set("difficulty", "medium")` to add the new key.
+3. Print the updated dictionary.
+
+=== ENTRY 480 ===
+Goal: Scale all ingredient quantities in a dictionary by a factor of 2.5.
+
+1. Declare `ingredientQty` as a dictionary of ingredient names to amounts.
+2. Loop over `.keys()`, retrieving each value and setting it to the value multiplied by 2.5.
+3. Print the updated dictionary.
+
+=== ENTRY 481 ===
+Goal: Print a cumulative cooking timeline showing start and end time for each step.
+
+1. Declare `stepDurations` as a dictionary of step numbers to durations.
+2. Initialize `timeElapsed` to 0.
+3. Loop over each key, print the step's start and end time, then add the duration to `timeElapsed`.
+
+=== ENTRY 482 ===
+Goal: Add a late draft pick to a team's draft dictionary and print the full draft class.
+
+1. Declare `draftPicks` as a dictionary of round keys to player values.
+2. Call `.set("round7", "undrafted_FA")` to add the new entry.
+3. Print the updated dictionary.
+
+=== ENTRY 483 ===
+Goal: Compute the GPA from a dictionary of course letter grades using a lookup table.
+
+1. Declare `courseGrades` as a dictionary of course names to letter grades.
+2. Declare `gradeMap` as a dictionary mapping letters to GPA points.
+3. Loop over each course, look up the grade points, and accumulate total points and course count.
+4. Print the GPA formatted to 2 decimal places.
+
+=== ENTRY 484 ===
+Goal: Update a loyalty points balance and check if a reward threshold has been reached.
+
+1. Declare `loyalty` as a dictionary with a balance and tier.
+2. Add 500 to the balance using `.set` and `.get`.
+3. Print the new balance and whether the 5000-point reward threshold has been reached.
+
+=== ENTRY 485 ===
+Goal: Return a hex color code based on a food safety status string.
+
+1. Define `foodSafetyColor(status)` returning `"#00CC00"` for safe, `"#FFAA00"` for use soon, and `"#CC0000"` otherwise.
+2. Call the function for `"safe"`, `"use soon"`, and `"expired"` and print each color.
+
+=== ENTRY 486 ===
+Goal: Blend two semi-transparent route colors using alpha compositing.
+
+1. Create two colors using `makeColor` and split them with `splitColor`.
+2. Compute alpha as `128 / 255.0`.
+3. Blend each RGB channel using `round(c1 * alpha + c2 * (1 - alpha))`.
+4. Print the resulting blended color.
+
+=== ENTRY 487 ===
+Goal: Return a heat indicator color based on a Scoville unit value.
+
+1. Define `scovilleColor(shu)` with thresholds at 1000, 10000, 100000 returning four different hex colors.
+2. Call the function for 500, 5000, 50000, and 500000 and print each result.
+
+=== ENTRY 488 ===
+Goal: Return a timer color based on seconds remaining using three threshold zones.
+
+1. Define `timerColor(seconds)` returning green above 300s, yellow for 120–300s, and red below 120s.
+2. Call the function for 400, 180, and 60 seconds and print each color.
+
+=== ENTRY 489 ===
+Goal: Return an oil smoke point color based on temperature in Celsius.
+
+1. Define `smokePointColor(temp)` with thresholds at 160, 200, and 230 degrees returning four hex colors.
+2. Call the function for 150, 180, 215, and 250 and print each color.
+
+=== ENTRY 490 ===
+Goal: Compute the WCAG contrast ratio between two colors and check AA compliance.
+
+1. Define `wcagLuminance(color)` extracting RGB channels via `splitColor` and computing relative luminance.
+2. Compute the contrast ratio as `(L1 + 0.05) / (L2 + 0.05)` for black on white.
+3. Print the ratio and whether it meets the 4.5:1 WCAG AA threshold.
+
+=== ENTRY 491 ===
+Goal: Print a grading scale table for thresholds from 60 to 100 in steps of 5.
+
+1. Use a for range loop `for (t: 60 .. 100 step 5)`.
+2. Assign a letter grade using nested if-else based on the threshold value.
+3. Print each threshold and its corresponding grade.
+
+=== ENTRY 492 ===
+Goal: Determine a student's academic standing based on completed credit hours.
+
+1. Declare `gpa6627` and `credits` as local variables.
+2. Use nested if-else to assign standing based on credit thresholds: Senior (90+), Junior (60+), Sophomore (30+), Freshman.
+3. Print the standing.
+
+=== ENTRY 493 ===
+Goal: Classify a trip cost into budget, standard, premium, or luxury categories.
+
+1. Declare `tripCost` as 3200.
+2. Use nested if-else to assign a classification based on cost thresholds.
+3. Print the classification.
+
+=== ENTRY 494 ===
+Goal: Compute a diver's final score by dropping the highest and lowest judge scores.
+
+1. Declare `judgeScores` as a list of 5 values and sort it.
+2. Use `.slice(2, 4)` to extract the middle 3 scores.
+3. Use `.reduce` to average the 3 scores and multiply by degree of difficulty 2.8.
+4. Print the result formatted to 2 decimal places.
+
+=== ENTRY 495 ===
+Goal: Build a frequency distribution of student scores across letter grade bands.
+
+1. Declare `scores6450` as a list of class scores.
+2. Apply `.filter` with appropriate range conditions to count scores in A, B, C, D, and F bands.
+3. Print the count for each band.
+
+=== ENTRY 496 ===
+Goal: Compute the mean and standard deviation of essay question scores.
+
+1. Declare `essayScores` as a list of per-question scores.
+2. Call `avgOf` and `stdDevOf` on the list.
+3. Print both values formatted to 2 decimal places.
+
+=== ENTRY 497 ===
+Goal: Check if a destination name is multi-word and print accordingly.
+
+1. Declare `destination` as `"New York"`.
+2. Use `.contains(" ")` to check for a space.
+3. Print the full name if multi-word, otherwise print only the first word from `.split(" ")[1]`.
+
+=== ENTRY 498 ===
+Goal: Validate an airport code by checking its length and uppercase format.
+
+1. Declare `airportCode` as `"LAX"`.
+2. Check that `.textLen() == 3` and that the code equals its own `.uppercase()`.
+3. Print `"Valid airport code"` or `"Invalid airport code"`.
+
+=== ENTRY 499 ===
+Goal: Scan an ingredient description for common allergens and print warnings.
+
+1. Declare the ingredient description string and a list of allergen names.
+2. Loop over each allergen and use `.contains(a)` to check for its presence.
+3. Print a warning for each allergen found.
+
+=== ENTRY 500 ===
+Goal: Validate a passport number for the format of two uppercase letters followed by seven digits.
+
+1. Declare `passport` as `"AB1234567"` and check its length is 9.
+2. Extract the first 2 characters and verify they equal their uppercase form.
+3. Extract the remaining 7 characters and verify they pass `? number`.
+4. Print `"valid"` or `"invalid"`.
+
+=== ENTRY 501 ===
+Goal: Parse a label encoding string and print the index for the label "cat".
+
+1. Split `"dog=0,cat=1,bird=2"` by `","` to get key-value pair strings.
+2. For each pair, split by `"="` to separate the label and index.
+3. If the label equals `"cat"`, print its index.
+
+=== ENTRY 502 ===
+Goal: Compute the area under the precision-recall curve using the trapezoidal rule.
+
+1. Declare sorted predictions and binary labels.
+2. For each threshold, compute true positives, false positives, and false negatives to derive precision and recall.
+3. Collect all precision-recall points, sort by recall, and apply the trapezoidal rule.
+4. Print the AUC-PR formatted to 4 decimal places.
+
+=== ENTRY 503 ===
+Goal: Verify that the sample weights in a dictionary sum to 1.
+
+1. Declare `sampleWeights` as a dictionary with four weight values.
+2. Use `.values()` and `.reduce` to sum all weights.
+3. Print the sum formatted to 1 decimal place.
+
+=== ENTRY 504 ===
+Goal: Merge two feature importance dictionaries and print the combined length.
+
+1. Declare `d1` and `d2` as separate feature importance dictionaries.
+2. Call `d1.mergeInto(d2)` to merge d2's entries into d1.
+3. Print `d1.dictLen()`.
+
+=== ENTRY 505 ===
+Goal: Compute the z-score of a value using mean and standard deviation from a stats dictionary.
+
+1. Declare `stats7008` with mean, std, min, and max.
+2. Compute `zscore` as `(x7008 - mean) / std`.
+3. Print the result.
+
+=== ENTRY 506 ===
+Goal: Compute classification accuracy by comparing predicted and actual label lists.
+
+1. Define `computeAccuracy(predicted, actual)` counting matching elements using a for loop.
+2. Divide the correct count by the list length to return accuracy.
+3. Call with test data and print the result.
+
+=== ENTRY 507 ===
+Goal: Print a formatted 2x2 confusion matrix.
+
+1. Define void `printConfusionMatrix(tp, fp, fn, tn)`.
+2. Print a header row and two data rows formatted with the four values.
+3. Call with TP=45, FP=5, FN=10, TN=40.
+
+=== ENTRY 508 ===
+Goal: Print a summary of an ML pipeline including dataset info, training loop, and evaluation.
+
+1. Define void `runMLPipeline(data, labels, modelType, epochs)`.
+2. Print dataset size, feature count, and model type.
+3. Loop over epochs printing a mock loss value.
+4. Print final mock accuracy and F1 score.
+5. Call with sample data and 5 epochs.
+
+=== ENTRY 509 ===
+Goal: Declare a global confusion matrix dictionary and print the value at key "TP".
+
+1. Declare global `confusionMatrix` as `{"TP":0,"FP":0,"TN":0,"FN":0}`.
+2. Print `this.confusionMatrix.get("TP", 0)`.
+
+=== ENTRY 510 ===
+Goal: Declare global residuals list and rSquared value, then print rSquared.
+
+1. Declare global `residuals` as an empty list.
+2. Declare global `rSquared` as 0.0.
+3. Print `this.rSquared`.
+
+=== ENTRY 511 ===
+Goal: Validate a feature row string by checking it splits into exactly 3 tokens.
+
+1. Declare `featureRow` as `"feature1 feature2 feature3"`.
+2. Call `.splitAtSpaces()` and check `.listLen() == 3`.
+3. Print `"valid feature row"` or `"invalid"`.
+
+=== ENTRY 512 ===
+Goal: Split a dataset into a training set of 3 rows and a test set of 1 row.
+
+1. Declare `dataset` as a list of 4 feature vectors.
+2. Use `.slice(1, 3)` to create `train` and `.slice(4, 4)` to create `test`.
+3. Print both.
+
+=== ENTRY 513 ===
+Goal: Concatenate two feature vectors into a single combined vector.
+
+1. Declare vectors `a6921` and `b6921`.
+2. Copy `a6921` into `concat` and call `.appendList(b6921)`.
+3. Print the concatenated result.
+
+=== ENTRY 514 ===
+Goal: Check whether "normalize" is included in a pipeline configuration's steps list.
+
+1. Declare `pipelineConfig` as a dictionary with a steps list and other settings.
+2. Retrieve the steps list with `.get` and call `.containsItem("normalize")`.
+3. Print the boolean result.
+
+=== ENTRY 515 ===
+Goal: Tokenize feature name strings and print the number of tokens in the first feature.
+
+1. Declare `features6880` as a list of feature description strings.
+2. Apply `.map { x -> x.split(" ") }` to tokenize each string.
+3. Print `.listLen()` of the first tokenized feature.
+
+=== ENTRY 516 ===
+Goal: Count the number of positive class labels in a binary label list.
+
+1. Declare `labels6907` as a list of 0s and 1s.
+2. Apply `.filter { x -> x == 1 }` and call `.listLen()`.
+3. Print the count.
+
+=== ENTRY 517 ===
+Goal: Convert a list of probability predictions to binary labels using a threshold of 0.5.
+
+1. Declare `preds6912` as a list of probability values.
+2. Apply `.map { p -> if (p >= 0.5) { 1 } else { 0 } }`.
+3. Print the binary prediction list.
+
+=== ENTRY 518 ===
+Goal: Find the top 2 most important features by sorting importance scores descending.
+
+1. Declare `importance` as a list of feature importance values.
+2. Copy and sort descending using `.sort { a, b -> a > b }`.
+3. Use `.slice(1, 2)` to get the top 2 and print them.
+
+=== ENTRY 519 ===
+Goal: Decode a list of numeric class indices into label strings using 1-based indexing.
+
+1. Declare `encoded` as a list of class indices and `classNames` as the label list.
+2. Apply `.map { x -> classNames[x + 1] }` to decode each index.
+3. Print the decoded label list.
+
+=== ENTRY 520 ===
+Goal: Filter a labeled dataset to keep only rows with label 0.
+
+1. Declare `dataset6965` as a list of feature-label rows.
+2. Apply `.filter { row -> row[4] == 0 }` to keep label-0 rows.
+3. Print the filtered samples.
+
+=== ENTRY 521 ===
+Goal: Convert feature values to binary by comparing each with a corresponding threshold.
+
+1. Declare `featureVals` and `thresholds` as parallel lists.
+2. Loop over each index, comparing feature to threshold and appending 1 or 0 to `binary`.
+3. Print the binary representation.
+
+=== ENTRY 522 ===
+Goal: Simulate k-fold cross-validation by printing a training message for each of 5 folds.
+
+1. Use a for range loop `for (k: 1 .. 5 step 1)`.
+2. Print `"Training fold " _ k _ " of 5"` for each iteration.
+
+=== ENTRY 523 ===
+Goal: Compute the Euclidean distance between two 3-dimensional feature vectors.
+
+1. Declare vectors `va` and `vb`.
+2. Loop over each dimension, compute the squared difference, and accumulate into `sumSq`.
+3. Print `sqrt(sumSq)` formatted to 4 decimal places.
+
+=== ENTRY 524 ===
+Goal: Check if a word is a stop word by comparing it against a stop word list.
+
+1. Declare `stopWords` and `word6876`.
+2. Loop over each stop word using `===` comparison and set `isStop` to true if matched.
+3. Print `"stop word"` or `"keep"`.
+
+=== ENTRY 525 ===
+Goal: Apply weight updates element-wise to a weight vector and print the result.
+
+1. Declare `weights7000` and `updates` as parallel lists.
+2. Loop over each index, compute `weights[i] + updates[i]`, and append to `updated`.
+3. Print the updated weight list.
+
+=== ENTRY 526 ===
+Goal: Apply the perceptron learning rule over a set of training samples and print final weights.
+
+1. Declare samples as a list of input-label pairs, with initial weights and bias.
+2. For each sample, compute the prediction using the dot product and threshold.
+3. If the prediction is wrong, update each weight and the bias using the error and learning rate.
+4. Print the final weights.
+
+=== ENTRY 527 ===
+Goal: Use the bisection method to narrow a decision boundary interval over 10 steps.
+
+1. Initialize `lo` and `hi` as 0.0 and 1.0.
+2. Loop 10 times, computing the midpoint and halving the interval based on whether mid exceeds 0.5.
+3. Print the final midpoint formatted to 4 decimal places.
+
+=== ENTRY 528 ===
+Goal: Compute the inverse document frequency for a term appearing in 5 of 100 documents.
+
+1. Compute `log(100.0 / 5)`.
+2. Print the result formatted to 4 decimal places.
+
+=== ENTRY 529 ===
+Goal: Compute the log-likelihood of Gaussian data given sample count, variance, and sum of squared residuals.
+
+1. Declare `n`, `sigma2`, and `ssr` as local variables.
+2. Apply the formula `-(n/2)*log(2*pi*sigma2) - ssr/(2*sigma2)`.
+3. Print the result formatted to 4 decimal places.
+
+=== ENTRY 530 ===
+Goal: Compute the information gain from a binary split using entropy values.
+
+1. Declare entropy before split `H` and weighted child entropies `Hleft` and `Hright`.
+2. Compute `H - (0.6 * Hleft + 0.4 * Hright)`.
+3. Print the result.
+
+=== ENTRY 531 ===
+Goal: Compute the output of a two-layer linear neural network.
+
+1. Declare input `x`, weights `w1`, `w2`, and biases `b1`, `b2`.
+2. Compute the output as `w2 * (w1 * x + b1) + b2`.
+3. Print the result.
+
+=== ENTRY 532 ===
+Goal: Compute the adjusted R-squared for a regression model.
+
+1. Declare `R2`, sample count `n`, and predictor count `p`.
+2. Apply the formula `1 - (1 - R2) * (n-1) / (n - p - 1)`.
+3. Print the result formatted to 4 decimal places.
+
+=== ENTRY 533 ===
+Goal: Compute the weighted accuracy for an imbalanced two-class classification problem.
+
+1. Declare class weights, correct prediction counts, and class totals.
+2. Loop over each class, accumulating weighted accuracy and total weight.
+3. Print `wAcc / wSum` formatted to 4 decimal places.
+
+=== ENTRY 534 ===
+Goal: Decode a numeric class prediction index to a label string using a comma-separated lookup.
+
+1. Split the label string `"class_0,class_1,class_2"` by `","`.
+2. Access the element at `predIdx + 1` (1-based).
+3. Print the decoded label.
+
+=== ENTRY 535 ===
+Goal: Verify that a prediction output variable is of text type.
+
+1. Declare `pred6879` as `"positive"`.
+2. Use `pred6879 ? text` to check the type.
+3. Print `"text type confirmed"` if true.
+
+=== ENTRY 536 ===
+Goal: Construct and print a prediction interval string with formatted bounds.
+
+1. Declare `lower` as 1.234 and `upper` as 5.678.
+2. Format both with `formatDecimal(..., 3)`.
+3. Print the interval as `"[lower, upper]"`.
+
+=== ENTRY 537 ===
+Goal: Determine the majority vote result from 5 binary classifier predictions.
+
+1. Declare `votes` as a list of 5 binary predictions.
+2. Count votes for class 1 and class 0 using `.filter`.
+3. Print 1 if class 1 has more votes, otherwise 0.
+
+=== ENTRY 538 ===
+Goal: Compute the L1 and L2 norms of a neural network layer's weights.
+
+1. Declare `netWeights` as a list of weight values.
+2. Compute L1 as the sum of absolute values using `.reduce` and `abs`.
+3. Compute L2 as the square root of the sum of squares using `.reduce` and `sqrt`.
+4. Print both formatted to 4 decimal places.
+
+=== ENTRY 539 ===
+Goal: Find the metric with the highest value in a model performance dictionary.
+
+1. Declare `perfDict` with accuracy, precision, recall, and F1 values.
+2. Loop over `.keys()`, tracking the key with the maximum value.
+3. Print the name of the best metric.
+
+=== ENTRY 540 ===
+Goal: Compute the L2 norm of a sparse feature vector stored as a dictionary.
+
+1. Declare `sparseFeats` as a dictionary of feature names to values.
+2. Use `.values()` and `.reduce` to sum the squares of all values.
+3. Take `sqrt` and print the result formatted to 4 decimal places.
+
+=== ENTRY 541 ===
+Goal: Compute the SVM decision function for a test point using a linear kernel.
+
+1. Declare the SVM model dictionary with support vectors, dual coefficients, and intercept.
+2. Initialize `decision` to the intercept.
+3. For each support vector, compute the dot product with the query point, scale by the dual coefficient, and add to `decision`.
+4. Print the result formatted to 4 decimal places.
+
+=== ENTRY 542 ===
+Goal: Build a confusion matrix dictionary for a 3-class problem by counting true-predicted pairs.
+
+1. Declare prediction and true label lists.
+2. Loop over each index, construct the key as `trueLabel _ "_" _ predLabel`.
+3. Increment the count for each key using `.get` and `.set`.
+4. Print the resulting confusion matrix dictionary.
+
+=== ENTRY 543 ===
+Goal: Apply Laplace smoothing to a probability dictionary and print the smoothed positive probability.
+
+1. Declare `probs` as a dictionary with positive and negative probabilities.
+2. Sum all values using `.values()` and `.reduce`.
+3. Compute the smoothed probability as `(count + alpha) / (total + alpha * V)`.
+4. Print the result formatted to 4 decimal places.
+
+=== ENTRY 544 ===
+Goal: Define a training progress color list and print the color for epoch 5.
+
+1. Declare `epochColors` as a list of 10 color literals progressing from red to yellow to green.
+2. Access `epochColors[5]` and print it.
+
+=== ENTRY 545 ===
+Goal: Implement the sign function for an SVM decision value.
+
+1. Declare `decisionVal` as -0.5.
+2. Print 1 if `decisionVal >= 0`, otherwise print -1 using an if expression.
+
+=== ENTRY 546 ===
+Goal: Compute the linear regression intercept from summary statistics.
+
+1. Declare `sumY`, `sumX`, `slope`, and `n`.
+2. Compute `intercept = (sumY - slope * sumX) / n`.
+3. Print the result.
+
+=== ENTRY 547 ===
+Goal: Compute the cosine similarity between two 3-dimensional vectors.
+
+1. Declare vectors `a6771` and `b6771`.
+2. Loop over each dimension to compute the dot product and squared magnitudes.
+3. Divide the dot product by `sqrt(magA) * sqrt(magB)` and print formatted to 4 decimal places.
+
+=== ENTRY 548 ===
+Goal: Compute the within-cluster sum of squared distances for a cluster assignment.
+
+1. Declare `dists` as a list of squared distances.
+2. Use `.reduce` to sum all values.
+3. Print the total.
+
+=== ENTRY 549 ===
+Goal: Compute recall from true positive and false negative counts.
+
+1. Declare `tp6797` as 50 and `fn6797` as 5.
+2. Compute `tp / (tp + fn)`.
+3. Print the result formatted to 4 decimal places.
+
+=== ENTRY 550 ===
+Goal: Compute the Minkowski distance with p=3 between two 2-dimensional vectors.
+
+1. Declare vectors `a6808` and `b6808`.
+2. Loop over each dimension, compute `abs(a[i] - b[i]) ^ 3`, and accumulate.
+3. Raise the sum to the power `1/3` and print formatted to 4 decimal places.
+
+=== ENTRY 551 ===
+Goal: Compute the receptive field size after two convolutional layers with kernel size 3.
+
+1. Apply the formula `1 + (3 - 1) + (3 - 1)`.
+2. Print the result directly.
+
+=== ENTRY 552 ===
+Goal: Compute the Spearman rank correlation between two rank lists.
+
+1. Declare rank lists `r1` and `r2` of length 5.
+2. Loop over each index, compute `d = r1[i] - r2[i]`, and accumulate `d^2`.
+3. Apply the formula `1 - 6 * sumD2 / (n * (n^2 - 1))` and print formatted to 4 decimal places.
+
+=== ENTRY 553 ===
+Goal: Compute the Dice coefficient for a binary segmentation result.
+
+1. Declare `tp`, `fp`, and `fn` values.
+2. Apply the formula `2 * tp / (2 * tp + fp + fn)`.
+3. Print the result formatted to 4 decimal places.
+
+=== ENTRY 554 ===
+Goal: Join cross-validation fold scores into a comma-separated string.
+
+1. Declare `foldScores` as a list of 5 accuracy values.
+2. Apply `.map { x -> formatDecimal(x, 2) }` to convert each to a string.
+3. Call `.join(",")` and print the result.
+
+=== ENTRY 555 ===
+Goal: Compute the type-token ratio of a tokenized document.
+
+1. Declare `docWords` as a list of word strings.
+2. Build a `unique` list by adding words not already present.
+3. Divide `unique.listLen()` by `docWords.listLen()` and print formatted to 4 decimal places.
+
+=== ENTRY 556 ===
+Goal: Simulate a bootstrap sample by sampling with replacement from a population list.
+
+1. Declare `population` as `[1, 2, 3, 4, 5]`.
+2. Use a for loop to call `.random()` 5 times, appending each result to `bootstrap`.
+3. Print the bootstrap sample.
+
+=== ENTRY 557 ===
+Goal: Encode a list of categorical labels as numeric indices using a unique label mapping.
+
+1. Declare `colorLabels` as a list of color strings.
+2. Build `unique6940` by collecting distinct labels in order.
+3. Apply `.map { x -> unique6940.indexOf(x) - 1 }` to encode each label and print.
+
+=== ENTRY 558 ===
+Goal: Split a binary label list into positive and negative sample index lists.
+
+1. Declare `binLabels` as a list of 0s and 1s.
+2. Loop over each index, appending to `posIdx` if the label is 1, or `negIdx` if 0.
+3. Print both index lists.
+
+=== ENTRY 559 ===
+Goal: Divide a list into mini-batches of size 3 and print all batches.
+
+1. Declare `dataList` and `batchSize`.
+2. Use a while loop starting at index 1, slicing `batchSize` elements at a time.
+3. Append each slice to `batches` and advance the index.
+4. Print the full list of batches.
+
+=== ENTRY 560 ===
+Goal: Compute the number of parameters in a dense neural network layer.
+
+1. Declare `layerConfig` as a dictionary with input size, output size, and activation.
+2. Compute `input_size * output_size + output_size`.
+3. Print the result.
+
+=== ENTRY 561 ===
+Goal: Retrieve a word embedding and compute its L2 norm.
+
+1. Declare `embeddings` as a dictionary mapping words to embedding vectors.
+2. Retrieve the embedding for `"dog"` using `.get`.
+3. Use `.reduce` to sum the squares, take `sqrt`, and print formatted to 4 decimal places.
+
+=== ENTRY 562 ===
+Goal: Build an inverse vocabulary index mapping integer indices back to words.
+
+1. Declare `vocab` as a dictionary of words to integer indices.
+2. Loop over `.keys()` and build `invVocab` by calling `.set(index, word)`.
+3. Print the word at index 2 using `.get(2, "")`.
+
+=== ENTRY 563 ===
+Goal: Extract the red channel from a hex color using splitColor.
+
+1. Call `splitColor(#3A7FCC)` to get the ARGB component list.
+2. Access index 2 for the red channel.
+3. Print the value.
+
+=== ENTRY 564 ===
+Goal: Assign a diverging color for a correlation coefficient, blue for negative and red for positive.
+
+1. Declare `r7097` as -0.7.
+2. Use a conditional expression to compute `makeColor` with red channels for positive and blue for negative correlations.
+3. Print the resulting color.
+
+=== ENTRY 565 ===
+Goal: Assign a ROC curve point color based on the false positive rate.
+
+1. Declare `fpr` as 0.1.
+2. Print green `#00FF00` if `fpr < 0.5`, otherwise red `#FF0000`.
+
+=== ENTRY 566 ===
+Goal: Simulate learning rate warmup by printing the learning rate at each of 10 steps.
+
+1. Declare `maxLr` and `warmupSteps`.
+2. Loop from step 1 to 10 using a for range loop.
+3. Compute `lr = maxLr * step / warmupSteps` and print each step's LR formatted to 6 decimal places.
+
+=== ENTRY 567 ===
+Goal: Implement the softmax function and apply it to a list of logits.
+
+1. Define `softmax(logits)` applying `exp` to each element via `.map`.
+2. Sum the exponentiated values with `.reduce`.
+3. Divide each by the total using another `.map` and return the result.
+4. Call with `[1.0, 2.0, 3.0]` and print.
+
+=== ENTRY 568 ===
+Goal: Compute the covariance between two numerical lists.
+
+1. Declare `xs6773` and `ys6773` and compute their means using `avgOf`.
+2. Loop over each index, accumulate `(xi - meanX) * (yi - meanY)`.
+3. Divide by list length and print formatted to 4 decimal places.
+
+=== ENTRY 569 ===
+Goal: Compute the cumulative explained variance from PCA eigenvalues.
+
+1. Declare `eigenvals` and compute their total using `.reduce`.
+2. Divide each by the total to get proportions using `.map`.
+3. Build a cumulative sum list by looping and appending running totals.
+4. Print the cumulative variance list.
+
+=== ENTRY 570 ===
+Goal: Compute the mean, standard deviation, and 95% confidence interval from cross-validation scores.
+
+1. Declare `cvScores` as a list of 5 accuracy values.
+2. Compute mean and std using `avgOf` and `stdDevOf`.
+3. Compute the CI as `mean ± 2 * std` and print all three values formatted to 4 decimal places.
+
+=== ENTRY 571 ===
+Goal: Compute a feature drift score comparing current and reference statistics.
+
+1. Declare `currStats` and `refStats` as dictionaries with mean and std.
+2. Compute drift as `abs(mean_curr - mean_ref) / std_ref`.
+3. Print the result formatted to 4 decimal places.
+
+=== ENTRY 572 ===
+Goal: Convert a feature label string to a human-readable uppercase form.
+
+1. Declare `featLabel` as `"sepal_length"`.
+2. Call `.replace("_", " ")` then `.uppercase()`.
+3. Print the result.
+
+=== ENTRY 573 ===
+Goal: Identify a confusion matrix label as "true positive" if it starts with T and contains P.
+
+1. Declare `cmLabel` as `"TP"`.
+2. Check `.startsWith("T") && .contains("P")`.
+3. Print `"true positive"` or `"other"`.
+
+=== ENTRY 574 ===
+Goal: Parse a weight initialization string and count the number of weight tokens.
+
+1. Declare the weight string and extract the bracket content using `.segment` and `.replace`.
+2. Split on `","` to tokenize the values.
+3. Print `tokens.listLen()`.
+
+=== ENTRY 575 ===
+Goal: Extract the numeric suffix from an underscore-separated feature name.
+
+1. Declare `featName` as `"feature_03"`.
+2. Check `.contains("_")` and split on `"_"`.
+3. Print the second part (the numeric suffix) at index 2.
+
+=== ENTRY 576 ===
+Goal: Extract the major version number from a semantic version string.
+
+1. Declare `modelVer` as `"v2.3.1"`.
+2. Remove the leading `"v"` with `.replace("v", "")` and split on `"."`.
+3. Print the first element (major version) at index 1.
+
+=== ENTRY 577 ===
+Goal: Find the longest model name in a list of model name strings.
+
+1. Declare `modelNames` as a list of strings.
+2. Loop over each name, comparing `.textLen()` to the current longest.
+3. Print the longest name found.
+
+=== ENTRY 578 ===
+Goal: Filter short words from a text feature and print the remaining words joined by spaces.
+
+1. Declare `textFeat` and split it at spaces.
+2. Apply `.filter { w -> w.textLen() > 3 }` to remove short words.
+3. Join the remaining words with `" "` and print.
+
+=== ENTRY 579 ===
+Goal: Compute the weighted Gini impurity of a binary split given left and right class counts.
+
+1. Define `computeGiniSplit(leftCounts, rightCounts)` computing each side's total and Gini impurity.
+2. Weight each side's Gini by its proportion of the total.
+3. Return the combined weighted Gini and print the result formatted to 4 decimal places.
+
+=== ENTRY 580 ===
+Goal: Find the shortest path on a 2D grid using the A* algorithm.
+
+1. Define `aStarPath(grid, size, startR, startC, goalR, goalC)` using a priority queue list and a visited dictionary.
+2. At each step, pop the lowest-cost node, expand its neighbors, and compute f = g + h using Manhattan distance.
+3. Track the path as a list of coordinates and return it when the goal is reached.
+4. Call with a 5x5 grid and print the resulting path.
+
+=== ENTRY 581 ===
+Goal: Sort a leaderboard by score and assign rank values to each entry.
+
+1. Define `rankLeaderboard(entries)` copying and sorting the list by score descending.
+2. Loop over the sorted list and call `.set("rank", i)` on each entry.
+3. Return the ranked list and print the result.
+
+=== ENTRY 582 ===
+Goal: Compute the experience required to reach the next RPG level using a power curve.
+
+1. Define `expToNextLevel(level)` returning `floor((100 * level) ^ 1.5)`.
+2. Call for levels 1, 5, and 10 and print each result.
+
+=== ENTRY 583 ===
+Goal: Map a d100 dice roll to a treasure rarity tier.
+
+1. Define `treasureRarity(roll)` using nested if-else with thresholds at 50, 80, and 95.
+2. Call for rolls 25, 65, 90, and 98 and print each rarity result.
+
+=== ENTRY 584 ===
+Goal: Generate a status bar text string showing current and maximum values with a label.
+
+1. Define `statusBarText(current, maximum, label)` returning `label _ ": " _ current _ "/" _ maximum`.
+2. Call for HP (75/100) and MP (50/80) and print both.
+
+=== ENTRY 585 ===
+Goal: Format a countdown timer as a "minutes:seconds" string with a leading zero on seconds.
+
+1. Define `countdownText(secondsLeft)` computing minutes via `floor` and seconds via `mod`.
+2. Prepend `"0"` to seconds if below 10.
+3. Return the formatted string and call for 45 and 125 seconds.
+
+=== ENTRY 586 ===
+Goal: Build a map key string numbering each tile type from a list.
+
+1. Define `buildMapKey(tileTypes)` looping over the list with a for range loop.
+2. Build each entry as `i _ "=" _ tileTypes[i]` and add to a parts list.
+3. Join all parts with `" "` and return the key string.
+
+=== ENTRY 587 ===
+Goal: Initialize an 8x8 chess board as a 2D list with starting piece positions.
+
+1. Define `chessBoardInit()` building each row of the board.
+2. Add the back rank, white pawns, four empty rows, black pawns, and black back rank in order.
+3. Return the 8x8 list and print it.
+
+=== ENTRY 588 ===
+Goal: Compute valid pawn move positions for a given color and board size.
+
+1. Define `pawnMoves(row, col, color, boardSize)` initializing an empty moves list.
+2. For white, add row+1 and optionally row+2 if on the starting row 2.
+3. For black, add row-1 and optionally row-2 if on the starting row 7.
+4. Return the moves list and print for both colors.
+
+=== ENTRY 589 ===
+Goal: Generate a flat checkerboard pattern as a list of 0s and 1s.
+
+1. Define `generateCheckerboard(size)` with nested for loops over rows and columns.
+2. Append `mod(r + c, 2)` for each cell to produce alternating values.
+3. Return and print the flat list for a 4x4 board.
+
+=== ENTRY 590 ===
+Goal: Create an RPG player stats dictionary with default attribute values.
+
+1. Define `playerStats(name, classType)` returning a dictionary with name, class, and six stats each set to 10.
+2. Call with `"Aria"` and `"Ranger"` and print the result.
+
+=== ENTRY 591 ===
+Goal: Build an empty rolling combat log dictionary with a maximum entry limit.
+
+1. Define `buildCombatLog(maxEntries)` returning a dictionary with `"entries"` as an empty list and `"max"` set to `maxEntries`.
+2. Call with 50 and print the result.
+
+=== ENTRY 592 ===
+Goal: Return a mana bar color based on the percentage of mana remaining.
+
+1. Define `manaBarColor(mp, maxMp)` computing `pct = mp / maxMp`.
+2. Return `#3399FF` above 50%, `#6666FF` above 20%, and `#9999FF` otherwise.
+3. Call for 60, 30, and 10 MP and print each color.
+
+=== ENTRY 593 ===
+Goal: Return a time-of-day tint color based on the current hour.
+
+1. Define `timeOfDayTint(hour)` with conditions for sunrise (5–7), daytime (8–16), sunset (17–19), and night.
+2. Return appropriate `makeColor` values for each time range.
+3. Call for hours 6, 12, 18, and 22 and print each color.
+
+=== ENTRY 594 ===
+Goal: Evaluate game victory conditions and return a result dictionary with a flag and reason.
+
+1. Define `checkVictoryConditions(state)` checking boss defeated, objectives complete, and score goal reached.
+2. Return a dictionary with `"victory"` boolean and `"reason"` string.
+3. Call with two different states and print both results.
+
+=== ENTRY 595 ===
+Goal: Print a minimap grid marking the player position with "@" and walls with "#".
+
+1. Define void `renderMinimap(grid, size, playerR, playerC)` with a tile symbol lookup dictionary.
+2. Loop over each row and column, appending `"@"` for the player position or the tile symbol otherwise.
+3. Print each row string.
+4. Call with a 4x4 test grid and player at row 2, column 2.
+
+=== ENTRY 596 ===
+Goal: Parse a save string and restore global game variables from its key-value pairs.
+
+1. Declare globals `savedPlayerName`, `savedPlayerHp`, and `savedPlayerGold`.
+2. Define void `decodeAndApplyState(saveString)` splitting by `"|"` then by `"="` for each part.
+3. Match each key and assign the value to the corresponding global.
+4. Print a confirmation with the restored values.
+
+=== ENTRY 597 ===
+Goal: Define globals for gold and experience, then write a function that rewards the player.
+
+1. Declare globals `gold` and `experience` both initialized to 0.
+2. Define void `rewardPlayer(g, xp)` adding `g` to `this.gold` and `xp` to `this.experience`.
+3. Print the updated totals and call with 50 gold and 120 XP.
+
+=== ENTRY 598 ===
+Goal: Compute the aiming angle in degrees from a player to a target position.
+
+1. Define `aimAngle(px, py, tx, ty)` computing `dx = tx - px` and `dy = ty - py`.
+2. Return `degrees(atan2(dy, dx))`.
+3. Call with player at (0,0) and target at (1,1) and print formatted to 2 decimal places.
+
+=== ENTRY 599 ===
+Goal: Compute a level-clear score based on time remaining, enemies killed, and difficulty multiplier.
+
+1. Define `levelScore(timeLeft, enemiesKilled, diffMult)` returning `floor((timeLeft * 10 + enemiesKilled * 50) * diffMult)`.
+2. Call with 30 seconds, 10 enemies, and multiplier 1.5 and print the result.
+
+=== ENTRY 600 ===
+Goal: Compute the resource cost of a building based on its type and level.
+
+1. Define `buildingCost(type, level)` using nested if-else to select the base cost coefficient per type.
+2. Return `round((base * level) ^ 2)` for tower (100), wall (50), and castle (200).
+3. Call for a level 3 tower and level 2 castle and print both results.

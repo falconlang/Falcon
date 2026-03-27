@@ -1,0 +1,1786 @@
+=== ENTRY 801 ===
+Goal: Compute the Power Spectrum of a signal by calculating |FFT|² normalised by signal length.
+
+1. Declare the function powerSpectrum accepting a signal list.
+2. Obtain the length n of the signal.
+3. Create an empty list ps to hold the power spectrum values.
+4. Loop over each frequency bin k from 1 to n.
+5. For each bin, initialise real (re) and imaginary (im) accumulators to zero.
+6. Loop over every time sample t from 1 to n and accumulate the DFT using cosine for re and sine (negated) for im.
+7. Compute the normalised power as (re² + im²) / n and append to ps.
+8. Return ps as the last expression.
+9. Test by calling powerSpectrum on an alternating [1,0,-1,0,...] signal and printing the result.
+
+=== ENTRY 802 ===
+Goal: Estimate a definite integral using Importance Sampling with a uniform proposal distribution over [0, π].
+
+1. Declare importanceSampling accepting a function name string, proposal function name string, and sample count n.
+2. Initialise a running total to zero.
+3. Loop n times: draw a random x uniformly from [0, π], evaluate f(x) = sin(x), set the proposal density q(x) = 1/π, and accumulate f(x)/q(x).
+4. Divide the total by n to obtain the Monte Carlo estimate.
+5. Return the estimate as the last expression.
+6. Test by printing the IS estimate for the integral of sin over [0, π], which should be close to 2.
+
+=== ENTRY 803 ===
+Goal: Minimise a function using Simulated Annealing by accepting worse solutions probabilistically based on temperature.
+
+1. Declare simulated_annealing accepting energy function name, neighbour function name, starting point x0, initial temperature T0, and cooling rate.
+2. Initialise the current solution x_sa to x0 and energy e_sa to x0².
+3. Loop 1000 iterations: generate a neighbour by perturbing x_sa by a random offset scaled by the current temperature.
+4. Evaluate the neighbour's energy as its square.
+5. Compute the energy delta; accept the neighbour if delta < 0 or with Boltzmann probability exp(−delta/T).
+6. Multiply T_sa by the cooling factor each iteration.
+7. Return a dictionary containing the best x and energy found.
+8. Test with a quadratic function starting at x=5 and print the result.
+
+=== ENTRY 804 ===
+Goal: Minimise a function using Particle Swarm Optimisation by evolving a swarm of candidate solutions.
+
+1. Declare particle_swarm accepting function name, bounds list [lo, hi], number of particles, and iteration count.
+2. Initialise position, velocity, personal best, and personal best value lists by sampling uniformly within bounds.
+3. Find the global best among initial positions.
+4. Loop iters times: for each particle, update velocity using inertia, cognitive, and social terms; update position; evaluate the objective; update personal and global bests as needed.
+5. Return a dict with the best position x_opt and best value f_opt.
+6. Test minimising x² with 20 particles over [-5,5] for 100 iterations and print the result.
+
+=== ENTRY 805 ===
+Goal: Compute the Fourier Series coefficients (aₙ, bₙ) of a square wave up to harmonic n.
+
+1. Declare fourier_series_coeffs accepting function name, maximum harmonic n, and period T.
+2. Divide the period into N_quad=1000 sub-intervals of width dt=T/N_quad.
+3. For each harmonic k from 0 to n, numerically integrate f(t)cos(2πkt/T) and f(t)sin(2πkt/T) over one period using a Riemann sum, where f(t)=+1 for t<T/2 and −1 otherwise.
+4. Normalise each integral by multiplying by 2/T and store as a dict {k, a, b}.
+5. Append to the coefficients list and return it.
+6. Test on a square wave with period 2π and print the first 5 harmonics.
+
+=== ENTRY 806 ===
+Goal: Accelerate convergence of a slowly converging sequence using Aitken's Δ² method.
+
+1. Declare aitken_delta2 accepting a sequence list.
+2. Obtain length n of the sequence.
+3. For each consecutive triple (x0, x1, x2) at indices i, i+1, i+2, compute the denominator x2 − 2x1 + x0.
+4. If the denominator's absolute value exceeds a tiny epsilon, compute the Aitken accelerated value x0 − (x1−x0)²/denom and append it.
+5. Return the accelerated sequence.
+6. Test by building a geometric partial-sum sequence converging to 2 and printing the accelerated values, which should converge faster.
+
+=== ENTRY 807 ===
+Goal: Solve a tridiagonal linear system using the Thomas Algorithm (Gaussian elimination optimised for tridiagonals).
+
+1. Declare thomas_algorithm accepting sub-diagonal a, main diagonal b, super-diagonal c, and right-hand side d.
+2. Forward sweep: compute modified super-diagonal c' and modified RHS d' by eliminating the sub-diagonal entries.
+3. Back substitution: starting from the last element, compute the solution vector x_th by walking backwards using c' and d'.
+4. Return x_th.
+5. Test on a 5×5 tridiagonal system and print the solution.
+
+=== ENTRY 808 ===
+Goal: Format a floating-point number in scientific notation as "mantissa e+exponent".
+
+1. Declare formatSCI accepting a number x and precision (decimal places).
+2. Compute the base-10 exponent using floor(log(|x|)/log(10)).
+3. Compute the mantissa by dividing x by 10^exponent.
+4. Round the mantissa to the required precision.
+5. Concatenate mantissa, "e+", and exponent into a string and return.
+6. Test with 12345.6789 at 2 decimal places and verify the output is approximately "1.23e+4".
+
+=== ENTRY 809 ===
+Goal: Format and print a 2-D matrix with a label and tab-aligned columns.
+
+1. Declare printMatrix accepting a 2-D list m and a label string.
+2. Initialise output with the label followed by a colon and newline.
+3. For each row in m, iterate over each value, format it to 4 decimal places, append a tab, and concatenate the row string.
+4. Append each completed row string followed by a newline to the output.
+5. Return the full formatted string.
+6. Test with a 3×3 matrix labelled "Test Matrix" and print the result.
+
+=== ENTRY 810 ===
+Goal: Format a phase-space trajectory as a sequence of "(q, p)" coordinate pairs.
+
+1. Declare printPhasePortrait accepting two lists qs and ps of equal length.
+2. Initialise an empty output string.
+3. Loop from index 1 to n, constructing each pair string as "(qs[i], ps[i])\n" and appending it to the output.
+4. Return the full formatted string.
+5. Test with qs=[0,1,2] and ps=[1,0,-1] and print the result.
+
+=== ENTRY 811 ===
+Goal: Format a LaTeX fraction string "\frac{num}{den}".
+
+1. Declare latexFraction accepting numerator and denominator arguments.
+2. Concatenate the LaTeX command "\frac{", num, "}{", den, "}" into a single string.
+3. Return the formatted LaTeX fraction string.
+4. Test with num=3 and den=4 and verify the output is "\frac{3}{4}".
+
+=== ENTRY 812 ===
+Goal: Tokenise a simple arithmetic expression string into separate operator and operand token lists.
+
+1. Declare parseMathExpr accepting an expression string s.
+2. Split the string by space to obtain tokens.
+3. Initialise empty operands and operators lists.
+4. For each token, check if it is one of "+", "-", "*", "/" and append to operators; otherwise append to operands.
+5. Return a dict with keys "operands" and "operators".
+6. Test with "3 + 4 * 2" and print the result.
+
+=== ENTRY 813 ===
+Goal: Format a convergence table showing each sequence term, its index, and its absolute difference from the previous term.
+
+1. Declare printConvergence accepting a sequence list.
+2. Loop from index 1 to the list length.
+3. For index 1, set diff to 0; for subsequent indices, compute abs(seq[i] − seq[i−1]).
+4. Concatenate "i=i val=val diff=diff\n" for each entry and append to the output string.
+5. Return the formatted string.
+6. Test with [1, 0.5, 0.25, 0.125] and print the convergence table.
+
+=== ENTRY 814 ===
+Goal: Convert a wavelength in metres to a human-readable string with the most appropriate unit (nm, μm, or mm).
+
+1. Declare formatWavelength accepting a wavelength m in metres.
+2. If m < 1e-6, convert to nanometres by multiplying by 1e9 and append " nm".
+3. Else if m < 1e-3, convert to micrometres by multiplying by 1e6 and append " μm".
+4. Otherwise convert to millimetres by multiplying by 1e3 and append " mm".
+5. Format the numeric part to 2 decimal places in each branch.
+6. Test with 500 nm, 2.5 μm, and 1.5 mm values and print each formatted result.
+
+=== ENTRY 815 ===
+Goal: Format a simulation footer line summarising elapsed steps, final energy, and convergence status.
+
+1. Declare dataFooter accepting elapsed_steps, final_energy, and status arguments.
+2. Format final_energy to 6 decimal places using formatDecimal.
+3. Concatenate "Steps: ", elapsed_steps, " | Final Energy: ", formatted energy, " | Status: ", status.
+4. Return the formatted footer string.
+5. Test with 1000 steps, energy −2.345678, and status "converged" and print the result.
+
+=== ENTRY 816 ===
+Goal: Return a properly formatted string representing Planck's constant in SI units.
+
+1. Declare formatPlanckConst with no parameters.
+2. Return the hard-coded string "h = 6.62607015e-34 J·s" representing Planck's constant.
+3. Print the result to verify the format is correct.
+
+=== ENTRY 817 ===
+Goal: Propagate measurement errors through a sum or product formula using standard error propagation rules.
+
+1. Declare propagateError accepting formula name, a list of measured values, and a list of corresponding errors.
+2. If formula is "sum": compute the quadrature sum of errors (square each, sum, take square root).
+3. If formula is "product": compute the sum of squared relative errors, multiply by the absolute product of values, and take the square root.
+4. Return a dict with the formula name and the propagated error.
+5. Test both "sum" and "product" cases with values [10,20] and errors [0.5,0.3] and print.
+
+=== ENTRY 818 ===
+Goal: Compute and format the molar mass of a chemical compound given its formula and atomic masses.
+
+1. Declare formatMolarMass accepting a formula dict (element → count) and a masses dict (element → atomic mass).
+2. Initialise total to zero.
+3. Iterate over each element and count in the formula dict; look up the atomic mass and accumulate count × mass.
+4. Format total to 4 decimal places and prepend "Molar mass = " and append " g/mol".
+5. Return the formatted string.
+6. Test with glucose (C₆H₁₂O₆) and standard atomic masses and print the result.
+
+=== ENTRY 819 ===
+Goal: Print a spectral table with wavelength, intensity, and UV/Vis/IR region labels.
+
+1. Declare printWaveTable accepting a list of wavelengths (nm) and a list of intensities.
+2. Initialise the output with a tab-separated header row.
+3. For each entry, determine the spectral region: UV if wl < 380, Vis if wl ≤ 700, IR otherwise.
+4. Append a tab-separated row of wavelength, intensity, and region followed by a newline.
+5. Return the full table string.
+6. Test with wavelengths [300,450,550,650,800] and corresponding intensities and print.
+
+=== ENTRY 820 ===
+Goal: Format a radioactive decay chain as a human-readable "A → B → C → ..." string.
+
+1. Declare formatDecayChain accepting a list of element name strings.
+2. Initialise an empty output string.
+3. Loop from index 1 to the list length: append the element name, and if not the last element, append " → ".
+4. Return the concatenated decay chain string.
+5. Test with ["U-238","Th-234","Pa-234","U-234"] and print the result.
+
+=== ENTRY 821 ===
+Goal: Format unit cell parameters and identify the crystal system from lattice constants and angles.
+
+1. Declare printCrystalSystem accepting lattice parameters a, b, c and angles alpha, beta, gamma.
+2. Use nested if-else expressions to classify the system: Cubic (a=b=c, all angles 90°), Hexagonal (a=b, gamma=120°), Tetragonal (a=b, all angles 90°), Orthorhombic (all angles 90°), Monoclinic (alpha=gamma=90°), else Triclinic.
+3. Concatenate the parameter values and the identified system name into a formatted string.
+4. Return the formatted string.
+5. Test with a cubic cell (3.5, 3.5, 3.5, 90, 90, 90) and print.
+
+=== ENTRY 822 ===
+Goal: Display a convergence history using ASCII bar charts where bar length is proportional to residual magnitude.
+
+1. Declare printConvergenceHistory accepting a list of residuals.
+2. Find the maximum residual using the .max lambda.
+3. For each residual, compute the bar length as round(residual/maxR × 40).
+4. Build a bar string of that many "|" characters.
+5. Append "Iter i: bar residual_value\n" to the output.
+6. Return the formatted convergence chart.
+7. Test with [1.0, 0.5, 0.25, 0.1, 0.02] and print.
+
+=== ENTRY 823 ===
+Goal: Format a phonon dispersion relation table with k-points and branch frequencies.
+
+1. Declare printPhononDispersion accepting a list of k-points and a 2D list of branch frequencies.
+2. Build the header row by labelling each branch "Branch1", "Branch2", etc.
+3. For each k-point row, format the k-point value and each branch frequency to 3 decimal places, tab-separated.
+4. Append each row followed by a newline.
+5. Return the complete table string.
+6. Test with 3 k-points and 3 branches each and print.
+
+=== ENTRY 824 ===
+Goal: Generate a floating-point range list from start to stop (exclusive) with a specified step size.
+
+1. Declare arange accepting start, stop, and stepVar.
+2. Initialise an empty result list and x to start.
+3. While x < stop, append x to result and increment x by stepVar.
+4. Return the result list.
+5. Test with arange(0, 1, 0.1) and print the resulting 10-element list.
+
+=== ENTRY 825 ===
+Goal: Create an n×n diagonal matrix with a specified value on the main diagonal and zeros elsewhere.
+
+1. Declare diagonal accepting n and val.
+2. Loop over rows i from 1 to n and columns j from 1 to n.
+3. Set each element to val if i == j, else 0.
+4. Build each row list and append to the matrix list m.
+5. Return m.
+6. Test with diagonal(3, 5) and print the 3×3 result.
+
+=== ENTRY 826 ===
+Goal: Compute the transpose of a matrix by swapping rows and columns.
+
+1. Declare matTranspose accepting a 2D list A.
+2. Determine the number of rows and columns from A.
+3. For each column index j, build a new row by collecting A[i][j] for every row i.
+4. Append each new row to T_mat.
+5. Return T_mat.
+6. Test with a 3×4 matrix and print the resulting 4×3 transpose.
+
+=== ENTRY 827 ===
+Goal: Compute the inverse of a 3×3 matrix using the adjugate matrix divided by the determinant.
+
+1. Declare matInv3 accepting a 3×3 list A.
+2. Compute the determinant by cofactor expansion along the first row.
+3. Compute each element of the adjugate (transposed cofactor matrix) divided by the determinant.
+4. Construct the inverse as a 3×3 nested list literal.
+5. Return the inverse matrix.
+6. Test with a 3×3 matrix and print the result.
+
+=== ENTRY 828 ===
+Goal: Normalise a vector to unit length by dividing each component by the vector's magnitude.
+
+1. Declare vectorNormalise accepting a vector list v.
+2. Compute the magnitude using reduce to sum squares and then sqrt.
+3. Map each component by dividing by the magnitude.
+4. Return the normalised vector.
+5. Test with [3, 4] (expected magnitude 5) and verify components are [0.6, 0.8].
+
+=== ENTRY 829 ===
+Goal: Compute the Kronecker product of two matrices A and B.
+
+1. Declare kroneckerProduct accepting two 2D lists A and B.
+2. For each row i of A and each row p of B, build a new row.
+3. For each column j of A and column q of B, append A[i][j] × B[p][q] to the new row.
+4. Append each completed row to the result.
+5. Return the resulting (rA×rB)×(cA×cB) matrix.
+6. Test with two 2×2 matrices and print the 4×4 Kronecker product.
+
+=== ENTRY 830 ===
+Goal: Compute the second finite differences of a signal (discrete second derivative).
+
+1. Declare diff2 accepting a signal list.
+2. Loop from index 2 to n−1, computing signal[i+1] − 2×signal[i] + signal[i−1] for each interior point.
+3. Append each result to the d2 list.
+4. Return d2.
+5. Test with [1,4,9,16,25,36] (squares) and verify all second differences equal 2.
+
+=== ENTRY 831 ===
+Goal: Upsample a signal by inserting zeros between each original sample.
+
+1. Declare upsample accepting a signal list and an integer factor.
+2. For each sample x in signal, append x to result.
+3. Then append (factor − 1) zeros after each sample.
+4. Return the upsampled list.
+5. Test with [1,2,3] and factor 3 and verify the output is [1,0,0,2,0,0,3,0,0].
+
+=== ENTRY 832 ===
+Goal: Generate a Blackman window function of length n.
+
+1. Declare blackmanWindow accepting length n.
+2. Loop i from 0 to n−1 and compute the Blackman window value: 0.42 − 0.5×cos(2πi/(n−1)) + 0.08×cos(4πi/(n−1)).
+3. Append each value to the window list w.
+4. Return w.
+5. Test with n=8 and print all 8 window coefficients.
+
+=== ENTRY 833 ===
+Goal: Perform spectral subtraction by removing an estimated noise spectrum from a signal spectrum.
+
+1. Declare spectralSubtraction accepting a signal list and a noise estimate list of the same length.
+2. For each index i, compute the difference signal[i] − noise_est[i].
+3. If the difference is positive, append it; otherwise append 0 (half-wave rectification).
+4. Return the cleaned spectrum.
+5. Test with signal [5,3,8,2,6] and noise [1,1,2,1,1] and print the result.
+
+=== ENTRY 834 ===
+Goal: Compute the amplitude envelope of a signal via rectification and exponential smoothing (low-pass).
+
+1. Declare envelope accepting a signal list.
+2. Compute the absolute value of each sample using map to produce abs_sig.
+3. Apply a first-order IIR low-pass filter with alpha=0.1: each output is alpha×input + (1−alpha)×previous.
+4. Initialise prev to abs_sig[1] and iterate over all samples, appending the smoothed value.
+5. Return the envelope list.
+6. Test with [1,−2,3,−1,2,−3,1] and print the smoothed envelope.
+
+=== ENTRY 835 ===
+Goal: Compute the Pearson correlation coefficient between two lists x and y.
+
+1. Declare correlationCoeff accepting lists x and y.
+2. Compute the means mx and my using reduce.
+3. Loop over all paired elements, accumulating numerator (deviations product), dx² (x deviations squared), and dy².
+4. Return numerator / sqrt(dx² × dy²).
+5. Test with [1,2,3,4,5] and [2,4,5,4,5] and print the correlation coefficient.
+
+=== ENTRY 836 ===
+Goal: Perform a two-sample t-test comparing the means of two independent groups.
+
+1. Declare tTest_2sample accepting lists a and b.
+2. Compute sample sizes, means, and unbiased sample variances for both groups.
+3. Compute the standard error as sqrt(va/na + vb/nb).
+4. Compute the t-statistic as (ma − mb) / se and degrees of freedom as na + nb − 2.
+5. Return a dict with the t-statistic, df, and both group means.
+6. Test with two 5-element groups and print the result.
+
+=== ENTRY 837 ===
+Goal: Compute the Kaplan-Meier survival curve from event times and event indicators.
+
+1. Declare kaplan_meier accepting lists of event times and binary event indicators (1=event, 0=censored).
+2. Sort event times and find unique time points.
+3. Initialise survival probability S = 1 and the risk set n_at_risk = n.
+4. For each unique time point, count events (d_j) and censorings (c_j).
+5. Update S = S × (1 − d_j/n_at_risk) and decrement the risk set.
+6. Return a dict with time and survival arrays.
+7. Test with 6 subjects and print the survival curve.
+
+=== ENTRY 838 ===
+Goal: Compute the Area Under the ROC Curve (AUC) using the trapezoidal rule.
+
+1. Declare auc accepting false positive rate (fpr) and true positive rate (tpr) lists.
+2. Loop from index 2 to n, accumulating the trapezoidal area (fpr[i]−fpr[i−1]) × (tpr[i]+tpr[i−1]) / 2.
+3. Take the absolute value of the total area (to handle decreasing fpr).
+4. Return the AUC value.
+5. Test with fpr=[0,0.2,0.5,0.8,1.0] and tpr=[0,0.5,0.75,0.9,1.0] and print the result.
+
+=== ENTRY 839 ===
+Goal: Build a particle system dictionary and update particle positions each time step.
+
+1. Declare buildParticleSystem accepting n, creating a dict of particles keyed by integer id.
+2. Each particle has random x, y positions, random vx, vy velocities, mass=1.0, and alternating charge ±1.
+3. Declare update_all accepting the particle system and a time step dt.
+4. For each particle key, retrieve its dict and update x += vx×dt, y += vy×dt; store back.
+5. Return the updated particle system.
+6. Test with n=3 particles and dt=0.1 and print the updated system.
+
+=== ENTRY 840 ===
+Goal: Build a phase-space data structure and add (q, p) trajectory points for each particle.
+
+1. Declare buildPhaseSpace accepting a trajectories dict, wrapping it in a "data" key.
+2. Declare addPoint accepting the phase space dict, particle id, position q, and momentum p.
+3. If the id key does not exist in data, initialise it to an empty list.
+4. Append [q, p] to the particle's trajectory list.
+5. Return the modified phase space dict.
+6. Test by adding two points for particle "p1" and printing the phase space.
+
+=== ENTRY 841 ===
+Goal: Build a multi-series plot data structure and append (x, y) data points to named series.
+
+1. Declare buildPlotData accepting a labels list and a series name list.
+2. Create a dict with "labels" and "series" keys; initialise each series to an empty list.
+3. Declare addPointPlot accepting the plot data dict, a series name, and x/y coordinates.
+4. Retrieve the series dict and append [x, y] to the named series.
+5. Return the modified plot data.
+6. Test with series "A" and "B", add one point each, and print the structure.
+
+=== ENTRY 842 ===
+Goal: Build a signal processing chain of gain and delay components and apply it to a signal.
+
+1. Declare buildSignalChain accepting a list of component dicts (each with "type" and optional "value").
+2. Store the components in a dict under "components".
+3. Declare processChain accepting the chain dict and a signal list.
+4. For each component: if type is "gain", map every sample by multiplying by the gain value; if type is "delay", shift the signal right by one sample (prepend a zero, drop the last).
+5. Return the processed signal.
+6. Test a chain of gain×2 followed by delay on [1,2,3,4,5] and print the result.
+
+=== ENTRY 843 ===
+Goal: Model fluid properties and compute the Reynolds and Strouhal dimensionless numbers.
+
+1. Declare buildFluid accepting density rho, dynamic viscosity mu, and free-stream velocity v0 as a dict.
+2. Declare reynoldsNum accepting the fluid dict and characteristic length L; return rho×v0×L/mu.
+3. Declare strouhal accepting the fluid dict, shedding frequency f, and length L; return f×L/v0.
+4. Test with water-like fluid (rho=1000, mu=0.001, v0=2.0), L=0.05, f=10.
+5. Print both Re and St.
+
+=== ENTRY 844 ===
+Goal: Model a Gaussian wave packet and compute its normalised amplitude at a given position.
+
+1. Declare buildWavePacket accepting sigma, wave number k0, centre x0, grid spacing dx, and number of points N as a dict.
+2. Declare normalisedAmplitude accepting the wave packet dict and position x.
+3. Retrieve sigma, k0, x0 from the dict; compute the prefactor A = 1/(sigma×√(2π)).
+4. Return A × exp(−(x−x0)²/(2σ)²).
+5. Test with sigma=1, k0=2, x0=0 at x=0.5 and print.
+
+=== ENTRY 845 ===
+Goal: Model a phased antenna array and compute its array factor for a given direction (theta, phi).
+
+1. Declare buildAntennaArray accepting a list of element position dicts and a frequency; compute wavelength = c/f.
+2. Declare arrayFactor accepting the antenna dict, theta and phi in degrees.
+3. Compute wave number k = 2π/λ.
+4. For each element, compute its phase contribution k×(x×sin(θ)cos(φ) + y×sin(θ)sin(φ)) and accumulate real and imaginary parts.
+5. Return the magnitude sqrt(re²+im²).
+6. Test a 3-element linear array at 1 GHz, boresight (0°, 0°), and print the array factor.
+
+=== ENTRY 846 ===
+Goal: Build a simple Molecular Dynamics system and advance it by one time step with a harmonic restoring force.
+
+1. Declare buildMD accepting a list of atom dicts, a potential function name, and thermostat name.
+2. Declare stepMD accepting the MD dict and dt: for each atom, update x += vx×dt then apply a restoring acceleration −x×dt to vx.
+3. Return the updated MD dict.
+4. Test with two atoms at ±1.0 with opposite velocities under a harmonic potential and dt=0.01 and print.
+
+=== ENTRY 847 ===
+Goal: Build a simplified 1-D CFD solver for Burgers' equation and measure its convergence.
+
+1. Declare buildCFD accepting a mesh list, Reynolds number Re, and numerical scheme name; initialise velocity field u to zeros.
+2. Declare stepCFD: compute convective and diffusive terms at each interior node using an upwind scheme and update u_new; apply boundary conditions.
+3. Declare convergenceCFD: return the absolute value of the mean velocity as a rough convergence measure.
+4. Test with 5-node mesh, Re=100, scheme="upwind", dt=0.01 and print one step and the convergence metric.
+
+=== ENTRY 848 ===
+Goal: Build an agent-based economy where agents exchange wealth stochastically each time step.
+
+1. Declare buildEconomy accepting agents list, market dict, and rules dict; initialise time counter to 0.
+2. Declare stepEconomy: for each agent, perturb wealth by a uniform random trade in (−1, 1); increment time.
+3. Return the updated economy dict.
+4. Test with two agents (wealth 100 and 50), a market price, and a 10% tax rule; call one step and print.
+
+=== ENTRY 849 ===
+Goal: Build a clinical trial analysis structure and compute the hazard ratio and number needed to treat (NNT).
+
+1. Declare buildClinicalTrial accepting arm names, sample sizes, and event counts as a dict.
+2. Declare hazardRatio: compute event rates h1=events[1]/n[1] and h2=events[2]/n[2]; return h1/h2.
+3. Declare nnt: compute the absolute risk difference and return 1/|r1−r2|.
+4. Test with 100 patients per arm, 20 vs 35 events, and print HR and NNT.
+
+=== ENTRY 850 ===
+Goal: Map a field magnitude to a colour interpolating from violet (weak) to red (strong).
+
+1. Declare fieldStrengthColor accepting magnitude and max_mag.
+2. Compute t = magnitude/max_mag (normalised fraction).
+3. Set red channel = round(t×255) and blue channel = round((1−t)×136), green = 0.
+4. Return makeColor([r, 0, b]).
+5. Test with magnitude=0.5 and max_mag=1.0 and print the colour.
+
+=== ENTRY 851 ===
+Goal: Map a scalar field value to a colour using one of three colourmaps: "viridis", "plasma", or "hot".
+
+1. Declare scalarFieldColor accepting value, lo, hi, and colormap string.
+2. Normalise t = (value−lo)/(hi−lo).
+3. For "viridis": map t to an approximate blue-yellow-green ramp.
+4. For "plasma": map t to a blue-purple-yellow ramp.
+5. Default ("hot"): map t to a black-red-white ramp.
+6. Return makeColor([r, g, b]) for the appropriate ramp.
+7. Test all three colourmaps at t=0.5 and print each colour.
+
+=== ENTRY 852 ===
+Goal: Map a transmission coefficient T ∈ [0,1] to a greyscale colour (black at T=0, white at T=1).
+
+1. Declare transmissionColor accepting T.
+2. Compute v = round(T × 255).
+3. Return makeColor([v, v, v]) — equal R, G, B produces grey.
+4. Test with T=0 (black), T=0.5 (mid grey), and T=1 (white) and print each.
+
+=== ENTRY 853 ===
+Goal: Assign a unique colour to each Miller index plane family using a bitwise hash of the indices.
+
+1. Declare crystalPlaneColor accepting miller_h, miller_k, miller_l.
+2. Compute a hash by XOR-combining each index multiplied by distinct large primes.
+3. Extract R, G, B as successive 8-bit fields (hash%256, hash/256%256, hash/65536%256) using abs.
+4. Return makeColor([r, g, b]).
+5. Test with planes (1,0,0), (1,1,0), (1,1,1) and print each colour.
+
+=== ENTRY 854 ===
+Goal: Colour an orbital trajectory based on its eccentricity (circular, parabolic, or hyperbolic).
+
+1. Declare orbitColor accepting eccentricity.
+2. If e < 1 (elliptical/circular): interpolate from blue (#00AAFF at e=0) towards orange (#FF8800 at e=1).
+3. If e == 1 (parabolic): return makeColor([255, 136, 0]).
+4. If e > 1 (hyperbolic): return makeColor([255, 34, 0]).
+5. Test with e=0, e=1, and e=1.5 and print each colour.
+
+=== ENTRY 855 ===
+Goal: Assign a fixed physics-convention colour to each fundamental particle type.
+
+1. Declare particleTypeColor accepting a particle string.
+2. Return makeColor([33,150,243]) for "electron" (blue).
+3. Return makeColor([255,87,34]) for "proton" (deep orange).
+4. Return makeColor([158,158,158]) for "neutron" (grey).
+5. Default to makeColor([255,255,0]) for "photon" (yellow).
+6. Test all four particle types and print each colour.
+
+=== ENTRY 856 ===
+Goal: Compute beat frequency, carrier frequency, and modulation index for a list of frequency pairs.
+
+1. Declare a list freq_pairs of five [f1, f2] sublists.
+2. For each pair, extract f1 and f2 (1-based indexing).
+3. Compute beat = |f2 − f1|, carrier = (f1+f2)/2, and mod_index = beat/carrier.
+4. Format mod_index to 5 decimal places.
+5. Print a descriptive line for each pair showing all four computed values.
+
+=== ENTRY 857 ===
+Goal: Solve an ODE using Euler, RK4, or leapfrog integration, returning time and solution arrays.
+
+1. Declare a helper rk4_step using hardcoded dy/dt = −y (for testing).
+2. Declare solveODE accepting ODE name, initial value y0, time span [t0, tf], step size dt, and method string.
+3. While t < tf: advance y using the selected method (Euler, RK4, or leapfrog), increment t, and store both.
+4. Return {"ts": time list, "ys": solution list}.
+5. Test with exponential decay y'=−y, y0=1, t∈[0,1] using RK4 and print.
+
+=== ENTRY 858 ===
+Goal: Minimise a scalar function using gradient descent, Adam optimiser, or Nelder-Mead simplex search.
+
+1. Declare optimise accepting function name, starting point x0, method string, and iteration count.
+2. For "gd": iteratively subtract learning_rate × gradient (2x for quadratic).
+3. For "adam": maintain first- and second-moment estimates with bias correction and update x.
+4. Default (Nelder-Mead): perturb x randomly with a decaying step size, accept if improvement.
+5. Return {"x_opt": x, "f_opt": x²}.
+6. Test with quadratic f(x)=x² starting at x=5 using Adam for 200 iterations and print.
+
+=== ENTRY 859 ===
+Goal: Solve a 1-D PDE (e.g. wave/heat equation) on a spatial grid using explicit finite differences.
+
+1. Declare finiteDifference accepting initial field u0, boundary conditions dict, time step dt, grid spacing dx, number of steps, and scheme string.
+2. Copy the initial field and loop over the requested number of time steps.
+3. For each interior node, apply the explicit finite-difference stencil: u_new[i] = u[i] + (dt/dx)² × (u[i+1] − 2u[i] + u[i−1]).
+4. Enforce boundary conditions from the bc dict at each step.
+5. Return the final field.
+6. Test with a triangular initial condition, zero boundaries, dt=0.01, dx=0.25, 10 steps and print.
+
+=== ENTRY 860 ===
+Goal: Update a Gaussian prior with observed data using Bayesian inference to obtain a posterior.
+
+1. Declare bayesianInference accepting prior dict (mean, std), likelihood dict (std), and data list.
+2. Extract prior parameters mu0, sig0 and likelihood std sig_l.
+3. Compute the data mean from the list.
+4. Compute posterior variance: 1/(1/σ₀² + n/σ_L²).
+5. Compute posterior mean: post_var × (mu0/σ₀² + n×data_mean/σ_L²).
+6. Return {"mean": post_mean, "std": sqrt(post_var)}.
+7. Test with a standard normal prior, likelihood std=0.5, and 4 observations and print.
+
+=== ENTRY 861 ===
+Goal: Compute an optimal control history for a linear system using a simplified shooting method.
+
+1. Declare numericalOptimalControl accepting system function name, cost function name, initial state x0, horizon T_oc, and number of steps n_steps.
+2. Compute dt = T/n_steps.
+3. At each step, compute the optimal control as u = −x (linear quadratic regulator approximation).
+4. Record u in u_hist and advance the state: x = x + dt×(x+u).
+5. Return the control history list.
+6. Test with x0=1.0, T=2.0, n_steps=10 and print the control sequence.
+
+=== ENTRY 862 ===
+Goal: Compute the FFT of a power-of-2 length signal using the recursive Cooley-Tukey algorithm.
+
+1. Declare fft_recursive accepting a signal list.
+2. Base case: if n==1, return [[signal[1], 0]].
+3. Split the signal into even- and odd-indexed sublists and recursively call fft_recursive on each.
+4. For each frequency bin k from 1 to n/2, compute the twiddle factor exp(−2πi(k−1)/n) and combine even E[k] and odd O[k] outputs using the butterfly operation.
+5. Fill both the lower and upper halves of the result list.
+6. Return the full complex spectrum as [[re, im], ...].
+7. Test with an 8-point [1,1,1,1,0,0,0,0] signal and print.
+
+=== ENTRY 863 ===
+Goal: Standardise a signal to zero mean and unit variance.
+
+1. Declare standardize accepting a signal list.
+2. Compute the mean using reduce.
+3. Compute the variance by mapping squared deviations from the mean and reducing with sum, divided by n.
+4. Compute std = sqrt(variance).
+5. Map each element to (x − mean)/std.
+6. Return the standardised list.
+7. Test with [2,4,4,4,5,5,7,9] and print (expected mean≈0, std≈1).
+
+=== ENTRY 864 ===
+Goal: Compute running statistics (mean, variance, max) over a signal using Welford's online algorithm.
+
+1. Declare samples as a list of 10 values.
+2. Initialise run_count=0, run_mean=0, run_m2=0, run_max to the first element.
+3. For each sample x: increment count; compute delta = x − old mean; update mean; compute delta2 = x − new mean; update M2; update max.
+4. Compute running variance as run_m2/(count−1) (sample variance); handle count=1 case with 0.
+5. Print a formatted line after each sample showing n, mean, variance, and max.
+
+=== ENTRY 865 ===
+Goal: Implement a mark-and-sweep garbage collector using global heap and root set lists.
+
+1. Declare global gcHeap (list of {id, alive} dicts) and global gcRoots (list of root ids).
+2. Declare allocate: append {id: id, alive: false} to gcHeap.
+3. Declare addRoot: append the id to gcRoots.
+4. Declare markSweep: first mark all heap objects as not alive; then for each root id, scan the heap and mark matching objects as alive; filter the heap to retain only alive objects; update gcHeap.
+5. Test by allocating "a", "b", "c", rooting "a" and "c", calling markSweep, and printing the result (only "a" and "c" should survive).
+
+=== ENTRY 866 ===
+Goal: Visualise heap memory usage as a colour gradient from green (low) to red (near full).
+
+1. Declare heapUsageColor accepting used and total bytes.
+2. Compute t = used/total.
+3. Set red channel = round(t×255) and green channel = round((1−t)×255), blue = 0.
+4. Return makeColor([r, g, 0]).
+5. Test with 10% usage (green) and 90% usage (red) and print each colour.
+
+=== ENTRY 867 ===
+Goal: Model software pipelining by generating a prologue, kernel, and epilogue schedule for a loop.
+
+1. Declare softwarePipeline accepting a loop_body list of instruction strings and an initiation_interval integer.
+2. Build the prologue by labelling each of the first initiation_interval stages with the corresponding loop body instruction (using modular indexing).
+3. Build the kernel by wrapping all loop body instructions with "kernel: " prefix.
+4. Build the epilogue symmetrically to the prologue.
+5. Return {"prologue", "kernel", "epilogue"}.
+6. Test with ["load r1", "add r2,r1", "store r2"] and II=2 and print.
+
+=== ENTRY 868 ===
+Goal: Indent a multi-line code string by a given number of levels (2 spaces per level).
+
+1. Declare formatIndented accepting a code string and indentation level.
+2. Build the prefix string by repeating a space level×2 times.
+3. Split the code on "\n" to get individual lines.
+4. Prepend the prefix to each line, append "\n", and concatenate all lines.
+5. Return the indented string.
+6. Test with a 2-line if-block at level 2 and print.
+
+=== ENTRY 869 ===
+Goal: Maintain a global code buffer and emit assembly-like instructions into it.
+
+1. Declare global codeBuffer as an empty list.
+2. Declare emit accepting an instruction string and appending it to codeBuffer.
+3. Emit 5 instructions: "MOV R0, #0", "ADD R1, R0, #1", "CMP R1, #5", "BNE loop", "RET".
+4. Print codeBuffer to verify all 5 instructions are present in order.
+
+=== ENTRY 870 ===
+Goal: Manage a trampoline table for calling functions that are too far for direct branch instructions.
+
+1. Declare global trampolineTable as an empty dict.
+2. Declare needsTrampoline accepting a function name; return true if the name is a key in trampolineTable.
+3. Declare addTrampoline: compute a trampoline address as dictLen×16 + 65536 and store {addr, target} in trampolineTable under the function name.
+4. Test: add "far_func_1" and "far_func_2", then check needsTrampoline for both a registered and unregistered name and print all results.
+
+=== ENTRY 871 ===
+Goal: Print a dominance tree with indented formatting reflecting the tree depth.
+
+1. Declare a recursive helper printNode accepting a node dict and indentation level.
+2. Build the indent string (level×2 spaces) and append the node's "id" and a newline.
+3. Retrieve the "children" list; if it is a list, recursively call printNode for each child at level+1 and append to output.
+4. Declare printDomTree that calls printNode at level 0.
+5. Test with a 4-node tree (entry, B1, B2, B3, B4) and print the indented tree.
+
+=== ENTRY 872 ===
+Goal: Build an interference graph by identifying pairs of variables whose live ranges overlap.
+
+1. Declare buildInterferenceGraph accepting a live_ranges dict mapping variable names to {start, end} dicts.
+2. Retrieve all variable names as a list.
+3. For each pair (i, j) with j > i, retrieve both live ranges and check if they overlap: s1 ≤ e2 && s2 ≤ e1.
+4. If they overlap, append [var_i, var_j] to the edges list.
+5. Return edges.
+6. Test with overlapping live ranges for "x", "y", "z" and print the interference edges.
+
+=== ENTRY 873 ===
+Goal: Build a Control Flow Graph (CFG) structure and populate it with basic blocks and directed edges.
+
+1. Declare buildCFG accepting a function AST dict; return an empty CFG dict with blocks, edges, entry, and exit.
+2. Declare addBlock: add a block dict {id, instrs:[]} to the blocks sub-dict under the block's id.
+3. Declare addEdge: append [from, to] to the edges list.
+4. Test: build a CFG, add "entry", "B1", "exit" blocks, connect entry→B1 and B1→exit, and print the CFG.
+
+=== ENTRY 874 ===
+Goal: Build a JIT trace cache for fast lookup and insertion of compiled code traces.
+
+1. Declare buildTraceCache accepting a list of {id, code} dicts; populate an internal cache dict.
+2. Declare addTrace: set the cache entry for trace_id to the given code string.
+3. Declare lookupTrace: return the cached code if the trace_id exists, else return "miss".
+4. Test: build a cache with "t1" and "t2", add "t3", look up "t2" (hit) and "t99" (miss) and print.
+
+=== ENTRY 875 ===
+Goal: Compute FIRST sets for a grammar using iterative fixed-point propagation.
+
+1. Declare a grammar dict mapping non-terminals to lists of productions.
+2. Initialise firstSets dict with an empty list for each non-terminal.
+3. Repeat until no change: for each non-terminal and each of its productions, add ε if the production is empty; add the terminal directly if the first symbol is a terminal; otherwise propagate non-ε elements of the first symbol's FIRST set.
+4. Print the completed firstSets dict showing which terminals can begin each non-terminal.
+
+=== ENTRY 876 ===
+Goal: Check whether a loop transformation (interchange) preserves data dependences using the polyhedral model.
+
+1. Define two loop nests and a list of dependence vectors as {src, dst} pairs.
+2. Define a transformation matrix (e.g. loop interchange: [[0,1],[1,0]]).
+3. For each pair of dependences, compute the difference vector dst − src and apply the transformation matrix.
+4. Check legality: the transformed difference is lexicographically non-negative (t_diff[1] > 0, or t_diff[1]==0 && t_diff[2] ≥ 0).
+5. Print the transformed difference and validity for every dependence pair.
+
+=== ENTRY 877 ===
+Goal: Perform closure conversion by identifying free variables for each closure and capturing them from the outer environment.
+
+1. Declare a list of closure dicts, each with "name", "params", "body", and "free" (list of free variable names).
+2. Declare an outer environment dict mapping variable names to values.
+3. For each closure, iterate its free variable list, look up each name in the outer environment, and store it in a captured dict.
+4. Print the closure name and its captured environment dict for each closure.
+
+=== ENTRY 878 ===
+Goal: Parse the token stream "id + id * id" using an LL(1) parser driven by an explicit parse stack and table.
+
+1. Declare the LL(1) parse table as a dict mapping "NonTerminal+token" keys to production lists.
+2. Initialise the input token list ending with "$" and the stack with ["$", "E"].
+3. While the stack is non-empty and no error/acceptance: inspect the stack top and current input token.
+4. If top equals current token, pop the stack and advance the input; if top is "$" and token is "$", accept; otherwise look up the table and expand the top non-terminal.
+5. Print each stack top / input pair and a final "Accepted!" or "Parse error" message.
+
+=== ENTRY 879 ===
+Goal: Simulate software pipelining for a loop with 3-cycle latency instructions.
+
+1. Declare a list of loop instructions (load, mul, add) and a latency of 3.
+2. Set the initiation interval II equal to the latency.
+3. For each stage from 0 to II−1, compute the issue cycle for each instruction using (stage + (i−1)×latency) % II.
+4. Build a schedule list of cycle dicts and append each stage's kernel cycle.
+5. Print the complete software pipeline schedule.
+
+=== ENTRY 880 ===
+Goal: Maintain a global keyword list and test whether a word is a language keyword.
+
+1. Declare global keywords as a list of 11 keyword strings.
+2. Declare isKeyword accepting a word string; return this.keywords.containsItem(word).
+3. Test with "if" (expected true) and "myVar" (expected false) and print both results.
+
+=== ENTRY 881 ===
+Goal: Initialise liveness analysis data structures for a set of basic blocks.
+
+1. Declare global liveIn and global liveOut as empty dicts.
+2. Declare initLiveness accepting a list of block id strings.
+3. For each block id, set both liveIn and liveOut entries to empty lists.
+4. Test with four blocks "B0"–"B3" and print both dicts to confirm initialisation.
+
+=== ENTRY 882 ===
+Goal: Implement a pattern-matching dispatch mechanism over algebraic variant tags.
+
+1. Declare global variantTags as {"None":0, "Some":1, "Ok":2, "Err":3}.
+2. Declare matchVariant accepting a tag string and a cases dict.
+3. If cases contains the tag, return cases[tag]; if cases contains "_", return the wildcard; otherwise return "no match".
+4. Test: match "Some" in a full case dict (returns "has value") and "Err" using a wildcard (returns "failure") and print.
+
+=== ENTRY 883 ===
+Goal: Count the number of set bits (1-bits) in the binary representation of an integer.
+
+1. Declare bitCount accepting a non-negative integer n.
+2. While n > 0, add n%2 to count and shift n right by dividing by 2 (floor).
+3. Return count.
+4. Test with 0 (0 bits), 255 (8 bits), and 170 (4 bits) and print each result.
+
+=== ENTRY 884 ===
+Goal: Compute the floor of log₂(n) by repeated integer halving.
+
+1. Declare log2Floor accepting a positive integer n.
+2. Initialise result to 0 and x to n.
+3. While x > 1, divide x by 2 (floor) and increment result.
+4. Return result.
+5. Test with n=1 (0), n=8 (3), and n=255 (7) and print each result.
+
+=== ENTRY 885 ===
+Goal: Toggle (flip) a specific bit in an integer using XOR semantics.
+
+1. Declare toggleBit accepting integer n and bit position i (1-based).
+2. Compute mask = 2^(i−1).
+3. Check whether the bit is currently set by examining (n/mask)%2.
+4. If set (bit=1), subtract mask from n; if clear (bit=0), add mask.
+5. Return the modified value.
+6. Test with n=12 toggling bits 1 and 4 and print each result.
+
+=== ENTRY 886 ===
+Goal: Sign-extend an integer from a narrower bit width to a full-precision integer.
+
+1. Declare signExtend accepting integer n and fromBits (source bit width).
+2. Compute maxVal = 2^fromBits and signBit = 2^(fromBits−1).
+3. Mask n to fromBits: masked = n % maxVal.
+4. If masked ≥ signBit, the number is negative in the source representation; subtract maxVal to get the signed value.
+5. Return masked or masked−maxVal.
+6. Test with (200, 8) (expected −56) and (127, 8) (expected 127) and print.
+
+=== ENTRY 887 ===
+Goal: Determine the minimum number of bits required to represent a non-negative integer.
+
+1. Declare minBits accepting non-negative integer n.
+2. Special case: if n==0, return 1.
+3. Otherwise, initialise bits=0 and x=n; while x > 0, increment bits and halve x.
+4. Return bits.
+5. Test with 0 (1 bit), 127 (7 bits), and 128 (8 bits) and print.
+
+=== ENTRY 888 ===
+Goal: Evaluate a first-order Reed-Muller polynomial (r=1) over m=3 binary variables.
+
+1. Declare reedMuller accepting a list of bits (0/1 values), order r, and variable count m.
+2. Initialise result to bits[1] (the constant term).
+3. XOR in each of the m linear terms bits[i].
+4. XOR in each pairwise product bits[i] & bits[j] for all i < j.
+5. Return result.
+6. Test with bits=[1,0,1,1], r=1, m=3 and print the evaluated polynomial value.
+
+=== ENTRY 889 ===
+Goal: Compute a tabulation hash of a byte array using pre-computed lookup tables.
+
+1. Declare tabulation_hash accepting a list of byte values and a list of lookup tables.
+2. Initialise hash h to 0.
+3. For each byte at position i, select the table at index (i−1)%numTables (1-based), look up the byte value + 1, and XOR it into h.
+4. Return h.
+5. Test with bytes [72, 101, 108] ("Hel") and a single identity lookup table and print.
+
+=== ENTRY 890 ===
+Goal: Compute (a × b) mod m using binary multiplication to avoid overflow.
+
+1. Declare modMul accepting a, b, and m.
+2. Reduce a modulo m.
+3. While b > 0: if b is odd, add the current a to result (mod m); double a (mod m); halve b.
+4. Return result.
+5. Test with (123456, 789012, 1000007) and print the modular product.
+
+=== ENTRY 891 ===
+Goal: Decode a Morton (Z-order) code back into separate x and y coordinates by de-interleaving bits.
+
+1. Declare deinterleave_bits accepting a Morton code z.
+2. Alternate between extracting even bits (for x) and odd bits (for y) by repeatedly extracting z%2 and halving z.
+3. Accumulate extracted bits into x and y using powers of 2 indexed by bit position.
+4. Return {"x": x, "y": y}.
+5. Also declare interleave_bits to create a Morton code for round-trip testing.
+6. Test: encode (5,3), print the Morton code, decode it, and verify x=5, y=3.
+
+=== ENTRY 892 ===
+Goal: Encode a floating-point number into a simplified 8-bit format (1 sign + 3 exponent + 4 mantissa bits).
+
+1. Declare ieee754_encode_simple accepting mantissa and exponent.
+2. Determine the sign bit (1 if mantissa < 0, else 0).
+3. Bias the exponent by adding 3.
+4. Extract the fractional part of the absolute mantissa and map it to 4 integer bits.
+5. Combine as: byte = sign×128 + biased_exp×16 + mantissa_bits.
+6. Return a dict with all components.
+7. Test with (1.5, 0) and (−1.25, 1) and print.
+
+=== ENTRY 893 ===
+Goal: Encode positive integers using Elias omega (recursive) coding.
+
+1. Declare elias_omega accepting n.
+2. Initialise the code list with the terminating bit "0".
+3. While x > 1: convert x to binary string bits, prepend it to the code list, and set x to (bits length − 1).
+4. Join all code fragments and return the code string.
+5. Test for n = 1 through 8 and print each code.
+
+=== ENTRY 894 ===
+Goal: Multiply two large integers efficiently using the Karatsuba divide-and-conquer algorithm.
+
+1. Declare karatsuba accepting a and b.
+2. Base case: if either operand < 10, return a×b directly.
+3. Split each number at the midpoint m: a = a1×10^m + a0, b = b1×10^m + b0.
+4. Compute z0=karatsuba(a0,b0), z2=karatsuba(a1,b1), z1=karatsuba(a0+a1,b0+b1)−z2−z0.
+5. Return z2×10^(2m) + z1×10^m + z0.
+6. Test with 1234×5678 = 7006652 and print.
+
+=== ENTRY 895 ===
+Goal: Classically simulate Shor's order-finding subroutine to find the multiplicative order of a modulo n.
+
+1. Declare shor_order_finding accepting n and a.
+2. Initialise x=1 and r=1.
+3. Compute the sequence x = (x×a) mod n; if x returns to 1, the current r is the order.
+4. Increment r each step; return r once the period is found (or r when the loop terminates).
+5. Test with (15, 7) and (21, 2) and print the multiplicative orders.
+
+=== ENTRY 896 ===
+Goal: Evaluate the i-th Lagrange basis polynomial at a given point x.
+
+1. Declare lagrange_basis accepting nodes xs, index i, and evaluation point x.
+2. Initialise result = 1.
+3. For each j ≠ i, multiply result by (x − xs[j]) / (xs[i] − xs[j]).
+4. Return result.
+5. Test with 5 nodes and i=2 at x=2.5 and also with 3 nodes and i=1 at x=0.5 and print both.
+
+=== ENTRY 897 ===
+Goal: Evaluate the Legendre polynomial Pₙ(x) using the three-term recurrence relation.
+
+1. Declare legendre_P accepting n and x.
+2. Base cases: P₀(x) = 1 and P₁(x) = x.
+3. For n ≥ 2: apply the recurrence Pₙ = ((2n−1)×x×Pₙ₋₁ − (n−1)×Pₙ₋₂) / n.
+4. Test P₀ through P₃ at x=0.5 and print each value.
+
+=== ENTRY 898 ===
+Goal: Compute the n-th Motzkin number using the two-term recurrence.
+
+1. Declare motzkin accepting n.
+2. Base cases: M(0) = M(1) = 1.
+3. For n ≥ 2: apply Mₙ = ((2n+2)×Mₙ₋₁ + (3n−3)×Mₙ₋₂) / (n+2).
+4. Test for n = 0 through 8 in a for loop and print each Motzkin number.
+
+=== ENTRY 899 ===
+Goal: Construct the companion matrix of a polynomial (used to find its eigenvalues/roots).
+
+1. Declare companion_matrix accepting a polynomial coefficient list (constant first, leading last).
+2. Build an n×n zero matrix C.
+3. Set sub-diagonal entries C[i+1][i] = 1 for i from 1 to n−1.
+4. Set the last column C[j][n] = −poly[j] / leading_coefficient for j from 1 to n.
+5. Return C.
+6. Test with polynomial x³ − 6x² + 11x − 6 (roots 1, 2, 3) and print.
+
+=== ENTRY 900 ===
+Goal: Format a list of lexer token dicts as "[TYPE: value]" lines.
+
+1. Declare printTokenList accepting a list of token dicts with "type" and "value" keys.
+2. For each token, concatenate "[", type, ": ", value, "]\n" and append to the output string.
+3. Return the full formatted string.
+4. Test with a list of KEYWORD, IDENT, OP, and NUMBER tokens and print.
+
+=== ENTRY 901 ===
+Goal: Generate a descriptive type mismatch error message.
+
+1. Declare formatTypeError accepting expected and got type name strings.
+2. Concatenate "TypeError: expected '", expected, "' but got '", got, "'" into a single string.
+3. Return the formatted error message.
+4. Test with expected="number" and got="string" and print.
+
+=== ENTRY 902 ===
+Goal: Escape special characters in a string (newlines, tabs, quotes) for safe inclusion in a string literal.
+
+1. Declare escapeString accepting a raw string s.
+2. Replace literal newlines (\n) with the escape sequence "\n".
+3. Replace literal tabs (\t) with "\t".
+4. Replace double-quote characters (") with the escape \"".
+5. Return the escaped string.
+6. Test with a string containing all three special characters and print.
+
+=== ENTRY 903 ===
+Goal: Format a lexer token as a descriptive string including its type, value, and source location.
+
+1. Declare lexeme accepting type string, value string, line number, and column number.
+2. Concatenate "[", type, "] ", value, " @", line, ":", col into a formatted token descriptor.
+3. Return the formatted string.
+4. Test with type="IDENT", value="myVar", line=3, col=12 and print.
+
+=== ENTRY 904 ===
+Goal: Format a closure representation showing its name and all captured free variables with their values.
+
+1. Declare printClosure accepting a closure name and a freeVars dict.
+2. Retrieve the dict's keys and map each key to "key=value" using get, then join with ", ".
+3. Concatenate "closure ", name, " { ", joined pairs, " }" and return.
+4. Test with closure "adder" capturing {x:5, offset:10} and print.
+
+=== ENTRY 905 ===
+Goal: Format an if-else statement as a readable multi-line string.
+
+1. Declare formatIf accepting condition, then-branch, and else-branch strings.
+2. Concatenate "if (", cond, ") {\n  ", then, "\n} else {\n  ", else_br, "\n}" and return.
+3. Test with condition "x > 0", then="return x", else="return -x" and print.
+
+=== ENTRY 906 ===
+Goal: Pretty-print FIRST sets for a list of non-terminals in grammar notation.
+
+1. Declare printFirstSet accepting a list of non-terminal strings and a first dict.
+2. For each non-terminal, retrieve its FIRST set list and join elements with ", ".
+3. Concatenate "FIRST(nt) = { ", joined set, " }\n" and append to output.
+4. Return the full formatted string.
+5. Test with E, T, F having FIRST sets {"id","("} and print.
+
+=== ENTRY 907 ===
+Goal: Format an LR parse action table for display.
+
+1. Declare printActionTable accepting a list of state numbers and a table dict mapping state string to action string.
+2. Build a header "State\t|\tACTION\n" with a separator line.
+3. For each state s, retrieve table["s"] and append "s\t|\taction\n".
+4. Return the formatted table string.
+5. Test with states 0–2 and actions "shift 5", "reduce E", "accept" and print.
+
+=== ENTRY 908 ===
+Goal: Format a DFA transition table showing state, input, next state, and acceptance.
+
+1. Declare formatDFA accepting states, transition list, and accept states list.
+2. Build a tab-separated header row.
+3. For each transition dict, extract from, input, and to; check if the "from" state is in the accept list.
+4. Append a formatted row with all four fields.
+5. Return the complete table string.
+6. Test a 3-state DFA accepting strings matching /ab/ and print.
+
+=== ENTRY 909 ===
+Goal: Format a Scalar Evolution (SCEV) expression for a variable showing its start, step, and recurrence type.
+
+1. Declare printSCEV accepting a variable name and a scev dict with "start", "step", "recurrence" keys.
+2. Concatenate "SCEV(var) = {start + step * i, rec=recurrence}" into a descriptive string.
+3. Return the formatted string.
+4. Test with variable "x" and a linear recurrence starting at 0 with step 2 and print.
+
+=== ENTRY 910 ===
+Goal: Format a linker output map showing symbol names and their assigned addresses.
+
+1. Declare printLinkMap accepting a list of symbol names and an addresses dict.
+2. Build a header "Symbol\t\tAddress\n".
+3. For each symbol, look up its address and append "sym\t\t0xaddr\n".
+4. Return the full map string.
+5. Test with three symbols ("main", "printf", "_start") and print.
+
+=== ENTRY 911 ===
+Goal: Format a machine code byte array as a hex dump with 8 bytes per line.
+
+1. Declare formatMachineCode accepting a list of byte values.
+2. For each byte, convert it to its hexadecimal representation using decToHex and append with a space.
+3. Insert a newline after every 8th byte.
+4. Return the formatted hex dump string.
+5. Test with the ASCII bytes for "Hello World" and print.
+
+=== ENTRY 912 ===
+Goal: Filter a list of token dicts to retain only tokens of a specified type.
+
+1. Declare filterTokens accepting a list of token dicts and a type string.
+2. Apply the filter lambda, keeping only tokens where tok.get("type") === type.
+3. Return the filtered list.
+4. Test with a mixed list of NUMBER, IDENT, and OP tokens, filtering for "NUMBER", and print the result.
+
+=== ENTRY 913 ===
+Goal: Parse a comma-separated token list into groups of expression tokens.
+
+1. Declare parseExprList accepting a list of token dicts.
+2. Iterate through tokens: if a token's type is "COMMA", flush the current group to groups and reset; otherwise append to the current group.
+3. After the loop, flush any remaining current group.
+4. Return the list of expression groups.
+5. Test with three identifier/number groups separated by commas and print.
+
+=== ENTRY 914 ===
+Goal: Compute DEF and USE sets for each basic block for liveness analysis.
+
+1. Declare computeLiveDefs accepting a list of block dicts with "id" and "instrs" fields.
+2. For each block, initialise empty def_set and use_set.
+3. For each instruction: if it defines a variable not yet in def_set, add it to def_set; for each used variable, if not already defined in this block and not in use_set, add it to use_set.
+4. Store {DEF, USE} for each block id in the result dict.
+5. Test with two blocks and print the full result.
+
+=== ENTRY 915 ===
+Goal: Move loop-invariant instructions before the loop (code hoisting/loop-invariant code motion).
+
+1. Declare hoist accepting loop_body instructions list and an invariants list of invariant instruction strings.
+2. Partition loop_body: append each instruction to hoisted if it is in invariants, else to remaining.
+3. Return {"hoisted": hoisted, "remaining": remaining}.
+4. Test with a 4-instruction body where 2 instructions are invariant and print the result.
+
+=== ENTRY 916 ===
+Goal: Identify pairs of adjacent loops that are candidates for loop fusion.
+
+1. Declare fusionCandidates accepting a list of loop descriptor dicts with "start", "end", "step" keys.
+2. For each consecutive pair (i, i+1): check if loop i ends at loop i+1's start minus 1 and both have the same step.
+3. If so, append [i, i+1] to candidates.
+4. Return candidates.
+5. Test with three loops where the first two are fusable and print.
+
+=== ENTRY 917 ===
+Goal: Reorder instructions to group constants first for improved constant propagation.
+
+1. Declare reassociate accepting a list of instruction dicts with "type" ("const" or other) fields.
+2. Partition into consts and others.
+3. Concatenate consts followed by others using appendList.
+4. Return the reordered list.
+5. Test with a 4-instruction list alternating const and var instructions and print.
+
+=== ENTRY 918 ===
+Goal: Map intermediate representation (IR) operation names to concrete machine instruction strings.
+
+1. Declare selectInstructions accepting a list of IR operation name strings.
+2. For each op, choose the corresponding machine instruction: "add"→"ADD R0,R1", "sub"→"SUB R0,R1", "mul"→"MUL R0,R1", "load"→"LDR R0,[SP]", "store"→"STR R0,[SP]", else "NOP".
+3. Append the machine instruction to the output list.
+4. Return the machine instruction list.
+5. Test with ["load","add","mul","store"] and print.
+
+=== ENTRY 919 ===
+Goal: Replace symbolic jump labels in an instruction list with numeric relative offsets.
+
+1. Declare patchJumps accepting an instruction list and a label_map dict.
+2. For each instruction: if it starts with "JMP ", "BNE ", or "BEQ ", split and extract the target label.
+3. If the label exists in label_map, compute the relative offset as label_map[label] − i and replace the label with the offset.
+4. Otherwise keep the instruction unchanged.
+5. Return the patched list.
+6. Test with a 5-instruction loop containing a "BNE loop_start" branch and print.
+
+=== ENTRY 920 ===
+Goal: Build a dict of anticipable (very busy) expressions by collecting expressions computed in each block.
+
+1. Declare buildAnticipExprs accepting a list of block dicts with "id" and "instrs".
+2. For each block, scan instructions and collect "expr" field values into a list.
+3. Store the expression list under the block's id in the result dict.
+4. Return the result.
+5. Test with two blocks each containing expression instructions and print.
+
+=== ENTRY 921 ===
+Goal: Perform conservative may-alias analysis by pairing all stores with all loads.
+
+1. Declare aliasAnalysis accepting a list of instruction dicts with "op" and "addr".
+2. Separate instructions into stores and loads.
+3. For each (store, load) pair, append {store_addr, load_addr, may_alias:true} to the aliases list.
+4. Return aliases.
+5. Test with 2 stores and 2 loads (yielding 4 alias pairs) and print.
+
+=== ENTRY 922 ===
+Goal: Compute a modulo schedule for a set of operations with given latencies and resource constraints.
+
+1. Declare modulo_schedule accepting op names, latency values, and resources dict.
+2. Determine the initiation interval II as the maximum latency.
+3. For each cycle from 0 to II−1, build a slot of operations whose index modulo II equals the cycle.
+4. Append each cycle's slot to the schedule.
+5. Return the complete cyclic schedule.
+6. Test with ["load","add","store"] and latencies [3,1,2] and print.
+
+=== ENTRY 923 ===
+Goal: Build a type feedback profile from JIT instrumented call sites.
+
+1. Declare buildTypeProfile accepting a list of instrumented instruction dicts.
+2. Filter for instructions whose "op" is "call".
+3. For each call instruction, extract "site" and "arg_types" and store as {call_site, observed_types}.
+4. Return the profile list.
+5. Test with two call instructions and one non-call and print the profiles.
+
+=== ENTRY 924 ===
+Goal: Group hot execution traces into JIT compilation regions based on frequency thresholds.
+
+1. Declare buildJIT_regions accepting a list of trace dicts with "id" and "freq" fields.
+2. Accumulate traces with freq > 10 into the current_region; when a cold trace is encountered, flush current_region to regions.
+3. Flush the final region after the loop.
+4. Return the list of regions.
+5. Test with four traces (two hot, one cold, one hot again) and print.
+
+=== ENTRY 925 ===
+Goal: Generate inlined variants of functions based on an inlining decision map.
+
+1. Declare inlinedVersions accepting a list of function dicts and an inlining_map dict.
+2. For each function: if its name is in the map, create a new dict with a mangled name "_inlined_at_site" and mark inlined:true.
+3. Otherwise include the function unchanged.
+4. Return the result list.
+5. Test with "add" (inlined at "main:5") and "mul" (not inlined) and print.
+
+=== ENTRY 926 ===
+Goal: Remove debug-related instructions from an instruction list to produce release-mode code.
+
+1. Declare stripDebug accepting a list of instruction dicts.
+2. Apply a filter lambda that retains only instructions whose "op" is not "debug", "nop_debug", or "source_map".
+3. Return the filtered list.
+4. Test with a 4-instruction list containing two debug instructions and print the stripped result.
+
+=== ENTRY 927 ===
+Goal: Build a type environment and support variable binding and recursive type resolution.
+
+1. Declare buildTypeEnv accepting a base dict; copy and return it as the type environment.
+2. Declare bind: set tvar → type in the environment dict.
+3. Declare resolve: if t is a key in te, recursively resolve its value until no further substitution is possible.
+4. Test: bind T0→"int" and T1→"T0"; resolve T1 should return "Int" (the final concrete type).
+
+=== ENTRY 928 ===
+Goal: Build a constant propagation environment and support constant assignment and lookup with a ⊤ default.
+
+1. Declare buildConstEnv accepting blocks; return a dict with an empty "consts" sub-dict.
+2. Declare setConst: store var → val in the consts dict.
+3. Declare getConst: return the stored value if the variable is known, else return "⊤" (top/unknown).
+4. Test: set x=5 and y=10; look up x (returns 5) and z (returns "⊤") and print.
+
+=== ENTRY 929 ===
+Goal: Build a macro expansion environment supporting definition and positional argument expansion.
+
+1. Declare buildMacroEnv accepting a defs dict; wrap it in a "macros" key.
+2. Declare define: store name → body in the macros dict.
+3. Declare expand: retrieve the macro body, replace "$1", "$2", … with the corresponding args list elements.
+4. Test: define a "max" macro and expand it with args [5, 3]; also expand the pre-defined "swap" macro and print both.
+
+=== ENTRY 930 ===
+Goal: Build an inlining decision map and query whether a given call site will be inlined.
+
+1. Declare buildInliningMap accepting parallel lists of call sites and boolean decisions; create a dict mapping each site to its decision.
+2. Declare willInline: return the map's decision for the site, or false if not found.
+3. Test: build a map for three call sites (two inlined, one not); query two sites and print the results.
+
+=== ENTRY 931 ===
+Goal: Compute optimisation statistics comparing instruction counts before and after an optimisation pass.
+
+1. Declare buildOptStats accepting before and after instruction counts.
+2. Compute removed = before − after.
+3. Compute reduction_pct = removed/before × 100, formatted to 2 decimal places.
+4. Return a dict with all four metrics.
+5. Test with before=150 and after=112 and print the statistics dict.
+
+=== ENTRY 932 ===
+Goal: Perform escape analysis tracking which objects escape from each function.
+
+1. Declare buildEscapeInfo accepting a list of function name strings; initialise each to {escapes:[]}.
+2. Declare markEscape: append obj to the function's escapes list if the function exists.
+3. Declare doesEscape: return true if obj is in the function's escapes list.
+4. Test: mark "obj1" as escaping from "foo"; query "obj1" (true) and "obj2" (false) and print.
+
+=== ENTRY 933 ===
+Goal: Build an object header structure and support GC mark/query operations.
+
+1. Declare buildObjHeader accepting type_id, size, and gc_bits; initialise marked to false.
+2. Declare isMarked: return the "marked" field of the header dict.
+3. Declare mark: set "marked" to true and return the header.
+4. Test: build a header, check isMarked (false), call mark, check isMarked again (true) and print.
+
+=== ENTRY 934 ===
+Goal: Build an exception handler table and look up the handler covering a given program counter.
+
+1. Declare buildExceptionTable accepting a function name and a list of handler dicts {start, end, handler}.
+2. Declare findHandler: scan all handlers and return the handler string if pc ∈ [start, end].
+3. If no handler covers pc, return "no handler".
+4. Test: look up pc=15 (covers catch_io) and pc=25 (no handler) and print.
+
+=== ENTRY 935 ===
+Goal: Model a software package with metadata, dependency resolution, and version compatibility checking.
+
+1. Declare buildPackageDict accepting name, version string, and deps list.
+2. Declare resolveDepend: scan the deps list for a matching name and return that dep dict.
+3. Declare versionOk: compare the major version numbers of the package and a required version string.
+4. Test: resolve "lodash" (found) and check version ≥ "2.0.0" (true) and print.
+
+=== ENTRY 936 ===
+Goal: Track code coverage line hits and report the percentage of lines executed.
+
+1. Declare buildCodeCoverage accepting a source string; split by "\n" to get lines and create a hit-count dict initialised to 0.
+2. Declare hitLine: increment the hit count for the given line number.
+3. Declare coverage_pct: count keys with hit count > 0, compute percentage of total lines, format to 1 decimal place with "%".
+4. Test: build coverage for 4-line source, hit lines 1 and 3, compute and print the percentage (50.0%).
+
+=== ENTRY 937 ===
+Goal: Build a simple bytecode interpreter and execute push/add/print instructions.
+
+1. Declare buildInterpreter accepting an environment dict and initial stack; return a dict with env, stack, and output list.
+2. Declare executeBC: process instructions sequentially — "push" pushes a value; "add" pops two values and pushes their sum; "print" appends the top value to the output list.
+3. Declare callFunction: look up a named function in the environment.
+4. Test: execute [push 3, push 4, add, print] and print the output list (should contain 7).
+
+=== ENTRY 938 ===
+Goal: Implement a simple database transaction with begin, commit, and rollback operations.
+
+1. Declare buildTransaction accepting a db_state dict; snapshot the state and initialise active=false and an empty log.
+2. Declare beginTx: snapshot the current db, set active=true, reset the log.
+3. Declare commitTx: set active=false.
+4. Declare rollbackTx: restore the db from the snapshot and set active=false.
+5. Test: begin a transaction, change balance from 100 to 50, then rollback and verify the balance is restored to 100.
+
+=== ENTRY 939 ===
+Goal: Model a free monad structure for composing effectful computations and interpreting them.
+
+1. Declare buildFree accepting a functor name and list of operation names.
+2. Declare lift: append {type:"lift", op:op} to the computations list.
+3. Declare interp: for each computation, look up the operation in the handler dict and collect the result; return "unhandled: op" for missing ops.
+4. Test: build an IO free monad, lift "read" and "write", interpret with handlers {"read":"42","write":"ok"} and print the results.
+
+=== ENTRY 940 ===
+Goal: Build a refinement type and validate values against its base type and predicate.
+
+1. Declare buildRefine accepting a base type name and predicate name.
+2. Declare checkRefine: check base_ok (val is a number, text, etc.) and pred_ok (val is positive, nonzero, nonempty, etc.).
+3. Return a dict {base_ok, pred_ok, valid: base_ok && pred_ok}.
+4. Test with a "positive number" refinement type against 5 (valid) and −3 (invalid) and print both results.
+
+=== ENTRY 941 ===
+Goal: Build a GADT (Generalised Algebraic Data Type) structure and dispatch on its constructors.
+
+1. Declare buildGADT accepting a constructors dict mapping constructor names to type strings.
+2. Declare matchGADT: extract the "tag" from a value dict and look it up in a cases dict.
+3. If found, concatenate "tag => handler" and return; if not found, return "no match".
+4. Test: match a "Cons" value dict with a {Cons, Nil} case dict and print.
+
+=== ENTRY 942 ===
+Goal: Assign a syntax-highlighting colour to each lexer token type.
+
+1. Declare tokenTypeColor accepting a token type string.
+2. Return makeColor([76,175,80]) for "NUMBER" (green).
+3. Return makeColor([255,152,0]) for "STRING" (orange).
+4. Return makeColor([33,150,243]) for "KEYWORD" (blue).
+5. Return makeColor([255,255,255]) for "IDENT" (white).
+6. Default to makeColor([244,67,54]) for "OP" and others (red).
+7. Test all five types and print.
+
+=== ENTRY 943 ===
+Goal: Assign a colour to a live range interval, hashing the variable name to a hue and scaling brightness by interval length.
+
+1. Declare liveIntervalColor accepting variable name, start, and end.
+2. Compute a hash by iterating over the variable name characters and accumulating a polynomial hash.
+3. Compute the interval length and scale brightness between 100 and 200.
+4. Convert the hash-derived hue to R, G, B using cosine colour model offsets (0°, 120°, 240°).
+5. Return makeColor([r, g, b]).
+6. Test with "x" over [0,10] and "temp_var" over [5,30] and print.
+
+=== ENTRY 944 ===
+Goal: Colour a code execution path based on its frequency relative to the maximum, indicating cold/warm/hot paths.
+
+1. Declare hotPathColor accepting frequency and max_freq.
+2. Compute t = frequency/max_freq.
+3. If t < 0.33, return makeColor([68,68,255]) (cold/blue).
+4. If t < 0.66, return makeColor([255,136,0]) (warm/orange).
+5. Otherwise return makeColor([255,0,0]) (hot/red).
+6. Test with frequencies 10, 50, 90 out of 100 and print each colour.
+
+=== ENTRY 945 ===
+Goal: Assign a distinct colour to each compiler pipeline phase for visualisation.
+
+1. Declare phaseColor accepting a phase name string.
+2. Return makeColor([68,204,255]) for "parse" (light blue).
+3. Return makeColor([68,136,255]) for "typecheck" (medium blue).
+4. Return makeColor([68,255,136]) for "codegen" (green).
+5. Default to makeColor([255,255,68]) for "link" (yellow).
+6. Test all four phases and print.
+
+=== ENTRY 946 ===
+Goal: Colour machine instructions by their functional class for pipeline visualisation.
+
+1. Declare instructionClassColor accepting a class string.
+2. Return makeColor([68,255,68]) for "alu" (green).
+3. Return makeColor([255,136,0]) for "mem" (orange).
+4. Return makeColor([255,68,68]) for "branch" (red).
+5. Return makeColor([255,255,0]) for "call" (yellow).
+6. Default to makeColor([136,136,136]) for "nop" (grey).
+7. Test all five classes and print.
+
+=== ENTRY 947 ===
+Goal: Colour vtable method slots by their dispatch type for OOP analysis visualisation.
+
+1. Declare vtableSlotColor accepting a method_type string.
+2. Return makeColor([255,136,0]) for "virtual" (orange).
+3. Return makeColor([68,136,255]) for "override" (blue).
+4. Return makeColor([255,68,68]) for "abstract" (red).
+5. Default to makeColor([136,136,136]) for "static" (grey).
+6. Test all four method types and print.
+
+=== ENTRY 948 ===
+Goal: Colour linker symbols by their resolution status.
+
+1. Declare linkingColor accepting a status string.
+2. Return makeColor([68,204,68]) for "resolved" (green).
+3. Return makeColor([255,170,0]) for "weak" (amber).
+4. Default to makeColor([255,68,68]) for "undefined" (red).
+5. Test all three statuses and print.
+
+=== ENTRY 949 ===
+Goal: Apply copy propagation to an instruction list, replacing uses of copied variables with their original sources.
+
+1. Declare a list of instruction dicts mixing "copy" and arithmetic operations.
+2. Initialise an empty prop_map dict.
+3. For each instruction: print the instruction before transformation; if op="copy", record dst→src in prop_map; otherwise replace src1 and src2 with their propagated originals if present in prop_map.
+4. Print the instruction after transformation.
+
+=== ENTRY 950 ===
+Goal: Perform nominal type checking on a list of variable annotations and report type errors.
+
+1. Declare a list of type annotation dicts with "var", "declared", and "actual" fields.
+2. For each annotation, compare "declared" and "actual" using text equality (===).
+3. If they differ, print a TypeError message with the variable name and both types.
+4. If they match, print "OK: 'var' is type".
+
+=== ENTRY 951 ===
+Goal: Link multiple object files into an executable by merging symbol tables and code sections.
+
+1. Declare link accepting a list of object dicts (each with "symbols" and "code") and an entry symbol name.
+2. Merge all symbols into a global symbol_table, adjusting offsets by the accumulated code offset.
+3. Concatenate all code lists.
+4. Resolve the entry point address from the symbol table (−1 if not found).
+5. Return an executable dict with entry, symbol_table, code, and size.
+6. Test with two object files and "main" as entry and print.
+
+=== ENTRY 952 ===
+Goal: Build a profiler for an executable and simulate start, stop, and report operations.
+
+1. Declare buildProfiler accepting an executable dict; return a dict with running=false, start_time, samples, and elapsed fields.
+2. Declare startProfiler: set running=true and start_time=0.
+3. Declare stopProfiler: set running=false and elapsed=100 (simulated).
+4. Declare reportProfiler: return a formatted string with elapsed time and sample count.
+5. Test the full start→stop→report cycle and print the report.
+
+=== ENTRY 953 ===
+Goal: Build a code completion engine that filters available symbols by a given prefix.
+
+1. Declare buildCompletion accepting a context dict (with "vars" and "funcs" lists) and an AST dict.
+2. Collect all available symbol names by appending vars and funcs into a single symbols list.
+3. Declare complete: filter symbols to those starting with the given prefix.
+4. Return the candidates list.
+5. Test with prefix "my" on a context containing "myVar", "myCount", "index", "myFunc", "print", "map" and print.
+
+=== ENTRY 954 ===
+Goal: Build and apply an automated API migration that replaces deprecated names with their modern equivalents in source code.
+
+1. Declare buildMigration accepting old API name list, new API name list, and a source code string.
+2. Declare migrationApply: iterate paired old and new names, applying string replace on the source for each pair.
+3. Return the fully migrated source string.
+4. Test migrating three names in a one-line source and print the result.
+
+=== ENTRY 955 ===
+Goal: Build a sandbox execution environment that blocks forbidden operations.
+
+1. Declare buildSandbox accepting a policy dict with "allowed_ops" and "blocked_ops" lists.
+2. Declare executeSandbox: scan the code string for any blocked operation; if found, log "BLOCKED: op in 'code'" and return "blocked: op".
+3. If no blocked operation is found, return "executed".
+4. Test with an allowed "add(1,2)" call and a blocked "exec(...)" call and print both results and the log.
+
+=== ENTRY 956 ===
+Goal: Build an abstract interpretation framework and analyse a program in either sign or parity domains.
+
+1. Declare buildAbstractInterp accepting an analysis domain name and a program (list of {var, val} assignments).
+2. Declare analyseAI: for each assignment, map the concrete value to its abstract value in the domain (sign: +/−/0; parity: even/odd; else identity).
+3. Store results in the state dict and return it.
+4. Test with domain "sign" and three assignments (5, −3, 0) and print the abstract state.
+
+=== ENTRY 957 ===
+Goal: Detect data races by identifying memory addresses accessed by multiple threads where at least one access is a write.
+
+1. Declare buildRaceDetector accepting a program dict and a list of thread dicts (each with "id" and "accesses").
+2. Build an accesses dict grouping all {tid, op} accesses per address.
+3. For each address, check if there are multiple threads and at least one write; if so, record a race.
+4. Return the list of detected races.
+5. Test with two threads both writing to "y" and print the race report.
+
+=== ENTRY 958 ===
+Goal: Insert a value into an already-sorted list while preserving ascending order.
+
+1. Declare insertSorted accepting a sorted list and a value val.
+2. Copy the list, append val, then sort using the lambda { a, b -> a < b }.
+3. Return the sorted copy.
+4. Test with ([1,3,5,7], 4) and verify the output is [1,3,4,5,7].
+
+=== ENTRY 959 ===
+Goal: Sort a list in ascending order using iterative selection sort.
+
+1. Declare selectionSort accepting a list.
+2. Copy the list to avoid mutation.
+3. For each position i from 1 to n−1, scan the remainder for the minimum element and record its index minIdx.
+4. Swap res[i] and res[minIdx].
+5. Return the sorted list.
+
+=== ENTRY 960 ===
+Goal: Sort a dictionary's entries by their values in ascending order, returning [key, value] pair lists.
+
+1. Declare sortByValue accepting a dict d.
+2. Convert d to a list of pairs using toPairs.
+3. Sort the pairs using the lambda { a, b -> a[2] < b[2] } (compare by value, the second element).
+4. Return the sorted pairs list.
+
+=== ENTRY 961 ===
+Goal: Decipher a Caesar-shifted string by applying the cipher with the complementary shift (26 − shift).
+
+1. Declare caesarCipher as a placeholder (or a real implementation) accepting a string s and shift.
+2. Declare caesarDecipher: call caesarCipher(s, 26 − shift).
+3. Verify the round-trip: encipher then decipher returns the original string.
+
+=== ENTRY 962 ===
+Goal: Build a pivot table from a flat list of records using nested dicts.
+
+1. Declare pivot accepting records list, row_key, col_key, and val_key strings.
+2. For each record, extract the row key; create a sub-dict if needed.
+3. Set the col_key → val_key mapping inside the row's sub-dict.
+4. Return the nested pivot dict.
+5. Test with a 6-record dataset and verify the structure.
+
+=== ENTRY 963 ===
+Goal: Apply a pipeline of processing stages to an input value, skipping disabled stages.
+
+1. Declare pipeline accepting an initial value x and a list of stage dicts with "enabled" booleans.
+2. For each stage, if enabled is true, apply the transformation (here: increment by 1).
+3. Return the final value after all enabled stages.
+4. Test with 3 stages (2 enabled, 1 disabled) starting from 0 (expected result: 2).
+
+=== ENTRY 964 ===
+Goal: Retry a function call up to a maximum number of attempts, stopping on first success.
+
+1. Declare retry accepting a function fn and max_attempts.
+2. Initialise attempt=0 and success=false.
+3. While attempt < max_attempts and not success: call fn(); if it returns true, set success=true; increment attempt.
+4. Return success.
+5. Test with a function that succeeds on the 3rd attempt using a global counter.
+
+=== ENTRY 965 ===
+Goal: Flatten a list up to 2 levels deep, converting [[…],[…]] and [[[…]]] structures into a flat list.
+
+1. Declare flatten2 accepting a nested list.
+2. For each element a: if a is a list, iterate its elements b; if b is a list, iterate its elements c and append each c; else append b. If a is not a list, append a directly.
+3. Return the flat result list.
+4. Test with [[[1,2],[3]],[[4]]] and verify the output is [1,2,3,4].
+
+=== ENTRY 966 ===
+Goal: Maintain a global event listener count dict and increment counts as listeners are added.
+
+1. Declare global listeners as an empty dict.
+2. Declare addListener: if the event key is absent, initialise it to 0; then increment by 1.
+3. Add listeners for "click", "hover", and "keydown".
+4. Print listeners to verify each has count 1.
+
+=== ENTRY 967 ===
+Goal: Compute the product of all elements in a list using the reduce lambda with an initial value of 1.
+
+1. Declare product accepting a list.
+2. Apply .reduce(1) { acc, val -> acc * val } over the list.
+3. Return the result.
+4. Test with [1,2,3,4,5] and verify the output is 120.
+
+=== ENTRY 968 ===
+Goal: Build a geometric chain by repeatedly tripling the last element until it exceeds 700.
+
+1. Declare a local list chain initialised to [1].
+2. While the last element ≤ 700, append chain[last] × 3.
+3. Print chain after the loop (expected: [1, 3, 9, 27, 81, 243, 729]).
+
+=== ENTRY 969 ===
+Goal: Perform leftward rotation on a list by moving the first element to the end, repeated 3 times.
+
+1. Declare a local list ring as [1,2,3,4,5].
+2. Use a while loop with counter rot from 0 to 2.
+3. Each iteration: store ring[1], remove index 1, append the stored element to the end.
+4. Print ring after each rotation.
+
+=== ENTRY 970 ===
+Goal: Declare a list of Colour literals and print each one.
+
+1. Declare a local list palette containing three hex colour literals: #FF0000 (red), #00FF00 (green), #0000FF (blue).
+2. Use a for-each loop to iterate over the palette.
+3. Print each colour value on its own line.
+
+=== ENTRY 971 ===
+Goal: Print all multiples of 7 between 1 and 100 inclusive.
+
+1. Use a for loop iterating i from 1 to 100 with step 1.
+2. Inside the loop, check if i % 7 == 0.
+3. If true, print i.
+
+=== ENTRY 972 ===
+Goal: Compute the prefix XOR array of a list using the bitwise XOR (~) operator.
+
+1. Declare xorArr as an empty list and xorAcc as 0.
+2. Iterate over [3, 5, 2, 8, 1] in a for-each loop.
+3. For each element x, update xorAcc = xorAcc ~ x and append xorAcc to xorArr.
+4. Print xorArr after the loop.
+
+=== ENTRY 973 ===
+Goal: Simulate a 1-D random walk and count how many steps it takes to reach a distance greater than 10 from the origin.
+
+1. Initialise pos=0 and steps_1605=0.
+2. While abs(pos) ≤ 10: randomly step +1 or −1 based on randFloat() > 0.5; increment steps.
+3. Print the total number of steps taken.
+
+=== ENTRY 974 ===
+Goal: Simulate a turn-based game where two players alternately add 1 or 2 to a running total; first to reach 21 wins.
+
+1. Initialise total_1637=0 and p1Turn=true.
+2. While total < 21: add randInt(1,2) to total; if total ≥ 21, print the current player's name as winner; toggle p1Turn.
+
+=== ENTRY 975 ===
+Goal: Compute the nth Fibonacci number iteratively (0-indexed).
+
+1. Declare fibonacci accepting n.
+2. Handle base cases n=0 (return 0) and n=1 (return 1).
+3. Use a for loop from 2 to n, maintaining consecutive values a and b.
+4. Return b after the loop.
+5. Test by printing fibonacci(30) = 832040.
+
+=== ENTRY 976 ===
+Goal: Find all Goldbach decompositions of an even number as sums of two primes.
+
+1. Declare a helper isPrime using trial division up to √n.
+2. Declare goldbach accepting an even n; loop i from 2 to n/2.
+3. If both i and n−i are prime, append [i, n−i] to pairs.
+4. Return pairs.
+5. Test with n=28 and print all prime pairs.
+
+=== ENTRY 977 ===
+Goal: Compute the sum of the decimal digits of a positive integer.
+
+1. Declare digitSum accepting n.
+2. Initialise sum=0 and temp=n.
+3. While temp > 0: add temp%10 to sum and divide temp by 10 (floor).
+4. Return sum.
+5. Test with 12345 (sum=15) and 99999 (sum=45) and print.
+
+=== ENTRY 978 ===
+Goal: Convert a positive integer to its binary string representation without using the built-in decToBin.
+
+1. Declare toBinary accepting n.
+2. While n > 0: prepend n%2 to the result string and halve n.
+3. If the result is empty (n=0 case), return "0".
+4. Return the binary string.
+5. Test with 42 ("101010") and 255 ("11111111") and print.
+
+=== ENTRY 979 ===
+Goal: Count the number of decimal digits in a positive integer without string conversion.
+
+1. Declare numDigits accepting n.
+2. Special case: if n==0, return 1.
+3. While n > 0: increment count and divide n by 10 (floor).
+4. Return count.
+5. Test with 1 (1 digit), 99 (2 digits), and 1000 (4 digits) and print.
+
+=== ENTRY 980 ===
+Goal: Compute the GCD of all numbers in a list using reduce with a recursive GCD helper.
+
+1. Declare a recursive gcd helper using the Euclidean algorithm.
+2. Declare gcdList: apply .reduce(nums[1]) { acc, val -> gcd(acc, val) }.
+3. Return the cumulative GCD.
+4. Test with [48, 36, 24] (GCD=12) and print.
+
+=== ENTRY 981 ===
+Goal: Count the number of 1-bits in an integer using repeated division by 2.
+
+1. Declare countBits accepting n.
+2. While n > 0: if n%2 == 1, increment count; divide n by 2 (floor).
+3. Return count.
+4. Test with 255 (8 bits) and 170 (10101010 binary = 4 bits) and print.
+
+=== ENTRY 982 ===
+Goal: Compute the product of all integers in a closed range [a, b].
+
+1. Declare productRange accepting a and b.
+2. Initialise prod=1 and loop i from a to b with step 1, multiplying prod by i each iteration.
+3. Return prod.
+4. Test with (1, 5) = 120 and print.
+
+=== ENTRY 983 ===
+Goal: Compute the product of the decimal digits of a positive integer.
+
+1. Declare digitProduct accepting n.
+2. Special case: if n==0, return 0.
+3. Initialise prod=1 and temp=n; while temp > 0, multiply prod by temp%10 and halve temp.
+4. Return prod.
+5. Test with 23 (product=6) and 999 (product=729) and print.
+
+=== ENTRY 984 ===
+Goal: Determine whether a positive integer is a perfect number (equal to the sum of its proper divisors).
+
+1. Declare isPerfect accepting n.
+2. Sum all proper divisors (1 to n−1) where n % i == 0.
+3. Return sum == n.
+4. Test with 6 (true), 28 (true), and 496 (true) and print.
+
+=== ENTRY 985 ===
+Goal: Compute the nth triangular number T(n) = n(n+1)/2.
+
+1. Declare triangleNum accepting n.
+2. Return n × (n+1) / 2 as a direct arithmetic expression.
+3. Verify T(10) = 55 by printing the result.
+
+=== ENTRY 986 ===
+Goal: Compute the binomial coefficient C(n, k) iteratively using the multiplicative formula.
+
+1. Declare binomCoeff accepting n and k.
+2. Initialise res=1 and loop i from 1 to k, multiplying res by (n−i+1)/i each step.
+3. Return res.
+4. Test C(10,3)=120 and C(15,7)=6435 and print.
+
+=== ENTRY 987 ===
+Goal: Compute the second Bernoulli polynomial evaluated at 1: B₂(n) = n(n−1)/2.
+
+1. Declare bernoulli2 accepting n.
+2. Return n × (n−1) / 2.
+3. Test for n=1 through 5 in a for loop and print each value (0, 1, 3, 6, 10).
+
+=== ENTRY 988 ===
+Goal: Compute the dot product of two equal-length numeric lists.
+
+1. Declare dotProduct accepting lists a and b.
+2. Loop i from 1 to a.listLen(), accumulating sum += a[i] × b[i].
+3. Return sum.
+4. Test with [1,2,3] · [4,5,6] = 32 and print.
+
+=== ENTRY 989 ===
+Goal: Reverse the order of words in a string (split on space, reverse, rejoin).
+
+1. Declare reverseWords accepting a string s.
+2. Split s on spaces using splitAtSpaces.
+3. Call reverseList on the words list.
+4. Join the reversed list with " " separator.
+5. Return the reversed-word string.
+6. Test with "Hello World Falcon" and print.
+
+=== ENTRY 990 ===
+Goal: Find the longest word in a space-separated string.
+
+1. Declare longestWord accepting a string s.
+2. Split into words using splitAtSpaces.
+3. Apply .max { a, b -> a.textLen() > b.textLen() } to find the longest word.
+4. Return it.
+5. Test with "I love programming in Falcon" and verify "programming" is returned.
+
+=== ENTRY 991 ===
+Goal: Centre a string in a field of a given width, padding with a specified character on both sides.
+
+1. Declare center accepting string s, width, and fill character ch.
+2. Compute total padding needed; if ≤ 0, return s unchanged.
+3. Distribute: leftPad = floor(pad/2), rightPad = pad − leftPad.
+4. Prepend leftPad copies of ch and append rightPad copies.
+5. Return the centred string.
+6. Test with center("Falcon", 12, "*") and verify "***Falcon***".
+
+=== ENTRY 992 ===
+Goal: Build a character frequency dictionary counting how many times each character appears in a string.
+
+1. Declare charFrequency accepting a string s.
+2. Loop i from 1 to textLen; extract the character at position i using segment(i,1).
+3. If the character is not in freqs, initialise to 0; then increment.
+4. Return freqs.
+5. Test with "falcon" and print the frequency dict.
+
+=== ENTRY 993 ===
+Goal: Convert a string to a URL slug by lowercasing and replacing spaces with hyphens.
+
+1. Declare slug accepting a string s.
+2. Apply s.lowercase() then .replace(" ", "-") in a chain.
+3. Return the result.
+4. Test with "Hello World Falcon" and verify "hello-world-falcon".
+
+=== ENTRY 994 ===
+Goal: Return the first line of a multi-line string (text before the first newline).
+
+1. Declare firstLine accepting a string s.
+2. Split s on "\n" and return the first element (index 1, 1-based).
+3. Test with "Line1\nLine2\nLine3" and verify "Line1" is returned.
+
+=== ENTRY 995 ===
+Goal: Encode a string using run-length encoding (consecutive repeated characters).
+
+1. Declare runLengthEncode accepting a string s.
+2. Initialise curr to the first character and count=1.
+3. Loop from index 2 to textLen: if the current character matches curr, increment count; otherwise append count+curr to result and reset.
+4. After the loop, append the final run.
+5. Return the encoded string.
+6. Test with "aaabbbccddddee" and verify "3a3b2c4d2e".
+
+=== ENTRY 996 ===
+Goal: Convert a number word ("zero"–"nine") to its corresponding digit.
+
+1. Declare wordsToNumber accepting a word string s.
+2. Define a local lookup dict mapping each of the ten English number words to their digit values (0–9).
+3. Return map.get(s, []).
+
+=== ENTRY 997 ===
+Goal: Compute the initials of a full name by extracting the first letter of each word and uppercasing it.
+
+1. Declare initials accepting a full name string.
+2. Split on spaces using splitAtSpaces.
+3. Map each word to its first character (segment(1,1)) uppercased.
+4. Join all initials with an empty separator "".
+5. Return the initials string.
+6. Test with "John Michael Doe" and verify "JMD".
+
+=== ENTRY 998 ===
+Goal: Compress runs of 3 or more identical characters as "count×char" while leaving shorter runs unchanged.
+
+1. Declare compress accepting a string s.
+2. Parse runs of consecutive identical characters (similar to run-length encoding).
+3. For runs of length ≥ 3, output the count followed by the character; for shorter runs, output the characters as-is.
+4. Return the compressed string.
+5. Test with "aaabbbcccc" and verify "3a3b4c".
+
+=== ENTRY 999 ===
+Goal: Extract a list of unique (distinct) words from a space-separated string.
+
+1. Declare uniqueWords accepting a string s.
+2. Split on spaces using splitAtSpaces.
+3. Maintain a seen list; for each word, append only if not already in seen.
+4. Return seen.
+
+=== ENTRY 1000 ===
+Goal: Validate whether a string is a legal identifier (starts with a letter, contains only letters, digits, or underscores).
+
+1. Declare isValidIdentifier accepting a string s.
+2. Check that the first character is a letter (a–z or A–Z).
+3. Check that all subsequent characters are letters, digits (0–9), or underscores.
+4. Return true only if both conditions hold.
+5. Test with valid identifiers like "myVar", "_x", "var1" and invalid ones like "1abc", "my-var", "" and print.

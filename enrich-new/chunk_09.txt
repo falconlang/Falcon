@@ -1,0 +1,1826 @@
+=== ENTRY 1601 ===
+Goal: Declare a local dictionary `d` with keys "x", "y", "z" mapped to 1, 2, 3. Print its keys, values, and pair representation on separate lines.
+
+1. Declare a local variable `d` initialized to a dictionary literal containing three key-value pairs: "x" maps to 1, "y" maps to 2, and "z" maps to 3.
+2. Call `d.keys()` to retrieve a list of all keys in the dictionary and print it using `println`.
+3. Call `d.values()` to retrieve a list of all values in the dictionary and print it using `println`.
+4. Call `d.toPairs()` to retrieve a list of key-value pair lists and print it using `println`.
+
+=== ENTRY 1602 ===
+Goal: Write a function `invertDict(d)` that swaps every key with its value, converting values to strings for use as keys. Test with {"a":1,"b":2,"c":3}.
+
+1. Define a result function `invertDict` that accepts one parameter `d` representing the source dictionary to invert.
+2. Inside the function body, declare a local empty dictionary `result` that will accumulate the swapped pairs.
+3. Iterate over every key-value pair in `d` using a `for (k, v in d)` loop.
+4. For each iteration, call `result.set("" _ v, k)` — the value `v` is coerced to a string by joining with an empty string, becoming the new key, while the original key `k` becomes the new value.
+5. After the loop, the last expression `result` is implicitly returned.
+6. Call `invertDict` with the test dictionary and print the returned inverted dictionary.
+
+=== ENTRY 1603 ===
+Goal: Write `mergeSum(d1, d2)` that merges two dictionaries, summing numeric values wherever keys collide. Test with {"a":1,"b":2} and {"b":3,"c":4}.
+
+1. Define `mergeSum` accepting two dictionary parameters `d1` and `d2`.
+2. Create a `result` dictionary as a deep copy of `d1` using `copyDict(d1)`, preserving all of d1's entries.
+3. Iterate over every key-value pair in `d2` with `for (k, v in d2)`.
+4. For each entry: check if `result` already contains that key using `result.containsKey(k)`.
+5. If the key exists, retrieve the current value with `result.get(k, [])`, add `v` to it, and store the sum back with `result.set(k, ...)`.
+6. If the key does not exist, simply insert it into result with `result.set(k, v)`.
+7. Return `result` as the last expression and print the merged dictionary.
+
+=== ENTRY 1604 ===
+Goal: Maintain a global registry dictionary. Write `register(name, val)` to store entries in it. Register 5 items then print all keys.
+
+1. Declare a global dictionary `registry121` initialized to an empty dict `{}` at the root scope.
+2. Define a void-style result function `register` accepting `name` and `val` parameters.
+3. Inside `register`, call `this.registry121.set(name, val)` to insert or update the key in the global registry — `this` is used to access the global scope.
+4. Call `register` five times with distinct name-value pairs: "alpha"→1, "beta"→2, "gamma"→3, "delta"→4, "epsilon"→5.
+5. After all registrations, call `this.registry121.keys()` and print the list of all registered keys.
+
+=== ENTRY 1605 ===
+Goal: Write `pick(d, keys)` that returns a new dictionary containing only the key-value pairs whose keys appear in the given list. Test with ({"a":1,"b":2,"c":3}, ["a","c"]).
+
+1. Define `pick` accepting a source dictionary `d` and a list of desired keys `keys`.
+2. Declare a local empty dictionary `result` to hold the selected entries.
+3. Iterate over each key `k` in the `keys` list using `for (k in keys)`.
+4. For each key, check if it actually exists in `d` using `d.containsKey(k)`.
+5. If it exists, retrieve its value with `d.get(k, [])` and insert it into `result` via `result.set(k, ...)`.
+6. Return `result` as the last expression — only keys present in both `d` and `keys` will appear.
+
+=== ENTRY 1606 ===
+Goal: Write `omit(d, keys)` that returns a new dictionary with all entries except those whose keys appear in the exclusion list. Test with ({"a":1,"b":2,"c":3}, ["b"]).
+
+1. Define `omit` accepting source dictionary `d` and a list `keys` of keys to exclude.
+2. Declare a local empty dictionary `result`.
+3. Iterate over every key-value pair in `d` using `for (k, v in d)`.
+4. For each pair, call `keys.containsItem(k)` to check if this key is in the exclusion list.
+5. If it is NOT in the exclusion list (prefixed with `!`), insert the pair into `result` via `result.set(k, v)`.
+6. Return `result` — entries whose keys are in the exclusion list are simply skipped.
+
+=== ENTRY 1607 ===
+Goal: Write `histDict(lst)` that builds a frequency histogram dictionary mapping each unique element to its count. Test with ["a","b","a","c","b","a"].
+
+1. Define `histDict` accepting a list `lst`.
+2. Declare a local empty dictionary `result` to hold element-count pairs.
+3. Iterate over each element `el` in `lst`.
+4. Coerce the element to a string key via `"" _ el` to ensure dictionary compatibility.
+5. If the key does not yet exist in `result`, initialize it to 0 with `result.set(key, 0)`.
+6. Increment the count by retrieving the current value with `result.get(key, [])`, adding 1, and storing it back.
+7. Return `result` containing each unique element mapped to its total occurrence count.
+
+=== ENTRY 1608 ===
+Goal: Declare a string, split it at the first space to print both parts separately, then split at any occurrence of " " or "o" and print the resulting list.
+
+1. Declare a local string `s126` set to `"hello world falcon"`.
+2. Call `s126.splitAtFirst(" ")` which splits the string at the very first space, returning a list of exactly two parts: everything before and everything after.
+3. Print `parts126[1]` — the first element (1-based indexing), which is `"hello"`.
+4. Print `parts126[2]` — the second element, which is `"world falcon"`.
+5. Call `s126.splitAtAny([" ", "o"])` which splits the original string wherever either a space or the letter "o" occurs, producing multiple segments.
+6. Print the resulting list of segments.
+
+=== ENTRY 1609 ===
+Goal: Write `words(s)` that splits a string on whitespace and filters out any empty strings that result from multiple consecutive spaces. Test with "  hello   world  ".
+
+1. Define `words` accepting a string `s`.
+2. Call `s.splitAtSpaces()` which splits on all whitespace boundaries, potentially producing empty strings for runs of spaces.
+3. Chain a `.filter` lambda that keeps only segments `w` where `w ? emptyText` is false — the `!` negates the empty-text check, discarding any empty strings.
+4. Return the filtered list as the last expression — only genuine non-empty words remain.
+
+=== ENTRY 1610 ===
+Goal: Write `extractBetween(s, open, close)` that extracts the substring between the first occurrence of `open` and the next occurrence of `close`. Test with ("(abc)", "(", ")").
+
+1. Define `extractBetween` accepting the source string `s`, an opening delimiter `open`, and a closing delimiter `close`.
+2. Call `s.splitAtFirst(open)` to split `s` at the first occurrence of `open`. This returns a list where the second element is everything after `open`.
+3. Guard with `if (p1.listLen() < 2)` — if there is no opening delimiter, return an empty string `""`.
+4. In the else branch, open a new local block with `{}` (to introduce a new local variable) and call `p1[2].splitAtFirst(close)` on the substring after `open`.
+5. The first element of that second split, `p2[1]`, is the content between the two delimiters — return it as the last expression.
+
+=== ENTRY 1611 ===
+Goal: Declare a CSV-style string delimited by semicolons, split it, and print the second field.
+
+1. Declare a local variable `csv129` initialized to `"alpha;beta;gamma"`.
+2. Call `csv129.split(";")` to split the string at every semicolon, yielding a list of three segments: `["alpha","beta","gamma"]`.
+3. Access `fields129[2]` using 1-based indexing to retrieve the second element `"beta"` and print it.
+
+=== ENTRY 1612 ===
+Goal: Write `camelToWords(s)` that splits a camelCase string into its constituent words by detecting uppercase boundaries. Test with "helloWorldFoo".
+
+1. Define `camelToWords` accepting a camelCase string `s`.
+2. Initialize a local list `result` and a local string `current` (accumulator for the current word).
+3. Iterate over each character index `i` from 1 to `s.textLen()` using `for (i: 1 .. s.textLen() step 1)`.
+4. Extract the character at position `i` with `s.segment(i, 1)`.
+5. Determine if it is uppercase: check `ch === ch.uppercase()` (it equals its uppercased form), it is not a digit (`!ch ? number`), and it differs from its lowercase form (`ch !== ch.lowercase()`) to exclude non-alphabetic characters.
+6. If uppercase AND not the first character, push `current` into `result` and reset `current` to `ch`.
+7. Otherwise, append `ch` to `current`.
+8. After the loop, if `current` is not empty, add it to `result` as the final word.
+9. Return `result`.
+
+=== ENTRY 1613 ===
+Goal: Write `truncate(s, n, ellipsis)` that shortens a string to `n` characters and appends an ellipsis if it was longer than `n`. Test with ("Hello World", 5, "…").
+
+1. Define `truncate` accepting string `s`, maximum length `n`, and suffix string `ellipsis`.
+2. Check `s.textLen() > n` — if the string exceeds the allowed length, return `s.segment(1, n) _ ellipsis`, which takes the first `n` characters and appends the ellipsis.
+3. Otherwise return `s` unchanged.
+4. Since this is a result function, the if-else expression is the last (and only) expression, so its value is automatically returned.
+
+=== ENTRY 1614 ===
+Goal: Use a template string with `{{first}}` and `{{last}}` placeholders and replace them using `.replaceFrom()` with a mapping dictionary.
+
+1. Declare a local string `template132` set to `"{{first}} {{last}}"`.
+2. Call `template132.replaceFrom({"{{first}}": "Jane", "{{last}}": "Smith"})` — this method replaces every occurrence of each key found in the provided dictionary with its corresponding value, simultaneously processing all substitutions.
+3. Print the resulting fully-substituted string `"Jane Smith"`.
+
+=== ENTRY 1615 ===
+Goal: Write `countWords(s)` that counts non-empty words in a string by splitting on whitespace. Test with "  the quick brown fox  " expecting 4.
+
+1. Define `countWords` accepting a string `s`.
+2. Call `s.splitAtSpaces()` to split on all whitespace, producing a list that may include empty strings from leading/trailing spaces.
+3. Chain `.filter { w -> !w ? emptyText }` to discard any empty-string entries, keeping only real words.
+4. Chain `.listLen()` on the filtered list to count the remaining elements.
+5. Return that count as the last expression.
+
+=== ENTRY 1616 ===
+Goal: Write `isPalindrome(s)` that checks whether a trimmed string reads the same forwards and backwards. Test with "racecar", "hello", and a lowercased pangram.
+
+1. Define `isPalindrome` accepting a string `s`.
+2. Open an inner block `{}` to introduce the local variable `t`.
+3. Assign `t = s.trim()` — removing leading and trailing whitespace.
+4. Compare `t === t.reverse()` using text-equality (`===`), since `.reverse()` returns the string's characters in reverse order.
+5. The boolean result of the comparison is the last expression in the block and is returned.
+6. Call the function three times: with `"racecar"` (true), `"hello"` (false), and `"a man a plan a canal panama".lowercase()` (true after lowercasing).
+
+=== ENTRY 1617 ===
+Goal: Write `longestWord(s)` that finds the longest word in a sentence using a max lambda. Test with "the quick brown fox".
+
+1. Define `longestWord` accepting a sentence string `s`.
+2. Call `s.splitAtSpaces()` to split into individual word tokens.
+3. Chain `.filter { w -> !w ? emptyText }` to remove any empty-string artifacts from extra spaces.
+4. Chain `.max { a, b -> a.textLen() > b.textLen() }` — this max lambda compares word lengths and returns the word for which no other word is longer.
+5. Return the resulting longest word as the last expression.
+
+=== ENTRY 1618 ===
+Goal: Write `multiReplace(s, pairs)` that applies a series of find-replace pairs sequentially to a string. Test replacing "hello"→"hi", "world"→"earth", "foo"→"bar".
+
+1. Define `multiReplace` accepting a string `s` and a list of `[from, to]` pairs.
+2. Declare a local variable `result` initialized to the original string `s`.
+3. Iterate over each pair `p` in `pairs` using `for (p in pairs)`.
+4. For each pair, call `result.replace(p[1], p[2])` — `p[1]` is the search term and `p[2]` is the replacement — and reassign `result` to the new string.
+5. After all pairs are applied, `result` holds the fully-transformed string and is returned as the last expression.
+
+=== ENTRY 1619 ===
+Goal: Write `commonPrefix(a, b)` that finds the longest shared prefix between two strings character by character. Test with ("flower", "flow") expecting "flow".
+
+1. Define `commonPrefix` accepting strings `a` and `b`.
+2. Initialize a local string `result` to accumulate matched characters, and compute `len` as `min(a.textLen(), b.textLen())` — the maximum possible prefix length.
+3. Iterate `i` from 1 to `len`.
+4. At each position, compare `a.segment(i, 1)` with `b.segment(i, 1)` using text-equality `===`.
+5. If they match, append the character to `result`.
+6. If they do not match, set `len = 0` which causes the loop condition `i <= len` to fail on the next iteration, effectively breaking the loop.
+7. Return `result` — the accumulated common prefix.
+
+=== ENTRY 1620 ===
+Goal: Split a simulated multi-line log string on `\n`, filter lines containing "ERROR", and print each matching line.
+
+1. Declare `log138` as a local string containing two log lines joined by the literal `\\n` separator.
+2. Call `log138.split("\\n")` to split the string into individual lines.
+3. Chain `.filter { l -> l.contains("ERROR") }` to retain only lines that contain the substring "ERROR".
+4. Iterate over the filtered list using `for (l in errors138)` and print each error line with `println(l)`.
+
+=== ENTRY 1621 ===
+Goal: Write `initials(fullName)` that extracts the first character of each word in a full name and joins them with dots. Test with "John Ronald Reuel Tolkien" expecting "J.R.R.T".
+
+1. Define `initials` accepting a full name string.
+2. Call `fullName.splitAtSpaces()` to split on whitespace into individual name tokens.
+3. Chain `.filter { w -> !w ? emptyText }` to discard empty tokens from multiple spaces.
+4. Chain `.map { w -> w.segment(1, 1) }` to extract just the first character of each word using `segment(1, 1)`.
+5. Chain `.join(".")` to concatenate all initials with a dot separator between them.
+6. Return the resulting initials string.
+
+=== ENTRY 1622 ===
+Goal: Write `normaliseSpaces(s)` that collapses any run of multiple spaces into a single space. Test with "hello   world   foo".
+
+1. Define `normaliseSpaces` accepting a string `s`.
+2. Call `s.splitAtSpaces()` to split on all whitespace boundaries — multiple consecutive spaces produce empty string tokens.
+3. Chain `.filter { w -> !w ? emptyText }` to eliminate those empty strings.
+4. Chain `.join(" ")` to rejoin the remaining non-empty words with a single space between each.
+5. Return the normalized string — all extra spaces are collapsed.
+
+=== ENTRY 1623 ===
+Goal: Build a list of 1 to 10, filter for even numbers, square them, then sum the squares using a chain of lambdas.
+
+1. Declare a local empty list `nums141` and populate it by looping `i` from 1 to 10, appending each value with `.add(i)`.
+2. On the populated list, chain `.filter { x -> x % 2 == 0 }` to keep only even numbers: 2, 4, 6, 8, 10.
+3. Chain `.map { x -> x * x }` to square each even number: 4, 16, 36, 64, 100.
+4. Chain `.reduce(0) { x, s -> x + s }` starting from accumulator 0, adding each squared value — producing the final sum 220.
+5. Print the result.
+
+=== ENTRY 1624 ===
+Goal: Filter a word list for words starting with "a" or "b", convert them to uppercase, sort alphabetically, and print.
+
+1. Declare `words142` as a local list of five fruit-like strings.
+2. Chain `.filter { w -> w.startsWith("a") || w.startsWith("b") }` to retain only words beginning with "a" or "b": "apple", "ant", "banana", "bear".
+3. Chain `.map { w -> w.uppercase() }` to convert each retained word to uppercase.
+4. Chain `.sort { a, b -> a << b }` using the text-less-than operator `<<` to sort the uppercase words lexicographically in ascending order.
+5. Print the sorted, filtered, uppercased list.
+
+=== ENTRY 1625 ===
+Goal: Generate numbers 1-20, filter for primes using a helper function, map each to a labeled string, then print all joined with ", ".
+
+1. Define `isPrime143(n)` — returns false if `n < 2`; otherwise iterates divisors from 2 to `floor(sqrt(n))`, setting a flag `ok` to false on any exact division; returns `ok`.
+2. Build list `nums143` by looping `i` from 1 to 20 and appending each value.
+3. Chain `.filter { n -> isPrime143(n) }` to keep only prime numbers.
+4. Chain `.map { n -> "prime: " _ n }` to prepend the label "prime: " to each number using the text-join `_` operator.
+5. Chain `.join(", ")` to produce a single comma-space-separated string.
+6. Print the result.
+
+=== ENTRY 1626 ===
+Goal: Filter a list of person-dictionaries for those older than 27, extract their names, sort alphabetically, and print.
+
+1. Declare `people144` as a local list of three dictionaries, each with "name" and "age" keys.
+2. Chain `.filter { p -> p.get("age", []) > 27 }` — retrieve each person's age with `.get("age", [])` (the second argument is a fallback) and keep only those over 27, yielding Alice (30) and Carol (35).
+3. Chain `.map { p -> p.get("name", []) }` to extract only the name string from each passing dictionary.
+4. Chain `.sort { a, b -> a << b }` to sort names lexicographically ascending.
+5. Print the resulting sorted name list.
+
+=== ENTRY 1627 ===
+Goal: Filter prices above 5, apply a 10% discount, round each result, and sum them all.
+
+1. Declare `prices146` as a local list of five decimal prices.
+2. Chain `.filter { p -> p > 5 }` to drop prices at or below 5 — 3.00 is excluded; 9.99, 14.50, 25.00, 7.75 remain.
+3. Chain `.map { p -> round(p * 0.9) }` to apply a 10% discount (`* 0.9`) and round to the nearest integer.
+4. Chain `.reduce(0) { x, s -> x + s }` to sum all discounted-and-rounded prices starting from 0.
+5. Print the total.
+
+=== ENTRY 1628 ===
+Goal: Map each sentence to its word count, filter for counts greater than 1, and reduce to find the total words across multi-word sentences.
+
+1. Declare `sentences148` as a list of three strings with varying word counts.
+2. Chain `.map { s -> s.splitAtSpaces().filter { w -> !w ? emptyText }.listLen() }` — for each sentence, split at spaces, remove empty segments, and count the remaining words.
+3. Chain `.filter { c -> c > 1 }` to keep only sentences with more than one word — "One" (count 1) is excluded.
+4. Chain `.reduce(0) { x, s -> x + s }` to sum the retained word counts.
+5. Print the total.
+
+=== ENTRY 1629 ===
+Goal: Extract numeric scores from a list of dictionaries, filter for scores >= 70, and compute their average.
+
+1. Declare `data150` as a list of four score-dictionaries.
+2. Chain `.map { d -> d.get("score", []) }` to extract the numeric score from each dictionary.
+3. Chain `.filter { s -> s >= 70 }` to keep only passing scores (80, 95, 70); 60 is excluded.
+4. Assign the filtered list to `filtered150`.
+5. Call `avgOf(filtered150)` — a built-in function that computes the arithmetic mean of a numeric list.
+6. Print the average.
+
+=== ENTRY 1630 ===
+Goal: Sort a list of names first lexicographically (for tie-breaking), then by length ascending, using two chained sort calls.
+
+1. Declare `names151` as a local list of four name strings.
+2. Chain the first `.sort { a, b -> a << b }` — this sorts all names lexicographically using the text-less-than operator, establishing alphabetical order as the secondary criterion for ties.
+3. Chain a second `.sort { a, b -> a.textLen() < b.textLen() }` — this sorts by string length ascending, which is a stable-like sort: names of equal length retain their relative alphabetical order from step 2.
+4. Print the doubly-sorted list.
+
+=== ENTRY 1631 ===
+Goal: Sort a list with duplicates, then walk through it linearly to deduplicate, keeping only the first occurrence of each consecutive run.
+
+1. Declare `nums152` as an unsorted list with repeated values.
+2. Call `.sort()` (no lambda, sorts numerically by default) to produce `sorted152` in ascending order.
+3. Declare an empty `deduped152` list.
+4. Iterate over each element `x` in `sorted152`.
+5. Add `x` to `deduped152` only if the list is currently empty (`deduped152 ? emptyList`) OR if the last element `deduped152[deduped152.listLen()]` differs from `x` — using `!=` for numeric inequality.
+6. Print `deduped152` — a sorted list with all duplicates removed.
+
+=== ENTRY 1632 ===
+Goal: Compute a running average of a list of readings, where each element in the result is the mean of all values seen so far up to that index.
+
+1. Declare `readings155` as a list of five decimal sensor values.
+2. Initialize `running155` as an empty list and `sum155` as 0.
+3. Iterate `i` from 1 to `readings155.listLen()`.
+4. At each step, accumulate `sum155 = sum155 + readings155[i]`.
+5. Compute the running average as `sum155 / i` and append it to `running155`.
+6. Print the complete running average list.
+
+=== ENTRY 1633 ===
+Goal: Implement a stack data structure using a global list with push, pop, peek, and isEmpty operations. Test all four.
+
+1. Declare a global list `stack156` initialized to empty `[]`.
+2. Define `push156(v)`: calls `this.stack156.add(v)` to append to the top of the stack (the end of the list).
+3. Define `pop156()`: saves the top element `this.stack156[this.stack156.listLen()]`, removes it with `.remove(this.stack156.listLen())`, then returns it as the last expression.
+4. Define `peek156()`: returns `this.stack156[this.stack156.listLen()]` — the last element — without removing it.
+5. Define `isEmpty156()`: returns `this.stack156 ? emptyList` — a boolean true if the list has no elements.
+6. Push 1, 2, 3; print `peek156()` (3); print `pop156()` (3); print `isEmpty156()` (false, since 1 and 2 remain).
+
+=== ENTRY 1634 ===
+Goal: Implement a queue using a global list with enqueue, dequeue, front, and length operations. Enqueue three values, dequeue twice, then print the front.
+
+1. Declare a global list `queue157` initialized empty.
+2. Define `enqueue(v)`: appends to the back with `this.queue157.add(v)`.
+3. Define `dequeue()`: saves the front element at index 1, removes it with `.remove(1)`, and returns it.
+4. Define `front157()`: returns `this.queue157[1]` — the element at the head — without removing it.
+5. Define `queueLen()`: returns `this.queue157.listLen()`.
+6. Enqueue 1, 2, 3; call `dequeue()` twice to remove 1 then 2; print `front157()` which now returns 3.
+
+=== ENTRY 1635 ===
+Goal: Write `evalRPN(tokens)` that evaluates a Reverse Polish Notation expression using an operand stack. Test ["3","4","+","2","*"] expecting 14.
+
+1. Define `evalRPN` accepting a list of string tokens.
+2. Declare a local list `stack` to hold intermediate numeric values.
+3. Iterate over each token `t` in `tokens`.
+4. If `t` is an operator (`"+"`, `"-"`, `"*"`, or `"/"`): pop the top two elements by reading `stack[stack.listLen()]` and removing them, apply the operation, and push the result back.
+5. If `t` is not an operator: convert it to a number with `dec(t)` (decimal parse) and push it onto `stack`.
+6. After processing all tokens, `stack[1]` holds the final result — return and print it.
+
+=== ENTRY 1636 ===
+Goal: Write `balancedParens(s)` that uses a running counter (not a full stack) to verify that parentheses are properly nested and balanced.
+
+1. Define `balancedParens` accepting a string `s`.
+2. Initialize a local counter `count` to 0.
+3. Iterate over each character index `i` from 1 to `s.textLen()`.
+4. Extract the character with `s.segment(i, 1)`.
+5. Increment `count` for `"("` and decrement for `")"`.
+6. If `count` ever drops below 0 (a closing paren with no matching open), immediately set `count = -999` as a sentinel value.
+7. After the full string is processed, return `count == 0` — true only if every open paren was matched and closed exactly.
+
+=== ENTRY 1637 ===
+Goal: Implement a min-stack that tracks the current minimum at all times using two parallel global lists. Push five values and verify `getMin()` after pops.
+
+1. Declare two global lists: `minStack160` for actual values and `minTrack160` for the running minimum at each stack depth.
+2. Define `msPush(v)`: append `v` to `minStack160`; append to `minTrack160` either `v` (if track is empty) or `min(v, current_min)`.
+3. Define `msPop()`: save the top of `minStack160`, remove the last element from both lists, return the saved top.
+4. Define `msMin()`: return `minTrack160[minTrack160.listLen()]` — the current minimum, updated correctly after every push/pop.
+5. Push 5, 3, 7, 2, 4; print `msMin()` → 2; pop once; print `msMin()` → 2 (still 2, since 3 was above 2 in the stack).
+
+=== ENTRY 1638 ===
+Goal: Implement a deque (double-ended queue) with pushFront, pushBack, popFront, and popBack operations on a global list. Test a mixed sequence.
+
+1. Declare a global list `deque161` initialized empty.
+2. Define `pushFront(v)`: insert at index 1 using `this.deque161.insert(1, v)` — shifting all existing elements right.
+3. Define `pushBack(v)`: append to the end using `this.deque161.add(v)`.
+4. Define `popFront()`: save element at index 1, remove it, return it.
+5. Define `popBack()`: save element at `listLen()`, remove it, return it.
+6. Execute: pushBack(1), pushBack(2), pushFront(0), pushBack(3) → deque is [0,1,2,3]; print `popFront()` → 0; print `popBack()` → 3; print remaining deque [1,2].
+
+=== ENTRY 1639 ===
+Goal: Write `nextGreater(lst)` that finds, for each element, the next element to its right that is strictly greater, using a monotonic stack. Test with [4,1,2,3].
+
+1. Define `nextGreater` accepting a list `lst` of length `n`.
+2. Initialize `result` as a list of `n` values all set to -1 (default when no greater element exists to the right).
+3. Declare an empty `stack` that will hold indices of elements awaiting their next-greater resolution.
+4. Iterate `i` from 1 to `n`.
+5. While the stack is non-empty and `lst[stack.top] < lst[i]`: pop the top index, set `result[that_index] = lst[i]` as the next greater element.
+6. Push `i` onto the stack.
+7. All indices remaining in the stack after the loop already have -1 in `result` (no greater element to the right).
+
+=== ENTRY 1640 ===
+Goal: Implement a circular buffer of fixed capacity 4 using a global list and two pointer globals for head and tail. Test with 6 writes and 4 reads.
+
+1. Declare global list `cbuf164` of 4 zeros, and globals `cbHead=1`, `cbTail=1`, `cbSize=0`.
+2. Define `cbWrite(v)`: write `v` at `cbuf164[cbTail]`; advance `cbTail` using `cbTail % 4 + 1` (wraps 4→1); clamp `cbSize` to `min(cbSize+1, 4)` so it never exceeds capacity.
+3. Define `cbRead()`: read `cbuf164[cbHead]`; advance `cbHead` using `cbHead % 4 + 1`; decrement `cbSize`; return the read value.
+4. Write values 1–6: since capacity is 4, writes 5 and 6 overwrite positions previously holding 1 and 2.
+5. Read 4 times: the circular buffer now returns 3, 4, 5, 6 — the most recently written 4 values.
+
+=== ENTRY 1641 ===
+Goal: Write `rle(s)` that run-length encodes a string, compressing consecutive identical characters into count-character pairs. Test with "aaabbc" expecting "3a2b1c".
+
+1. Define `rle` accepting a string `s`.
+2. Guard for empty string: if `s ? emptyText`, return `""`.
+3. Initialize `result` (accumulator string), `cur` (current character = `s.segment(1,1)`), and `cnt` (run count = 1).
+4. Iterate `i` from 2 to `s.textLen()`.
+5. Extract `ch = s.segment(i, 1)`. If `ch === cur`, increment `cnt`. Otherwise, append `cnt _ cur` to `result`, reset `cur = ch` and `cnt = 1`.
+6. After the loop, append the final run `cnt _ cur` to `result`.
+7. Return `result`.
+
+=== ENTRY 1642 ===
+Goal: Write `normalize(lst)` that scales a numeric list so its maximum value becomes 1.0, with all others proportionally scaled. Test with [2,4,8,6].
+
+1. Define `normalize` accepting a numeric list `lst`.
+2. Open an inner block to introduce local `mx`.
+3. Compute `mx` as the maximum value using `.max { a, b -> a > b }` — the max lambda returns the element for which the predicate `a > b` holds (i.e., `a` comes before `b` in descending order, so the largest wins).
+4. Chain `.map { x -> x / mx }` to divide each element by the maximum, scaling the range to [0.0, 1.0].
+5. Return the normalized list.
+
+=== ENTRY 1643 ===
+Goal: Implement Celsius-to-Fahrenheit and Fahrenheit-to-Celsius conversion functions and verify the round-trip for 0°C and 100°C.
+
+1. Define `cToF(c)` returning `c * 9 / 5 + 32` — the standard formula; multiplication and division are left-associative so `c * 9 / 5` is computed first.
+2. Define `fToC(f)` returning `(f - 32) * 5 / 9` — parentheses ensure subtraction happens before multiplication.
+3. Print `cToF(0)` → 32, `cToF(100)` → 212.
+4. Print `fToC(32)` → 0, `fToC(212)` → 100.
+5. This verifies both directions of the conversion.
+
+=== ENTRY 1644 ===
+Goal: Implement km-to-miles and miles-to-km converters and verify the round-trip for 100 km.
+
+1. Define `kmToMiles(km)` returning `km * 0.621371`.
+2. Define `milesToKm(m)` returning `m * 1.60934`.
+3. Set `km172 = 100`; compute `miles172 = kmToMiles(100)` ≈ 62.1371.
+4. Print `formatDecimal(miles172, 2)` → "62.14".
+5. Print `formatDecimal(milesToKm(miles172), 2)` → "100.00", confirming the round-trip.
+
+=== ENTRY 1645 ===
+Goal: Implement kg-to-lbs and lbs-to-kg converters and verify the round-trip for 70 kg.
+
+1. Define `kgToLbs(kg)` returning `kg * 2.20462`.
+2. Define `lbsToKg(lb)` returning `lb / 2.20462`.
+3. Compute `lbs173 = kgToLbs(70)` ≈ 154.3234.
+4. Print `formatDecimal(lbs173, 2) _ " lbs"` → "154.32 lbs".
+5. Print `formatDecimal(lbsToKg(lbs173), 2) _ " kg"` → "70.00 kg".
+
+=== ENTRY 1646 ===
+Goal: Implement m/s to kph and kph to m/s converters. Test 10 m/s expecting 36.0 kph.
+
+1. Define `mpsToKph(v)` returning `v * 3.6` — there are 3600 seconds per hour and 1000 meters per km, ratio = 3.6.
+2. Define `kphToMps(v)` returning `v / 3.6`.
+3. Print `formatDecimal(mpsToKph(10), 1) _ " kph"` → "36.0 kph".
+
+=== ENTRY 1647 ===
+Goal: Implement byte-to-MB and byte-to-GB converters. Verify 1073741824 bytes equals 1024 MB and 1 GB.
+
+1. Define `bytesToMB(b)` returning `b / 1048576` — 1 MB = 2^20 = 1,048,576 bytes.
+2. Define `bytesToGB(b)` returning `b / 1073741824` — 1 GB = 2^30 = 1,073,741,824 bytes.
+3. Print `formatDecimal(bytesToMB(1073741824), 0) _ " MB"` → "1024 MB".
+4. Print `formatDecimal(bytesToGB(1073741824), 0) _ " GB"` → "1 GB".
+
+=== ENTRY 1648 ===
+Goal: Implement acres-to-sqm and sqm-to-acres converters. Test 2.5 acres expecting 10117.15 sqm.
+
+1. Define `acresToSqm(a)` returning `a * 4046.86` — 1 acre = 4046.86 square meters.
+2. Define `sqmToAcres(m)` returning `m / 4046.86`.
+3. Print `formatDecimal(acresToSqm(2.5), 2)` → "10117.15".
+
+=== ENTRY 1649 ===
+Goal: Wrap built-in `radians()` and `degrees()` functions to verify that 180 degrees equals π radians.
+
+1. Define `degToRad(d)` returning `radians(d)` — delegates to the built-in conversion function.
+2. Define `radToDeg(r)` returning `degrees(r)` — delegates to the built-in inverse.
+3. Print `formatDecimal(degToRad(180), 6)` → "3.141593" (π to 6 decimal places).
+4. Print `formatDecimal(radToDeg(3.141593), 6)` → "180.000000".
+
+=== ENTRY 1650 ===
+Goal: Write `formatThousands(n)` that formats an integer with commas inserted every 3 digits from the left. Test with 1234567 expecting "1,234,567".
+
+1. Define `formatThousands` accepting integer `n`.
+2. Coerce `n` to a string `s` with `"" _ n`.
+3. Initialize `result` as an empty string and compute `len = s.textLen()`.
+4. Iterate `i` from 1 to `len`.
+5. Append the character `s.segment(i, 1)` to `result`.
+6. After appending, compute `remaining = len - i` — the number of digits still to come.
+7. If `remaining > 0` and `remaining % 3 == 0`, append a comma — this places commas at exactly the right thousand-boundaries.
+8. Return `result`.
+
+=== ENTRY 1651 ===
+Goal: Write `formatSign(n)` that always shows the sign explicitly: "+" for positives, nothing extra for negatives (already have "-"), and "0" for zero.
+
+1. Define `formatSign` accepting a number `n`.
+2. If `n > 0`: return `"+" _ n` — prepend the plus sign by joining with the text-join operator `_`.
+3. If `n < 0`: return `"" _ n` — converting to string already includes the minus sign.
+4. Otherwise (`n == 0`): return the literal string `"0"`.
+5. Test: `formatSign(42)` → "+42", `formatSign(-7)` → "-7", `formatSign(0)` → "0".
+
+=== ENTRY 1652 ===
+Goal: Write `formatPercent(n, total)` that calculates the percentage of `n` relative to `total` and formats it to one decimal place with a "%" suffix.
+
+1. Define `formatPercent` accepting `n` (numerator) and `total` (denominator).
+2. Compute the percentage: `n / total * 100`.
+3. Format to one decimal place using `formatDecimal(..., 1)`.
+4. Append the percent symbol by joining with `_ "%"`.
+5. Return the formatted string. Test: `(37, 200)` → "18.5%".
+
+=== ENTRY 1653 ===
+Goal: Write `formatSci(n, sig)` that formats a number in scientific notation with a specified number of significant digits. Test with (0.000123, 3) expecting "1.23e-4".
+
+1. Define `formatSci` accepting a number `n` and significant digit count `sig`.
+2. Open an inner block to introduce locals.
+3. Compute the exponent `e = floor(log(abs(n)) / log(10))` — the base-10 logarithm gives the power of ten.
+4. Compute the mantissa `m = n / 10^e` — scaling `n` into the range [1, 10).
+5. Format the mantissa using `formatDecimal(m, sig - 1)` — `sig - 1` decimal places gives `sig` significant figures total.
+6. Concatenate mantissa, `"e"`, and exponent using `_` to produce the scientific notation string.
+
+=== ENTRY 1654 ===
+Goal: Write `formatCurrency(amount, symbol)` that formats a monetary amount to 2 decimal places with a currency symbol prefix. Test with (9.5, "$") expecting "$9.50".
+
+1. Define `formatCurrency` accepting a numeric `amount` and a string `symbol`.
+2. Call `formatDecimal(amount, 2)` to produce a string with exactly 2 decimal places (e.g., "9.50").
+3. Prepend the currency symbol by joining with `symbol _ formatDecimal(...)`.
+4. Return the complete currency string.
+
+=== ENTRY 1655 ===
+Goal: Format a list of measurements to 3 decimal places each, then join them into a single comma-separated string.
+
+1. Declare `measurements189` as a local list of three floating-point constants: π, e, and √2.
+2. Chain `.map { x -> formatDecimal(x, 3) }` to format each number to 3 decimal places, producing a list of strings.
+3. Chain `.join(", ")` to concatenate all formatted strings with ", " separating them.
+4. Print the single resulting string.
+
+=== ENTRY 1656 ===
+Goal: Write `humanSize(bytes)` that converts a raw byte count into a human-readable string with appropriate KB, MB, or GB units.
+
+1. Define `humanSize` accepting a numeric `bytes` value.
+2. Check `bytes >= 1073741824` (1 GB threshold): if true, divide by 1073741824, format to 1 decimal, and append " GB".
+3. Else check `bytes >= 1048576` (1 MB threshold): if true, divide by 1048576, format to 1 decimal, and append " MB".
+4. Otherwise: divide by 1024, format to 1 decimal, and append " KB".
+5. Test: 1234567890 → "1.1 GB"; 5242880 → "5.0 MB"; 2048 → "2.0 KB".
+
+=== ENTRY 1657 ===
+Goal: Write `vendingMachine(balance, item)` that dispenses items if balance is sufficient, prints change or "insufficient", and returns the new balance.
+
+1. Define `vendingMachine` accepting `balance` (current funds) and `item` (requested product name).
+2. Declare a local `prices` dictionary mapping item names to costs.
+3. If the item is not in `prices`, print "Unknown item" and return `balance` unchanged.
+4. If `balance >= price`: compute change as `balance - price`; print a dispensing message with the formatted change; return `change`.
+5. If `balance < price`: print "Insufficient balance for [item]" and return `balance` unchanged.
+6. Simulate: start at 2.00, buy cola (1.50) → 0.50 change; buy water (0.75) → insufficient; etc.
+
+=== ENTRY 1658 ===
+Goal: Implement a traffic light state machine using a global state variable and a `tick()` function that advances red→green→yellow→red cyclically. Call tick 7 times.
+
+1. Declare global `tlState` initialized to `"red"`.
+2. Define `tick193()`: assign `this.tlState` using an if-else expression: `"red"` → `"green"`, `"green"` → `"yellow"`, anything else (yellow) → `"red"`.
+3. Print `this.tlState` inside `tick193` after the state update — the print is the last evaluated expression but the assignment is what the function actually does.
+4. Loop `tick193()` 7 times: states cycle as green, yellow, red, green, yellow, red, green.
+
+=== ENTRY 1659 ===
+Goal: Write `tokenizer(s)` that classifies runs of characters into NUM (digits), WORD (letters), or SYM (symbols) tokens using a manual index-based state machine loop.
+
+1. Define `tokenizer` accepting a string `s`.
+2. Initialize a result list and index `i = 1`.
+3. Enter a `while (i <= s.textLen())` loop.
+4. Extract `ch = s.segment(i, 1)`.
+5. Determine character class: digit check via `ch ? base10`; letter check via a compound condition excluding digits and known symbols.
+6. For a digit: accumulate a full digit run into `tok` by advancing `i` while consecutive characters are `base10`; push a `{"type":"NUM","val":tok}` dict.
+7. For a letter: accumulate a full letter run similarly; push `{"type":"WORD","val":tok}`.
+8. Otherwise: push `{"type":"SYM","val":ch}` and advance `i` by 1.
+9. Return `result`.
+
+=== ENTRY 1660 ===
+Goal: Write `elevator(current, requests)` that simulates an elevator moving floor-by-floor through a list of stop requests, printing each floor visited and the total distance.
+
+1. Define `elevator` accepting `current` (starting floor) and `requests` (list of target floors).
+2. Initialize `pos = current` and `total = 0`.
+3. For each request `r`: compute `dist = abs(r - pos)` and accumulate into `total`.
+4. Determine movement direction: `+1` if `r > pos`, `-1` if `r < pos`.
+5. Use a while loop `while (stepVar != r)` to step one floor at a time, printing each intermediate floor.
+6. Update `pos = r` after reaching each destination.
+7. Print the total floors traveled after all requests are processed.
+
+=== ENTRY 1661 ===
+Goal: Implement undo/redo history using a global list. `doAction` appends to history; `undo` removes the last entry. Simulate 5 actions and 2 undos.
+
+1. Declare a global list `history196` initialized empty.
+2. Define `doAction(action)`: appends the string `action` to `this.history196`.
+3. Define `undo196()`: if history is not empty, remove the last element using `.remove(this.history196.listLen())`.
+4. Call `doAction` five times with: "type A", "type B", "paste", "format", "save".
+5. Call `undo196()` twice — removes "save" then "format".
+6. Print `this.history196` → `["type A","type B","paste"]`.
+
+=== ENTRY 1662 ===
+Goal: Parse a list of "state:event:nextState" transition strings into a nested dictionary, then simulate a state machine traversal.
+
+1. Define `parseCSM(transitions)`: iterate over each transition string `t`; split on `":"` to get parts[1]=state, parts[2]=event, parts[3]=nextState.
+2. Ensure `table` has an inner dict for each state; set `table[state][event] = nextState`.
+3. Define `runCSM(table, startState, events)`: initialize `state = startState`; for each event `e`, look up the next state in `table[state][e]` if it exists; print each resulting state.
+4. Build the turnstile CSM with transitions for locked/unlocked states.
+5. Simulate with events ["coin","push","push","coin"] and print each state transition.
+
+=== ENTRY 1663 ===
+Goal: Implement a turnstile state machine with "locked" and "unlocked" states responding to "coin" and "push" events via a global state variable.
+
+1. Declare global `tsState` initialized to `"locked"`.
+2. Define `tsEvent(e)`: check `this.tsState`.
+3. If `"locked"` and event is `"coin"`: transition to `"unlocked"`.
+4. If `"unlocked"` and event is `"push"`: transition to `"locked"`.
+5. Other event-state combinations leave the state unchanged.
+6. After each transition, print `this.tsState`.
+7. Process events: ["coin","push","push","coin","coin","push"] → unlocked, locked, locked, unlocked, unlocked, locked.
+
+=== ENTRY 1664 ===
+Goal: Write `workflowEngine(steps)` that executes a list of named step-dictionaries in order, printing progress with step index and total count.
+
+1. Define `workflowEngine` accepting a list `steps` of step-dictionaries, each with "name" and "action" keys.
+2. Initialize a local counter `idx = 1`.
+3. Iterate over each `stepVar` in `steps`.
+4. Print a formatted progress string: `"[" _ idx _ "/" _ steps.listLen() _ "] " _ name _ ": " _ action`.
+5. Increment `idx` by 1 after each step.
+6. Test with 4 steps: init/setup, build/compile, test/run tests, deploy/push.
+
+=== ENTRY 1665 ===
+Goal: Simulate a retry policy using a global attempt counter. The function retries until success or max retries exhausted; the simulated function fails the first 2 attempts.
+
+1. Declare global `attempts200` initialized to 0.
+2. Define `tryAction(action, maxRetries)`: initialize `success = false` and `result = "failed"`.
+3. Enter a while loop: `while (this.attempts200 < maxRetries && !success)`.
+4. Increment `this.attempts200`; if `> 2`, set `success = true` and `result = "success on attempt " _ counter`.
+5. Otherwise print `"Attempt N failed"`.
+6. If `!success` after the loop, print "All retries exhausted".
+7. Return `result`.
+
+=== ENTRY 1666 ===
+Goal: Write `memoFib(n)` that computes Fibonacci numbers with memoization using a global dictionary cache to avoid redundant recursion.
+
+1. Declare a global empty dictionary `fibCache`.
+2. Define `memoFib(n)`: convert `n` to a string key.
+3. If the cache contains the key, return the cached value immediately.
+4. Otherwise compute the result: if `n <= 1` return `n`; else recursively call `memoFib(n-1) + memoFib(n-2)`.
+5. Store the computed result in `fibCache` under the string key.
+6. Return the result.
+7. Print `memoFib(10)` → 55; print `fibCache.dictLen()` to see how many unique sub-problems were cached.
+
+=== ENTRY 1667 ===
+Goal: Write `memoFact(n)` that computes factorial with a global cache. Verify that calling `memoFact(8)` after `memoFact(10)` reuses cached entries without growing the cache.
+
+1. Declare a global empty dictionary `factCache`.
+2. Define `memoFact(n)`: convert `n` to a string key; if cached, return cached value.
+3. Compute: if `n <= 1` return 1; else `n * memoFact(n - 1)`.
+4. Store result in cache and return it.
+5. Call `memoFact(10)` — populates cache for 1 through 10.
+6. Record `sz1 = factCache.dictLen()` → 10.
+7. Call `memoFact(8)` — all values already cached; cache size remains 10.
+
+=== ENTRY 1668 ===
+Goal: Simulate a memoization wrapper using a global store and call counter. Verify a second call to the same argument returns the cached result without calling the expensive function again.
+
+1. Declare a global dictionary `memoStore203` and a global counter `callCounter203 = 0`.
+2. Define `expensiveCompute(x)`: increments `callCounter203` and returns `x * x + 1`.
+3. Define `memoize203(x)`: convert `x` to string key; if in `memoStore203`, return cached value; otherwise call `expensiveCompute(x)`, store the result, and return it.
+4. Call `memoize203(5)` twice: first call computes and caches (counter = 1); second call returns cached value (counter stays 1).
+5. Print `"Actual calls: " _ callCounter203` → "Actual calls: 1".
+
+=== ENTRY 1669 ===
+Goal: Implement an LRU (Least Recently Used) cache with fixed capacity 3 using a global value dictionary and an ordered access list. Test get and put operations.
+
+1. Declare global `lruVals` (dict), `lruOrder` (list tracking recency), and `lruCap = 3`.
+2. Define `lruGet(k)`: convert to string key; if not in `lruVals` return -1. Otherwise, find and remove the key from `lruOrder` and re-append it (marking as most recently used). Return the value.
+3. Define `lruPut(k, v)`: if key exists, remove from `lruOrder`; else if at capacity, evict `lruOrder[1]` (least recently used) from both `lruVals` and `lruOrder`. Insert new key-value and append to `lruOrder`.
+4. Put (1,10), (2,20), (3,30); get(1) → marks 1 as recently used; put(4,40) → evicts 2 (LRU); get(2) → returns -1.
+
+=== ENTRY 1670 ===
+Goal: Write `countCalls(name)` that tracks invocation counts per named function in a global dictionary. Define three functions that each call it, then inspect the tally.
+
+1. Declare a global empty dictionary `callCounts`.
+2. Define `countCalls(name)`: if the name is not in `callCounts`, initialize its count to 0; then increment it by 1.
+3. Define `fnAlpha()`, `fnBeta()`, and `fnGamma()`, each calling `countCalls` with their own name as the argument.
+4. Call: `fnAlpha()` ×3, `fnBeta()` ×2, `fnGamma()` ×1.
+5. Print `this.callCounts` → `{"fnAlpha":3,"fnBeta":2,"fnGamma":1}`.
+
+=== ENTRY 1671 ===
+Goal: Write `memoRange(lo, hi)` that generates and caches a list of integers from `lo` to `hi`. Verify that a second identical call returns the cached result without rebuilding the list.
+
+1. Declare a global dictionary `rangeCache`.
+2. Define `memoRange(lo, hi)`: construct a string key `"" _ lo _ "-" _ hi`.
+3. If `rangeCache` contains the key, print "cached" and return the stored list.
+4. Otherwise, build the list by iterating from `lo` to `hi` and appending each integer.
+5. Store the result in `rangeCache` under the key and return it.
+6. Call `memoRange(1, 5)` twice — first prints the list, second prints "cached" then the same list.
+
+=== ENTRY 1672 ===
+Goal: Compute Fibonacci numbers iteratively using a global list as a bottom-up DP table, avoiding recursion stack overhead. Compare result for n=15.
+
+1. Declare a global list `fibTable` initialized to `[0, 1]` — the 0th and 1st Fibonacci numbers.
+2. Define `buildFibTable(n)`: while the list length is ≤ n, read the last two elements and append their sum.
+3. After the loop, the list has at least n+1 elements; return `fibTable[n+1]` (1-based, so index n+1 gives the nth Fibonacci).
+4. Print `buildFibTable(15)` → 610.
+
+=== ENTRY 1673 ===
+Goal: Write `longestCommonSubsequence(a, b)` using a 2D DP table to find the LCS length of two strings. Test with "ABCBDAB" and "BDCAB" expecting 4.
+
+1. Define `longestCommonSubsequence` accepting strings `a` and `b`.
+2. Initialize a (m+1)×(n+1) 2D list `dp` of zeros where `m` and `n` are the string lengths.
+3. Fill the table with nested loops: for `i` from 1 to `m` and `j` from 1 to `n`.
+4. If `a.segment(i,1) === b.segment(j,1)`: set `dp[i+1][j+1] = dp[i][j] + 1`.
+5. Otherwise: set `dp[i+1][j+1] = max(dp[i][j+1], dp[i+1][j])`.
+6. Return `dp[m+1][n+1]` — the bottom-right cell holds the LCS length.
+
+=== ENTRY 1674 ===
+Goal: Declare a global 4×4 zero matrix and implement cell getter/setter functions. Fill the main diagonal with 1s and print every row.
+
+1. Declare global `mat211` as an empty list; loop 4 times and append `[0,0,0,0]` to create 4 rows.
+2. Define `setCell(r, c, v)`: assign `this.mat211[r][c] = v`.
+3. Define `getCell(r, c)`: return `this.mat211[r][c]`.
+4. Loop `i` from 1 to 4 and call `setCell(i, i, 1)` to place 1 on each diagonal cell.
+5. Iterate over `mat211` and print each row.
+
+=== ENTRY 1675 ===
+Goal: Write `matAdd(a, b)` that adds two matrices element-wise by iterating over rows and columns. Test with two 3×3 matrices.
+
+1. Define `matAdd212` accepting two 2D list matrices `a` and `b`.
+2. Determine `n = a.listLen()` (number of rows).
+3. Declare a local empty `result` list.
+4. Outer loop over rows `i` from 1 to `n`; declare a local empty `row` list.
+5. Inner loop over columns `j` from 1 to `a[i].listLen()`; append `a[i][j] + b[i][j]` to `row`.
+6. Append `row` to `result` after the inner loop.
+7. Return `result` and print each row.
+
+=== ENTRY 1676 ===
+Goal: Write `matMul(a, b)` that multiplies two matrices using the standard triple-nested-loop dot-product algorithm. Test 2×2 matrices.
+
+1. Define `matMul213` accepting matrices `a` and `b`.
+2. Determine `n = a.listLen()` (rows of a), `m = b[1].listLen()` (cols of b), `p = b.listLen()` (rows of b / cols of a).
+3. Outer loop over `i` (result rows); middle loop over `j` (result columns); initialize sum `s = 0`.
+4. Inner loop over `k` from 1 to `p`: accumulate `s += a[i][k] * b[k][j]`.
+5. Append `s` to the current row; append the row to `result`.
+6. Print the result matrix.
+
+=== ENTRY 1677 ===
+Goal: Write `transpose(mat)` that converts rows to columns and vice versa. Test a 3×2 matrix and confirm the result is 2×3.
+
+1. Define `transpose214` accepting a 2D list `mat`.
+2. Determine `rows = mat.listLen()` and `cols = mat[1].listLen()`.
+3. Outer loop over `j` from 1 to `cols` (iterating original columns).
+4. Inner loop over `i` from 1 to `rows`: append `mat[i][j]` to the new row.
+5. Append each new row to `result`.
+6. Return and print `result` — the transposed matrix.
+
+=== ENTRY 1678 ===
+Goal: Write `matScale(mat, k)` that multiplies every element of a matrix by a scalar `k`. Test on a 3×3 matrix with k=2.
+
+1. Define `matScale` accepting a 2D list `mat` and scalar `k`.
+2. Apply a nested map: outer `.map { row -> ... }` iterates over each row; inner `.map { x -> x * k }` multiplies each element by `k`.
+3. Return the scaled matrix (a new 2D list).
+4. Iterate over the result and print each row.
+
+=== ENTRY 1679 ===
+Goal: Write `identity(n)` that generates an n×n identity matrix — ones on the diagonal, zeros everywhere else. Test with n=4.
+
+1. Define `identity216` accepting `n`.
+2. Outer loop `i` from 1 to `n`: initialize an empty `row` list.
+3. Inner loop `j` from 1 to `n`: append `1` if `i == j`, else `0`, using an inline if-else expression.
+4. Append the completed `row` to `result`.
+5. Return `result` and print each row.
+
+=== ENTRY 1680 ===
+Goal: Write `trace(mat)` that computes the sum of all diagonal elements of a square matrix. Test on a 3×3 matrix.
+
+1. Define `trace` accepting a square 2D list `mat`.
+2. Initialize a local sum `s = 0`.
+3. Iterate `i` from 1 to `mat.listLen()`.
+4. At each step, access the diagonal element `mat[i][i]` and add it to `s`.
+5. Return `s` as the last expression.
+6. Test: for `[[1,2,3],[4,5,6],[7,8,9]]` the diagonal is 1+5+9 = 15.
+
+=== ENTRY 1681 ===
+Goal: Write `rowSum(mat)` and `colSum(mat)` that return lists of sums along rows and columns respectively. Test on a 4×4 matrix.
+
+1. Define `rowSum`: apply `.map { row -> row.reduce(0) { x, s -> x + s } }` — each row is reduced to its element sum; return the list of row sums.
+2. Define `colSum`: determine `n = mat[1].listLen()` (number of columns); iterate `j` from 1 to `n`; for each column, iterate over all rows and accumulate their `row[j]` values; append each column sum to `sums`; return `sums`.
+3. Declare a 4×4 test matrix and print both results.
+
+=== ENTRY 1682 ===
+Goal: Write `isLeapYear(y)` implementing the standard Gregorian leap year rule: divisible by 4, except centuries, unless divisible by 400.
+
+1. Define `isLeapYear` accepting a year `y`.
+2. Combine three divisibility checks in a single boolean expression: `y % 4 == 0 && y % 100 != 0 || y % 400 == 0`.
+3. Due to operator precedence, `&&` binds tighter than `||`: `(y % 4 == 0 AND y % 100 != 0) OR y % 400 == 0`.
+4. Test: 1900 → false (divisible by 100 but not 400); 2000 → true (divisible by 400); 2024 → true (divisible by 4, not 100); 2023 → false.
+
+=== ENTRY 1683 ===
+Goal: Write `nextPrime(n)` that finds the smallest prime strictly greater than `n`, using a helper `isPrime` function.
+
+1. Define `isPrime225(n)`: return false if `n < 2`; otherwise iterate divisors `i` from 2 to `floor(sqrt(n))`; if any `n % i == 0`, set `ok = false`; return `ok`.
+2. Define `nextPrime(n)`: initialize `p = n + 1`; loop with `while (!isPrime225(p))` and increment `p`; return `p` once it is prime.
+3. Test: `nextPrime(10)` → 11; `nextPrime(13)` → 17.
+
+=== ENTRY 1684 ===
+Goal: Write `primeFactors(n)` that returns the complete prime factorization as a list, including repeated factors. Test with 360.
+
+1. Define `primeFactors` accepting `n`.
+2. Initialize an empty list `factors`, a working copy `x = n`, and starting divisor `d = 2`.
+3. Outer while loop: `while (d * d <= x)` — only need to check divisors up to √x.
+4. Inner while loop: `while (x % d == 0)` — append `d` to `factors` and divide `x` by `d` each time.
+5. After the inner loop, increment `d`.
+6. If `x > 1` after the outer loop, `x` itself is a prime factor — append it.
+7. Return `factors`. Test: 360 → [2,2,2,3,3,5].
+
+=== ENTRY 1685 ===
+Goal: Write iterative `gcd(a, b)` using the Euclidean algorithm and `lcm(a, b)` derived from it. Test gcd(48,18)=6 and lcm(4,6)=12.
+
+1. Define `gcd(a, b)`: initialize `x = a`, `y = b`; while `y != 0`: save `t = y`, set `y = x % y`, set `x = t`; return `x`.
+2. Define `lcm(a, b)`: return `a * b / gcd(a, b)` — uses the identity that lcm × gcd = a × b.
+3. Test: `gcd(48, 18)` → 6; `lcm(4, 6)` → 12.
+
+=== ENTRY 1686 ===
+Goal: Write `collatz(n)` that generates the full Collatz sequence from `n` to 1. Test with n=27 and print the sequence length.
+
+1. Define `collatz` accepting starting number `n`.
+2. Initialize `seq = [n]` and `x = n`.
+3. While `x != 1`: if `x` is even, set `x = floor(x / 2)`; else set `x = 3 * x + 1`; append `x` to `seq`.
+4. Return `seq` once it reaches 1.
+5. Print `c229.listLen()` — the Collatz sequence from 27 has 112 steps.
+
+=== ENTRY 1687 ===
+Goal: Write `digitalRoot(n)` that repeatedly sums the digits of a number until a single digit remains. Test with 9875 → 2.
+
+1. Define `digitalRoot` accepting `n`.
+2. Outer while loop: `while (x >= 10)` — continue until single digit.
+3. Inner loop: extract each digit using `tmp % 10` and `floor(tmp / 10)` until `tmp` reaches 0, accumulating digit sum `s`.
+4. Set `x = s` (the digit sum) and repeat.
+5. Return `x` — the single-digit digital root.
+
+=== ENTRY 1688 ===
+Goal: Store English names for numbers 0-20 in a list and print each number alongside its word representation.
+
+1. Declare a local list `numWords` containing the 21 English number words from "zero" to "twenty".
+2. Iterate `i` from 0 to 20.
+3. Access `numWords[i + 1]` (converting 0-based `i` to 1-based index) to retrieve the word.
+4. Print `i _ ": " _ numWords[i + 1]`.
+
+=== ENTRY 1689 ===
+Goal: Write `intToRoman(n)` using a lookup table of value-symbol pairs to greedily convert an integer to its Roman numeral representation.
+
+1. Define `intToRoman` accepting integer `n`.
+2. Declare `vals` as an ordered list of `[value, symbol]` pairs from largest (1000 / "M") to smallest (1 / "I"), including subtraction forms like [900,"CM"].
+3. Initialize `result = ""` and `x = n`.
+4. Iterate over each `pair` in `vals`: while `x >= pair[1]`, append `pair[2]` to `result` and subtract `pair[1]` from `x`.
+5. Return `result`. Test: 1994 → "MCMXCIV".
+
+=== ENTRY 1690 ===
+Goal: Write `luhn(cardNum)` that validates a credit card number string using the Luhn algorithm. Test with a valid and invalid card.
+
+1. Define `luhn` accepting a card number string.
+2. Build a `digits` list by parsing each character with `dec(...)`.
+3. Initialize `sum = 0` and `double = false`.
+4. Iterate from the last digit backwards (`i` from `listLen()` to 1).
+5. For every other digit (starting from second-to-last): double it; if the result > 9, subtract 9.
+6. Add the (potentially doubled) digit to `sum`; toggle `double`.
+7. Return `sum % 10 == 0` — a valid card produces a checksum divisible by 10.
+
+=== ENTRY 1691 ===
+Goal: Write iterative `nthFibonacci(n)` and print the ratio of consecutive Fibonacci numbers for n=5..15, observing convergence to the golden ratio.
+
+1. Define `nthFibonacci(n)`: initialize `a = 0`, `b = 1`; iterate `i` from 2 to `n`: compute `c = a + b`, set `a = b`, set `b = c`; return `b`.
+2. Loop `i` from 5 to 15: compute `nthFibonacci(i+1) / nthFibonacci(i)`.
+3. Format each ratio to 6 decimal places and print it.
+4. The ratios converge toward the golden ratio φ ≈ 1.618034.
+
+=== ENTRY 1692 ===
+Goal: Write `isPerfect(n)` that checks whether a number equals the sum of all its proper divisors. Test 6, 28, 12, 496.
+
+1. Define `isPerfect` accepting `n`.
+2. Initialize `s = 0`.
+3. Iterate `i` from 1 to `n - 1` (proper divisors exclude `n` itself).
+4. For each `i` where `n % i == 0`, add `i` to `s`.
+5. Return `s == n`.
+6. Test: 6 → true (1+2+3=6); 28 → true; 12 → false (1+2+3+4+6=16≠12); 496 → true.
+
+=== ENTRY 1693 ===
+Goal: Write `amicable(a, b)` that returns true if the sum of proper divisors of each number equals the other. Test with the classic pair (220, 284).
+
+1. Define helper `sumDivisors(n)`: iterate `i` from 1 to `n-1`, accumulate divisors where `n % i == 0`, return sum.
+2. Define `amicable(a, b)`: return `sumDivisors(a) == b && sumDivisors(b) == a`.
+3. Test: `sumDivisors(220)` = 284 and `sumDivisors(284)` = 220, so `amicable(220, 284)` → true.
+
+=== ENTRY 1694 ===
+Goal: Write `countDivisors(n)` that counts all divisors of `n` including 1 and `n` itself. Test n=12 expecting 6, n=100 expecting 9, and print for 1-20.
+
+1. Define `countDivisors` accepting `n`.
+2. Initialize counter `c = 0`.
+3. Iterate `i` from 1 to `n`: if `n % i == 0`, increment `c`.
+4. Return `c`.
+5. Print results for 12 and 100 individually, then loop 1-20 printing each count.
+
+=== ENTRY 1695 ===
+Goal: Write `anagram(s1, s2)` that checks if two strings are anagrams by comparing their character frequency dictionaries. Test "listen"/"silent" and "hello"/"world".
+
+1. Define helper `charFreq(s)`: iterate over each character using `segment(i, 1)`; build a dictionary mapping each character to its count.
+2. Define `anagram(s1, s2)`: first check `s1.textLen() != s2.textLen()` — unequal length strings cannot be anagrams; return false.
+3. Compute `f1 = charFreq(s1)` and `f2 = charFreq(s2)`.
+4. Iterate over all keys in `f1`: if any key is absent in `f2` or has a different count, set `ok = false`.
+5. Return `ok`.
+
+=== ENTRY 1696 ===
+Goal: Write `longestCommonPrefix(lst)` that finds the longest prefix shared by all strings in a list. Test ["flower","flow","flight"] expecting "fl".
+
+1. Define `longestCommonPrefix` accepting a list `lst`.
+2. Guard for empty list: return `""`.
+3. Initialize `prefix = lst[1]` — the first string as the starting candidate.
+4. Iterate over every string `s` in `lst`.
+5. While `s` does NOT start with `prefix` (and `prefix` is not empty): shorten `prefix` by one character using `prefix.segment(1, prefix.textLen() - 1)`.
+6. Return `prefix` after all strings have been checked.
+
+=== ENTRY 1697 ===
+Goal: Write `editDistance(a, b)` computing the Levenshtein distance between two strings using a 2D DP table. Test "kitten" and "sitting" expecting 3.
+
+1. Define `editDistance` accepting strings `a` (length `m`) and `b` (length `n`).
+2. Initialize a (m+1)×(n+1) 2D list `dp` of zeros.
+3. Fill the first column: `dp[i+1][1] = i` for `i` from 0 to `m` (cost of deleting i characters from `a`).
+4. Fill the first row: `dp[1][j+1] = j` for `j` from 0 to `n` (cost of inserting j characters to get `b`).
+5. Fill remaining cells: if `a[i] === b[j]`, copy `dp[i][j]` diagonally; else take `1 + min(delete, insert, replace)`.
+6. Return `dp[m+1][n+1]`.
+
+=== ENTRY 1698 ===
+Goal: Write `zigzag(lst)` that rearranges a list into a wave pattern where odd-indexed elements are local minima and even-indexed elements are local maxima.
+
+1. Define `zigzag` accepting a list `lst`.
+2. Create a working copy with `copyList(lst)`.
+3. Iterate `i` from 1 to `arr.listLen() - 1`.
+4. At odd positions: if `arr[i] > arr[i+1]`, swap them (to enforce a valley).
+5. At even positions: if `arr[i] < arr[i+1]`, swap them (to enforce a peak).
+6. Return the rearranged `arr`.
+
+=== ENTRY 1699 ===
+Goal: Implement Celsius/Fahrenheit converters and a `temperatureTable()` that prints both scales side-by-side from 0°C to 100°C in steps of 10.
+
+1. Define `toCelsius(f)` returning `(f - 32) * 5 / 9`.
+2. Define `toFahrenheit(c)` returning `c * 9 / 5 + 32`.
+3. Define `temperatureTable()`: loop `c` from 0 to 100 step 10; print `c _ "°C = " _ formatDecimal(toFahrenheit(c), 1) _ "°F"`.
+4. Call `temperatureTable()`.
+
+=== ENTRY 1700 ===
+Goal: Write `bmi(kg, heightM)` that computes BMI and returns a dictionary with the formatted value and its weight-category label.
+
+1. Define `bmi` accepting weight in kg and height in meters.
+2. Open an inner block; compute `b = kg / heightM * heightM` — note: this is `kg / (heightM * heightM)` due to left-associativity, computing the correct BMI.
+3. Determine `cat` via chained if-else: below 18.5 → "Underweight"; below 25 → "Normal"; below 30 → "Overweight"; else → "Obese".
+4. Return a dictionary `{"bmi": formatDecimal(b, 1), "category": cat}`.
+5. Test: (70, 1.75) → BMI ≈ 22.9, "Normal".
+
+=== ENTRY 1701 ===
+Goal: Write `compound(principal, rate, years)` that computes compound interest using the formula P*(1+r)^n. Test (1000, 0.05, 10) expecting ~1628.89.
+
+1. Define `compound` accepting `principal`, `rate`, and `years`.
+2. Return `(principal * (1 + rate)) ^ years` — note: due to operator precedence, `^` (power) has highest precedence, so this computes `principal * ((1 + rate) ^ years)` is NOT what is written; it actually computes `(principal * (1 + rate)) ^ years` which may differ from expected. The intent should be `principal * (1 + rate) ^ years`. The code as written may produce a slightly different result.
+3. Format the result to 2 decimal places and print.
+
+=== ENTRY 1702 ===
+Goal: Write `mortgagePayment(principal, annualRate, months)` using the standard amortization formula to compute monthly payment. Test a 30-year $200k mortgage at 6% annual.
+
+1. Define `mortgagePayment` accepting principal, annual rate, and number of months.
+2. Open an inner block to introduce `r = annualRate / 12` (monthly rate).
+3. Apply the formula: `(principal * r * (1 + r)^months) / ((1 + r)^months - 1)`.
+4. Return the computed monthly payment.
+5. Format to 2 decimal places and print. Expected: ~$1199.10.
+
+=== ENTRY 1703 ===
+Goal: Write `gradeAverage(scores)` that computes the average of a list of scores and maps it to a letter grade. Test with [85,92,78,61,95].
+
+1. Define `gradeAverage` accepting a list of numeric scores.
+2. Open an inner block; compute `avg` using `.reduce(0) { x, s -> x + s } / scores.listLen()`.
+3. Determine letter grade via chained if-else: ≥90 → "A"; ≥80 → "B"; ≥70 → "C"; ≥60 → "D"; else → "F".
+4. Return a dictionary `{"average": formatDecimal(avg, 1), "grade": grade}`.
+5. Average of [85,92,78,61,95] = 82.2 → "B".
+
+=== ENTRY 1704 ===
+Goal: Maintain a global inventory dictionary and implement `sell(item, qty)` that decrements stock with appropriate error handling. Simulate 3 sales.
+
+1. Declare a global dictionary `inventory251` with initial stock: apple→10, banana→5, cherry→20.
+2. Define `sell(item, qty)`: if item not in inventory, print "item not found"; elif current stock < qty, print "out of stock"; else decrement stock by qty and print confirmation.
+3. Test: sell 3 apples (success, 7 remain); sell 6 bananas (out of stock, only 5 available); sell 5 cherries (success, 15 remain).
+4. Print final inventory state.
+
+=== ENTRY 1705 ===
+Goal: Write `totalValue(quantities, prices)` that computes total inventory value by multiplying each item's quantity by its price. Test with 5 items.
+
+1. Define `totalValue` accepting `quantities` (item→qty dict) and `prices` (item→price dict).
+2. Initialize `total = 0`.
+3. Iterate over each `(item, qty)` in `quantities`.
+4. If the item exists in `prices`, add `qty * prices.get(item, [])` to `total`.
+5. Return `total` — items with no price are excluded.
+
+=== ENTRY 1706 ===
+Goal: Write `topSellers(sales, n)` that returns the names of the top `n` best-selling items sorted by sales descending. Test with 8 items, n=3.
+
+1. Define `topSellers` accepting a `sales` dictionary (item→units) and integer `n`.
+2. Call `sales.toPairs()` to convert the dictionary to a list of `[key, value]` pairs.
+3. Sort descending by sales value: `.sort { a, b -> a[2] > b[2] }`.
+4. Take the first `n` elements using `.slice(1, n)`.
+5. Map each pair to just its name: `.map { p -> p[1] }`.
+6. Return the list of top-n item names.
+
+=== ENTRY 1707 ===
+Goal: Maintain a global ledger of credit/debit transactions and implement `balance()` that computes the net total. Simulate 6 transactions.
+
+1. Declare a global empty list `ledger` and helper `addEntry(type, amount)` that appends a dict.
+2. Define `balance255()`: call `.reduce(0)` on `this.ledger` with an accumulator `s`; for each entry `e`, add `e.amount` for credits or subtract it for debits; return the net sum.
+3. Add 3 credits (100, 50, 75) and 3 debits (30, 20, 10).
+4. Print `balance255()` → 165.
+
+=== ENTRY 1708 ===
+Goal: Write `ema(lst, alpha)` that computes the exponential moving average with smoothing factor `alpha`. Test with alpha=0.3 on [10,12,11,14,13].
+
+1. Define `ema` accepting a list `lst` and smoothing factor `alpha`.
+2. Initialize `result = [lst[1]]` — the first EMA value equals the first data point.
+3. Iterate `i` from 2 to `lst.listLen()`.
+4. Compute the new EMA: `alpha * lst[i] + (1 - alpha) * result[result.listLen()]` — a weighted blend of the new value and the previous EMA.
+5. Append the new EMA to `result`.
+6. Return `result`.
+
+=== ENTRY 1709 ===
+Goal: Write `zscore(lst)` that standardizes each element by subtracting the mean and dividing by the standard deviation. Test with [2,4,4,4,5,5,7,9].
+
+1. Define `zscore` accepting a numeric list `lst`.
+2. Open an inner block; compute `n = lst.listLen()`.
+3. Compute `mean = sum / n` using reduce.
+4. Compute `std = sqrt(variance)` where variance is `sum((x - mean)^2) / n` using map and reduce.
+5. Map each element: `(x - mean) / std`, formatted to 2 decimal places.
+6. Return the list of z-score strings.
+
+=== ENTRY 1710 ===
+Goal: Write `percentile(lst, p)` that returns the p-th percentile using linear interpolation. Test percentile([1..10], 75) expecting 7.75.
+
+1. Define `percentile` accepting a list `lst` and percentile `p`.
+2. Sort the list with `.sort()`.
+3. Compute the fractional index: `idx = p / 100 * (sorted.listLen() - 1) + 1`.
+4. Extract floor and ceiling indices `lo` and `hi`, and fractional part `frac = idx - lo`.
+5. Interpolate: `sorted[lo] * (1 - frac) + sorted[hi] * frac`.
+6. Return the interpolated percentile value.
+
+=== ENTRY 1711 ===
+Goal: Write `correlation(x, y)` that computes the Pearson correlation coefficient. Test with perfectly correlated lists expecting 1.0.
+
+1. Define `correlation` accepting lists `x` and `y` of equal length `n`.
+2. Compute means `mx` and `my` by summing and dividing by `n`.
+3. Iterate `i` from 1 to `n`: accumulate numerator `(x[i]-mx)*(y[i]-my)`, and denominators `(x[i]-mx)^2` and `(y[i]-my)^2`.
+4. Return `num / sqrt(dx2 * dy2)`.
+5. For [1,2,3,4,5] vs [2,4,6,8,10]: perfect linear relationship → correlation = 1.0.
+
+=== ENTRY 1712 ===
+Goal: Write `toBinary(n)` and `fromBinary(s)` that convert between integers and binary strings without using built-in bit functions. Verify round-trip for n=42.
+
+1. Define `toBinary(n)`: if `n == 0` return `"0"`; otherwise while `x > 0`, prepend `x % 2` to `result` using `_ result` and integer-divide `x` by 2.
+2. Define `fromBinary(s)`: iterate over each character; multiply `result` by 2 and add the digit value `dec(s.segment(i, 1))`.
+3. Print `toBinary(42)` → "101010".
+4. Print `fromBinary(toBinary(42))` → 42.
+
+=== ENTRY 1713 ===
+Goal: Write `byteToNibbles(b)` that splits a byte into its high and low 4-bit nibbles and prints each as a hex digit.
+
+1. Define `byteToNibbles` accepting a byte value `b` (0-255).
+2. Compute `hi = floor(b / 16)` — the high nibble (upper 4 bits).
+3. Compute `lo = b % 16` — the low nibble (lower 4 bits).
+4. Print `"High: " _ decToHex(hi) _ " Low: " _ decToHex(lo)`.
+5. Test with 171 (0xAB): hi=10 (A), lo=11 (B).
+
+=== ENTRY 1714 ===
+Goal: Write `bitReverse(n, bits)` that reverses the binary representation of `n` within a specified bit width. Test reversing 0b1011 (4 bits) expecting 0b1101.
+
+1. Define `bitReverse` accepting `n` and `bits` (the bit width).
+2. Initialize `result = 0` and `x = n`.
+3. Iterate `bits` times: shift `result` left by multiplying by 2; add the LSB of `x` (`x % 2`); right-shift `x` by dividing by 2.
+4. Return `result` — the bits of `n` in reversed order within the given width.
+5. Test: 11 (1011) reversed in 4 bits → 13 (1101).
+
+=== ENTRY 1715 ===
+Goal: Write `encodeDelta(lst)` and `decodeDelta(lst)` for delta encoding — store differences instead of absolute values. Verify round-trip.
+
+1. Define `encodeDelta`: initialize result with `lst[1]`; iterate `i` from 2 to `listLen()`; append `lst[i] - lst[i-1]` (the difference from the previous element).
+2. Define `decodeDelta`: initialize result with `lst[1]`; iterate `i` from 2 to `listLen()`; append `result[last] + lst[i]` to reconstruct the original value.
+3. Encode [10,13,11,15,14] → [10,3,-2,4,-1]; decode back → [10,13,11,15,14].
+
+=== ENTRY 1716 ===
+Goal: Write `mask(n, hi, lo)` that extracts a specific range of bits from `n` between bit positions `lo` and `hi` (1-based). Test with n=0b11011010, bits 5-3 expecting 0b110.
+
+1. Define `mask` accepting `n`, `hi` (high bit position), and `lo` (low bit position).
+2. Open an inner block; compute bit width `width = hi - lo + 1`.
+3. Create a bitmask `m = 2^width - 1` — a sequence of `width` ones.
+4. Right-shift `n` by `lo - 1` positions using integer division `floor(n / 2^(lo-1))`.
+5. Apply the mask using bitwise AND `& m` to extract only the desired bits.
+6. Return the result. Test: 218 = 0b11011010, bits 5 to 3 = 110 = 6.
+
+=== ENTRY 1717 ===
+Goal: Write `adder(a, b)` that simulates a 4-bit binary adder using XOR for sum bits and AND/OR for carry logic, without using the `+` operator for the core logic.
+
+1. Define `adder` accepting integers `a` and `b`.
+2. Initialize `sum = 0` and `carry = 0`.
+3. Iterate bit positions `i` from 1 to 4.
+4. Extract bit `i` from `a` and `b` using `floor(a / 2^(i-1)) % 2`.
+5. Compute sum bit `s = bit_a XOR bit_b XOR carry` using Falcon's `~` (XOR) operator.
+6. Compute new carry: `carry = (bit_a & bit_b) | (bit_a & carry) | (bit_b & carry)`.
+7. Accumulate: `sum = sum + s * 2^(i-1)`.
+8. Test: adder(5, 3) → 8.
+
+=== ENTRY 1718 ===
+Goal: Write `checksum8(bytes)` that computes an 8-bit checksum by summing all byte values modulo 256. Test with [0x12, 0x34, 0x56] expecting 0xA2 = 162.
+
+1. Define `checksum8` accepting a list of byte values.
+2. Apply `.reduce(0) { b, s -> s + b % 256 }` — note: each individual byte `b` is first taken `% 256` (which is redundant for valid bytes), then accumulated into `s`.
+3. Return the final accumulated sum.
+4. Test: 18 + 52 + 86 = 156. Note: the expected 162 assumes the full sum is then `% 256`, but as written, the reduce accumulates without a final modulo — for these values it still gives 156.
+
+=== ENTRY 1719 ===
+Goal: Write `encode85(n)` and `decode85(s)` for base-85 encoding using ASCII offset 33. Test with 1234567 and verify round-trip.
+
+1. Define `encode85(n)`: while `x > 0`, prepend `x % 85 + 33` to `result` using `_ result` and divide `x` by 85; return `result`.
+2. Define `decode85(s)`: iterate over each character; multiply `result` by 85 and add `dec(char) - 33`.
+3. Encode 1234567 to a compact string representation.
+4. Decode it back and verify the round-trip.
+
+=== ENTRY 1720 ===
+Goal: Write `spiralOrder(n)` that fills an n×n matrix with numbers 1 to n² in clockwise spiral order and prints each row. Test with n=4.
+
+1. Define `spiralOrder(n)`: initialize an n×n zero matrix.
+2. Declare boundary pointers: `top=1`, `bottom=n`, `left=1`, `right=n`, and counter `num=1`.
+3. While `num <= n*n`: traverse right across the top row, incrementing `top`; traverse down the right column, decrementing `right`; traverse left across the bottom row, decrementing `bottom`; traverse up the left column, incrementing `left`.
+4. At each cell, assign `num` and increment it.
+5. After all cells are filled, print each row.
+
+=== ENTRY 1721 ===
+Goal: Write `pascalTriangle(rows)` that generates and prints Pascal's triangle for a given number of rows.
+
+1. Define `pascalTriangle(rows)`: initialize `triangle = [[1]]`.
+2. For each row `i` from 2 to `rows`: retrieve `prev = triangle[i-1]`.
+3. Initialize `row = [1]`; iterate `j` from 2 to `prev.listLen()` and append `prev[j-1] + prev[j]`.
+4. Append a final `1` to close the row.
+5. Append `row` to `triangle`.
+6. Print each row by mapping elements to strings and joining with spaces.
+
+=== ENTRY 1722 ===
+Goal: Write `josephus(n, k)` using the iterative recurrence formula to compute the survivor's 1-based position. Test (7,3) expecting 4.
+
+1. Define `josephus(n, k)` using the mathematical recurrence: `J(1) = 0`, `J(i) = (J(i-1) + k) % i`.
+2. Initialize `pos = 0`.
+3. Iterate `i` from 2 to `n`: update `pos = (pos + k) % i`.
+4. Return `pos + 1` to convert from 0-based to 1-based position.
+5. Test: josephus(7, 3) → 4.
+
+=== ENTRY 1723 ===
+Goal: Write `magicSquare(n)` using the Siamese method to construct an n×n magic square for odd n. Test n=3 and verify all sums are 15.
+
+1. Define `magicSquare(n)`: initialize an n×n zero matrix.
+2. Start at row 1, column `ceil(n/2)` — the top-center cell.
+3. For each number from 1 to n²: place it at current (r, c).
+4. Compute the next position: one row up (`r-1`), one column right (`c+1`), wrapping around with modular arithmetic.
+5. If the next cell is already occupied, move one row down instead.
+6. Print each row and return the matrix.
+
+=== ENTRY 1724 ===
+Goal: Write recursive `towers(n, from, to, via)` that prints the sequence of disk moves for the Towers of Hanoi puzzle. Test n=3 expecting 7 moves.
+
+1. Define `towers` accepting disk count `n`, source peg `from`, destination peg `to`, and auxiliary peg `via`.
+2. Base case: if `n == 1`, print `"Move disk 1 from [from] to [to]"` and return.
+3. Recursive case: call `towers(n-1, from, via, to)` — move n-1 disks to the auxiliary peg.
+4. Print `"Move disk n from [from] to [to]"` — move the largest disk.
+5. Call `towers(n-1, via, to, from)` — move n-1 disks from auxiliary to destination.
+
+=== ENTRY 1725 ===
+Goal: Write `longestIncreasing(lst)` using O(n²) DP to find the length of the longest strictly increasing subsequence. Test with [10,9,2,5,3,7,101,18] expecting 4.
+
+1. Define `longestIncreasing` accepting a list `lst` of length `n`.
+2. Initialize a DP list `dp` of 1s — each element is a LIS of at least length 1.
+3. Outer loop `i` from 2 to `n`; inner loop `j` from 1 to `i-1`.
+4. If `lst[j] < lst[i]` and `dp[j] + 1 > dp[i]`, update `dp[i] = dp[j] + 1`.
+5. Return the maximum value in `dp` using `.max { a, b -> a > b }`.
+
+=== ENTRY 1726 ===
+Goal: Write `maxSubarraySum(lst)` implementing Kadane's algorithm for the maximum contiguous subarray sum. Test with a mixed list expecting 6.
+
+1. Define `maxSubarraySum` accepting a list `lst`.
+2. Initialize `maxSum = lst[1]` and `curSum = lst[1]`.
+3. Iterate `i` from 2 to `lst.listLen()`.
+4. At each step: `curSum = max(lst[i], curSum + lst[i])` — either start a new subarray at `lst[i]` or extend the current one.
+5. Update `maxSum = max(maxSum, curSum)`.
+6. Return `maxSum`.
+
+=== ENTRY 1727 ===
+Goal: Write `sudokuValid(board)` that checks a 9×9 Sudoku board for no duplicate non-zero values in any row, column, or 3×3 box.
+
+1. Define `sudokuValid` accepting a 9×9 2D list `board`.
+2. For each `i` from 1 to 9: create empty dicts `row` and `col`; iterate `j` from 1 to 9; check for duplicates in `board[i][j]` (row) and `board[j][i]` (column) using containsKey.
+3. For each 3×3 box `(bi, bj)` from 0 to 2: create empty dict `box`; iterate inner indices 1-3; check for duplicates in `board[bi*3+i][bj*3+j]`.
+4. If any duplicate is found, set `ok = false`.
+5. Return `ok`.
+
+=== ENTRY 1728 ===
+Goal: Write `mergeIntervals(intervals)` that merges overlapping interval pairs. Test with [[1,3],[2,6],[8,10],[15,18]] expecting [[1,6],[8,10],[15,18]].
+
+1. Define `mergeIntervals` accepting a list of `[start, end]` pairs.
+2. Sort by start value: `.sort { a, b -> a[1] < b[1] }`.
+3. Initialize `result` with the first interval.
+4. Iterate remaining intervals: compare the current interval's start with `result[last][2]` (the last merged end).
+5. If they overlap, extend the last result's end to `max(last_end, current_end)`.
+6. Otherwise, push the current interval as a new non-overlapping segment.
+
+=== ENTRY 1729 ===
+Goal: Write `floodFill(grid, row, col, newColor)` using BFS to recolor all connected cells of the same original color. Test on a 5×5 binary grid.
+
+1. Define `floodFill` accepting a 2D grid, starting row/col, and new color value.
+2. Record `oldColor = grid[row][col]`; if `oldColor == newColor`, return immediately.
+3. Initialize a BFS `queue` with the starting position.
+4. While the queue is not empty: dequeue position `[r, c]`; if in bounds and equals `oldColor`, set `grid[r][c] = newColor`; enqueue all 4 neighbors.
+5. Return the modified grid.
+
+=== ENTRY 1730 ===
+Goal: Write `railFenceCipher(s, rails)` that encodes a string by writing characters in a zigzag pattern across `rails` rows and reading row by row.
+
+1. Define `railFenceCipher` accepting string `s` and number of rails.
+2. Initialize a list `fence` of `rails` empty strings.
+3. Initialize `rail = 1` and `dir = 1` (direction: +1 going down, -1 going up).
+4. For each character in `s`: append it to `fence[rail]`; flip direction at the top and bottom rails.
+5. After processing, join all fence rows with `fence.join("")`.
+6. Return the encoded string.
+
+=== ENTRY 1731 ===
+Goal: Write `dijkstra(graph, start)` that finds shortest paths from a start node to all others using a greedy distance-minimization algorithm.
+
+1. Define `dijkstra` accepting an adjacency dict `graph` (node→list of [neighbor, weight]) and `start` node.
+2. Initialize `dist` dict with 999999 for all nodes; set `dist[start] = 0`. Initialize `visited` as empty dict.
+3. Repeat `nodes.listLen()` times: find the unvisited node `u` with minimum distance.
+4. If no such node exists, terminate early.
+5. Mark `u` as visited; for each edge `[v, w]` from `u`: if `dist[u] + w < dist[v]`, update `dist[v]`.
+6. Return the `dist` dictionary.
+
+=== ENTRY 1732 ===
+Goal: Write `bfs(graph, start)` that performs breadth-first traversal and returns the visitation order as a list.
+
+1. Define `bfs` accepting adjacency dict `graph` and starting node `start`.
+2. Initialize `visited` dict, `order` list, and `queue = [start]`; mark `start` as visited.
+3. While queue is not empty: dequeue the front node with `queue[1]` and `queue.remove(1)`; append it to `order`.
+4. For each neighbor of the dequeued node: if not yet visited, mark as visited and enqueue.
+5. Return `order` — the BFS traversal sequence.
+
+=== ENTRY 1733 ===
+Goal: Write `topoSort(graph)` using Kahn's algorithm (BFS with in-degree tracking) to produce a valid topological ordering.
+
+1. Define `topoSort` accepting a DAG as an adjacency dict.
+2. Compute in-degree for each node by iterating all edges and incrementing `inDegree[neighbor]`.
+3. Initialize `queue` with all nodes having in-degree 0.
+4. While queue is not empty: dequeue a node, append to `order`; for each outgoing neighbor, decrement its in-degree; if it reaches 0, add it to the queue.
+5. Return `order` — a valid topological ordering.
+
+=== ENTRY 1734 ===
+Goal: Write `linearRegression(x, y)` that computes the best-fit slope and intercept using the least-squares formula. Test on 5-point data.
+
+1. Define `linearRegression` accepting lists `x` and `y` of length `n`.
+2. Compute means `mx` and `my`.
+3. Iterate `i` from 1 to `n`: accumulate numerator `(x[i]-mx)*(y[i]-my)` and denominator `(x[i]-mx)^2`.
+4. Compute `slope = num / den` and `intercept = my - slope * mx`.
+5. Return `[formatDecimal(slope, 2), formatDecimal(intercept, 2)]`.
+
+=== ENTRY 1735 ===
+Goal: Write `normalise(lst)` that min-max normalizes a list to the [0, 1] range. Test with [10,20,30,40,50] expecting [0,0.25,0.5,0.75,1.0].
+
+1. Define `normalise303` accepting a numeric list.
+2. Open an inner block; compute `mn` using `.min { a, b -> a < b }` and `mx` using `.max { a, b -> a > b }`.
+3. Map each element: `(x - mn) / (mx - mn)`.
+4. Return the normalized list.
+
+=== ENTRY 1736 ===
+Goal: Write `kNN(points, labels, query, k)` implementing k-nearest neighbors classification by Euclidean distance. Test with k=3 on 2D points.
+
+1. Define `kNN` accepting lists of 2D `points`, corresponding `labels`, a `query` point, and integer `k`.
+2. For each point, compute Euclidean distance to the query: `sqrt((x1-x2)^2 + (y1-y2)^2)`.
+3. Build a list of `[distance, label]` pairs and sort ascending by distance.
+4. Slice the first `k` pairs: the k nearest neighbors.
+5. Count votes per label using a dict; find the label with the most votes using `.max { a, b -> a[2] > b[2] }` on the pairs.
+6. Return the winning label pair.
+
+=== ENTRY 1737 ===
+Goal: Write `entropy(probs)` that computes Shannon entropy: -Σ p*log(p). Test [0.5, 0.5] expecting ~0.693 and [1.0] expecting 0.
+
+1. Define `entropy` accepting a list of probability values.
+2. Apply `.reduce(0) { p, s -> ... }` where for each probability `p`: if `p > 0`, add `-p * log(p)` to accumulator `s`; else add 0 (to avoid log(0)).
+3. Note: `log` in Falcon computes the natural logarithm, so `H([0.5, 0.5]) = -2*(0.5*ln(0.5)) ≈ 0.693`.
+4. Return the total entropy.
+
+=== ENTRY 1738 ===
+Goal: Write `confusion(predictions, actuals, labels)` that builds a confusion matrix as a nested dictionary. Test on a 3-class 5-sample problem.
+
+1. Define `confusion` accepting lists `predictions`, `actuals`, and `labels`.
+2. Initialize `matrix` as a dict of dicts: for each `l1` in `labels`, create an inner dict with all `l2` keys initialized to 0.
+3. Iterate `i` from 1 to `predictions.listLen()`: increment `matrix[actuals[i]][predictions[i]]` by 1.
+4. Return `matrix` — rows are actual classes, columns are predicted classes.
+
+=== ENTRY 1739 ===
+Goal: Write `precision`, `recall`, and `f1` metric functions and test them with tp=8, fp=2, fn=3.
+
+1. Define `precision(tp, fp)` returning `tp / (tp + fp)` — fraction of positive predictions that are correct.
+2. Define `recall(tp, fn)` returning `tp / (tp + fn)` — fraction of actual positives correctly identified.
+3. Define `f1(p, r)` returning `2 * p * r / (p + r)` — harmonic mean of precision and recall.
+4. Compute and print all three metrics formatted to 3 decimal places.
+
+=== ENTRY 1740 ===
+Goal: Write `naiveBayes(trainData, trainLabels, query)` implementing a Naive Bayes classifier with Laplace smoothing. Test on binary feature data.
+
+1. Define `naiveBayes` accepting training data (list of feature lists), labels, and a query feature list.
+2. Build a `classes` dict: for each training sample, count instances per class and track feature-value co-occurrence frequencies.
+3. For classification: iterate over each class; compute log-probability as `log(class_prior) + sum(log(feature_likelihood))` with Laplace smoothing `(count+1)/(total+2)`.
+4. Return the class with the highest log-probability score.
+
+=== ENTRY 1741 ===
+Goal: Write `perceptron(weights, bias, inputs)` that computes a single neuron's output: 1 if the weighted sum plus bias exceeds 0, else 0.
+
+1. Define `perceptron` accepting `weights`, `bias`, and `inputs` lists.
+2. Initialize `sum = bias`.
+3. Iterate `i` from 1 to `weights.listLen()`: accumulate `sum += weights[i] * inputs[i]`.
+4. Return `1` if `sum > 0`, else `0`.
+5. Test: weights=[0.5,0.5], bias=-0.5, inputs=[1,1] → sum=0.5 > 0 → 1; inputs=[0,0] → sum=-0.5 ≤ 0 → 0.
+
+=== ENTRY 1742 ===
+Goal: Write `softmax(scores)` that normalizes a list of raw scores into probabilities summing to 1.0. Test [1.0, 2.0, 3.0] expecting approximately [0.09, 0.24, 0.67].
+
+1. Define `softmax` accepting a list of scores.
+2. Subtract the max score from all values before exponentiation to prevent numerical overflow: `maxS = scores.max { a, b -> a > b }`.
+3. Compute `exps = scores.map { s -> exp(s - maxS) }`.
+4. Compute `total = exps.reduce(0) { x, s -> x + s }`.
+5. Map each exp value to `e / total` and format to 2 decimal places.
+6. Return the probability list.
+
+=== ENTRY 1743 ===
+Goal: Write `simulate(n, prob)` that runs a Monte Carlo simulation of Bernoulli trials, counting successes and estimating the true probability. Test with 10000 trials at 0.3.
+
+1. Define `simulate311` accepting `n` (number of trials) and `prob` (success probability).
+2. Initialize `count = 0`.
+3. Loop `n` times: if `randFloat() < prob` (a random float in [0,1) falls below the threshold), increment `count`.
+4. Return `formatDecimal(count / n, 3)` — the empirical frequency, which should converge to `prob`.
+
+=== ENTRY 1744 ===
+Goal: Write `monteCarloPI(n)` that estimates π by counting random points falling inside a unit circle. Test with 10000 points.
+
+1. Define `monteCarloPI` accepting `n` (number of random samples).
+2. Initialize `inside = 0`.
+3. Loop `n` times: generate random `x` and `y` in [-1, 1] using `randFloat() * 2 - 1`.
+4. If `x*x + y*y <= 1`, the point is inside the unit circle — increment `inside`.
+5. Estimate π as `4 * inside / n` — the circle's area is π and the bounding square's area is 4.
+6. Return formatted to 4 decimal places.
+
+=== ENTRY 1745 ===
+Goal: Write `bootstrap(lst, n)` that performs bootstrap resampling — drawing `n` samples with replacement and returning the mean of each.
+
+1. Define `bootstrap` accepting a data list `lst` and number of bootstrap samples `n`.
+2. Initialize `means` as an empty list.
+3. Loop `n` times: create an empty `sample` list; loop `lst.listLen()` times; for each draw, append `lst[randInt(1, lst.listLen())]` — random index with replacement.
+4. Compute the sample mean using reduce and divide by list length; append to `means`.
+5. Return `means`.
+
+=== ENTRY 1746 ===
+Goal: Write `shuffleLst(lst)` implementing the Fisher-Yates in-place shuffle for unbiased random permutation. Verify the result is a permutation.
+
+1. Define `shuffleLst` accepting a list.
+2. Create a working copy with `copyList(lst)`.
+3. Iterate `i` from `arr.listLen()` down to 2.
+4. Generate a random index `j = randInt(1, i)`.
+5. Swap `arr[i]` and `arr[j]`.
+6. Return the shuffled array.
+7. Verify: print the shuffled list and its sorted version — the sorted version should equal the original sorted input.
+
+=== ENTRY 1747 ===
+Goal: Write `sampleWithout(lst, k)` that draws `k` unique elements from a list without replacement using index removal. Test k=5 from [1..20].
+
+1. Define `sampleWithout` accepting a list `lst` and sample size `k`.
+2. Create a working copy `arr = copyList(lst)`.
+3. Loop `k` times: generate `j = randInt(1, arr.listLen())`; append `arr[j]` to `result`; call `arr.remove(j)` to prevent re-selection.
+4. Return `result` — exactly `k` distinct elements from the original list.
+
+=== ENTRY 1748 ===
+Goal: Maintain a global event log with timestamps. Write `emit(event, data)` that records events with an auto-incrementing counter. Emit 5 events and print the log.
+
+1. Declare global `eventLog316` as an empty list and `eventCounter316 = 0`.
+2. Define `emit316(event, data)`: increment `eventCounter316`; append a dict `{"event":event, "data":data, "time":counter}` to `eventLog316`.
+3. Emit: "login"/"user1", "click"/"btn1", "scroll"/100, "logout"/"user1", "login"/"user2".
+4. Print the full event log.
+
+=== ENTRY 1749 ===
+Goal: Simulate a publish-subscribe pattern using a global dict of event-to-handler-list mappings. Implement subscribe, publish; test with multiple handlers per event.
+
+1. Declare global `subscribers317` as an empty dictionary.
+2. Define `subscribe(event, handler)`: if the event key doesn't exist, initialize it with an empty list; append `handler` to `subscribers317[event]`.
+3. Define `publish(event, data)`: if the event has subscribers, iterate over each handler name and print `"Handler [name] called with [data]"`.
+4. Subscribe "logHandler" and "analyticsHandler" to "click"; subscribe "tooltipHandler" to "hover".
+5. Publish "click" → calls both handlers; publish "hover" → calls tooltipHandler.
+
+=== ENTRY 1750 ===
+Goal: Implement a retry mechanism using a global counter to simulate function failures. Succeed after 2 failures and fall back if max retries exceeded.
+
+1. Declare global `retryCounter = 0`.
+2. Define `retry319(maxAttempts, fallback)`: initialize `result = fallback` and `done = false`.
+3. While `retryCounter < maxAttempts` and not `done`: increment counter; if counter >= 3, set `result = "success"` and `done = true`; else print failure message.
+4. If not done after the loop, print "All retries exhausted".
+5. Return `result`. Test: succeeds on attempt 3.
+
+=== ENTRY 1751 ===
+Goal: Implement a trie data structure using nested dictionaries. Write insert and search functions. Test with several words including prefixes.
+
+1. Define `trieInsert(root, word)`: traverse the trie character by character; if a child node for the current character doesn't exist, create an empty dict; advance `node` to that child; after the last character, mark `node.set("$", true)` as end-of-word.
+2. Define `trieSearch(root, word)`: traverse the trie character by character; if any character's child node is missing, return false; after traversal, return `node.containsKey("$")`.
+3. Insert "apple", "app", "apt", "bat".
+4. Test: "app" → true, "ap" → false (no end marker), "apple" → true, "bat" → true.
+
+=== ENTRY 1752 ===
+Goal: Write `lcs(a, b)` that reconstructs the actual longest common subsequence string (not just its length) using a 2D DP table of strings.
+
+1. Define `lcs321` accepting strings `a` and `b`.
+2. Initialize a (m+1)×(n+1) 2D list `dp` of empty strings.
+3. For `i` from 1 to `m` and `j` from 1 to `n`: if characters match, `dp[i+1][j+1] = dp[i][j] _ a.segment(i,1)` — extend the diagonal.
+4. If they don't match: `dp[i+1][j+1]` takes the longer of `dp[i][j+1]` and `dp[i+1][j]`.
+5. Return `dp[m+1][n+1]` — the actual LCS string.
+
+=== ENTRY 1753 ===
+Goal: Write `kmpSearch(text, pattern)` using the Knuth-Morris-Pratt algorithm to find all 1-based positions where the pattern occurs in the text.
+
+1. Define `kmpSearch(text, pattern)`.
+2. Build the `lps` (longest proper prefix-suffix) array: iterate `i` from 2 to pattern length; if current char matches the char at `len+1`, extend; else fall back using `lps[len]`.
+3. Search phase: maintain pattern index `j`; advance both `i` (text) and `j` (pattern) on match; on full match (`j > m`), record starting position `i - m` and reset `j` using `lps`.
+4. On mismatch: if `j > 1`, fall back `j = lps[j-1]+1`; else advance `i`.
+5. Return the list of match positions.
+
+=== ENTRY 1754 ===
+Goal: Write `countingSort(lst, maxVal)` for non-negative integers. Use a frequency array to sort in O(n + maxVal). Test with values up to 8.
+
+1. Define `countingSort` accepting `lst` and `maxVal`.
+2. Initialize `count` as a list of `maxVal + 1` zeros.
+3. For each element `x` in `lst`: increment `count[x + 1]` (1-based indexing).
+4. Reconstruct `result`: for each value `i` from 0 to `maxVal`, append `i` exactly `count[i+1]` times.
+5. Return `result` — the sorted list.
+
+=== ENTRY 1755 ===
+Goal: Write `radixSort(lst)` that sorts non-negative integers by processing one decimal digit at a time from least to most significant.
+
+1. Define `radixSort` accepting a list of non-negative integers.
+2. Copy the list; find `mx = max value`.
+3. Initialize `exp = 1`; while `floor(mx / exp) > 0`: create 10 empty buckets (0-9); for each element, compute its current digit as `floor(x / exp) % 10` and place it in the corresponding bucket; flatten buckets back into `arr`; multiply `exp` by 10.
+4. Return the fully sorted `arr`.
+
+=== ENTRY 1756 ===
+Goal: Write `productExceptSelf(lst)` that returns a list where each element is the product of all other elements, without using division. Test [1,2,3,4] expecting [24,12,8,6].
+
+1. Define `productExceptSelf` accepting a list `lst` of length `n`.
+2. Initialize `left` and `right` prefix/suffix product arrays, each of length `n` filled with 1s.
+3. Forward pass: for `i` from 2 to `n`, set `left[i] = left[i-1] * lst[i-1]`.
+4. Backward pass: for `i` from `n-1` down to 1, set `right[i] = right[i+1] * lst[i+1]`.
+5. Result: for each `i`, `result[i] = left[i] * right[i]`.
+
+=== ENTRY 1757 ===
+Goal: Write `trappingRain(heights)` using the two-pass precomputation of left and right maxima to determine water trapped at each position.
+
+1. Define `trappingRain` accepting a list of bar heights.
+2. Initialize `leftMax` and `rightMax` as copies of `heights`.
+3. Forward pass: for `i` from 2 to `n`, `leftMax[i] = max(leftMax[i-1], heights[i])`.
+4. Backward pass: for `i` from `n-1` down to 1, `rightMax[i] = max(rightMax[i+1], heights[i])`.
+5. For each position: water trapped = `min(leftMax[i], rightMax[i]) - heights[i]`; sum all and return.
+
+=== ENTRY 1758 ===
+Goal: Write `maxProfit(prices)` using a single-pass linear scan that tracks the minimum price seen so far to maximize profit. Test [7,1,5,3,6,4] expecting 5.
+
+1. Define `maxProfit` accepting a list of prices.
+2. Initialize `minP = prices[1]` and `maxP = 0`.
+3. For each price `p` in `prices`: update `minP = min(minP, p)`; update `maxP = max(maxP, p - minP)`.
+4. Return `maxP` — the best single buy-sell profit.
+
+=== ENTRY 1759 ===
+Goal: Write `uniquePaths(m, n)` using a DP table to count distinct paths in an m×n grid moving only right or down. Test (3,7) expecting 28.
+
+1. Define `uniquePaths` accepting dimensions `m` (rows) and `n` (columns).
+2. Initialize an m×n DP table `dp` filled with 1s (first row and column have exactly 1 path each).
+3. For `i` from 2 to `m` and `j` from 2 to `n`: `dp[i][j] = dp[i-1][j] + dp[i][j-1]`.
+4. Return `dp[m][n]`.
+
+=== ENTRY 1760 ===
+Goal: Write `climbStairs(n)` that counts distinct ways to climb `n` stairs taking 1 or 2 steps at a time using iterative DP. Test n=10 expecting 89.
+
+1. Define `climbStairs` accepting `n`.
+2. Base cases: if `n <= 2`, return `n` directly.
+3. Initialize `a = 1` (ways to reach step 1) and `b = 2` (ways to reach step 2).
+4. Iterate `i` from 3 to `n`: compute `c = a + b` (Fibonacci-style recurrence); set `a = b`, `b = c`.
+5. Return `b` — the number of ways to climb `n` stairs.
+
+=== ENTRY 1761 ===
+Goal: Write `wordBreak(s, wordDict)` using DP to determine if a string can be segmented into words from a dictionary. Test ("leetcode", ["leet","code"]) expecting true.
+
+1. Define `wordBreak` accepting string `s` and list `wordDict`.
+2. Initialize DP list `dp` of `n+1` false values; set `dp[1] = true`.
+3. For `i` from 1 to `n`: if `dp[i]` is true, iterate over each word `w` in `wordDict`; compute `end = i + w.textLen() - 1`; if in bounds and `s.segment(i, w.textLen()) === w`, set `dp[end+1] = true`.
+4. Return `dp[n+1]`.
+
+=== ENTRY 1762 ===
+Goal: Write `maxRectangle(matrix)` using a histogram-based approach to find the largest rectangle of 1s in a binary matrix.
+
+1. Define `largestRectHistogram(heights)`: use a monotonic stack to compute the largest rectangle in a histogram in O(n).
+2. Process each bar: while the stack's top height exceeds the current height, pop and compute area using the current index minus the new stack top minus 1 as width.
+3. Define `maxRectangle(matrix)`: initialize `heights` as zeros; for each row, update heights (increment on 1, reset to 0 on 0); compute the histogram rectangle area for each row and track the maximum.
+4. Return the maximum area found.
+
+=== ENTRY 1763 ===
+Goal: Write `catalan(n)` using DP to compute the nth Catalan number. Test n=0..7 expecting [1,1,2,5,14,42,132,429].
+
+1. Define `catalan(n)`: initialize a DP list `dp` of n+1 zeros; set `dp[1] = 1` (C₀ = 1).
+2. For `i` from 2 to `n+1`: compute `dp[i] = sum(dp[j] * dp[i-j])` for `j` from 1 to `i-1`.
+3. Return `dp[n+1]`.
+4. Note: the indexing is offset by 1 due to 1-based lists, so `dp[1]` = C₀ = 1, `dp[2]` = C₁ = 1, etc.
+
+=== ENTRY 1764 ===
+Goal: Write `isValidBST(vals)` that checks whether an inorder traversal sequence could represent a valid BST by verifying it is strictly increasing.
+
+1. Define `isValidBST` accepting a list `vals`.
+2. Initialize `ok = true`.
+3. Iterate `i` from 2 to `vals.listLen()`: if `vals[i] <= vals[i-1]`, set `ok = false` — BSTs require strictly increasing inorder sequences.
+4. Return `ok`.
+5. Test: [1,3,5,7] → true; [1,5,3,7] → false (5 > 3 violates the ordering).
+
+=== ENTRY 1765 ===
+Goal: Write `minPathSum(grid)` using DP to find the minimum-cost path from top-left to bottom-right, moving only right or down.
+
+1. Define `minPathSum` accepting a 2D `grid`.
+2. Initialize a DP table `dp` of the same dimensions.
+3. Set `dp[1][1] = grid[1][1]`.
+4. Fill first column: `dp[i][1] = dp[i-1][1] + grid[i][1]`.
+5. Fill first row: `dp[1][j] = dp[1][j-1] + grid[1][j]`.
+6. Fill remaining cells: `dp[i][j] = grid[i][j] + min(dp[i-1][j], dp[i][j-1])`.
+7. Return `dp[rows][cols]`. Test: [[1,3,1],[1,5,1],[4,2,1]] → 7.
+
+=== ENTRY 1766 ===
+Goal: Write `bestTimeToBuy(prices, fee)` using DP with two states (holding/not holding) to maximize profit with a transaction fee. Test expecting 8.
+
+1. Define `bestTimeToBuy` accepting `prices` and transaction `fee`.
+2. Initialize `cash = 0` (max profit when not holding stock) and `hold = -prices[1]` (max profit when holding stock on day 1).
+3. Iterate from day 2: update `cash = max(cash, hold + prices[i] - fee)` — sell today and pay fee; update `hold = max(hold, cash - prices[i])` — buy today.
+4. Return `cash` — the maximum profit while not holding stock.
+
+=== ENTRY 1767 ===
+Goal: Write `regularExpMatch(s, p)` using DP to handle `.` (any single char) and `*` (zero or more of preceding). Test "aa"/"a*" and "ab"/".*".
+
+1. Define `regularExpMatch` accepting string `s` and pattern `p`.
+2. Initialize a (m+1)×(n+1) DP boolean table; set `dp[1][1] = true`.
+3. Handle patterns starting with `*`: `dp[1][j] = dp[1][j-2]` if `p[j-1] === "*"`.
+4. For each cell `(i, j)`: if `p[j] === "*"`: can skip the preceding character (`dp[i+1][j-1]`) or match one more if preceding matches current char (`dp[i][j+1]`).
+5. If `p[j] === "."` or matches `s[i]`: `dp[i+1][j+1] = dp[i][j]`.
+6. Return `dp[m+1][n+1]`.
+
+=== ENTRY 1768 ===
+Goal: Maintain a globally sorted task schedule by priority. Write `addTask(name, priority)` that inserts at the correct sorted position. Test 5 insertions.
+
+1. Declare global `schedule341` as an empty list.
+2. Define `addTask(name, priority)`: initialize `i = 1`; advance `i` while `schedule341[i].priority <= priority`; insert the task dict at position `i` using `this.schedule341.insert(i, {"name":name,"priority":priority})`.
+3. Insert tasks with priorities 5, 1, 3, 0, 2.
+4. Print the sorted schedule — tasks appear in ascending priority order.
+
+=== ENTRY 1769 ===
+Goal: Implement a token bucket rate limiter with refill support. Test request throttling and token refill.
+
+1. Declare global `tokens342 = 10` (initial capacity).
+2. Define `request342(cost)`: if `tokens342 >= cost`, deduct and print remaining tokens; else print "throttled".
+3. Define `tick342(refillRate)`: refill tokens up to capacity 10 using `min(10, tokens342 + refillRate)`.
+4. Request 3 (7 left), request 4 (3 left), request 5 (throttled — only 3), tick +5 (8 tokens), request 4 (4 left).
+
+=== ENTRY 1770 ===
+Goal: Implement a Bloom filter using a global bit array and multiple hash functions to check set membership with possible false positives. Test with 20 insertions.
+
+1. Declare global `bloomBits` as a list of 64 zeros.
+2. Define `bloomHash(v, prime)`: compute `abs(v * prime % 64) + 1` to map values to bit positions.
+3. Define `bloomAdd(v)`: set bit positions given by hashing `v` with primes 31, 37, and 41 to 1.
+4. Define `bloomQuery(v)`: return true only if all three hashed bit positions are 1.
+5. Add values 1-20; query 5 (definitely present → true); query 25 (not added, may be false positive → likely false).
+
+=== ENTRY 1771 ===
+Goal: Maintain a global top-k list that updates on each new value seen. Test with a stream of 15 numbers keeping the top 5.
+
+1. Declare global `topKList` as an empty list and `topK_k = 5`.
+2. Define `see344(v)`: append `v` to `topKList`; sort descending with `.sort { a, b -> a > b }`; if length exceeds `topK_k`, remove the last (smallest) element.
+3. Process stream: [3,1,4,1,5,9,2,6,5,3,5,8,7,2,4].
+4. Print final `topKList` → the 5 largest values seen: [9,8,7,6,5].
+
+=== ENTRY 1772 ===
+Goal: Write `dedupeStream(lst)` that processes a simulated data stream, printing each unique element only the first time it appears. Use a global seen-set.
+
+1. Declare global `seen345` as an empty dictionary.
+2. Define `dedupeStream(lst)`: iterate over each element `x`; convert to string key.
+3. If the key is not in `seen345`, print `x` and record `seen345[key] = true`.
+4. If already seen, skip silently.
+5. Test: ["a","b","a","c","b","d","a"] → prints a, b, c, d only.
+
+=== ENTRY 1773 ===
+Goal: Write `binarySearchFirst(lst, target)` that finds the index of the first occurrence of `target` in a sorted list with duplicates. Test ([1,2,2,2,3,4], 2) expecting 2.
+
+1. Define `binarySearchFirst` accepting a sorted list and target value.
+2. Initialize `lo = 1`, `hi = lst.listLen()`, `result = -1`.
+3. While `lo <= hi`: compute `mid = floor((lo + hi) / 2)`.
+4. If `lst[mid] == target`: record `result = mid` and search LEFT (`hi = mid - 1`) for an earlier occurrence.
+5. If `lst[mid] < target`: search right (`lo = mid + 1`).
+6. If `lst[mid] > target`: search left (`hi = mid - 1`).
+7. Return `result` — the leftmost matching index.
+
+=== ENTRY 1774 ===
+Goal: Write `jumpSearch(lst, target)` that searches a sorted list by jumping in √n steps and then linear scanning backward. Test with target 55.
+
+1. Define `jumpSearch` accepting a sorted list and target.
+2. Compute `stepVar = floor(sqrt(n))`.
+3. Advance `prev` and `curr` by `stepVar` while `curr <= n` and `lst[curr] < target`.
+4. Linear scan from `prev` to `min(curr, n)`: if `lst[i] == target`, return `i`.
+5. Return -1 if not found.
+
+=== ENTRY 1775 ===
+Goal: Write `diffList(a, b)` that computes set differences and intersection between two lists. Test ([1,2,3,4],[3,4,5,6]) expecting ([1,2],[5,6],[3,4]).
+
+1. Define `diffList` accepting lists `a` and `b`.
+2. Build `setA` and `setB` dictionaries mapping string-coerced elements to their original values.
+3. Compute `onlyA = a.filter { x -> !setB.containsKey("" _ x) }`.
+4. Compute `onlyB = b.filter { x -> !setA.containsKey("" _ x) }`.
+5. Compute `both = a.filter { x -> setB.containsKey("" _ x) }`.
+6. Return `[onlyA, onlyB, both]`.
+
+=== ENTRY 1776 ===
+Goal: Write `powerSet(lst)` that generates all subsets of a list by iterating over all binary patterns. Test [1,2,3] expecting 8 subsets.
+
+1. Define `powerSet` accepting a list `lst` of length `n`.
+2. Compute `total = 2^n` (number of subsets).
+3. Iterate `i` from 0 to `total - 1`: each integer `i` encodes a subset via its binary bits.
+4. For each bit position `j` from 0 to `n-1`: if bit `j` of `i` is set (`floor(i / 2^j) % 2 == 1`), include `lst[j+1]` in the subset.
+5. Append each subset to `result`; return it.
+
+=== ENTRY 1777 ===
+Goal: Write `derangements(n)` using the recursive formula D(n) = (n-1)*(D(n-1)+D(n-2)) to count permutations with no fixed points. Test n=4 expecting 9.
+
+1. Define `derangements` accepting `n`.
+2. Base cases: `n == 0` → 1, `n == 1` → 0.
+3. Recursive case: `(n - 1) * (derangements(n-1) + derangements(n-2))`.
+4. Test: D(4) = 3*(D(3)+D(2)) = 3*(2+1) = 9.
+
+=== ENTRY 1778 ===
+Goal: Write `spiralMatrix(mat)` that extracts elements of a 2D matrix in clockwise spiral order. Test a 4×4 matrix.
+
+1. Define `spiralMatrix` accepting a 2D list `mat`.
+2. Maintain boundary pointers: `top`, `bottom`, `left`, `right`.
+3. While boundaries haven't crossed: traverse right (top row), increment `top`; traverse down (right column), decrement `right`; if `top <= bottom`, traverse left (bottom row), decrement `bottom`; if `left <= right`, traverse up (left column), increment `left`.
+4. Append each element to `result` during traversal.
+5. Return `result` — the spiral order list.
+
+=== ENTRY 1779 ===
+Goal: Write `gameOfLife(grid)` that computes one generation of Conway's Game of Life on a 2D binary grid. Test on a 5×5 grid.
+
+1. Define `gameOfLife` accepting a 2D binary grid.
+2. Initialize a new `next` grid of zeros with the same dimensions.
+3. For each cell `(r, c)`: count live neighbors by iterating all 8 directions `(dr, dc)` from -1 to 1 (skipping 0,0), checking bounds.
+4. Apply rules: live cell with 2 or 3 neighbors survives; dead cell with exactly 3 neighbors becomes alive; all others die.
+5. Return `next` — the new generation.
+
+=== ENTRY 1780 ===
+Goal: Simulate Langton's Ant for a given number of steps using a dictionary as the infinite grid. Print the number of distinct cells visited after 200 steps.
+
+1. Initialize empty `grid` dict, position `(x, y) = (0, 0)`, direction `dir = 0` (pointing up), and delta arrays `dx` and `dy`.
+2. For each step: construct key `x _ "," _ y`; check if the cell is white (absent or 0).
+3. If white: mark the cell black (`grid.set(key, 1)`), turn right (`dir = (dir+1)%4`).
+4. If black: mark white (`grid.set(key, 0)`), turn left (`dir = (dir+3)%4`).
+5. Move forward using `x += dx[dir+1]`, `y += dy[dir+1]`.
+6. Print the number of cells visited (keys in the grid dict).
+
+=== ENTRY 1781 ===
+Goal: Write `cellularAutomaton(rule, state, steps)` that simulates a 1D Wolfram cellular automaton applying the given rule number for multiple generations. Test rule 110.
+
+1. Define `cellularAutomaton` accepting rule number (0-255), initial binary state list, and step count.
+2. Print the initial state with `#` for 1 and `.` for 0.
+3. For each generation: create a copy `next`; for each interior cell `j` from 2 to `len-1`, compute the 3-bit neighborhood index `left*4 + center*2 + right`; extract the rule bit using `floor(rule / 2^idx) % 2`; update `next[j]`.
+4. Set boundary cells to 0.
+5. Print the new generation and set `current = next`.
+
+=== ENTRY 1782 ===
+Goal: Simulate a queuing system with fixed service time. Compute waiting time for each customer and print the average.
+
+1. Define `simulateQueue` accepting `arrivals` (list of arrival times) and `serviceTime`.
+2. Initialize `waitTimes` list and `serverFree = 0`.
+3. For each arrival time `arr`: compute `start = max(arr, serverFree)` — the customer waits until the server is free or starts immediately if arrived late.
+4. Compute `wait = start - arr`; append to `waitTimes`.
+5. Update `serverFree = start + serviceTime`.
+6. Print the average wait time using `avgOf(waitTimes)`.
+
+=== ENTRY 1783 ===
+Goal: Write a generalized Caesar cipher `encodeCaesar(s, alphabet, shift)` that works on any custom character set. Test with lowercase and uppercase alphabets.
+
+1. Define `encodeCaesar` accepting a string `s`, an `alphabet` string defining the character set, and integer `shift`.
+2. For each character `ch` in `s`: search for its index in `alphabet` by iterating; if found, compute new index as `(idx - 1 + shift) % n + 1` and look up the shifted character; if not in alphabet, preserve `ch` unchanged.
+3. Concatenate results into `result` and return.
+4. Test with rot-13 (shift=13 on lowercase) and shift-3 on uppercase.
+
+=== ENTRY 1784 ===
+Goal: Write a simplified Metaphone phonetic encoder that applies basic consonant-reduction rules. Verify "Smith" and "Smythe" produce the same code.
+
+1. Define `metaphone` accepting a string `s`.
+2. Uppercase the string and apply string replacements: "PH"→"F", "CK"→"K", "SCH"→"SK", "TH"→"0", "GN"→"N".
+3. Remove vowels from all positions except the first character (since leading vowels are significant in Metaphone).
+4. Return the resulting code.
+5. Both "Smith" and "Smythe" should reduce to the same phonetic representation.
+
+=== ENTRY 1785 ===
+Goal: Write `tokenize(expr)` that splits a mathematical expression string into individual number and operator tokens, ignoring whitespace.
+
+1. Define `tokenize` accepting an expression string `expr`.
+2. Initialize `result` list and index `i = 1`.
+3. In a while loop: skip spaces; if `ch ? base10` (digit), accumulate a full number token; otherwise, push `ch` as a single-character operator/symbol token.
+4. Return `result` — a clean list of string tokens.
+5. Test: "12 + 34 * (5-2)" → ["12","+","34","*","(","5","-","2",")"].
+
+=== ENTRY 1786 ===
+Goal: Write `prettyPrint(value, indent)` that recursively formats nested dictionaries and lists with indentation for human-readable output.
+
+1. Define `prettyPrint` accepting `value` (any type) and `indent` level.
+2. Compute `prefix` as `indent * 2` spaces.
+3. If `value ? dict`: format as `"{\n"` followed by each key-value pair recursively indented, then closing `"}"`.
+4. If `value ? list`: format as `"[\n"` followed by each element recursively indented, then closing `"]"`.
+5. Otherwise: return `"" _ value` (coerce primitive to string).
+6. Test on a 3-level nested dict.
+
+=== ENTRY 1787 ===
+Goal: Write `deepEqual(a, b)` that performs structural equality checking for arbitrarily nested dictionaries and lists. Test matching and non-matching structures.
+
+1. Define `deepEqual` accepting values `a` and `b`.
+2. If both are dicts: check equal size; iterate keys of `a`; for each key, verify it exists in `b` and `deepEqual(a[k], b[k])`.
+3. If both are lists: check equal size; iterate by index; verify `deepEqual(a[i], b[i])`.
+4. Otherwise: return `a == b` (primitive equality).
+5. Return `ok` after all checks.
+
+=== ENTRY 1788 ===
+Goal: Write `deepCopy(v)` that recursively deep-copies nested structures. Modify the copy and verify the original is unchanged.
+
+1. Define `deepCopy` accepting any value `v`.
+2. If `v ? dict`: create empty `result`; iterate each key-value pair; recursively `deepCopy(val)` and set in `result`; return `result`.
+3. If `v ? list`: apply `.map { el -> deepCopy(el) }` to create a new list with deep-copied elements.
+4. Otherwise: return `v` directly (primitives are immutable).
+5. Test: add element to the copy's nested list; verify the original nested list is unaffected.
+
+=== ENTRY 1789 ===
+Goal: Implement the Observer pattern with subscribe/unsubscribe/fire operations. Support multiple listeners per event and test removal.
+
+1. Declare global `listeners371` as an empty dictionary.
+2. Define `on(event, name)`: create the event list if absent; append `name` to it.
+3. Define `off(event, name)`: find `name`'s index in the event list; remove it if found.
+4. Define `fire(event, data)`: iterate over all listeners for the event; print a call notification for each.
+5. Subscribe handler1 and handler2 to "click"; subscribe handler3 to "hover"; fire "click" → both; unsubscribe handler1; fire "click" again → only handler2.
+
+=== ENTRY 1790 ===
+Goal: Implement the Command pattern with execute and undo. Execute 4 commands, undo the last, and print remaining history.
+
+1. Declare global `history372` as an empty list.
+2. Define `execute372(cmd, args)`: append `{"cmd":cmd,"args":args}` to history and print the execution.
+3. Define `undoLast372()`: if history is not empty, retrieve and remove the last entry; print what was undone.
+4. Execute 4 commands; call `undoLast372()` once; print `this.history372` — 3 entries remain.
+
+=== ENTRY 1791 ===
+Goal: Write `strategySort(lst, strategy)` that sorts a list using one of three strategies: ascending, descending, or by string length. Test all three.
+
+1. Define `strategySort` accepting a list and strategy string.
+2. If `"asc"`: sort using `.sort { a, b -> a << b }` — lexicographic ascending.
+3. If `"desc"`: sort using `.sort { a, b -> a >> b }` — lexicographic descending.
+4. Otherwise (length): sort using `.sort { a, b -> a.textLen() < b.textLen() }`.
+5. Return the sorted list for each strategy.
+
+=== ENTRY 1792 ===
+Goal: Write `chainOfResponsibility(handlers, value)` that passes a value through a chain of handlers; the first handler whose threshold meets or exceeds the value processes it.
+
+1. Define `chainOfResponsibility` accepting a list of handler dicts (each with "threshold" and "name") and a `value`.
+2. Initialize `result = "unhandled"`.
+3. For each handler: if `handler.threshold >= value`, set `result = "name handles value"` and set `value = 999999` to prevent further handling.
+4. Return `result` — only the first qualifying handler acts.
+
+=== ENTRY 1793 ===
+Goal: Write `templateMethod(steps)` that simulates a template method pattern by printing start and done messages around each step. Test with 4 steps.
+
+1. Define `templateMethod` accepting a list of step name strings.
+2. For each `stepVar` in `steps`: print `"[stepVar] start"`; then print `"[stepVar] done"`.
+3. The pattern simulates a fixed algorithm skeleton with variable step names.
+4. Test with ["init","process","validate","save"].
+
+=== ENTRY 1794 ===
+Goal: Write `calcPi(n)` that estimates π using the Leibniz series to n terms. Test with n=10000 formatted to 6 decimal places.
+
+1. Define `calcPi` accepting `n` (number of terms).
+2. Initialize `sum = 0`.
+3. Iterate `i` from 0 to `n-1`: add `+1 / (2*i+1)` for even `i`; subtract `-1 / (2*i+1)` for odd `i`.
+4. Multiply by 4 to get π estimate: `4 * sum`.
+5. Format to 6 decimal places and return. Expected: ≈ 3.141493 for n=10000 (converges slowly).
+
+=== ENTRY 1795 ===
+Goal: Write `calcE(n)` that approximates Euler's number e using the Taylor series sum(1/k!) for k=0 to n. Test with n=15.
+
+1. Define `calcE` accepting `n`.
+2. Initialize `sum = 1` (the k=0 term) and `fact = 1`.
+3. Iterate `k` from 1 to `n`: multiply `fact = fact * k` to maintain k!; add `1 / fact` to `sum`.
+4. Format to 8 decimal places and return. Expected: ≈ 2.71828183.
+
+=== ENTRY 1796 ===
+Goal: Write `newtonSqrt(n)` using Newton's method to iteratively converge on the square root. Compare with the built-in `sqrt`.
+
+1. Define `newtonSqrt` accepting a number `n`.
+2. Initialize `x = n / 2` (initial guess) and `prev = 0`.
+3. While `abs(x - prev) >= 0.000001`: update `prev = x`; compute next approximation `x = (x + n / x) / 2`.
+4. Return `x` when the change is below the tolerance threshold.
+5. Print both to 8 decimal places to verify they match.
+
+=== ENTRY 1797 ===
+Goal: Write `bisection(lo, hi, target)` that finds the root of f(x) = x³ - x - 2 using the bisection method to 4 decimal places.
+
+1. Define `bisection` accepting `lo`, `hi`, and `target` (unused here — the function is hardcoded).
+2. Initialize `a = lo`, `b = hi`.
+3. While `b - a > 0.00001`: compute `mid = (a + b) / 2`; evaluate `fmid = mid^3 - mid - 2`.
+4. If `fmid < 0`, root is in `[mid, b]` → set `a = mid`; else root is in `[a, mid]` → set `b = mid`.
+5. Return `formatDecimal((a + b) / 2, 4)`. Expected: ≈ 1.5214.
+
+=== ENTRY 1798 ===
+Goal: Write `trapezoidal(lo, hi, n)` that numerically integrates f(x) = x² using the trapezoidal rule with n panels. Test [0,1] expecting 0.3333.
+
+1. Define `trapezoidal` accepting integration bounds `lo`, `hi`, and panel count `n`.
+2. Compute step size `h = (hi - lo) / n`.
+3. Initialize `sum = (lo^2 + hi^2) / 2` — the two endpoint contributions, each weighted ½.
+4. Iterate interior points `i` from 1 to `n-1`: compute `x = lo + i * h`; add `x^2` to `sum`.
+5. Multiply by `h` and return formatted to 4 decimal places.
+
+=== ENTRY 1799 ===
+Goal: Write `powerSeries(coeffs, x)` that evaluates a polynomial defined by its coefficient list at a given x value. Test [1,2,3] at x=2 expecting 17.
+
+1. Define `powerSeries` accepting a coefficients list and value `x`.
+2. Initialize `result = 0`.
+3. Iterate `i` from 1 to `coeffs.listLen()`: add `(coeffs[i] * x) ^ (i - 1)` to `result`.
+4. Note: the formula computes `coeffs[i] * x^(i-1)` — for i=1: `1*x^0=1`; i=2: `2*x^1=4`; i=3: `3*x^2=12`; total = 17.
+5. Return `result`.
+
+=== ENTRY 1800 ===
+Goal: Write `fftMagnitudes(signal)` that computes the DFT magnitude spectrum using the O(n²) direct formula. Test with [1,0,-1,0] and print magnitudes.
+
+1. Define `fftMagnitudes` accepting a signal list of length `n`.
+2. Iterate frequency bin `k` from 0 to `n-1`.
+3. For each `k`, compute the DFT sum: iterate time index `t` from 0 to `n-1`; accumulate real part `re += signal[t+1] * cos(2π*k*t/n)` and imaginary part `im -= signal[t+1] * sin(2π*k*t/n)`.
+4. Compute magnitude `sqrt(re^2 + im^2)` and format to 4 decimal places.
+5. Append to `mags` and return the complete magnitude spectrum.

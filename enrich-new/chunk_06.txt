@@ -1,0 +1,1484 @@
+=== ENTRY 1001 ===
+Goal: Extract all numeric substrings from a given string and return them as a list of strings.
+1. The function `extractNumbers` accepts a single string parameter `s` that may contain a mix of words, spaces, and numeric characters.
+2. It scans the string character by character, identifying contiguous sequences of digit characters that form valid numeric substrings.
+3. Each discovered numeric substring is collected and appended into a result list without altering the original string.
+4. The function returns the result list containing every numeric token found — in this stub, the hardcoded output `["3", "12"]` demonstrates the expected behavior for the input `"I have 3 cats and 12 birds"`.
+
+=== ENTRY 1002 ===
+Goal: Implement the classic FizzBuzz logic as a returning string function for a single number.
+1. The function `fizzBuzzStr` receives a single integer `n` and evaluates three divisibility conditions in strict priority order.
+2. It first checks whether `n` is divisible by 15 (i.e., divisible by both 3 and 5 simultaneously), returning `"FizzBuzz"` in that case.
+3. If that check fails, it then tests divisibility by 3 alone, returning `"Fizz"`.
+4. Next it tests divisibility by 5 alone, returning `"Buzz"`.
+5. If none of the divisibility conditions hold, it converts the number to a string by joining it with an empty string using the `_` text-join operator and returns that string representation.
+
+=== ENTRY 1003 ===
+Goal: Split a list of two-element pair lists into two separate parallel lists — the inverse of a zip operation.
+1. The function `unzip` accepts `pairs`, a list where every element is itself a two-element list of the form `[first, second]`.
+2. It declares two empty accumulator lists, `l1` and `l2`, which will hold the first and second elements of each pair respectively.
+3. A for-each loop iterates over every pair `p` in `pairs`; within each iteration, `p[1]` (the first element, using 1-based indexing) is appended to `l1`, and `p[2]` (the second element) is appended to `l2`.
+4. After all pairs have been processed, the function returns a two-element list `[l1, l2]`, effectively reconstructing the two original sequences that were zipped together.
+
+=== ENTRY 1004 ===
+Goal: Group a list of elements by a computed key derived from a provided key function, producing a dictionary mapping each key to the list of elements sharing it.
+1. The function `groupBy` takes a `list` of elements and a `key_fn` function that maps each element to a grouping key (such as `"even"` or `"odd"`).
+2. An empty dictionary `d` is declared to serve as the accumulator for the grouped results.
+3. For each element in the list, `key_fn` is applied to obtain its group key; if that key does not yet exist in `d`, a new empty list is created under it.
+4. The element is then appended to the list stored at its computed key in `d`.
+5. The completed dictionary, where each key maps to all elements that produced that key, is returned. (This stub returns the empty dict as a placeholder.)
+
+=== ENTRY 1005 ===
+Goal: Compute the set intersection of two lists — all elements present in both — without duplicates.
+1. The function `intersection` takes two lists `a` and `b`.
+2. It applies a filter lambda over list `a`, keeping only those elements `x` for which `b.containsItem(x)` returns true — meaning `x` also appears in `b`.
+3. Because the filter naturally processes each element of `a` once, any element of `a` that does not appear in `b` is discarded.
+4. The resulting filtered list, containing only the common elements, is returned and then printed with the test call `intersection([1,2,3,4], [2,4,6])`.
+
+=== ENTRY 1006 ===
+Goal: Remove all falsy values — specifically `0`, `false`, and the empty string `""` — from a list, returning only the truthy elements.
+1. The function `compact` receives a `list` of mixed values.
+2. A filter lambda is applied to the list; its predicate checks that each element `x` is not equal to `0`, not equal to `false`, and not text-equal to `""` (using the strict text equality operator `!==` to distinguish an empty string from other falsy-like values).
+3. Only elements satisfying all three conditions simultaneously survive the filter.
+4. The filtered list, containing only the genuinely truthy values, is returned.
+
+=== ENTRY 1007 ===
+Goal: Compute the running cumulative sum of a list of numbers, producing a new list where each position holds the sum of all elements up to and including that position.
+1. The function `cumSum` accepts a numeric `list`.
+2. An empty result list `res` and a running total variable `sum` initialized to `0` are declared.
+3. A for-each loop iterates over each value `x` in the list; on every iteration, `x` is added to `sum`, and the updated `sum` is appended to `res`.
+4. After all elements are processed, `res` — which now holds the prefix sums at every index — is returned.
+
+=== ENTRY 1008 ===
+Goal: Compute the running minimum of a list, producing a new list where each position holds the smallest value seen so far from the beginning of the list.
+1. The function `runningMin` accepts a numeric `list`.
+2. An empty result list `res` is declared, and a variable `mn` is initialized to `list[1]` — the very first element — establishing the initial minimum.
+3. A for-each loop iterates over every element `x`; if `x` is smaller than the current minimum `mn`, `mn` is updated to `x`.
+4. After the conditional update, the current value of `mn` is always appended to `res`, ensuring each position in `res` records the minimum encountered up to that point.
+5. The complete running-minimum list is returned.
+
+=== ENTRY 1009 ===
+Goal: Compute the Cartesian product of two lists, returning every possible ordered pair `[x, y]` where `x` comes from the first list and `y` from the second.
+1. The function `cartesian` accepts two lists `a` and `b`.
+2. An empty result list `res` is declared.
+3. A nested for-each loop structure iterates over every element `x` in `a` as the outer loop, and over every element `y` in `b` as the inner loop.
+4. For every combination of `x` and `y`, the pair `[x, y]` is appended to `res`.
+5. After both loops complete, `res` holds all `|a| × |b|` ordered pairs and is returned.
+
+=== ENTRY 1010 ===
+Goal: Find the 1-based index of the first element in a list satisfying a given predicate function, or return `-1` if no element qualifies.
+1. The function `findIndex` accepts a `list` and a predicate function `pred_fn`.
+2. A local variable `idx` is initialized to `-1` as the default "not found" sentinel.
+3. A for-n loop counts from `1` to `list.listLen()` using a step of `1`, accessing each element by index with `list[i]`.
+4. For each element, `pred_fn(list[i])` is called; if it returns true, `idx` is set to `i` and the loop is immediately exited with `break`.
+5. After the loop, `idx` holds either the first matching index (1-based) or `-1`, and it is returned.
+
+=== ENTRY 1011 ===
+Goal: Determine whether no element in a list satisfies a given predicate — the logical negation of "any".
+1. The function `none` accepts a `list` and a predicate function `pred_fn`.
+2. A boolean variable `res` is initialized to `true`, representing the assumption that no element satisfies the predicate until proven otherwise.
+3. A for-each loop iterates over every element `x`; if `pred_fn(x)` returns true for any element, `res` is immediately set to `false` and the loop breaks early for efficiency.
+4. The final value of `res` is returned: `true` if no element ever satisfied the predicate, `false` if at least one did.
+
+=== ENTRY 1012 ===
+Goal: Produce a list of all consecutive adjacent pairs from a list — a sliding window of size two.
+1. The function `pairs` receives a `list`.
+2. An empty result list `res` is declared.
+3. A for-n loop runs from index `1` to `list.listLen() - 1` (stopping one before the last element so that `list[i + 1]` is always valid).
+4. On each iteration, the two-element list `[list[i], list[i + 1]]` is appended to `res`.
+5. The complete list of consecutive pairs is returned.
+
+=== ENTRY 1013 ===
+Goal: Generate all subsets (the power set) of a given list, including the empty set and the full set itself.
+1. The function `powerset` accepts a `list` (typically small, such as a 3-element list).
+2. For a list of `n` elements, the power set contains exactly `2^n` subsets.
+3. Each subset can be identified by treating a binary bitmask from `0` to `2^n - 1` as a selection vector, where each bit indicates whether the corresponding element is included.
+4. The function iterates over all bitmasks, builds each corresponding subset by checking which bit positions are set, and collects all subsets into a result list.
+5. The function returns the complete power set. (This entry is left as a stub `{ }` in the code.)
+
+=== ENTRY 1014 ===
+Goal: Return only the first `n` elements of a list.
+1. The function `firstN` accepts a `list` and an integer `n`.
+2. It directly delegates to the built-in `.slice(index1, index2)` method on lists, which extracts a contiguous sub-list.
+3. The slice starts at index `1` (the very first element, in 1-based indexing) and ends at index `n` (inclusive), thus capturing exactly the first `n` elements.
+4. The resulting sub-list is returned.
+
+=== ENTRY 1015 ===
+Goal: Flatten a dictionary into a single flat list by interleaving its keys and values in the order `[key1, value1, key2, value2, ...]`.
+1. The function `flatten_pairs` accepts a `dict`.
+2. An empty result list `res` is declared.
+3. A for-each loop iterates over every `k, v` pair in the dictionary; on each iteration, first the key `k` and then the value `v` are individually appended to `res` using `.add()`.
+4. After all entries are processed, `res` contains the fully interleaved flat list of alternating keys and values, which is returned.
+
+=== ENTRY 1016 ===
+Goal: Flatten a two-dimensional matrix (a list of lists) into a single one-dimensional list by concatenating all rows in order.
+1. The function `flatten_matrix` accepts a `matrix`, which is a list where each element is itself a list (a row).
+2. An empty result list `res` is declared.
+3. The outer for-each loop iterates over every `row` in the matrix.
+4. The inner for-each loop iterates over every `col` value within that `row`, appending each scalar value to `res`.
+5. After both loops complete, `res` holds all elements of the matrix in row-major order and is returned.
+
+=== ENTRY 1017 ===
+Goal: Merge two dictionaries such that values for shared keys are combined using a provided combiner function, while keys unique to either dictionary are carried over unchanged.
+1. The function `mergeWith` accepts two dicts `d1` and `d2`, and a `combiner` function that takes two values and returns their combination.
+2. A deep copy of `d1` is made into `res` using `copyDict(d1)`, preserving all of `d1`'s entries as the starting point.
+3. A for-each loop iterates over every `k, v` pair in `d2`; for each key, it checks whether `res` already contains that key.
+4. If the key exists in `res`, the combiner function is called with the existing value (`res.get(k, [])`) and the new value `v` from `d2`, and the result replaces the existing value in `res`.
+5. If the key does not yet exist in `res`, the value `v` from `d2` is simply inserted as-is.
+6. The merged dictionary `res` is returned.
+
+=== ENTRY 1018 ===
+Goal: Return a new dictionary containing only the key-value pairs whose keys appear in a specified list of desired keys.
+1. The function `pick` accepts a source dictionary `d` and a list of `keys` to retain.
+2. An empty result dictionary `res` is declared.
+3. A for-each loop iterates over each key `k` in the `keys` list; for each, it checks whether `d` actually contains that key using `d.containsKey(k)`.
+4. If the key is present, its corresponding value is retrieved with `d.get(k, [])` and inserted into `res` under the same key.
+5. Keys listed in `keys` but absent from `d` are silently skipped.
+6. The projection dictionary `res` is returned.
+
+=== ENTRY 1019 ===
+Goal: Recursively flatten a nested dictionary into a flat dictionary where each key is the full dot-separated path to a leaf value.
+1. The function `flattenDict` accepts a dictionary `d` and a `prefix` string representing the accumulated path of parent keys joined by dots.
+2. An empty result dictionary `res` is declared.
+3. A for-each loop iterates over every `k, v` pair in `d`; the full path key is constructed as `prefix _ "." _ k` when `prefix` is non-empty, or simply `k` when `prefix` is empty (the root level).
+4. If the value `v` is itself a dictionary (checked with `v ? dict`), the function recurses with `flattenDict(v, key)` and merges the resulting flat dict into `res` using `.mergeInto()`.
+5. If `v` is a leaf (non-dict) value, it is directly inserted into `res` under the constructed path key.
+6. The fully flattened dictionary `res` is returned.
+
+=== ENTRY 1020 ===
+Goal: Return the `n` dictionary keys associated with the smallest values, ordered from smallest to largest.
+1. The function `bottomN` accepts a dictionary `d` and an integer `n`.
+2. It first calls the (assumed external) `sortByValue(d)` function, which returns the dictionary's entries sorted by their values in ascending order as a list of key-value pairs.
+3. It then slices the first `n` elements of that sorted list using `.slice(1, n)`.
+4. A map lambda extracts only the key (`p[1]`) from each pair, discarding the value.
+5. The resulting list of the `n` keys with the smallest values is returned.
+
+=== ENTRY 1021 ===
+Goal: Determine whether all values in a dictionary satisfy a given predicate function — the dictionary analog of `every`.
+1. The function `allValues` accepts a dictionary `d` and a predicate function `pred`.
+2. A boolean variable `res` is initialized to `true`, assuming all values satisfy the predicate until a counterexample is found.
+3. A for-each loop iterates over every `k, v` pair in `d`; if `pred(v)` returns false for any value, `res` is set to `false` and the loop breaks immediately.
+4. The final value of `res` is returned.
+
+=== ENTRY 1022 ===
+Goal: Find all keys whose values differ between two dictionaries, including keys that appear in one but not the other.
+1. The function `diffDict` accepts two dictionaries `d1` and `d2`.
+2. An empty list `keys` is declared to collect the names of all differing or exclusive keys.
+3. The first for-each loop iterates over every `k, v` pair in `d1`; for each key, it retrieves the corresponding value from `d2` (defaulting to `[]` if absent) and compares it to `v`; if they differ, `k` is appended to `keys`.
+4. The second for-each loop iterates over every `k, v` pair in `d2`; for each key not present in `d1` at all, `k` is appended to `keys` as a newly added key.
+5. The complete list of differing keys is returned.
+
+=== ENTRY 1023 ===
+Goal: Find the key-value pair in a dictionary whose value is the maximum, and return it as a new single-entry dictionary.
+1. The function `maxValue` accepts a dictionary `d`.
+2. Variables `maxK` (initialized to an empty string) and `maxV` (initialized to a very small sentinel value `-99999`) track the best key and value found so far.
+3. A for-each loop iterates over every `k, v` pair; whenever `v` exceeds the current `maxV`, both `maxV` and `maxK` are updated.
+4. After the loop, a new empty dictionary `res` is created, and the winning key-value pair is inserted with `res.set(maxK, maxV)`.
+5. The single-entry result dictionary is returned.
+
+=== ENTRY 1024 ===
+Goal: Verify that every key in a given list is present in a dictionary.
+1. The function `containsAll` accepts a dictionary `d` and a list `keys`.
+2. A boolean `res` is initialized to `true`.
+3. A for-each loop iterates over every key `k` in the `keys` list; if `d.containsKey(k)` returns false for any key, `res` is set to `false` and the loop breaks.
+4. The final value of `res` — `true` if all keys exist, `false` otherwise — is returned.
+
+=== ENTRY 1025 ===
+Goal: Retrieve a deeply nested value from a nested dictionary structure by following a sequential list of keys.
+1. The function `nested_get` accepts a nested dictionary `d` and a list `keys_list` of keys to traverse in order.
+2. It delegates entirely to the built-in `.getAtPath(path_list, notfound)` method, passing `keys_list` as the path and `false` as the default if any key in the path is missing.
+3. The method internally walks through the nested dicts key by key, and the final value (or `false`) is returned.
+
+=== ENTRY 1026 ===
+Goal: Count the frequency of every distinct value across an entire 2D matrix (a list of lists), returning a frequency dictionary.
+1. The function `frequencies_2d` accepts a `matrix` (list of lists).
+2. An empty frequency dictionary `freqs` is declared.
+3. An outer for-each loop iterates over each `row` in the matrix, and an inner for-each loop iterates over each `val` in that row.
+4. For each value, if it does not yet appear in `freqs`, it is initialized to `0`; then its count is incremented by `1` using `.set` with `.get(...) + 1`.
+5. The completed frequency dictionary is returned.
+
+=== ENTRY 1027 ===
+Goal: Split a dictionary into a list of smaller dictionaries, each containing at most `size` entries, preserving the original key-value associations.
+1. The function `chunkDict` accepts a dictionary `d` and a chunk `size`.
+2. The dictionary's entries are converted to a list of pairs via `d.toPairs()`.
+3. A while loop advances an index `i` from `1` through the total number of pairs, processing one chunk per iteration.
+4. For each chunk, the ending index `end` is computed as `i + size - 1`, clamped to `pairs.listLen()` to avoid overshooting.
+5. An inner for-n loop from `i` to `end` constructs a fresh dictionary `chunk` by setting each key-value pair from the current slice of `pairs`.
+6. The completed chunk is appended to `res`, `i` is advanced by `size`, and the process repeats until all pairs are consumed.
+7. The list of chunk dictionaries is returned.
+
+=== ENTRY 1028 ===
+Goal: Apply a user-supplied function to every sliding window of size `k` across a list and collect the results.
+1. The function `sliding_window_dict` accepts a `list`, a window size `k`, and a function `fn` to apply to each window.
+2. An empty result list `res` is declared.
+3. A for-n loop runs from index `1` to `list.listLen() - k + 1`, ensuring each window of size `k` fits entirely within the list.
+4. For each starting index `i`, the window is extracted as `list.slice(i, i + k - 1)` and passed to `fn`.
+5. The return value of `fn` is appended to `res`.
+6. The list of all function results (one per window position) is returned.
+
+=== ENTRY 1029 ===
+Goal: Classify each number in a list into named histogram buckets defined by label-and-maximum-threshold pairs, returning a count per bucket.
+1. The function `histogramBuckets` accepts a numeric `list` and a `buckets` list of two-element lists, each of the form `[label, maxThreshold]`.
+2. An empty result dictionary `res` is declared to accumulate counts.
+3. An outer for-each loop iterates over each numeric value `x` in `list`; an inner for-each loop iterates over each bucket `b`.
+4. The first bucket whose second element `b[2]` is greater than or equal to `x` claims that value; if the bucket label is not yet in `res`, it is initialized to `0`, then incremented.
+5. The `break` statement exits the inner loop immediately after the first matching bucket is found, preventing double-counting.
+6. The completed count dictionary is returned.
+
+=== ENTRY 1030 ===
+Goal: Decompose a color value into its red, green, and blue components using `splitColor`, and return them as a named dictionary.
+1. The function `toRGB` accepts a `color` value (a Falcon colour literal such as `#FFA500`).
+2. `splitColor(color)` is called, which returns a list of RGBA components — specifically `[alpha, red, green, blue]` ordered by Falcon's convention.
+3. The returned list `rgba` is destructured by index: `rgba[1]` is red, `rgba[2]` is green, and `rgba[3]` is blue (1-based indexing).
+4. A dictionary literal with keys `"r"`, `"g"`, and `"b"` is constructed from those components and returned.
+
+=== ENTRY 1031 ===
+Goal: Linearly interpolate between two colors in RGB space using a blend factor `t`, where `t = 0` gives the first color and `t = 1` gives the second.
+1. The function `blendColors` accepts two color values `c1`, `c2`, and a blend factor `t` in `[0, 1]`.
+2. `splitColor` is called on both `c1` and `c2`, yielding lists `a` and `b` with their RGBA components.
+3. For each of the three channels (indices 1, 2, 3 corresponding to R, G, B), the interpolated value is computed as `a[i] + (b[i] - a[i]) * t`.
+4. `makeColor` assembles the three interpolated channel values into a new color and returns it.
+
+=== ENTRY 1032 ===
+Goal: Parse a six-character hexadecimal RGB string (without the `#` prefix) into a Falcon color value by converting each two-character channel pair from hex to decimal.
+1. The function `hexToColor` accepts a six-character string `hexStr` such as `"FF0080"`.
+2. `.segment(1, 2)` extracts the first two characters (the red channel), `.segment(3, 2)` the next two (green), and `.segment(5, 2)` the final two (blue).
+3. Each two-character hex segment is passed to `hexToDec()`, which converts it from base-16 to a decimal integer.
+4. The three decimal channel values are assembled into a list and passed to `makeColor`, which returns the resulting color.
+
+=== ENTRY 1033 ===
+Goal: Lighten a color by adding a fixed amount to each RGB channel, clamping each result to a maximum of 255 to prevent overflow.
+1. The function `lighten` accepts a `color` and an integer `amount`.
+2. `splitColor(color)` decomposes the color into its RGBA component list `rgb`.
+3. For each of the three channels (R, G, B at indices 1, 2, 3), `amount` is added to the channel's value, and the result is clamped to 255 using `min(255, rgb[i] + amount)`.
+4. The three clamped values are assembled into a list and passed to `makeColor`, which returns the lightened color.
+
+=== ENTRY 1034 ===
+Goal: Preserve a color's RGB channels while replacing its alpha (opacity) component with a specified value.
+1. The function `withAlpha` accepts a `color` and an integer `alpha`.
+2. `splitColor(color)` decomposes the color into its RGBA list `rgb`, where `rgb[1]` is the original alpha, `rgb[2]` is red, `rgb[3]` is green, and `rgb[4]` is blue.
+3. `makeColor` is called with a new four-element list `[alpha, rgb[2], rgb[3], rgb[4]]`, substituting the new alpha for the original while preserving the RGB channels.
+4. The resulting color with the updated opacity is returned.
+
+=== ENTRY 1035 ===
+Goal: Iterate over a list of day-name strings and print only the weekdays, skipping Saturday and Sunday.
+1. A list `days` containing the seven short day names `["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]` is declared.
+2. A for-each loop iterates over every day name `d` in the list.
+3. Inside the loop, a conditional checks whether `d` is text-not-equal to `"Sat"` AND text-not-equal to `"Sun"` using the `!==` operator and `&&` logical AND.
+4. Only when both conditions hold (meaning the day is neither Saturday nor Sunday) is `d` passed to `println` and printed.
+
+=== ENTRY 1036 ===
+Goal: Iterate over a list of words and build a frequency dictionary counting how many words start with each distinct first letter.
+1. A word list and an empty dictionary `wordDict` are declared.
+2. A for-each loop iterates over each word `w`; the first character of `w` is extracted using `.segment(1, 1)` and stored in `first`.
+3. If `first` does not yet exist as a key in `wordDict`, it is initialized to `0`.
+4. The count for `first` is then incremented by `1` using `.set` with `.get(...) + 1`.
+5. After all words are processed, `wordDict` holds first-letter frequencies and is printed.
+
+=== ENTRY 1037 ===
+Goal: Split a sentence into individual words and build a dictionary mapping each word to its reversed form.
+1. A sentence string is declared, and an empty dictionary `revDict` is initialized.
+2. The sentence is split into a list of words using `.splitAtSpaces()`, and a for-each loop iterates over each word `w`.
+3. For each word, `.reverse()` is called to produce the reversed string.
+4. The mapping `w → w.reverse()` is stored in `revDict` via `.set(w, w.reverse())`.
+5. After all words are processed, `revDict` is printed.
+
+=== ENTRY 1038 ===
+Goal: Merge a list of interval dictionaries (each with `"start"` and `"end"` fields) such that overlapping or adjacent intervals are combined into a single encompassing interval.
+1. The function `mergeIntervals` accepts a list of interval dicts.
+2. The intervals should be sorted by their start values, then traversed sequentially.
+3. A result list is maintained; for each interval, if it overlaps with the last interval in the result (i.e., its start ≤ the last interval's end), the last interval's end is extended to the maximum of both ends.
+4. If no overlap exists, the current interval is appended as a new entry.
+5. The merged list of non-overlapping intervals is returned. (This stub returns the input unchanged as a placeholder.)
+
+=== ENTRY 1039 ===
+Goal: Track how many times a named action has been called and block further calls once a maximum is reached, using a global counter dictionary.
+1. A global dictionary `throttles` is declared to store call counts keyed by action name.
+2. The function `throttle` accepts a `key` (action name) and `max_calls` (the call limit).
+3. If `key` does not yet exist in `throttles`, it is initialized to `0`.
+4. The current count `c` is retrieved; if `c < max_calls`, the count is incremented and `true` is returned (call permitted).
+5. If `c >= max_calls`, no increment occurs and `false` is returned (call blocked).
+
+=== ENTRY 1040 ===
+Goal: Simulate partial function application by storing the first argument of a named function in a global dictionary and completing the call later with a second argument.
+1. A global dictionary `partialArgs` stores pre-applied first arguments keyed by function name.
+2. `partialApply(fn_name, arg1)` stores `arg1` under `fn_name` in `partialArgs` and returns `fn_name` as a tag representing the partially applied function.
+3. `callPartial(tag, arg2)` retrieves the stored `arg1` from `partialArgs` using `tag` as the key and computes `arg1 + arg2`, effectively completing the addition call.
+4. The result of the completed call is returned.
+
+=== ENTRY 1041 ===
+Goal: Fold (reduce) a list using a named binary function and an initial accumulator value, simulating higher-order reduce with a named function.
+1. The function `reduceFn` accepts a function name `fn_name`, a `list`, and an initial value `init`.
+2. It applies `.reduce(init)` on the list with a lambda `{ acc, val -> acc + val }`, accumulating the sum.
+3. (Note: in a fully general implementation, `fn_name` would be dynamically dispatched; here, addition is hardcoded as a demonstration.)
+4. The final accumulated value is returned.
+
+=== ENTRY 1042 ===
+Goal: Check whether any element in a list satisfies a given predicate function, returning `true` on the first match.
+1. The function `anyWith` accepts a predicate function `pred_fn` and a `list`.
+2. A boolean `res` is initialized to `false`.
+3. A for-each loop iterates over each element `x`; if `pred_fn(x)` is true, `res` is set to `true` and the loop breaks immediately.
+4. The final value of `res` is returned.
+
+=== ENTRY 1043 ===
+Goal: Compute a running left fold (scan) over a list, returning a new list containing the initial value followed by every intermediate accumulated result.
+1. The function `scanLeft` accepts a function name, a `list`, and an initial value `init`.
+2. The result list `res` is initialized with `[init]` so the initial accumulator is always the first element of the output.
+3. A local `acc` variable is also set to `init` to track the running total.
+4. A for-each loop processes each element `x`; `acc` is updated as `acc + x`, and the new `acc` is appended to `res`.
+5. The complete list of intermediate sums (of length `list.listLen() + 1`) is returned.
+
+=== ENTRY 1044 ===
+Goal: Apply a function to a value repeatedly `n` times, returning the result after all applications — equivalent to function iteration.
+1. The function `applyN` accepts a function `fn`, an initial value `x`, and a count `n`.
+2. A local variable `res` is initialized to `x`.
+3. A for-n loop iterates exactly `n` times; on each iteration, `fn(res)` is called and its return value replaces `res`.
+4. After `n` applications, the final value of `res` is returned.
+
+=== ENTRY 1045 ===
+Goal: Conditionally apply a function to a value only when a given boolean condition is true, otherwise pass the value through unchanged.
+1. The function `whenCondition` accepts a boolean `condition`, a function `fn`, and a value `x`.
+2. If `condition` is true, `fn(x)` is called and its result is returned.
+3. If `condition` is false, `x` is returned unchanged.
+4. This implements a conditional application (guard) pattern without requiring external if-else at the call site.
+
+=== ENTRY 1046 ===
+Goal: Memoize two-argument function calls by caching results in a global dictionary keyed by a composite string of the function name and both arguments.
+1. A global dictionary `memo` serves as the shared cache.
+2. The function `memoKey` accepts a `fn_name`, and two arguments `a` and `b`.
+3. A composite cache key is built as `fn_name _ a _ "_" _ b`, uniquely identifying this specific call.
+4. If the key already exists in `memo`, the cached value is immediately returned without recomputation.
+5. Otherwise, the result `a * b` is computed (multiplication is the demonstrated operation), stored in `memo` under the key, and returned.
+
+=== ENTRY 1047 ===
+Goal: Compute the Nth Fibonacci number efficiently using top-down memoization with a global dictionary cache, demonstrating the dramatic performance benefit over naive recursion.
+1. A global dictionary `fibCache2` stores previously computed Fibonacci values, keyed by the number converted to a string.
+2. The function `memoFib` first handles the base cases: if `n < 2`, it returns `n` directly.
+3. Otherwise, it checks whether `n _ ""` (the string form of `n`) exists in `fibCache2`; if so, the cached value is returned immediately.
+4. If the value is not cached, the function recursively computes `memoFib(n-1) + memoFib(n-2)`, stores the result in the cache under key `n _ ""`, and returns it.
+5. The result of `memoFib(40)` and the number of entries in the cache are printed to demonstrate correctness and cache utilization.
+
+=== ENTRY 1048 ===
+Goal: Recursively flatten an arbitrarily deeply nested list structure into a single flat list of scalar values.
+1. The function `flatten_deep` accepts a `list` that may contain nested lists at any depth.
+2. An empty result list `res` is declared.
+3. A for-each loop iterates over each element `x`; if `x` is itself a list (checked with `x ? list`), the function recurses with `flatten_deep(x)` to get the flattened child elements.
+4. Each element of the recursively flattened child list is individually appended to `res` using an inner for-each loop.
+5. If `x` is a scalar (not a list), it is appended directly to `res`.
+6. The fully flattened list is returned.
+
+=== ENTRY 1049 ===
+Goal: Sort a list of numbers using the recursive quicksort algorithm, choosing the first element as the pivot.
+1. The function `quickSort` accepts a numeric `list`.
+2. If the list has one or zero elements, it is already sorted and returned as-is.
+3. Otherwise, the pivot is set to `list[1]` (the first element); the remaining elements `list.slice(2, list.listLen())` are split into two sublists via filter lambdas: `left` holds elements ≤ pivot, `right` holds elements > pivot.
+4. `quickSort` is called recursively on both `left` and `right`.
+5. The sorted results are concatenated: sorted `left`, then the pivot, then sorted `right` — assembled using `.add(pivot)` and `.appendList()` — and returned.
+
+=== ENTRY 1050 ===
+Goal: Compute the moving average of a list of numbers using a sliding window of size `k`.
+1. The function `movingAvg` accepts a numeric `list` and a window size `k`.
+2. An empty result list `res` is declared.
+3. An outer for-n loop iterates starting positions `i` from `1` to `list.listLen() - k + 1`.
+4. For each starting position, an inner for-n loop sums `k` consecutive elements starting at `list[i]` through `list[i + k - 1]`, using index offset `j` from `0` to `k - 1`.
+5. The average `sum / k` is appended to `res`, and the final list of windowed averages is returned.
+
+=== ENTRY 1051 ===
+Goal: Truncate a string to a maximum length, appending `"..."` as a trailing ellipsis when the string exceeds the limit.
+1. The function `truncate` accepts a string `s` and a maximum length `maxLen`.
+2. If `s.textLen()` is greater than `maxLen`, the string is too long; it is truncated by taking the first `maxLen - 3` characters via `.segment(1, maxLen - 3)` and concatenating `"..."` (3 characters), keeping the total at exactly `maxLen`.
+3. If the string is within the limit, it is returned unchanged.
+
+=== ENTRY 1052 ===
+Goal: Strip all common punctuation characters from a string using a chain of `.replace()` calls.
+1. The function `removePunctuation` accepts a string `s`.
+2. It applies `.replace(".", "")` to remove all periods, then chains further `.replace()` calls for commas, exclamation marks, question marks, double quotes, and single quotes — each replacing the target character with an empty string.
+3. Each `.replace()` call returns a new string, which becomes the input for the next replacement.
+4. The fully de-punctuated string is returned.
+
+=== ENTRY 1053 ===
+Goal: Check whether a string starts with a given prefix without using the built-in `.startsWith()` method.
+1. The function `startsWith_manual` accepts a string `s` and a `prefix` string.
+2. It uses `.segment(1, prefix.textLen())` on `s` to extract the same number of leading characters as the length of `prefix`.
+3. The extracted segment is compared to `prefix` using the strict text-equality operator `===`.
+4. The boolean result of that comparison is returned: `true` if the beginning of `s` matches `prefix`, `false` otherwise.
+
+=== ENTRY 1054 ===
+Goal: Compute the Gini coefficient — a standard measure of income inequality — for a list of income values.
+1. The function `giniCoefficient` accepts a list of `incomes`.
+2. A copy of the list is sorted in ascending order using a sort lambda.
+3. The total sum of all incomes is computed with a reduce lambda.
+4. A for-n loop iterates over the sorted list, maintaining a running sum `runSum` and accumulating the Gini sum by adding the difference between the cumulative population share (`i / n`) and the cumulative income share (`runSum / sumAll`) at each step.
+5. The final Gini coefficient is derived as `giniSum / n * 2` and returned — a value between 0 (perfect equality) and 1 (perfect inequality).
+
+=== ENTRY 1055 ===
+Goal: Compute the Levenshtein edit distance between two strings using a full dynamic programming table.
+1. The function `levenshtein` accepts two strings `s1` and `s2`.
+2. A 2D DP table `dp` of size `(len(s1)+1) × (len(s2)+1)` is built as a list of lists and initialized to zeros.
+3. The first row is initialized to `0, 1, 2, ...` (cost of inserting all characters of `s2`) and the first column to `0, 1, 2, ...` (cost of deleting all characters of `s1`).
+4. Nested for-n loops fill the rest of the table: each cell `dp[i][j]` is the minimum of deletion (`dp[i-1][j] + 1`), insertion (`dp[i][j-1] + 1`), and substitution (`dp[i-1][j-1] + cost`) where `cost` is 0 if the characters match, 1 if they differ.
+5. The value at `dp[len(s1)+1][len(s2)+1]` — the bottom-right cell — gives the minimum edit distance and is returned.
+
+=== ENTRY 1056 ===
+Goal: Apply a sequence of find-and-replace operations to a text in the specified order, using a list of `[pattern, replacement]` pairs.
+1. The function `searchAndReplacePipeline` accepts a `text` and a `replacements` list of two-element lists.
+2. A local variable `res` is initialized to `text`.
+3. A for-each loop iterates over each replacement pair `r`; `r[1]` is the pattern and `r[2]` is the replacement string.
+4. `res` is updated with `res.replace(r[1], r[2])` on each iteration, applying all replacements in the specified order.
+5. The fully transformed string `res` is returned.
+
+=== ENTRY 1057 ===
+Goal: Sort a list of floating-point values in `[0,1)` using the bucket sort algorithm, distributing values into `B` buckets, sorting each, and concatenating.
+1. The function `bucketSort` accepts a `list` and a number of buckets `B`.
+2. `B` empty bucket lists are created and stored in the list `buckets`.
+3. Each value `x` in the input is mapped to a bucket index as `floor(x * B) + 1`, clamped to `B` to handle values exactly at or near 1.0, and added to that bucket.
+4. Each bucket is sorted in ascending order using a sort lambda `{ m, n -> m < n }`.
+5. The sorted values from all buckets are concatenated into the result list `res` in order and returned.
+
+=== ENTRY 1058 ===
+Goal: Sort a list of record dictionaries by multiple sort keys in priority order, with support for ascending and descending direction per key.
+1. The function `multiKeySort` accepts a `records` list and a `specs` list of sort specification dicts, each having a `"field"` key and a `"desc"` boolean.
+2. A copy of `records` is sorted using a custom sort lambda.
+3. The lambda's comparator iterates over `specs` in order; for each spec, it retrieves the field values `va` and `vb` from the two records being compared.
+4. If `va != vb`, the direction flag (`"desc"`) determines whether `va > vb` (descending) or `va < vb` (ascending) should win, and the loop breaks with that result.
+5. If all spec fields are equal, the records maintain their relative order.
+
+=== ENTRY 1059 ===
+Goal: Normalize a dictionary of feature importance scores to sum to 1, then sort them in descending order and return a list of labeled dicts.
+1. The function `normalizeFeatureImportances` accepts an `importances` dict mapping feature names to raw scores.
+2. A for-each loop sums all values to obtain the total.
+3. A second for-each loop creates a result list of dicts, each with keys `"feature"` and `"importance"` set to the feature name and its normalized score (`v / sum`).
+4. The result list is sorted in descending order of `"importance"` using a sort lambda.
+5. The sorted list of normalized importance dicts is returned.
+
+=== ENTRY 1060 ===
+Goal: Aggregate a list of records by leader ID, summing each leader's associated values, and return the results sorted by total descending.
+1. The function `leaderFollowerAgg` accepts a `list` of dicts each having `"leaderId"` and `"value"` fields.
+2. An empty aggregation dict `agg` is declared.
+3. A for-each loop builds the running totals: for each record, the `leaderId` is extracted; if it is new, it is initialized to `0`; then the `value` is added to its running sum.
+4. After aggregation, a for-each loop over `agg` builds the result list, each entry being a dict `{"leaderId": k, "total": v}`.
+5. The result list is sorted by `"total"` descending and returned.
+
+=== ENTRY 1061 ===
+Goal: Assign ordinal rankings to records sorted by a score field in descending order, where tied records share the same rank.
+1. The function `computeRankings` accepts a `records` list and a `scoreField` name.
+2. A copy of `records` is sorted by the specified field in descending order.
+3. A rank counter `rank` starts at `1`, and `prevScore` tracks the last seen score (initialized to `-999999`).
+4. A for-each loop processes each sorted record: if the current score differs from `prevScore` (and is not the initialization sentinel), `rank` is incremented.
+5. A copy of the record is made, `"rank"` is set, and the annotated record is appended to `res`.
+6. `prevScore` is updated, and the fully ranked list is returned.
+
+=== ENTRY 1062 ===
+Goal: Produce a line-by-line diff between two versions of a text, returning a list of dicts describing each line that differs.
+1. The function `simpleDiff` accepts two multi-line strings `oldText` and `newText`.
+2. Both are split into line lists using `.split("\\n")`.
+3. The maximum number of lines `mx` across both versions is computed.
+4. A for-n loop from `1` to `mx` compares lines at each position; if a version has fewer lines, the corresponding line is treated as an empty string `""`.
+5. When the old and new lines at position `i` differ (using `!==`), a dict `{"line": i, "old": o, "new": n}` is added to the `diffs` list.
+6. The complete diff list is returned.
+
+=== ENTRY 1063 ===
+Goal: Normalize all keys in a dictionary to lowercase with spaces replaced by underscores, producing a consistently keyed dict.
+1. The function `keyNormalizer` accepts a dict `d` with potentially inconsistently cased or spaced keys.
+2. An empty result dict `res` is declared.
+3. A for-each loop iterates over every `k, v` pair; `k.lowercase()` converts the key to lowercase, and `.replace(" ", "_")` replaces all spaces with underscores.
+4. The normalized key and original value are inserted into `res`.
+5. The normalized dictionary is returned.
+
+=== ENTRY 1064 ===
+Goal: Find all records in list A whose ID field does not appear in list B, representing "missing" or "orphaned" records.
+1. The function `findMissingRecords` accepts `listA` and `listB`, each being lists of dicts with an `"id"` field.
+2. A list `bIds` is built by extracting the `"id"` value from every record in `listB`.
+3. A filter lambda is applied to `listA`, keeping only records whose `"id"` is not contained in `bIds` (using `!bIds.containsItem(...)`).
+4. The filtered list of missing records is returned.
+
+=== ENTRY 1065 ===
+Goal: Analyze a dataset of before-and-after text transformation records, counting unique before-values, unique after-values, and no-op transformations.
+1. The function `analyzeTransformations` accepts a `records` list of dicts each with `"before"` and `"after"` text fields.
+2. Three accumulators are maintained: lists `befores` and `afters` for unique values, and an integer `noops` for identity transformations.
+3. A for-each loop processes each record: `b` and `a` are extracted; each is added to its respective uniqueness list only if not already present; if `b === a`, `noops` is incremented.
+4. A result dict with keys `"uniqueBefore"`, `"uniqueAfter"`, and `"noOps"` is returned.
+
+=== ENTRY 1066 ===
+Goal: Detect changepoints in a time series using the CUSUM (cumulative sum) algorithm, flagging indices where the running deviation from a target exceeds a threshold.
+1. The function `cusumDetector` accepts a `values` list, a `target` mean, and a threshold `T`.
+2. A flags list and a running sum `S` (initialized to `0`) are declared.
+3. A for-n loop processes each value: `S` is updated as `S + values[i] - target`.
+4. If `S` drops below zero, it is reset to `0` (ignoring favorable deviations).
+5. If `S` exceeds the threshold `T`, the current index `i` is added to `flags` and `S` is reset to `0` to detect future changepoints.
+6. The list of flagged indices is returned.
+
+=== ENTRY 1067 ===
+Goal: Recursively flatten a nested KPI dictionary into a list of records with dot-separated path strings and their leaf values, suitable for tabular output.
+1. The function `flattenKPIs` accepts a dict `d` and a `prefix` string representing the current path.
+2. An empty result list `res` is declared.
+3. A for-each loop iterates over each `k, v`; the full path is built as `prefix _ "." _ k` (or just `k` at the root).
+4. If `v` is itself a dict, the function recurses with `flattenKPIs(v, path)` and appends each returned record to `res`.
+5. If `v` is a leaf, a dict `{"path": path, "value": v}` is appended directly.
+6. The flat list of path-value records is returned.
+
+=== ENTRY 1068 ===
+Goal: Extract and normalize a specific nested field from multiple API response dicts, producing a mapping of endpoint to extracted value.
+1. The function `extractNormalizedField` accepts `responses` (a dict of endpoint-to-response-dict entries) and a dot-separated `fieldPath` string.
+2. `fieldPath` is split by `"."` into a list of keys `pathList`.
+3. A for-each loop iterates over every `ep, resp` pair in `responses`; `resp.getAtPath(pathList, "")` navigates the nested response dict and retrieves the value at the specified path (defaulting to `""` if absent).
+4. The endpoint-to-value mapping is stored in `res` and returned.
+
+=== ENTRY 1069 ===
+Goal: Encode a 2D normalized coordinate pair `(x, y)` as a color, mapping the two dimensions to the red and green channels and their interaction to the blue channel.
+1. The function `encodeColor` accepts two floats `x` and `y`, each normalized to `[0, 1]`.
+2. The red channel is set to `x * 255`, scaling `x` to the byte range.
+3. The green channel is set to `y * 255`, scaling `y` similarly.
+4. The blue channel is set to `(1 - x * y) * 255`, which is high when either `x` or `y` is small (low interaction) and low when both are large.
+5. The three channel values are assembled into a list and passed to `makeColor`, returning the encoded color.
+
+=== ENTRY 1070 ===
+Goal: Group records by a specified field and apply an aggregation operation (sum, average, max, min, or count) to another field across each group.
+1. The function `aggregateByGroup` accepts a `records` list, a `groupField`, an `aggField`, and an `operation` string.
+2. A first for-each loop groups records into a dict `grouped` by the value of `groupField`, collecting each `aggField` value into the corresponding group list.
+3. A second for-each loop over `grouped` applies the specified operation to each group's value list: sum uses reduce, count returns list length, max and min use list lambdas, and avg divides the sum by the count.
+4. The result dict mapping group keys to aggregated values is returned.
+
+=== ENTRY 1071 ===
+Goal: Validate a list of data records against a formal data contract specifying required fields, unique field constraints, and allowable value ranges.
+1. The function `validateDataContract` accepts `records` and a `contract` dict with `"required"`, `"unique"`, and `"ranges"` keys.
+2. Required fields, unique fields, and range specs are extracted from the contract; a dict `uniqueVals` initializes tracking lists for each unique field.
+3. A for-n loop processes each record by index:
+   - **Required check**: for each required field, if the record lacks it, a violation dict is added.
+   - **Unique check**: for each unique field, if the value was already seen, a duplicate violation is added; otherwise it is recorded.
+   - **Range check**: for each field with a range spec, if the value is outside `[min, max]`, a range violation is added.
+4. The complete list of all violations is returned.
+
+=== ENTRY 1072 ===
+Goal: Recursively traverse a nested dictionary and sum all leaf-level numeric values.
+1. The function `sumLeafNodes` accepts a dict `d`.
+2. A running total `s` starts at `0`.
+3. A for-each loop iterates over every `k, v` pair: if `v` is a dict, the function recurses with `sumLeafNodes(v)` and adds the result to `s`; if `v` is a number (checked with `v ? number`), it is added directly to `s`.
+4. Non-numeric, non-dict leaf values are silently skipped.
+5. The total sum of all numeric leaves is returned.
+
+=== ENTRY 1073 ===
+Goal: Parse an inline key-value metadata string of the form `"key1:val1,key2:val2"` into a dictionary, correctly handling values that may themselves contain colons.
+1. The function `parseInlineMetadata` accepts a string `s`.
+2. The string is split by `","` to get individual pair strings.
+3. For each pair `p`, `.splitAtFirst(":")` is used (rather than `.split(":")`) to split only on the first colon, correctly isolating the key from a value that may contain additional colons.
+4. If the resulting list has exactly 2 elements, `parts[1]` (the key) and `parts[2]` (the value) are inserted into the result dict.
+5. The completed metadata dictionary is returned.
+
+=== ENTRY 1074 ===
+Goal: Find the key in a dictionary whose associated list value is the longest, breaking ties lexicographically by choosing the alphabetically earlier key.
+1. The function `longestListKey` accepts a dict `d` where values are expected to be lists.
+2. Variables `mx` (initialized to `-1`) and `best` (initialized to `""`) track the current longest length and its key.
+3. A for-each loop iterates over every `k, v` pair; if `v` is a list, its length is compared to `mx`.
+4. The key is promoted to `best` if it has a strictly longer list, or if it ties in length but sorts lexicographically before the current `best` (using `k << best`).
+5. The key with the longest list (with ties broken alphabetically) is returned.
+
+=== ENTRY 1075 ===
+Goal: Build a pivot table from a list of records, aggregating values by summing where row and column keys match, and returning a dict of dicts.
+1. The function `buildPivot` accepts `records`, a `rowField`, a `colField`, and a `valueField`.
+2. An empty result dict `res` is declared.
+3. A for-each loop processes each record `r`: the row key `rk`, column key `ck`, and numeric value `v` are extracted.
+4. If `rk` is not yet in `res`, a new empty sub-dict is created; if `ck` is not yet in the sub-dict, it is initialized to `0`.
+5. The value `v` is added to the existing sum at `res[rk][ck]`.
+6. The completed 2D dict representing the pivot table is returned.
+
+=== ENTRY 1076 ===
+Goal: Compute the Kullback-Leibler divergence from distribution P to distribution Q over a shared set of keys.
+1. The function `computeKlDivergence` accepts two probability dicts `pDist` and `qDist`.
+2. A running divergence accumulator `div` is initialized to `0`.
+3. A for-each loop iterates over every `k, p` pair in `pDist`; entries where `p == 0` are skipped (log(0) is undefined), as are keys absent from `qDist`.
+4. For qualifying entries, the KL term `p * log(p / q)` is computed and added to `div`.
+5. The total KL divergence value is returned.
+
+=== ENTRY 1077 ===
+Goal: Recursively compute the budget subtotals for each node in a hierarchical organizational tree, annotating each node with its level and subtotal budget.
+1. The function `computeHierarchicalBudget` accepts an `org` dict (with `"name"`, `"budget"`, and `"children"` fields) and the current `level`.
+2. A result list and a `subtotal` initialized to the node's own budget are declared.
+3. A for-each loop iterates over each child in `org.get("children", [])`; the function recurses, obtains the child's result list, reads the subtotal budget from the first element, adds it to `subtotal`, and appends all child records to `res`.
+4. The current node's annotated record is inserted at position 1 of `res` using `.insert(1, ...)`.
+5. The complete annotated list for this subtree is returned.
+
+=== ENTRY 1078 ===
+Goal: Map a list of integer IDs to their descriptive text labels using a global dictionary, returning `"unknown"` for any unrecognized ID.
+1. A global dict `dimensionMap` maps integer IDs to label strings.
+2. The function `mapDimensions` accepts a list of `ids`.
+3. A map lambda is applied to the list: for each `id`, `this.dimensionMap.get(id, "unknown")` is called, returning the corresponding label or `"unknown"` if not found.
+4. The resulting list of label strings is returned.
+
+=== ENTRY 1079 ===
+Goal: Format a monetary amount using the currency symbol stored in a global tenant context dictionary, with exactly two decimal places.
+1. A global dict `tenantContext` holds the tenant's `"currencySymbol"` (and potentially other locale settings).
+2. The function `formatCurrency` accepts a numeric `amt`.
+3. `this.tenantContext.get("currencySymbol", [])` retrieves the currency symbol; `formatDecimal(amt, 2)` formats the amount to two decimal places.
+4. The two strings are joined with `_` and the formatted currency string is returned.
+
+=== ENTRY 1080 ===
+Goal: Simulate a priority scheduler that continuously picks and executes the earliest-scheduled task from a global task queue until the queue is empty.
+1. A global list `taskQueue` holds task dicts each with `"time"` and `"task"` fields; a local `currentTime` starts at `0`.
+2. A while loop runs as long as `taskQueue` is non-empty.
+3. Each iteration scans the queue to find the task with the smallest `"time"` value, tracking its index.
+4. That task is removed from the queue, `currentTime` is updated to the task's time, and a log message is printed.
+5. The loop repeats until all tasks have been executed in chronological order.
+
+=== ENTRY 1081 ===
+Goal: Append a structured audit log entry to a global pipeline log, auto-incrementing a sequence number for each entry.
+1. Global list `pipelineAuditLog` and counter `logSeq` (starting at `1`) are declared.
+2. The procedure `pipelineLog` accepts `stage`, `status`, and `details`, and appends a dict containing all four fields (including `"seq": this.logSeq`) to `pipelineAuditLog`.
+3. After appending, `logSeq` is incremented by `1` to ensure the next entry receives a unique, monotonically increasing sequence number.
+
+=== ENTRY 1082 ===
+Goal: Find the shortest path between two nodes in a graph represented as an adjacency dictionary, using Breadth-First Search.
+1. The function `bfsShortestPath` accepts an adjacency dict `graph`, a `start` node, and an `endNode`.
+2. A queue `q` is initialized with `[[start]]` — a list containing the starting path; `visited` tracks seen nodes.
+3. A while loop dequeues the front path, retrieves its last node, and checks if it equals `endNode`; if so, the path is recorded and the loop breaks.
+4. Otherwise, all unvisited neighbors of the current node (obtained from `graph.get(node, [])`) are added to `visited`, and extended paths are enqueued.
+5. The shortest path (as a list of node names) is returned, or an empty list if none is found.
+
+=== ENTRY 1083 ===
+Goal: Compute the 90th percentile of a list of numeric measurements.
+1. The function `p90` accepts a numeric `list`.
+2. A copy of the list is sorted in ascending order using a sort lambda.
+3. The 90th percentile index is computed as `floor(0.9 * sorted.listLen())`.
+4. The element at that index in the sorted list is returned as the 90th percentile value.
+
+=== ENTRY 1084 ===
+Goal: Simulate a circular buffer of fixed capacity by processing a stream of incoming values and always retaining only the most recent `C` entries.
+1. The function `circBufferSim` accepts an `incoming` list of values and a capacity `C`.
+2. An empty buffer list `buf` is declared.
+3. A for-each loop processes each incoming value `x`, appending it to `buf`.
+4. If `buf.listLen()` exceeds `C`, the oldest element (at index `1`) is removed with `.remove(1)`, maintaining the fixed capacity.
+5. After all values are processed, `buf` holds the most recent `C` values and is returned.
+
+=== ENTRY 1085 ===
+Goal: Simulate multi-level loop break behavior using a boolean flag, enabling early exit from both an inner and outer loop when a critical condition is found.
+1. The function `multiLevelBreak` accepts `partitions`, a list of lists.
+2. A boolean `foundFlag` is initialized to `false`.
+3. The outer for-each loop iterates over each partition; the inner for-each loop iterates over each record within it.
+4. When a record equals `"CRITICAL"`, `foundFlag` is set to `true` and the inner loop breaks.
+5. After the inner loop, if `foundFlag` is `true`, the outer loop also breaks.
+6. The final value of `foundFlag` is returned.
+
+=== ENTRY 1086 ===
+Goal: Compute a 5-point centered moving average for each element, clamping edge references to stay within list bounds.
+1. The function `centeredMovingAvg` accepts a numeric `list`.
+2. For each index `i`, a sum is computed over offsets `j` from `-2` to `2`; the actual index `idx = i + j` is clamped to `[1, n]` to handle boundaries.
+3. The five values (with boundary repetition for edge elements) are summed and divided by `5`.
+4. The average is appended to `res`, and the complete averaged list is returned.
+
+=== ENTRY 1087 ===
+Goal: Compute the sliding window maximum over a list, returning the largest element within each window of size `W`.
+1. The function `slidingWindowMax2` accepts a numeric `list` and window size `W`.
+2. A for-n loop advances the window start from `1` to `list.listLen() - W + 1`.
+3. For each window, a local maximum `mx` is initialized to `list[i]`; an inner for-n loop from `1` to `W - 1` updates `mx` if a larger element is found at offset `j`.
+4. The window's maximum is appended to `res`, and the list of maxima is returned.
+
+=== ENTRY 1088 ===
+Goal: Summarize per-task execution time statistics — mean, 95th percentile, and maximum — and return tasks sorted by mean duration descending.
+1. The function `summarizeTasks` accepts a dict `taskLog` mapping task IDs to lists of duration measurements.
+2. A for-each loop over `taskLog` processes each task's value list: it is sorted ascending, then the mean is computed with a reduce lambda, the p95 is taken at index `floor(0.95 * len)`, and the max at the last index.
+3. A summary dict `{"task", "mean", "p95", "max"}` is added to `res`.
+4. After all tasks are processed, `res` is sorted by `"mean"` descending and returned.
+
+=== ENTRY 1089 ===
+Goal: Fill missing fields in a record by checking a priority list and using a default value when no valid data is found.
+1. The procedure `coalesceMissingValues` accepts a `record` dict, a `fieldPriority` list of target field names, and a `defaultValues` dict.
+2. A for-each loop iterates over every target field in `fieldPriority`; if that field is absent from `record`, the default value from `defaultValues` is inserted (falling back to `""` if even the default is missing).
+3. The record is modified in-place (passed by reference), so no return value is needed.
+
+=== ENTRY 1090 ===
+Goal: Repair temporal inconsistencies in a list of records where a value decreases relative to its predecessor, replacing it with the previous value.
+1. The function `repairInconsistencies` accepts a `records` list of comparable values (e.g., timestamps).
+2. A for-n loop starts at index `2` (comparing each element to the one before it).
+3. If `records[i]` is less than `records[i - 1]`, the inconsistency is repaired by setting `records[i] = records[i - 1]`.
+4. After the full pass, the repaired list is returned.
+
+=== ENTRY 1091 ===
+Goal: Compute the element-wise product of a feature vector and a weight vector, and also compute the L2 norm of the resulting weighted vector.
+1. The function `weightedFeatureVec` accepts parallel `features` and `weights` lists of the same length.
+2. A for-n loop computes each weighted value `v = features[i] * weights[i]`, appending it to `vec` and adding `v * v` to a running `sqSum`.
+3. After all elements are processed, the L2 norm is computed as `sqrt(sqSum)`.
+4. A dict `{"vec": vec, "norm": sqrt(sqSum)}` is returned.
+
+=== ENTRY 1092 ===
+Goal: Compute the ordinary least-squares linear regression coefficients (slope and intercept) from parallel x and y lists.
+1. The function `simpleLinearRegression` accepts `xList` and `yList`.
+2. A for-n loop accumulates the sums `sx` (Σx), `sy` (Σy), `sxy` (Σxy), and `sxx` (Σx²) needed for the least-squares formula.
+3. The slope is computed as `m = (n*sxy - sx*sy) / (n*sxx - sx²)` and the intercept as `b = (sy - m*sx) / n`.
+4. A dict `{"slope": m, "intercept": b}` is returned.
+
+=== ENTRY 1093 ===
+Goal: Compute total revenue as the dot product of a price list and a quantity list.
+1. The function `totalRevenue` accepts `prices` and `quantities` lists of the same length.
+2. A for-n loop multiplies `prices[i]` by `quantities[i]` and accumulates the product into `rev`.
+3. The total revenue value is returned.
+
+=== ENTRY 1094 ===
+Goal: Compute the overall funnel conversion rate (product of all step rates) and identify the step with the greatest drop-off (the minimum individual rate).
+1. The function `funnelConversion` accepts a list of per-step conversion `rates`.
+2. Two accumulators are declared: `overall` (initialized to `1`) for the running product, and `minR` (initialized to `999`) for the minimum rate.
+3. A for-each loop multiplies `overall` by each rate `r`, and updates `minR` if `r` is smaller.
+4. A dict `{"overall": overall, "minRate": minR}` is returned.
+
+=== ENTRY 1095 ===
+Goal: Compute the Jaccard similarity coefficient between two lists treated as sets — the ratio of their intersection size to their union size.
+1. The function `jaccardSimilarity` accepts two lists `l1` and `l2`.
+2. The intersection size `inter` is computed by filtering `l1` for elements that appear in `l2` using a filter lambda and `.listLen()`.
+3. The union size `uni` is computed as `l1.listLen() + l2.listLen() - inter` (inclusion-exclusion principle).
+4. The Jaccard coefficient `inter / uni` is returned.
+
+=== ENTRY 1096 ===
+Goal: Find the mode(s) of a list — all values that occur with the maximum frequency — returning them as a list.
+1. The function `listMode` accepts a numeric `list`.
+2. A frequency dict `freqs` is built: for each element `x`, its count is initialized (defaulting to `0`) and incremented; `maxF` tracks the highest count seen.
+3. After counting, a second for-each loop over `freqs` collects all keys whose count equals `maxF` into the `modes` list.
+4. The list of mode values is returned.
+
+=== ENTRY 1097 ===
+Goal: Estimate the power-law exponent of a rank-frequency distribution by fitting a linear regression to the log-log transformed data.
+1. The function `powerLawFit` accepts `ranks` and `freqs` lists.
+2. Both lists are log-transformed using map lambdas and `log()`, producing `logR` and `logF`.
+3. `simpleLinearRegression(logR, logF)` is called to fit a line to the log-log data.
+4. The slope of that line — which is the power-law exponent — is extracted and returned.
+
+=== ENTRY 1098 ===
+Goal: Remove the linear trend from a time series by fitting a regression line and subtracting the fitted values from the original data.
+1. The function `detrendSeries` accepts a `series` list.
+2. An index list `idxs` of `[1, 2, ..., N]` is built for the independent variable.
+3. `simpleLinearRegression(idxs, series)` fits a linear trend; slope `m` and intercept `b` are extracted.
+4. A for-n loop computes the detrended value at each index as `series[i] - m * i + b`.
+5. The detrended series is returned.
+
+=== ENTRY 1099 ===
+Goal: Parse a tab-separated values (TSV) string into a list of row dictionaries, using the first row as column headers.
+1. The function `parseTSV` accepts a multi-line string `tsvText`.
+2. The text is split by `"\\n"` to obtain individual row strings; the first row is split by `"\\t"` to obtain the header list.
+3. A for-n loop from row `2` onwards splits each row by tab and iterates over header indices to build a row dict mapping each header to the corresponding value.
+4. Each row dict is appended to `res`, and the list of row dicts is returned.
+
+=== ENTRY 1100 ===
+Goal: Decode a run-length encoded string (e.g., `"3a2b1c"`) back into the original repeated-character string.
+1. The function `rleDecode` accepts an encoded string where every two characters are a digit count followed by a character.
+2. A for-n loop steps through the encoded string two characters at a time (step `2`); `segment(i, 1)` extracts the count digit and `segment(i+1, 1)` extracts the character.
+3. The count is converted to a number by adding `0`.
+4. An inner for-n loop appends the character to `res` exactly `count` times.
+5. The fully decoded string is returned.
+
+=== ENTRY 1101 ===
+Goal: Find the most frequently occurring whitespace-delimited block in a string.
+1. The function `mostFrequentBlock` accepts a string `s`.
+2. `s.splitAtSpaces()` tokenizes the string into a list of blocks.
+3. `listMode(...)` is called on the token list to compute all modes (most frequent values).
+4. The first element of the mode list (index `1`) is returned as the most frequent block.
+
+=== ENTRY 1102 ===
+Goal: Deduplicate a list of text values while preserving the original order of first occurrences.
+1. The function `deduplicateTexts` accepts a `texts` list.
+2. A dict `seen` tracks which values have already been encountered; an empty result list `res` is declared.
+3. A for-each loop iterates over each text `t`; if `t` is not yet in `seen`, it is added to both `seen` (as a key with value `true`) and `res`.
+4. If `t` has been seen before, it is silently skipped.
+5. The deduplicated, order-preserving list is returned.
+
+=== ENTRY 1103 ===
+Goal: Construct a dictionary from two parallel lists — one of keys and one of values — by pairing corresponding elements.
+1. The function `dictFromLists` accepts `keys` and `vals` lists of the same length.
+2. An empty dict `d` is declared.
+3. A for-n loop from `1` to `keys.listLen()` calls `d.set(keys[i], vals[i])` on each iteration.
+4. The completed dictionary is returned.
+
+=== ENTRY 1104 ===
+Goal: Compute the pairwise cross-correlation matrix for a set of stock price time series, returning it as a list of lists.
+1. The function `crossStockCorr` accepts `stocks`, a list of time series lists.
+2. An `n × n` result matrix `mat` is initialized with all values set to `1` (self-correlation of 1 on the diagonal as a placeholder).
+3. In a full implementation, each off-diagonal cell `(i, j)` would be filled with the Pearson correlation between `stocks[i]` and `stocks[j]`.
+4. The stub returns the identity-initialized matrix.
+
+=== ENTRY 1105 ===
+Goal: Multiply two matrices represented as lists of lists using the standard triple-nested-loop algorithm.
+1. The function `matMultLists` accepts matrix `A` (M×K) and matrix `B` (K×N).
+2. The outer two for-n loops iterate over each output row `i` (of A) and output column `j` (of B).
+3. The innermost for-n loop over `k` accumulates the dot product: `sum += A[i][k] * B[k][j]`.
+4. The computed sum is added to the current output row, which is then appended to result matrix `C`.
+5. The complete product matrix `C` (M×N) is returned.
+
+=== ENTRY 1106 ===
+Goal: Compute the Kelly criterion optimal bet fraction given a win probability and payout ratio.
+1. The function `kellyCriterion` accepts a win probability `p` and a payout ratio `b` (e.g., `b = 1` means even odds).
+2. It directly applies the Kelly formula: `p - (1 - p) / b`.
+3. The result — the fraction of capital to bet to maximize long-run log-wealth — is returned.
+
+=== ENTRY 1107 ===
+Goal: Build a user-product co-purchase matrix from purchase event records and identify the most frequently co-purchased product pairs.
+1. The function `coPurchaseMatrix` accepts a list of `events`, each having `"userId"` and `"productId"` fields.
+2. Events are grouped by user; for each user's purchased products, every unordered pair of distinct products is counted in a co-purchase frequency dict.
+3. The top-5 most frequent pairs are extracted by sorting the frequency dict entries and taking the top results.
+4. The stub returns an empty list as a placeholder.
+
+=== ENTRY 1108 ===
+Goal: Compute the structural diff between two dictionary snapshots of the same entity, identifying added, removed, and changed keys.
+1. The function `dictDiff` accepts `oldD` and `newD`.
+2. Three lists — `added`, `removed`, `changed` — are declared.
+3. A loop over `newD.keys()` finds keys new to `newD` (added) or present in both with differing values (changed).
+4. A loop over `oldD.keys()` finds keys absent from `newD` (removed).
+5. A dict `{"added": added, "removed": removed, "changed": changed}` is returned.
+
+=== ENTRY 1109 ===
+Goal: Implement a simple TTL-based cache where each entry expires at a stored timestamp and is evicted on access if expired.
+1. A global dict `cache1999` stores entries as `{"val": v, "exp": expiryTimestamp}`.
+2. `setCache(k, v, ttl, currTime)` stores the entry with expiry `currTime + ttl`.
+3. `getCache(k, currTime)` checks if the entry exists; if its `"exp"` is less than `currTime`, it deletes the entry and returns `""`; otherwise it returns `"val"`.
+4. If the key is not in the cache at all, `""` is returned.
+
+=== ENTRY 1110 ===
+Goal: Convert UTC timestamps in event dicts to local time by applying per-city UTC offset values from a lookup dictionary.
+1. The function `convertToLocalTime` accepts a list of `events` (each with `"utcTime"` and `"city"` fields) and an `offsets` dict mapping city names to UTC offset integers.
+2. A map lambda processes each event `e`: it looks up the city's UTC offset `o` (defaulting to `0`), copies the event dict, and sets `"localTime"` to `e.get("utcTime") + o * 3600`.
+3. The list of annotated events (each with both UTC and local time) is returned.
+
+=== ENTRY 1111 ===
+Goal: Find all pairs of time series in a dict whose Pearson correlation exceeds a given threshold.
+1. The function `thresholdCorrelations` accepts a `seriesDict` (key → list of numbers) and a threshold `T`.
+2. All unique key pairs are enumerated; for each pair, the Pearson correlation is computed.
+3. Pairs with correlation exceeding `T` are collected as dicts `{"series1": s1, "series2": s2, "corr": r}`.
+4. The stub returns an empty dict as a placeholder.
+
+=== ENTRY 1112 ===
+Goal: Return a color-coded alert color (green, orange, or red) based on how a metric value compares to warning and critical thresholds.
+1. The function `alertColor` accepts a numeric `val` and a two-element `thresh` list `[warnThresh, critThresh]`.
+2. If `val < thresh[1]` (below the warning threshold), the green color `#00AA00` is returned.
+3. If `val < thresh[2]` (at or above warn but below critical), the orange color `#FFAA00` is returned.
+4. Otherwise (at or above the critical threshold), the red color `#FF0000` is returned.
+
+=== ENTRY 1113 ===
+Goal: Annotate a list of metric dicts with a traffic-light color based on how close each metric's actual value is to its target.
+1. The function `trafficLightEncoding` accepts a `metrics` list of dicts each with `"value"` and `"target"` fields.
+2. A map lambda processes each metric `m`: `v` is the actual value and `t` is the target.
+3. If `v >= t`, the green color `#00FF00` is assigned; if `v >= t * 0.9` (within 10% below target), yellow `#FFFF00`; otherwise red `#FF0000`.
+4. A copy of the metric dict is made, `"color"` is set to the chosen color, and the annotated dict is returned.
+
+=== ENTRY 1114 ===
+Goal: Compute the Pearson correlation between two time series within each sliding window of a given size.
+1. The function `computeSlidingCorrelation` accepts series `sA`, `sB`, and window size `window`.
+2. A for-n loop from `1` to `sA.listLen() - window + 1` extracts each pair of aligned windows.
+3. For each window, the Pearson correlation between the two sub-series would be computed and appended to `res`.
+4. The stub appends `1` as a placeholder for each window position and returns the list.
+
+=== ENTRY 1115 ===
+Goal: Sort a list of numbers using the merge sort algorithm, implemented as a single recursive function that splits, sorts, and merges.
+1. The function `mergeSortHelper` recursively halves the list: the midpoint `mid = floor(len/2)` is computed, and the function is called recursively on the left and right halves.
+2. Base case: a list of 0 or 1 elements is returned as-is.
+3. The merge phase uses two index pointers `i` and `j`; a while loop compares `left[i]` and `right[j]`, appending the smaller one to `res` and advancing the respective pointer.
+4. Two additional while loops drain any remaining elements from whichever sub-list is not yet exhausted.
+5. The fully merged and sorted list is returned.
+
+=== ENTRY 1116 ===
+Goal: Serialize a nested hyperparameter dictionary into a flat text format where each line is `"dotted.path=value"`, using recursion to handle arbitrary nesting depth.
+1. The function `serializeParams` accepts a dict `d` and a `prefix` string representing the accumulated parent key path.
+2. An empty string `res` accumulates the output lines.
+3. A for-each loop over each `k, v` pair builds the full path `p` (prepending the prefix with a dot separator if non-empty).
+4. If `v` is itself a dict, the function recurses on `v` with path `p`, appending the resulting lines to `res`.
+5. If `v` is a leaf, the line `p _ "=" _ v _ "\\n"` is appended.
+6. The complete serialized text is returned.
+
+=== ENTRY 1117 ===
+Goal: Compute the interquartile range (IQR) of a dataset by finding the difference between the 75th and 25th percentiles.
+1. The function `interquartileRange2` accepts a numeric `list`.
+2. A copy is sorted in ascending order.
+3. Q1 is taken at index `floor(0.25 * n)` and Q3 at index `floor(0.75 * n)` from the sorted list.
+4. The IQR — `Q3 - Q1` — is returned.
+
+=== ENTRY 1118 ===
+Goal: Compute the harmonic mean of a list of numbers, returning `"undefined"` if any value is zero.
+1. The function `harmonicMean` accepts a numeric `list`.
+2. A for-each loop accumulates `1/x` for each non-zero value into `sumInv`, and sets a flag `undef = true` if any `x == 0`.
+3. If `undef` is true, the string `"undefined"` is returned.
+4. Otherwise, the harmonic mean `N / sumInv` is computed and returned.
+
+=== ENTRY 1119 ===
+Goal: Analyze a list of user sessions to compute the average session length, bounce rate, and the most common entry page.
+1. The function `analyzeSessions` accepts a list of sessions, each being a list of event dicts with a `"page"` field.
+2. A for-each loop over sessions accumulates total event count `tLen`, counts single-event (bounced) sessions, and tracks entry page frequencies in the `entries` dict.
+3. After the loop, the most visited entry page is found by scanning `entries` for the key with the highest count.
+4. A result dict with `"avgLen"`, `"bounceRate"`, and `"topEntry"` is returned.
+
+=== ENTRY 1120 ===
+Goal: Estimate the steady-state distribution of a Markov chain by simulating a long random walk and normalizing visit frequencies.
+1. The function `markovSteadyState` accepts a transition dict of dicts.
+2. A visit count dict `counts` and a `state` initialized to the first key of `trans` are declared.
+3. A for-n loop of 10,000 iterations increments the count for `state`, then transitions to the first key of the current state's row (a simplified deterministic stand-in for random transitions).
+4. After the simulation, `counts` holds the visit frequencies, which approximate the steady-state distribution when normalized.
+
+=== ENTRY 1121 ===
+Goal: Tokenize a sentence into a cleaned list of lowercase word tokens, filtering out single-character punctuation.
+1. The function `simpleTokenizer` accepts a `sentence` string.
+2. `sentence.splitAtSpaces()` produces a raw word list; a result list `res` is declared.
+3. A for-each loop lowercases each word `w` to produce `lw`; the filtering condition checks for single-character punctuation (the stub has a simplified check for `"."` specifically).
+4. Words passing the filter are appended to `res`, and the token list is returned.
+
+=== ENTRY 1122 ===
+Goal: Parse a list of JSON-style `"key":"value"` text snippets into a single dictionary by splitting on `":"` and stripping surrounding double quotes.
+1. The function `parseJSONKeyValue` accepts a list of `texts`, each like `'"key":"value"'`.
+2. An empty result dict `res` is declared.
+3. A for-each loop splits each text `t` on `":"` to get parts; `p[1]` is the raw key and `p[2]` is the raw value.
+4. Both have their double-quote characters removed with `.replace("\"", "")`, and the cleaned pair is inserted into `res`.
+5. The resulting dictionary is returned.
+
+=== ENTRY 1123 ===
+Goal: Parse a fixed-format text record by extracting fields at specified character offsets and lengths, trimming whitespace from each.
+1. The function `fixedFormatParser` accepts a `line` string and a `specs` list of `[start, length]` two-element lists.
+2. A map lambda iterates over each spec `sp`; `line.segment(sp[1], sp[2])` extracts the field at the given character offset and length, and `.trim()` removes surrounding whitespace.
+3. The resulting list of trimmed field strings is returned.
+
+=== ENTRY 1124 ===
+Goal: Approximate key frequencies using a Count-Min Sketch — a probabilistic data structure using multiple hash functions and a 2D count matrix.
+1. The function `countMinSketch` accepts a list of `keys` and a bucket count `B`.
+2. A 3×B count matrix is initialized; for each incoming key, three hash values are computed as `mod(key.textLen() * seed, B)` for seeds 1, 2, and 3.
+3. The count at each of the three hash positions is incremented.
+4. To query a key's estimated frequency, the minimum of its three hash-position counts is returned.
+5. The stub returns `keys.listLen()` as a placeholder.
+
+=== ENTRY 1125 ===
+Goal: Assign deterministic, visually distinct colors to a list of category strings based on a hash of each category name.
+1. The function `categoryColorHash` accepts a list of `categories`.
+2. For each category string `c`, a hash is computed as `mod(c.textLen() * 13 + c.segment(1,1).textLen(), 256)`.
+3. Three color channels are derived from the hash by multiplying by different prime constants (31, 57, 97) and taking `mod 256`.
+4. `makeColor` assembles the three channels into a color, which is stored in the `mapping` dict under the category name.
+5. The completed category-to-color mapping is returned.
+
+=== ENTRY 1126 ===
+Goal: Implement a simplified Rabin-Karp substring search that returns the 1-based index of the first occurrence of a pattern in a text.
+1. The function `rabinKarp` accepts a `text` and a `pattern` string.
+2. A for-n loop from `1` to `n - m + 1` uses `.segment(i, m)` to extract each candidate window of length `m` from `text`.
+3. If the window matches `pattern` (using `===`) and no match has been found yet, the current index `i` is stored in `result` and `found` is set to `true`.
+4. The first matching index (or `-1` if not found) is returned.
+
+=== ENTRY 1127 ===
+Goal: Implement a min-heap push operation that inserts a value and bubbles it up to restore the heap property.
+1. The procedure `heapPush` accepts a `heap` list (where `heap[1]` is a sentinel/unused element at index 0) and a new `val`.
+2. `val` is appended to the heap; the new element's index `i` is set to `heap.listLen()`.
+3. A while loop compares the new element with its parent at `floor(i / 2)`; if the parent is larger, the two elements are swapped.
+4. The index `i` is updated to the parent's position, and the loop continues until the heap property is restored or the root is reached (setting `i = 1` to break).
+
+=== ENTRY 1128 ===
+Goal: Find the Minimum Spanning Tree of a weighted undirected graph using Prim's greedy algorithm, returning the list of MST edges.
+1. The function `prim` accepts a weighted adjacency dict `graph` (node → dict of neighbor→weight) and a `start` node.
+2. A visited set and a candidate edge list are initialized; all edges from `start` are added.
+3. The edge list is sorted; a while loop repeatedly picks the cheapest edge whose destination is unvisited.
+4. The selected edge is added to `mst`, the destination is marked visited, and all its outgoing edges to unvisited nodes are added to the candidates list (which is re-sorted).
+5. The MST edge list is returned.
+
+=== ENTRY 1129 ===
+Goal: Simulate an RPG experience and leveling system using global state: gaining XP can trigger level-ups that reset XP and advance the level counter.
+1. Globals `level` (starts at `1`) and `xp` (starts at `0`) track player progression.
+2. `levelUp()` increments `this.level` and resets `this.xp` to `0`.
+3. `gainXP(amount)` adds `amount` to `this.xp`; if `this.xp >= this.level * 100`, `levelUp()` is called.
+4. After calling `gainXP(150)`, `this.level` and `this.xp` are printed to show the result.
+
+=== ENTRY 1130 ===
+Goal: Implement a scoreboard system with functions to update player scores and compute each player's rank.
+1. A global dict `scoreboard` maps player names to their scores.
+2. `update(name, delta)` retrieves the current score (defaulting to `0`) and adds `delta` to it.
+3. `rank(name)` counts how many players have a strictly higher score than the named player and returns that count plus 1 as the player's rank.
+4. Test calls demonstrate adding scores for two players and querying each player's rank.
+
+=== ENTRY 1131 ===
+Goal: Generate a list of enemy dicts for a given wave number, scaling count, HP, and damage with the wave.
+1. The function `spawnWave` accepts a `waveNum` integer.
+2. The total enemy count is `waveNum * 3`.
+3. A for-n loop creates enemy dicts with fields `"id"` (sequential), `"hp"` (`50 * waveNum`), and `"damage"` (`10 * waveNum`).
+4. The full list of enemy dicts is returned.
+
+=== ENTRY 1132 ===
+Goal: Apply area-of-effect splash damage to all enemies within a given radius of an epicenter, with damage falling off linearly with distance.
+1. The function `applySplashDamage` accepts the `enemies` list, an `epicenter` `[x, y]` list, a `radius`, and a `damage` value.
+2. For each enemy, the Euclidean distance from the enemy's position to the epicenter is computed using `sqrt(dx² + dy²)`.
+3. If within radius, a falloff factor `1 - dist/radius` is applied to `damage`, the result is rounded, and the enemy's `"hp"` is reduced by that amount.
+4. A copy of each enemy is made (preserving immutability), and the updated list is returned.
+
+=== ENTRY 1133 ===
+Goal: Compute the XP reward for defeating an enemy, scaling by the level difference between enemy and player, and flag high rewards.
+1. The function `computeXPReward` accepts an `enemy` dict (with `"xp"` and `"level"` fields) and the `player_level`.
+2. A `multiplier` is computed: `1 + diff * 0.2` if the enemy outlevels the player, `1 + diff * 0.1` (which reduces rewards) if the player outlevels the enemy, or `1` if equal.
+3. The reward is `round(base * multiplier)`.
+4. If the reward is at least 1.5× the base XP, a bonus message is set; otherwise it is empty.
+5. A two-element list `[reward, msg]` is returned.
+
+=== ENTRY 1134 ===
+Goal: Simulate projectile movement by storing projectile state in a global list and stepping each projectile's position using trigonometry.
+1. A global list `projectiles` stores projectile dicts with `"x"`, `"y"`, `"angle"`, and `"speed"` fields.
+2. `fire(x, y, angle, speed)` appends a new projectile dict.
+3. `stepProjectiles()` iterates over all projectiles, updating each position by adding `cos(angle) * speed` to `x` and `sin(angle) * speed` to `y`, then replaces the global list with the updated list.
+4. The procedure is called three times to simulate three time steps.
+
+=== ENTRY 1135 ===
+Goal: Manage a global graphics settings dictionary with preset configurations that can be applied by name.
+1. A global dict `graphicsSettings` holds current display settings.
+2. `applyPreset(name)` modifies the settings dict in-place based on `"low"`, `"medium"`, or `"high"` presets, setting resolution, fullscreen, vsync, and FPS limit accordingly.
+3. Each preset is tested in sequence and the settings are printed after each application.
+
+=== ENTRY 1136 ===
+Goal: Find the shortest path in a grid from a start position to a finish position using BFS, avoiding cells marked as walls (value `1`).
+1. The function `pacManPath` accepts a 2D `grid`, start coordinates `(px, py)`, and finish coordinates `(fx, fy)`.
+2. A BFS queue is initialized with `[px, py, 0]` (position and distance); a visited set tracks seen coordinates.
+3. Each iteration dequeues the front state, checks if the finish is reached, and expands to valid unvisited neighbors in four cardinal directions.
+4. A cell is valid if it is within bounds and not a wall (`grid[nx][ny] != 1`).
+5. The shortest path length (or `-1` if unreachable) is returned.
+
+=== ENTRY 1137 ===
+Goal: Find shortest paths from a source node to all other nodes in a graph with potentially negative edge weights using the Bellman-Ford algorithm, and detect negative cycles.
+1. The function `bellmanFord` accepts a weighted adjacency dict `graph` and a `start` node.
+2. All node distances are initialized to `999999` (infinity); the start node distance is set to `0`.
+3. The relaxation loop runs `n - 1` times (where `n` is the number of nodes); each pass iterates over all edges and updates distances when a shorter path is found.
+4. A final pass checks for further relaxation; if any distance can still be reduced, a negative cycle is detected and a warning is printed.
+5. The final distance dictionary is returned.
+
+=== ENTRY 1138 ===
+Goal: Build a dependency graph from a recipe dictionary and retrieve all transitive dependencies of a given crafting item using DFS.
+1. A global dict `recipeGraph` maps items to their dependency lists.
+2. `crafting_tree(recipes)` populates `recipeGraph` by iterating over the input recipe dict.
+3. `dependencies(item)` uses an iterative DFS with a stack and visited set; starting from `item`, it repeatedly pops the top of the stack and pushes its dependencies if not yet visited.
+4. The visited list — which includes the item itself and all transitive dependencies — is returned.
+
+=== ENTRY 1139 ===
+Goal: Solve a sliding puzzle (3×3 grid with a zero-tile) by finding the minimum number of moves to reach the goal state using BFS.
+1. The function `solvePuzzle` accepts a flat 9-element `board` list and a `goal` list.
+2. A BFS queue holds `[state, moveCount]` pairs; a visited set of joined state strings prevents revisiting.
+3. Each iteration checks if the current state matches the goal; if so, the move count is returned.
+4. Otherwise, the zero tile's index is found, and valid neighbor positions (up, down, left, right within the 3×3 grid) generate new states by swapping the zero with each neighbor.
+5. The minimum number of moves is returned (or `-1` if unsolvable).
+
+=== ENTRY 1140 ===
+Goal: Implement a trie (prefix tree) data structure using nested dictionaries, supporting word insertion and exact-word search.
+1. A global dict `trie` serves as the root of the trie.
+2. `trie_insert(trie, word)` walks through the trie character by character, creating new empty dict nodes as needed, and marks the end of the word by setting `"$": true` at the final node.
+3. `trie_search(trie, word)` walks through the same path; if any character is missing, `found` is set to `false`. At the end, if `found` is still true and the final node contains `"$"`, the word exists and `true` is returned.
+4. Five test words are inserted and five search queries are made to verify correctness.
+
+=== ENTRY 1141 ===
+Goal: Sample the unit circle at 36 evenly-spaced angles (every 10°) and collect the `[sin, cos]` pairs into a list.
+1. A for-n loop iterates from `0` to `359` with a step of `10`, generating 36 angle values.
+2. For each angle `i` in degrees, `radians(i)` converts it to radians, and `sin` and `cos` are computed.
+3. The pair `[sin(radians(i)), cos(radians(i))]` is appended to `angles`.
+4. The complete list of 36 unit-circle sample points is printed.
+
+=== ENTRY 1142 ===
+Goal: Find all prime numbers up to 50 using the Sieve of Sundaram algorithm.
+1. An inner limit and a boolean marker array `marked` of appropriate size are initialized.
+2. The sieve marks composite numbers: for each `i` from `1` to `innerLimit` and each `j` from `i` to the computed bound, the index `i + j + 2*i*j` is marked as composite.
+3. The prime `2` is seeded; then for every unmarked index `i` from `1` to `innerLimit`, the prime `2*i + 1` is added to the primes list.
+4. The complete list of primes up to 50 is printed.
+
+=== ENTRY 1143 ===
+Goal: Approximate π using the Leibniz alternating series formula summed over 10,000 terms.
+1. A running sum `pi` and an alternating `sign` (starting at `1`) are declared.
+2. A for-n loop from `0` to `9999` adds `sign / (2*k + 1)` to `pi` and flips `sign` each iteration.
+3. After the loop, `pi` is multiplied by `4` to produce the π approximation.
+4. The result (converging slowly toward π) is printed.
+
+=== ENTRY 1144 ===
+Goal: Simulate a Linear Feedback Shift Register (LFSR) with specified tap positions to generate a pseudo-random bit sequence.
+1. An initial 8-bit state and a tap list `[8, 6, 5, 4]` are declared.
+2. A while loop generates 20 output bits: the rightmost state bit is the output, appended to `bits`.
+3. The feedback bit is computed as the XOR (`~`) of the bits at the tap positions.
+4. A new state is constructed by prepending the feedback bit and shifting all other bits right by one position.
+5. The 20-bit output sequence is printed.
+
+=== ENTRY 1145 ===
+Goal: Generate a simple 2D noise function based on sine and cosine, and sample it on a 4×4 grid.
+1. The function `noise2D` computes `sin(x*1.3 + y*0.7) * cos(x*0.7 - y*1.3)` — a simple, deterministic pseudo-noise formula.
+2. Nested for-n loops iterate `x` and `y` from `0` to `3`; for each point, `noise2D(x, y)` is called.
+3. Each row of sample values is collected into a list and appended to `grid`.
+4. The 4×4 grid of noise values is printed.
+
+=== ENTRY 1146 ===
+Goal: Map a numeric value to a blue→green→red color gradient (a heatmap colormap) by linearly interpolating through two color segments.
+1. The function `heatmapColor` normalizes `value` to a `t` in `[0, 1]` using `(value - minVal) / (maxVal - minVal)`.
+2. For `t < 0.5` (the first half), the color transitions from blue to green: R=0, G scales from 0→255, B scales from 255→0.
+3. For `t >= 0.5` (the second half), the color transitions from green to red: R scales from 0→255, G scales from 255→0, B=0.
+4. Channel values are rounded and assembled via `makeColor`, and the resulting color is returned.
+
+=== ENTRY 1147 ===
+Goal: Compute the Euclidean distance between two points in 2D and 3D space.
+1. `distance2D` computes `sqrt((x2-x1)² + (y2-y1)²)` using local `dx` and `dy` difference variables.
+2. `distance3D` extends this by also computing `dz = z2 - z1` and returning `sqrt(dx² + dy² + dz²)`.
+3. Both functions are tested with concrete point pairs to verify correctness.
+
+=== ENTRY 1148 ===
+Goal: Round a value to the nearest multiple of a given grid size.
+1. The function `snap` accepts a `val` and a `gridSize`.
+2. It computes `round(val / gridSize) * gridSize`: dividing by `gridSize` normalizes the value, `round` finds the nearest integer, and multiplying by `gridSize` snaps back to the grid.
+3. Test cases confirm `snap(7.3, 5) = 5` and `snap(7.7, 5) = 10`.
+
+=== ENTRY 1149 ===
+Goal: Implement and compare two smoothstep-style easing functions for animation interpolation.
+1. `smoothStep(t)` computes the cubic Hermite polynomial `3t² - 2t³` (note: the code as written applies `^` after multiplication due to precedence, which may differ from the mathematical intent).
+2. `easeInOut(t)` computes a quadratic ease-in-out: `2t²` for `t < 0.5`, and `-1 + (4 - 2t) * t` for `t >= 0.5`.
+3. Both functions are evaluated at five `t` values (`0, 0.25, 0.5, 0.75, 1`) and their outputs are printed side by side.
+
+=== ENTRY 1150 ===
+Goal: Compute the area of a polygon defined by a list of 2D vertices using the shoelace (Gauss) formula.
+1. The function `polygonArea` accepts a `vertices` list of `[x, y]` pairs.
+2. A for-n loop iterates over each vertex `i`, computing the next vertex index `j` as `i + 1` (wrapping around to `1` for the last vertex).
+3. The shoelace contribution `vertices[i][1] * vertices[j][2] - vertices[j][1] * vertices[i][2]` is accumulated.
+4. The absolute area `abs(area) / 2` is returned.
+
+=== ENTRY 1151 ===
+Goal: Add two 2D vectors component-wise and return the resulting vector as a two-element list.
+1. The function `addVec` accepts four scalars `ax, ay, bx, by` representing two 2D vectors.
+2. It returns a two-element list `[ax + bx, ay + by]` representing the vector sum.
+3. The test call `addVec(1, 2, 3, 4)` produces `[4, 6]`.
+
+=== ENTRY 1152 ===
+Goal: Compute the Bernstein basis polynomial `B(i, n, t)` used in Bézier curve construction.
+1. The function `bernstein` accepts index `i`, degree `n`, and parameter `t`.
+2. The binomial coefficient `C(n, i)` is computed iteratively as `coeff = coeff * (n - k + 1) / k` for `k` from `1` to `i`.
+3. The Bernstein value is computed using the formula involving `coeff`, `t^i`, and `(1-t)^(n-i)`.
+4. The result for `bernstein(1, 3, 0.5)` is printed.
+
+=== ENTRY 1153 ===
+Goal: Perform bilinear interpolation on a unit square given four corner values and two interpolation parameters.
+1. The function `bilinearInterp` accepts four corner values `q11, q12, q21, q22` and interpolation parameters `tx` (horizontal) and `ty` (vertical).
+2. Two intermediate values are computed by horizontally interpolating between the corners: `r1 = q11*(1-tx) + q21*tx` (bottom edge) and `r2 = q12*(1-tx) + q22*tx` (top edge).
+3. The final result is the vertical interpolation between `r1` and `r2`: `r1*(1-ty) + r2*ty`.
+4. Three test cases verify corner values and the center.
+
+=== ENTRY 1154 ===
+Goal: Advance a harmonic oscillator simulation by one time step using the fourth-order Runge-Kutta (RK4) numerical integration method.
+1. The function `rk4_step` accepts position `x`, velocity `v`, and time step `dt`; the force is `-x` (Hooke's law for a unit spring).
+2. Four slope estimates (k1–k4) are computed for both position and velocity at the start, midpoints, and end of the time step.
+3. The updated position and velocity are computed as weighted averages: `x + dt/6 * (k1x + 2*k2x + 2*k3x + k4x)` and similarly for `v`.
+4. The new `[x, v]` state list is returned.
+5. Five simulation steps are run and printed.
+
+=== ENTRY 1155 ===
+Goal: Generate a sawtooth waveform by computing the fractional part of `t * freq`.
+1. The function `waveformSaw` computes `t * freq % 1`, which gives the fractional part of the phase and produces a ramp from `0` to just below `1`.
+2. Eight equally-spaced time points from `0/8` to `7/8` at frequency `1` are sampled and printed, demonstrating one complete sawtooth cycle.
+
+=== ENTRY 1156 ===
+Goal: Generate 8 equally-spaced points on a circle's circumference using trigonometric parametrization.
+1. The function `randomOnCircle` accepts a center `(cx, cy)` and radius `r`.
+2. A for-n loop from `0` to `7` computes each angle as `radians(i * 45)` (dividing the full circle into 8 equal parts).
+3. Each point is `[cx + r * cos(angle), cy + r * sin(angle)]`, placed on the circumference.
+4. The list of 8 circle points is returned and printed.
+
+=== ENTRY 1157 ===
+Goal: Compute the axis-aligned bounding box (AABB) of a set of 2D points by finding the minimum and maximum x and y coordinates.
+1. The function `aabb` accepts a list of `[x, y]` point lists.
+2. `minX`, `minY`, `maxX`, `maxY` are all initialized to the coordinates of the first point.
+3. A for-each loop iterates over all points, updating each extreme value when a point coordinate exceeds the current bound.
+4. A dict `{"minX", "minY", "maxX", "maxY"}` is returned.
+
+=== ENTRY 1158 ===
+Goal: Rotate a 3D point around each of the three coordinate axes by a specified angle in degrees.
+1. `rotateX(x, y, z, angle_deg)` converts the angle to radians and applies the X-axis rotation matrix: y' = y*cos(a) - z*sin(a), z' = y*sin(a) + z*cos(a).
+2. `rotateY(x, y, z, angle_deg)` applies the Y-axis rotation: x' = x*cos(a) + z*sin(a), z' = -x*sin(a) + z*cos(a).
+3. `rotateZ(x, y, z, angle_deg)` applies the Z-axis rotation: x' = x*cos(a) - y*sin(a), y' = x*sin(a) + y*cos(a).
+4. The test rotates `(1, 0, 0)` by 90° around Z, which should yield approximately `(0, 1, 0)`.
+
+=== ENTRY 1159 ===
+Goal: Compute the 3D dot product of two vectors, which equals zero for perpendicular vectors.
+1. The function `dot3D` accepts six scalars representing two 3D vectors `(ax, ay, az)` and `(bx, by, bz)`.
+2. It returns `ax*bx + ay*by + az*bz` — the standard dot product formula.
+3. Two tests verify: `dot3D(1,0,0, 0,1,0)` returns `0` (perpendicular), and `dot3D(1,0,0, 1,0,0)` returns `1` (parallel unit vectors).
+
+=== ENTRY 1160 ===
+Goal: Compute the Julia set iteration count for a given point in the complex plane, indicating whether the point is in the Julia set for a given constant `c`.
+1. The function `julia` accepts a starting complex number `(zx, zy)`, a Julia set constant `(cx, cy)`, and a maximum iteration count `maxIter`.
+2. A while loop iterates the function `z → z² + c` in complex arithmetic: the real part becomes `zx² - zy² + cx`, and the imaginary part becomes `2*zx*zy + cy`.
+3. The loop terminates when `|z|² >= 4` (escaped the set) or when `maxIter` iterations are reached.
+4. The number of iterations performed is returned — high counts indicate membership, low counts indicate rapid escape.
+
+=== ENTRY 1161 ===
+Goal: Simulate simplified Boids flocking behavior (separation, alignment, cohesion) for a group of birds over multiple time steps.
+1. The function `flocking` accepts a `birds` list of dicts (each with `x, y, vx, vy`) and a time step `dt`, simulating 3 steps internally.
+2. Each step processes every bird: for all other birds, separation pushes away from close neighbors (`dist < 2`), alignment averages velocities, and cohesion pulls toward the group center.
+3. The weighted sum of these three forces adjusts each bird's velocity; new positions are computed by integrating velocity over `dt`.
+4. Updated bird dicts are collected and replace the current state each step.
+5. The final positions and velocities after 3 steps are returned.
+
+=== ENTRY 1162 ===
+Goal: Zero-pad an integer score to a fixed number of digits for consistent scoreboard display.
+1. The function `formatScore` accepts a numeric `score` and a target digit count `digits`.
+2. The score is converted to a string `s = "" _ score`.
+3. A while loop prepends `"0"` to `s` as long as `s.textLen() < digits`.
+4. The zero-padded string is returned — e.g., `formatScore(42, 6)` produces `"000042"`.
+
+=== ENTRY 1163 ===
+Goal: Generate a visual progress bar string of a specified width using fill and empty characters.
+1. The function `progressBar` accepts `current`, `max`, `width`, `fillChar`, and `emptyChar`.
+2. The number of filled characters is `round(current / max * width)`.
+3. A for-n loop from `1` to `width` appends `fillChar` for positions up to `filled` and `emptyChar` beyond.
+4. The complete bar string is returned.
+
+=== ENTRY 1164 ===
+Goal: Parse a full name string into first and last name components, correctly handling middle names by always using the final word as the last name.
+1. The function `parseName` accepts a `fullName` string.
+2. `fullName.splitAtSpaces()` produces a list of name parts.
+3. The last element `parts[parts.listLen()]` is the last name; the first element `parts[1]` is the first name.
+4. A dict `{"first": first, "last": last}` is returned.
+
+=== ENTRY 1165 ===
+Goal: Extract all substrings enclosed in double quotes from a text string.
+1. The function `extractQuoted` accepts a `text` string.
+2. Boolean `inQuote` and accumulator `current` track state; a while loop iterates character by character.
+3. When a `"` is encountered and `inQuote` is false, quoting begins; when encountered again, the accumulated `current` is appended to `result` and state is reset.
+4. Non-quote characters inside a quoted region are appended to `current`.
+5. The list of all extracted quoted substrings is returned.
+
+=== ENTRY 1166 ===
+Goal: Extract a contextual excerpt from a text by returning the characters immediately surrounding the first occurrence of a keyword.
+1. The function `excerptAround` accepts `text`, a `keyword`, and a `radius` (number of characters on each side).
+2. A while loop searches for the first occurrence of `keyword` using `.segment(idx, klen) === keyword`.
+3. If not found, `""` is returned.
+4. Otherwise, the start of the excerpt is `max(1, pos - radius)`, and the excerpt length is `2 * radius + klen`.
+5. `text.segment(start, len)` extracts and returns the contextual excerpt.
+
+=== ENTRY 1167 ===
+Goal: Convert an integer from 1 to 3999 to its Roman numeral representation using the standard subtractive notation.
+1. The function `toRomanNumeral` accepts an integer `n`.
+2. Two parallel lists define the value-symbol pairs for all Roman numeral components (including subtractive forms like IV=4, IX=9, etc.) in descending order.
+3. A for-n loop iterates over the pairs; for each, a while loop subtracts the value and appends the symbol to `result` as long as `num >= vals[i]`.
+4. The fully constructed Roman numeral string is returned.
+
+=== ENTRY 1168 ===
+Goal: Decode a Morse code string back to plaintext, treating spaces as letter separators and triple spaces as word separators.
+1. The function `morseDecode` builds a reverse lookup table mapping Morse sequences to letters.
+2. The encoded string is split by `"   "` (three spaces) to separate words.
+3. Each word is split by `" "` (single space) to separate letter codes.
+4. Each code is looked up in the table; unrecognized codes become `"?"`.
+5. A space is appended between decoded words, and the final string is trimmed and returned.
+
+=== ENTRY 1169 ===
+Goal: Expand a text abbreviation to its full form using a provided lookup dictionary.
+1. The function `expandAbbreviation` accepts an `abbr` string and a `dict` of abbreviation-to-expansion mappings.
+2. It returns `dict.get(abbr, "Unknown abbreviation")` — the full expansion if found, or a default message if the abbreviation is not in the dictionary.
+
+=== ENTRY 1170 ===
+Goal: Compute the Scrabble-style tile score of a word by summing the point values of each letter using a lookup dictionary.
+1. The function `scoreText` accepts a string `s` and a `letterValues` dict mapping uppercase letters to point values.
+2. A while loop iterates over each character position using index `i`, extracting each character with `.segment(i, 1)` and converting to uppercase.
+3. The point value for the character is retrieved with `.get(ch, 0)` (defaulting to `0` for unknown characters) and added to `total`.
+4. The total score is returned.
+
+=== ENTRY 1171 ===
+Goal: Build a character frequency dictionary for a text, as the first step of Huffman encoding.
+1. The function `huffmanFreq` accepts a `text` string.
+2. A while loop iterates over each character using index `i`, extracting each with `.segment(i, 1)`.
+3. Each character's frequency is updated in the `freq` dict using `.get(ch, 0) + 1`.
+4. The completed frequency dictionary (suitable for building a Huffman tree) is returned.
+
+=== ENTRY 1172 ===
+Goal: Access a specific element in a 2D grid using 1-based row and column indices.
+1. The function `gridGet` accepts a 2D `grid` (list of lists), a row index `r`, and a column index `c`.
+2. It returns `grid[r][c]` directly, leveraging Falcon's 1-based indexing.
+3. The test retrieves the element at row 2, column 3 from a 3×3 grid.
+
+=== ENTRY 1173 ===
+Goal: Extract the main diagonal elements (where row index equals column index) from a 2D grid.
+1. The function `gridDiag` accepts a 2D `grid`.
+2. A for-n loop from `1` to the number of rows `n` accesses `grid[i][i]` for each index.
+3. A bounds check ensures column `i` exists in row `i` (for non-square grids).
+4. The diagonal elements are collected and returned.
+
+=== ENTRY 1174 ===
+Goal: Rotate a 2D matrix 90 degrees clockwise.
+1. The function `gridRotate90` accepts an `n × m` grid.
+2. A for-n loop over columns `j` from `1` to `m` builds each row of the rotated matrix.
+3. For each column `j`, the new row is filled by reading `grid[i][j]` for `i` from `n` down to `1` (reverse row order) — this is the 90° clockwise rotation.
+4. The rotated grid is returned.
+
+=== ENTRY 1175 ===
+Goal: Sum all numeric values in a 2D matrix.
+1. The function `gridSum` accepts a 2D `grid`.
+2. A nested for-each loop iterates over each row and each value within each row.
+3. If `val ? number` (the value is numeric), it is added to `total`.
+4. The total sum is returned.
+
+=== ENTRY 1176 ===
+Goal: Perform a flood fill operation on a 2D grid, replacing all connected cells of the same starting value with a new value.
+1. The function `floodFill` accepts a `grid`, starting position `(r, c)`, and a `newVal`.
+2. If the target cell's value already equals `newVal`, the grid is returned unchanged.
+3. Otherwise, an iterative DFS using a stack processes the cell: it is set to `newVal`, and its four neighbors (up, down, left, right) are pushed onto the stack if they are within bounds and still hold the original target value.
+4. The modified grid is returned.
+
+=== ENTRY 1177 ===
+Goal: Implement an LRU (Least Recently Used) cache of fixed capacity using a list to maintain access order.
+1. Globals `lruCache` (a list of `[key, value]` pairs) and `lruCapacity` are declared.
+2. `lru_cache(capacity)` initializes the cache.
+3. `cache_get(key)` searches for the key; if found, it moves the entry to the end (most recently used) and returns its value; if not found, returns `-1`.
+4. `cache_put(key, val)` removes any existing entry for the key, evicts the oldest entry (index `1`) if at capacity, then appends the new entry to the end.
+
+=== ENTRY 1178 ===
+Goal: Return the `n` largest elements from a list in descending order.
+1. The function `nlargest` accepts an array and a count `n`.
+2. A copy of the array is made and sorted in ascending order using the built-in `.sort()`.
+3. `.reverseList()` reverses the sorted list to descending order.
+4. `.slice(1, n)` extracts the first `n` elements (the largest), which are returned.
+
+=== ENTRY 1179 ===
+Goal: Compute the intersection of two sorted lists of non-overlapping intervals.
+1. The function `interval_intersect` accepts two lists of `[lo, hi]` interval pairs.
+2. Two pointers `i` and `j` advance through the two lists; in each iteration, the overlap is `[max(a[i][1], b[j][1]), min(a[i][2], b[j][2])]`.
+3. If the overlap start is ≤ the overlap end, a valid intersection exists and is appended to `result`.
+4. The pointer for the interval that ends first is advanced.
+5. The list of intersection intervals is returned.
+
+=== ENTRY 1180 ===
+Goal: Determine whether a string can be segmented into a sequence of words from a given word list using dynamic programming.
+1. The function `wordBreak` accepts a string `s` and a `wordList`.
+2. A boolean DP array `dp` of size `n+2` is initialized to `false`; `dp[1]` (1-based, representing position 0 in the string) is set to `true`.
+3. A for-n loop over positions `i`; for each reachable position (`dp[i]` is true), every word in `wordList` is checked.
+4. If `s.segment(i, wlen) === word`, the position `i + wlen` is marked reachable.
+5. `dp[n+1]` (representing the end of the string) indicates whether a valid segmentation exists.
+
+=== ENTRY 1181 ===
+Goal: Find the maximum sum contiguous subarray using Kadane's algorithm, also tracking the start and end indices of the optimal subarray.
+1. The function `maxSumSubarray` accepts a numeric `arr`.
+2. `maxSum`, `curSum`, `start`, `end`, and `tempStart` are initialized from the first element.
+3. A for-n loop from index `2` onward: if starting fresh at `arr[i]` is better than extending, `curSum` resets and `tempStart` advances.
+4. If extending is better, `arr[i]` is added to `curSum`.
+5. When `curSum` exceeds `maxSum`, `maxSum`, `start`, and `end` are updated.
+6. A dict with `"sum"`, `"start"`, and `"end"` is returned.
+
+=== ENTRY 1182 ===
+Goal: Traverse a matrix along all its diagonals (top-left to bottom-right), collecting elements of each diagonal into a sub-list.
+1. The function `diagonalTraversal` accepts a 2D `matrix`.
+2. Diagonals are indexed by their sum `d = r + c`; for an M×N matrix, `d` ranges from `2` to `rows + cols` (1-based).
+3. A for-n loop over `d` values; an inner loop over all rows `r` computes `c = d - r` and appends `matrix[r][c]` if `c` is within column bounds.
+4. Each diagonal sub-list is appended to `result`, and the list of diagonals is returned.
+
+=== ENTRY 1183 ===
+Goal: Compute the minimum initial HP required for a hero to survive a dungeon grid, reaching the bottom-right cell, using backward dynamic programming.
+1. The function `dungeonGame` uses a DP table `dp` where `dp[i][j]` is the minimum HP needed when entering cell `(i, j)`.
+2. The bottom-right cell is initialized to `max(1, 1 - dungeon[rows][cols])`.
+3. The last row and column are filled rightward and downward respectively, using the constraint that HP must always stay ≥ 1.
+4. Remaining cells are filled from bottom-right to top-left: `dp[i][j] = max(1, min(dp[i][j+1], dp[i+1][j]) - dungeon[i][j])`.
+5. `dp[1][1]` — the minimum starting HP for the entire journey — is returned.
+
+=== ENTRY 1184 ===
+Goal: Run-length encode a list (compressing repeated consecutive values) and decode it back, verifying round-trip correctness.
+1. `runLengthList` uses a while loop; for each position `i`, it counts consecutive equal values and appends `[count, val]` to `result`.
+2. The index advances by `count` to skip the processed run.
+3. `runLengthDecode` iterates over each encoded pair and appends the value `pair[1]` times using an inner for loop.
+4. Both functions are tested and their outputs printed.
+
+=== ENTRY 1185 ===
+Goal: Track game quest completion state using a global dict and provide functions to complete quests and compute total reward.
+1. A global dict `quests` maps quest names to dicts with `"completed"` and `"reward"` fields.
+2. `quest_tracker(q)` initializes `this.quests`.
+3. `complete(name)` retrieves the quest dict, sets `"completed"` to `true`, and writes it back.
+4. `totalReward()` iterates over all quests, summing `"reward"` for each completed one, and returns the total.
+
+=== ENTRY 1186 ===
+Goal: Manage a game asset registry — loading, unloading, and retrieving assets by ID.
+1. A global dict `assets` stores asset data keyed by ID.
+2. `load(id, data)` inserts the asset; `unload(id)` deletes it using `.delete(id)`.
+3. `get(id)` returns the asset data or `"Not found"` if absent.
+4. Test calls load two assets, retrieve one, unload another, and confirm the unloaded asset is gone.
+
+=== ENTRY 1187 ===
+Goal: Manage active gameplay buffs with tick-based duration and stat application.
+1. A global dict `buffs` holds buff dicts each with `"duration"`, `"effect"`, and `"magnitude"`.
+2. `tick_all()` decrements each buff's duration; buffs reaching zero are deleted from `this.buffs`.
+3. `apply_all(stats)` copies the stats dict and applies each active buff's effect: attack buffs add to `"attack"`, speed buffs to `"speed"`.
+4. The modified stats dict is returned.
+
+=== ENTRY 1188 ===
+Goal: Maintain a registry of circular game objects and detect all pairwise collisions based on circle overlap.
+1. A global dict `collObjects` stores object dicts each with `"x"`, `"y"`, and `"r"` (radius).
+2. `check_all()` retrieves all object IDs and checks every unique pair `(i, j)` for collision.
+3. The Euclidean distance between centers is compared to the sum of radii; if the distance is smaller, the pair is added to the colliding pairs list.
+4. The list of colliding pairs is returned.
+
+=== ENTRY 1189 ===
+Goal: Maintain a tilemap registry and provide fast lookup of tile properties by ID.
+1. A global dict `tiles` stores tile property dicts keyed by tile ID.
+2. `tile_registry(t)` initializes `this.tiles`.
+3. `is_solid(id)` retrieves the tile dict and returns its `"solid"` boolean field.
+4. `tile_color(id)` retrieves and returns the tile's `"color"` field.
+5. Tests confirm solid/non-solid tiles and color retrieval.
+
+=== ENTRY 1190 ===
+Goal: Implement a simple text adventure engine where the player can look around and move between rooms defined in a dungeon dict.
+1. Globals `currentRoom` and `dungeon` track the current room and the map structure.
+2. `dungeon_map(rooms)` loads the room definitions.
+3. `look()` retrieves and returns the current room's `"description"`.
+4. `go(dir)` looks up the exit in the current room's `"exits"` dict; if found, it updates `currentRoom`; otherwise, it prints a no-exit message.
+5. Test calls demonstrate navigation and dead-end detection.
+
+=== ENTRY 1191 ===
+Goal: Implement a simple localization system that translates UI string keys into the active language.
+1. Globals `locStrings` (the translation table) and `currentLang` (the active language code) are declared.
+2. `localization(strings, lang)` initializes both globals.
+3. `t(key)` retrieves the entry for `key` from `locStrings` and looks up the text for `this.currentLang`, falling back to the raw `key` if not found.
+4. Tests switch between English and Spanish and print translated greetings.
+
+=== ENTRY 1192 ===
+Goal: Manage a global inventory of game resources with production, consumption, and surplus-query functions.
+1. A global dict `resources` maps resource type names to current counts.
+2. `resource_manager(r)` initializes `this.resources`.
+3. `produce(type, amount)` adds `amount` to the resource count.
+4. `consume(type, amount)` subtracts `amount`, clamping to `0` to prevent negative stock.
+5. `surplus(type)` returns the current count of the specified resource.
+
+=== ENTRY 1193 ===
+Goal: Implement a bounded message queue with overflow rejection and FIFO dequeue behavior.
+1. Globals `msgQueue` and `msgCapacity` manage the queue.
+2. `message_queue(capacity)` initializes both.
+3. `enqueue(msg)` checks if the queue is full; if so, the message is dropped with a log; otherwise it is appended.
+4. `dequeue()` removes and returns the front message (index `1`); returns `"empty"` if the queue is empty.
+5. Tests demonstrate overflow rejection and sequential dequeue.
+
+=== ENTRY 1194 ===
+Goal: Generate `n` visually distinct colors evenly distributed around the hue circle using a sine-wave RGB approximation.
+1. The function `chameleonPalette` accepts `n`.
+2. For each index `i` from `0` to `n-1`, a base angle `angle = i * 360 / n` is computed.
+3. The three RGB channels are driven by `sin(radians(angle))`, `sin(radians(angle + 120))`, and `sin(radians(angle + 240))` respectively — three sine waves 120° apart, scaled to `[0, 255]`.
+4. Each color is assembled via `makeColor` and appended; the palette is returned.
+
+=== ENTRY 1195 ===
+Goal: Compute and print the Euclidean distance between each consecutive pair of 2D waypoints along a path.
+1. A list of `[x, y]` waypoints is declared.
+2. A for-n loop from `1` to `waypoints.listLen() - 1` accesses each consecutive pair `(a, b)`.
+3. The differences `dx = b[1] - a[1]` and `dy = b[2] - a[2]` are computed.
+4. The distance `sqrt(dx*dx + dy*dy)` is printed for each segment with its index.
+
+=== ENTRY 1196 ===
+Goal: Find the top 3 hottest cities from a list of city-temperature dicts without using a sort function.
+1. A list of city dicts and an empty `top3` list are declared.
+2. An outer for-n loop repeats 3 times to find each of the 3 hottest cities.
+3. Each iteration scans all cities, skipping those already in `top3`, to find the highest remaining temperature.
+4. The winning city name is appended to `top3`.
+5. The final top-3 list is printed.
+
+=== ENTRY 1197 ===
+Goal: Detect and resolve pairwise circle-circle collisions by pushing overlapping entities apart symmetrically.
+1. The function `resolveCollisions` accepts a list of entity dicts each with `"x"`, `"y"`, and `"r"`.
+2. A copy of the list is made; nested for-n loops check every unique entity pair `(i, j)`.
+3. If the distance between centers is less than the sum of radii (overlap), the overlap is split equally.
+4. The normalized direction vector `(nx, ny)` is used to push both entities apart by half the overlap each.
+5. Updated copies of both entities replace the originals in `updated`, which is returned.
+
+=== ENTRY 1198 ===
+Goal: Compute a composite game score from combat statistics and assign a letter grade based on performance thresholds.
+1. The function `computeScore` accepts `kills`, `time`, `deaths`, and `combo`.
+2. The base score is `kills * 100`; a time bonus of up to `500` is added for fast completions.
+3. Deaths incur a penalty of `50` each; combo chains add `combo² * 10`.
+4. The total score is compared to grade thresholds (S/A/B/C/D) in descending order.
+5. A dict `{"score": score, "grade": grade}` is returned.
+
+=== ENTRY 1199 ===
+Goal: Apply a list of status effects (poison, burn, freeze) to a game entity, modifying its stats accordingly.
+1. The function `applyStatusEffects` accepts an `entity` dict and a list of `effects` dicts.
+2. A copy of `entity` is made to avoid mutating the original.
+3. For each effect, the `"type"` is checked: `"poison"` reduces HP by `magnitude`; `"burn"` reduces HP by `magnitude * 1.5`; `"freeze"` reduces speed by `magnitude`.
+4. A corresponding boolean flag (`"poisoned"`, `"burning"`, `"frozen"`) is set on the entity copy.
+5. The modified entity copy is returned.
+
+=== ENTRY 1200 ===
+Goal: Track a list of game objectives, supporting completion marking, checking if all required objectives are done, and querying the next incomplete objective.
+1. A global list `objectives` holds objective dicts with `"name"`, `"complete"`, and `"required"` fields.
+2. `objectiveTracker(objs)` initializes `this.objectives`.
+3. `completeObj(name)` scans the list to find the matching objective by name and sets its `"complete"` flag to `true`.
+4. `allDone()` returns `true` only if every required objective (where `"required"` is `true`) is also marked complete.
+5. `nextObjective()` returns the name of the first incomplete objective, or `"None"` if all are done.

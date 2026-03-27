@@ -1,0 +1,2083 @@
+=== ENTRY 201 ===
+Goal: Count all valid ways to place N queens on an N×N board so none attack each other.
+
+1. We use a helper function solve(row, n, cols, diag1, diag2):
+   - row = the current row we are trying to place a queen in
+   - n = the board size
+   - cols = list of columns already occupied by queens
+   - diag1 = list of (row - col) values already used — tracks one diagonal direction
+   - diag2 = list of (row + col) values already used — tracks the other diagonal direction
+
+2. Base case: if row > n, all n queens have been placed successfully, so return 1 (found one solution).
+
+3. Otherwise, try every column c from 1 to n in the current row:
+   - Check: is column c already in cols? If yes, skip — another queen is in that column.
+   - Check: is (row - c) already in diag1? If yes, skip — diagonal conflict.
+   - Check: is (row + c) already in diag2? If yes, skip — other diagonal conflict.
+
+4. If all three checks pass:
+   - Add c to cols, (row - c) to diag1, (row + c) to diag2 — mark this queen's position.
+   - Recursively call solve(row + 1, ...) and add the returned count to a running total.
+   - Then REMOVE the last element from cols, diag1, diag2 — this is backtracking, undoing the move so we can try the next column.
+
+5. After trying all columns, return the total count.
+
+6. nQueens(n) simply calls solve(1, n, [], [], []) — start from row 1 with empty tracking lists.
+
+7. println(nQueens(4)) prints 2, meaning there are exactly 2 solutions for a 4×4 board.
+
+--- 
+
+=== ENTRY 202 ===
+Goal: Determine if a string s can be broken into words that all exist in a given dictionary list.
+
+1. Create a dp list where dp[i] means "can the first i characters of s be segmented into valid words?"
+2. dp[1] = true, because an empty prefix (0 characters) is always valid. The list starts with [true], then we add one false for each character.
+3. Outer loop: i goes from 1 to s.textLen() — representing the end position of a substring.
+4. Inner loop: j goes from 1 to i — representing the start position of a substring.
+5. For each (j, i) pair:
+   - If dp[j] is true (the prefix before position j is valid)
+   - AND the substring from position j with length (i - j + 1) exists in the dictionary
+   - Then dp[i + 1] = true — the prefix up to position i is also valid.
+6. Note: dp uses 1-based indexing, so dp[s.textLen() + 1] is the answer for the entire string.
+7. The function returns dp[s.textLen() + 1] — true if the whole string can be segmented, false otherwise.
+
+---
+
+=== ENTRY 203 ===
+Goal: Given a list where each value is the maximum jump length from that index, determine if you can reach the last index starting from index 1.
+
+1. maxR = 1 — the farthest index reachable so far (starts at index 1, where we begin).
+2. i = 1 — the current position we are examining.
+3. The while loop continues as long as i is within the list AND i is within our reachable range (i <= maxR).
+4. At each position i, we check if jumping from i can extend our reach: if (i + list[i]) > maxR, update maxR.
+   - list[i] is how far we can jump FROM position i.
+   - i + list[i] is the farthest index we can reach FROM position i.
+5. Increment i and keep going.
+6. After the loop, if maxR >= list.listLen(), we can reach the last index — return true. Otherwise false.
+7. Example: [2,3,1,1,4] — from index 1 we can jump up to index 3, from index 2 we can reach index 5, done!
+
+---
+
+=== ENTRY 204 ===
+Goal: Find the length of the longest substring in s that reads the same forwards and backwards.
+
+1. maxL = 0 — tracks the longest palindrome length found.
+2. Outer loop: i goes from 1 to s.textLen() — the start index of a substring.
+3. Inner loop: j goes from i to s.textLen() — the end index of a substring.
+4. Extract sub = s.segment(i, j - i + 1) — the substring starting at i with length (j - i + 1).
+5. Check if sub === sub.reverse() — the === operator does text comparison (not numeric), and .reverse() reverses the string.
+6. If it's a palindrome AND longer than the current max, update maxL.
+7. After all pairs checked, return maxL.
+8. For "babad": substrings "bab" and "aba" are both palindromes of length 3, so result is 3.
+
+---
+
+=== ENTRY 205 ===
+Goal: Given a fraction as [numerator, denominator], return it in simplified form.
+
+1. Call gcdRec(frac[1], frac[2]) — frac[1] is the numerator, frac[2] is the denominator.
+2. gcdRec computes the Greatest Common Divisor using Euclid's algorithm (see Entry 212).
+3. Divide both numerator and denominator by g — this reduces the fraction to lowest terms.
+4. Store the result in a local list [frac[1]/g, frac[2]/g] and return it.
+5. Note: The double curly braces {{ }} create a nested block. In Falcon, the last expression in a block is returned, so the inner block evaluates to listResult, which becomes the return value of the outer block.
+
+---
+
+=== ENTRY 206 ===
+Goal: Find the two points from a list that are closest to each other using Euclidean distance.
+
+1. minDist = 999999 — a very large starting value so any real distance will be smaller.
+2. pair = [] — will hold the two closest points.
+3. Outer loop: i goes from 1 to points.listLen() — pick the first point.
+4. Inner loop: j goes from i + 1 to points.listLen() — pick the second point. Starting at i+1 avoids comparing a point to itself or repeating pairs.
+5. Each point is itself a list [x, y], so points[i][1] is the x-coordinate and points[i][2] is the y-coordinate.
+6. Euclidean distance formula: sqrt((x1-x2)^2 + (y1-y2)^2).
+7. If d < minDist, update minDist and record this pair.
+8. Return pair — the two closest points.
+
+---
+
+=== ENTRY 207 ===
+Goal: Simulate one generation of Conway's Game of Life on a 2D grid.
+
+1. nextG = copyList(grid) — make a deep copy to avoid modifying the grid while reading it.
+   WARNING: copyList only does a shallow copy of the outer list. The inner row lists are still references. This is a known limitation in this code.
+2. For each cell (i, j), count alive neighbors by iterating over di in [-1,0,1] and dj in [-1,0,1].
+3. Skip the center (di==0 && dj==0) — but note the condition !di == 0 && dj == 0 has a bug: it should be !(di == 0 && dj == 0). In Falcon, ! has higher precedence, so this is (!di) == 0 which is wrong. The code as written has this bug.
+4. For each valid neighbor (ni, nj) within bounds, if grid[ni][nj] == 1, increment alive count.
+5. Apply Game of Life rules:
+   - A live cell with fewer than 2 or more than 3 neighbors dies.
+   - A dead cell with exactly 3 neighbors becomes alive.
+6. Return nextG — the next generation grid.
+
+---
+
+=== ENTRY 208 ===
+Goal: Compute GCD and LCM of two numbers.
+
+1. gcd(a, b) uses Euclid's recursive algorithm:
+   - If b == 0, return a — base case, a is the GCD.
+   - Otherwise return gcd(b, a % b) — the GCD of b and the remainder of a divided by b.
+   - Example: gcd(48, 18) → gcd(18, 12) → gcd(12, 6) → gcd(6, 0) → 6.
+2. lcm(a, b) uses the formula: LCM = (a * b) / GCD.
+   - This works because a*b = LCM * GCD always.
+3. println(gcd(48, 18)) prints 6.
+
+---
+
+=== ENTRY 209 ===
+Goal: Recursively merge two nested dicts, where nested dicts are merged deeply instead of overwritten.
+
+1. c = copyDict(a) — start with a fresh copy of dict a.
+2. Loop over every key-value pair (k, v) in dict b.
+3. If key k already exists in c, AND both c's value and b's value are dicts (checked with ? dict):
+   - Recursively call deepMerge on both sub-dicts — this merges nested structures.
+4. Otherwise, just set c[k] = v — either key doesn't exist in c, or one of the values isn't a dict.
+5. Return c — the merged dict.
+
+---
+
+=== ENTRY 210 ===
+Goal: Collect all key paths in a nested dict as dot-separated strings.
+
+1. res = [] — will collect all key paths.
+2. Loop over each (k, v) pair in dict d.
+3. Build newK:
+   - If prefix is empty (""), newK = k.
+   - Otherwise newK = prefix _ "." _ k (joining with a dot).
+4. If the value v is itself a dict, recurse: call flatKeys(v, newK) to get the child paths, then add each to res.
+5. If v is not a dict (it's a leaf), just add newK to res.
+6. Example: {"a": {"b": 1, "c": 2}} → ["a.b", "a.c"].
+
+---
+
+=== ENTRY 211 ===
+Goal: Compute n! (n factorial) recursively.
+
+1. Base case: if n <= 1, return 1. (0! = 1! = 1)
+2. Recursive case: return n * factorial(n - 1).
+3. Example: factorial(5) = 5 * 4 * 3 * 2 * 1 = 120.
+
+---
+
+=== ENTRY 212 ===
+Goal: Compute GCD of two numbers recursively (same as Entry 208 but named gcdRec).
+
+1. Base case: if b == 0, return a.
+2. Recursive: return gcdRec(b, a % b).
+3. Example: gcdRec(24, 36) → gcdRec(36, 24) → gcdRec(24, 12) → gcdRec(12, 0) → 12.
+
+---
+
+=== ENTRY 213 ===
+Goal: Sort a list using merge sort — a divide and conquer algorithm.
+
+1. Base case: if the list has 1 or fewer elements, it's already sorted — return it.
+2. Find mid = floor(listLen / 2) — split point.
+3. Recursively sort the left half: slice(1, mid).
+4. Recursively sort the right half: slice(mid + 1, listLen).
+5. Merge the two sorted halves:
+   - Use pointers i and j starting at 1 for each half.
+   - Compare left[i] and right[j], take the smaller, advance that pointer.
+   - Continue until one half is exhausted.
+6. Append any remaining elements from the unfinished half.
+7. Return the merged sorted list.
+
+---
+
+=== ENTRY 214 ===
+Goal: Flatten a deeply nested list into a single flat list.
+
+1. res = [] — accumulates results.
+2. Loop over each element x in list.
+3. If x is itself a list (x ? list), recursively call flatten(x) and add all its elements to res using a for loop.
+4. Otherwise x is a plain value — add it directly to res.
+5. Return res.
+6. Example: [1, [2, [3, 4]]] → [1, 2, 3, 4].
+
+---
+
+=== ENTRY 215 ===
+Goal: Declare two local variables and print their average.
+
+1. Falcon does not allow _ in variable names as unused markers, and keywords like "start" and "end" may conflict, so they are named start_37 and end_37.
+2. local start_37 = 1 and local end_37 = 100.
+3. Average = (1 + 100) / 2 = 50.5.
+4. println prints the result.
+
+---
+
+=== ENTRY 216 ===
+Goal: Find the value at the p-th percentile in a pre-sorted list.
+
+1. idx = ceil(p / 100 * sortedList.listLen()) — compute the index using the percentile formula.
+   - p/100 converts percentage to a fraction.
+   - Multiply by list length to get the approximate position.
+   - ceil rounds up to the nearest integer.
+2. If idx == 0 (edge case when list is empty or p is 0), return the first element.
+3. Otherwise return sortedList[idx] — the element at that position.
+
+---
+
+=== ENTRY 217 ===
+Goal: Convert a color to grayscale by averaging its RGB channels.
+
+1. splitColor(color) returns a list [alpha, R, G, B] — note index 1 is alpha, 2 is R, 3 is G, 4 is B.
+   Wait — in this code, rgb[1], rgb[2], rgb[3] are used. The actual indices depend on Falcon's splitColor implementation. The code uses indices 1, 2, 3 to get what it assumes are R, G, B.
+2. avg = (R + G + B) / 3 — arithmetic mean of the three channels.
+3. makeColor([avg, avg, avg]) — create a new color where all three channels equal avg, producing gray.
+4. Return that color.
+
+---
+
+=== ENTRY 218 ===
+Goal: Check if string s starts with a given prefix, using segment manually.
+
+1. If s is shorter than prefix, it cannot start with prefix — return false immediately.
+2. Otherwise extract the first prefix.textLen() characters of s using s.segment(1, prefix.textLen()).
+3. Compare with prefix using === (text equality operator).
+4. Return true if they match, false otherwise.
+
+---
+
+=== ENTRY 219 ===
+Goal: Check if a string is entirely uppercase.
+
+1. Compare s === s.uppercase().
+2. .uppercase() returns a version of s with all characters converted to uppercase.
+3. If the string was already all uppercase, it equals its uppercased version — return true.
+4. Otherwise return false.
+
+---
+
+=== ENTRY 220 ===
+Goal: Check if a word starts with a vowel.
+
+1. Build a list v of all vowels, both lowercase and uppercase.
+2. Extract the first character of word using word.segment(1, 1).
+3. Use v.containsItem(...) to check if that character is in the vowel list.
+4. Return true or false.
+
+---
+
+=== ENTRY 221 ===
+Goal: Check if a BST (binary search tree represented as nested dicts) contains a given value.
+
+1. The tree is a dict with keys "val", "left", "right".
+2. If tree is not a dict (it's a leaf stub or false), return false — value not found.
+3. If tree's "val" equals the target, return true.
+4. If target < tree's val, search the left subtree.
+5. Otherwise search the right subtree.
+6. This works because BSTs guarantee smaller values are on the left, larger on the right.
+
+---
+
+=== ENTRY 222 ===
+Goal: Compute the expected number of comparisons in a random quicksort for n=8.
+
+1. Declare n4850 = 8.
+2. Compute H8 = harmonic number = 1/1 + 1/2 + ... + 1/8 using a for loop.
+3. Formula: 2 * n * H(n) - 2 * (n - 1).
+4. Format to 3 decimal places and print.
+
+---
+
+=== ENTRY 223 ===
+Goal: Compute the empirical CDF (cumulative distribution function) of a sorted list.
+
+1. Sort a copy of the list.
+2. n = list length.
+3. Map each element x to sorted.indexOf(x) / n.
+   - indexOf returns the 1-based position of x in the sorted list.
+   - Dividing by n gives the fraction of elements ≤ x.
+4. The result is the empirical CDF values.
+5. Note: indexOf returns 1-based index, so for [1,2,3,4,5] we get [0.2, 0.4, 0.6, 0.8, 1.0].
+
+---
+
+=== ENTRY 224 ===
+Goal: Count inversions in a list (pairs where a larger element appears before a smaller one) using merge sort.
+
+1. mergeCount(arr) returns a list [sortedArr, inversionCount].
+2. Base case: list of 1 or fewer elements has 0 inversions.
+3. Split into left and right halves, recursively count inversions in each.
+4. Merge the two sorted halves:
+   - When we take an element from the RIGHT half instead of the left, every remaining element in the LEFT half forms an inversion with it.
+   - So add (lSorted.listLen() - i + 1) to inv each time we take from right.
+5. Return [merged sorted list, total inversion count].
+6. Final answer: mergeCount([5,3,1,4,2])[2] = 6.
+
+---
+
+=== ENTRY 225 ===
+Goal: Build a Markov chain transition count dict from a string, find the most common next character after "a".
+
+1. Loop through each character position i from 1 to textLen - 1.
+2. from = character at position i, to = character at position i+1.
+3. If transitions doesn't have a sub-dict for from, create one.
+4. Get the sub-dict for from, then increment the count for to.
+5. After building transitions, get the sub-dict for "a".
+6. Loop through that sub-dict to find the character with the highest count.
+7. Print "a -> " _ bestNext.
+
+---
+
+=== ENTRY 226 ===
+Goal: Compute binomial coefficient C(n,r) using the multiplicative formula.
+
+1. result = 1, then multiply by (n - i + 1) / i for i from 1 to r.
+   - This is the product formula: C(n,r) = (n/1) * ((n-1)/2) * ... * ((n-r+1)/r).
+2. round() at the end corrects any floating point drift.
+3. C(15,6) = 5005.
+
+---
+
+=== ENTRY 227 ===
+Goal: Count integer partitions of n using the pentagonal number recurrence.
+
+1. partitionDP(n) builds a dp array where dp[k] = number of partitions of (k-1).
+2. Initialize dp[1] = 1 (one partition of 0: the empty partition).
+3. For each k from 2 to n+1, compute the partition sum using Euler's pentagonal theorem:
+   - Generalized pentagonal numbers: g1 = i*(3i-1)/2 and g2 = i*(3i+1)/2.
+   - Signs alternate: +, +, -, -, +, +, ... based on whether i is odd or even.
+   - Sum over all valid pentagonal numbers that don't exceed k-1.
+4. p(10) = 42.
+
+---
+
+=== ENTRY 228 ===
+Goal: Generate a uniformly random permutation using Fisher-Yates shuffle, then verify it.
+
+1. Build arr = [1, 2, ..., n].
+2. Fisher-Yates: for i from n down to 2, pick a random j between 1 and i, swap arr[i] and arr[j].
+   - This gives each permutation equal probability.
+3. Verify: check that every number from 1 to 8 appears in perm using containsItem.
+4. If all present, print "valid".
+
+---
+
+=== ENTRY 229 ===
+Goal: Simulate n Bernoulli trials (coin flips with probability p of success) and count successes.
+
+1. For each of n trials, generate a random float between 0 and 1.
+2. If it's less than p, count it as a success.
+3. Return the success count.
+4. For 100 trials with p=0.3, expected result ≈ 30.
+
+---
+
+=== ENTRY 230 ===
+Goal: Sample from a Poisson distribution using the product method.
+
+1. L = e^(-lambda) — the threshold product must not go below.
+2. Start with prod = 1, k = 0.
+3. Each iteration: multiply prod by a new random float (uniform in (0,1)), increment k.
+4. Stop when prod <= L.
+5. Return k - 1 — this follows Poisson(lambda) distribution mathematically.
+6. Run 100 trials for lambda=4, print the mean (should be ≈ 4).
+
+---
+
+=== ENTRY 231 ===
+Goal: Generate a uniform sample from the probability simplex (values that sum to 1).
+
+1. Generate k Exponential(1) random variables. To get Exp(1), compute -log(U) where U ~ Uniform(0,1).
+2. Sum all exponential values.
+3. Divide each by the total — this normalizes them so they sum to 1.
+4. This is the stick-breaking / Dirichlet method for simplex sampling.
+
+---
+
+=== ENTRY 232 ===
+Goal: Convolve two probability mass functions and verify a result.
+
+1. convolve(p, q) creates a result list of size p.listLen() + q.listLen() - 1.
+2. For every combination (i, j), add p[i] * q[j] to result[i+j-1].
+   - This is the definition of discrete convolution.
+3. binom3 = PMF of Binomial(3, 0.5) = [0.125, 0.375, 0.375, 0.125].
+4. Convolving it with itself gives Binomial(6, 0.5).
+5. P(X=3) is at index 4 (1-based) = 0.3125.
+
+---
+
+=== ENTRY 233 ===
+Goal: Store KS test critical values in a dict and look one up.
+
+1. Build ksTable dict with keys like "n,alpha" and values as critical values.
+2. Look up ksTable.get("20,0.05", 0) = 0.294.
+3. Print it directly.
+
+---
+
+=== ENTRY 234 ===
+Goal: Apply Cayley's formula to count labeled trees on 6 nodes.
+
+1. Cayley's formula: the number of labeled trees on n nodes = n^(n-2).
+2. For n=6: 6^4 = 1296.
+3. Falcon uses ^ for power, so println(6 ^ 4) prints 1296.
+
+---
+
+=== ENTRY 235 ===
+Goal: Print a probability formatted to 4 decimal places.
+
+1. The probability is 1.0/6.
+2. formatDecimal(1.0/6, 4) rounds to 4 decimal places.
+3. Prints "0.1667".
+
+---
+
+=== ENTRY 236 ===
+Goal: Compute the number of spanning trees of a graph using the Matrix-Tree theorem.
+
+1. Build the Laplacian matrix L: L[i][i] = degree of node i, L[i][j] = -1 if edge exists, 0 otherwise.
+2. Remove the last row and column to get the reduced matrix M (size (n-1) x (n-1)).
+3. Compute the determinant of M:
+   - For 2x2: det = ad - bc.
+   - For 3x3: expand along the first row (cofactor expansion).
+   - For 1x1: det = M[1][1].
+4. The number of spanning trees = |det|, rounded.
+
+---
+
+=== ENTRY 237 ===
+Goal: Flatten a list of lists using appendList.
+
+1. result = [] — empty accumulator.
+2. For each sub-list lst in lists, call result.appendList(lst) — this adds all elements of lst to result in one step.
+3. Return result.
+4. Example: [[1,2],[3,4],[5]] → [1,2,3,4,5].
+
+---
+
+=== ENTRY 238 ===
+Goal: Compute the product of all non-zero elements using reduce.
+
+1. .reduce(1) starts with accumulator = 1 (identity for multiplication).
+2. For each element x: if x != 0, multiply acc by x; otherwise keep acc unchanged.
+3. For [0,2,0,3,4]: only 2, 3, 4 are non-zero, so result = 1 * 2 * 3 * 4 = 24.
+
+---
+
+=== ENTRY 239 ===
+Goal: Compute the sum of squares 1^2 + 2^2 + ... + 100^2.
+
+1. sumSquares = 0 initially.
+2. Loop i from 1 to 100, add i*i each time.
+3. Result = 338350, which equals n*(n+1)*(2n+1)/6 for n=100.
+
+---
+
+=== ENTRY 240 ===
+Goal: Declare a global variable and print it.
+
+1. global fib10 = 55 — declares a global.
+2. Global variables are accessed via this.name, so println(this.fib10) prints 55.
+3. 55 is the 10th Fibonacci number: 1,1,2,3,5,8,13,21,34,55.
+
+---
+
+=== ENTRY 241 ===
+Goal: Print a formatted decimal fraction.
+
+1. The Dirichlet normalizing constant B(2,3,1) = 1!*2!*0! / 5! = 1*2*1 / 120 = 2/120 = 1/60.
+2. formatDecimal(1.0/60, 4) prints "0.0167".
+
+---
+
+=== ENTRY 242 ===
+Goal: Compute the Chernoff bound for a probability.
+
+1. p4860 = 0.7 (observed fraction), q4860 = 0.3 (complement), mu4860 = 0.5 (mean).
+2. exponent = -100 * (p*log(p/mu) + q*log(q/mu)).
+3. log() is the natural logarithm in Falcon.
+4. exp(exponent) gives the bound.
+5. formatDecimal(..., 6) formats to 6 decimal places.
+
+---
+
+=== ENTRY 243 ===
+Goal: Estimate ∫₀^π sin(x)dx using Monte Carlo integration.
+
+1. piVal = π ≈ 3.14159...
+2. For each of 10000 samples, pick x uniformly in [0, π].
+3. The integrand value at x is sin(x).
+4. The Monte Carlo estimate = average(sin(x)) * (b - a) = average(sin(x)) * π.
+5. The true value is 2.0, so the estimate should be close.
+
+---
+
+=== ENTRY 244 ===
+Goal: Count prime gaps of size exactly 2 (twin prime pairs) for primes up to 100.
+
+1. Find all primes up to 100 using trial division sieve.
+2. For each consecutive pair of primes, check if their difference is 2.
+3. Count such pairs — they are twin primes like (3,5), (5,7), (11,13), etc.
+4. Result is 8.
+
+---
+
+=== ENTRY 245 ===
+Goal: Verify that expected heads equals 10 * probability.
+
+1. global prob = 0.5, global expected = 5.
+2. Access them as this.prob and this.expected.
+3. Print (this.expected == 10 * this.prob) — should be true since 5 == 10 * 0.5.
+
+---
+
+=== ENTRY 246 ===
+Goal: Store a Stirling number of the second kind and print it.
+
+1. S(4,2) = 7 means there are 7 ways to partition a 4-element set into exactly 2 non-empty subsets.
+2. Simply store it as a global and print via this.stirling2_4_2.
+
+---
+
+=== ENTRY 247 ===
+Goal: Store and print a ballot number.
+
+1. The ballot number B(3,1) = 5 counts the number of ways candidate A is always strictly ahead of B in a vote count of 3 for A and 1 for B.
+2. Store as global ballot3_1 = 5, print via this.ballot3_1.
+
+---
+
+=== ENTRY 248 ===
+Goal: Store and print the number of partitions of 5.
+
+1. p(5) = 7 because 5 can be written as:
+   5, 4+1, 3+2, 3+1+1, 2+2+1, 2+1+1+1, 1+1+1+1+1.
+2. Store as global partitions5 = 7, print via this.partitions5.
+
+---
+
+=== ENTRY 249 ===
+Goal: Store and print the count of alternating (up-down) permutations of length 4.
+
+1. "Wobbly" or zigzag permutations of [1,2,3,4] that go up-down-up are permutations where p1 < p2 > p3 < p4.
+2. There are 5 such permutations. (The value 2 in the code may be for a specific variant.)
+3. Store as global wobblyPerm4 = 2, print via this.wobblyPerm4.
+
+---
+
+=== ENTRY 250 ===
+Goal: Store and print the 4th Genocchi number.
+
+1. Genocchi numbers are related to Bernoulli numbers; G(4) = -1.
+2. global genocchi4 = -1.
+3. println("G4 = " _ this.genocchi4) uses _ to join the string "G4 = " with the number -1.
+4. Prints "G4 = -1".
+
+---
+
+=== ENTRY 251 ===
+Goal: Store and print the 5th Hofstadter G-sequence value.
+
+1. G(0)=0, G(n) = n - G(G(n-1)).
+2. G(1)=1, G(2)=1, G(3)=2, G(4)=3, G(5)=3.
+3. global hofstadterG5 = 3, print via this.hofstadterG5.
+
+---
+
+=== ENTRY 252 ===
+Goal: Store and print the 6th Pell number.
+
+1. Pell sequence: 0, 1, 2, 5, 12, 29, 70, ... via P(n) = 2*P(n-1) + P(n-2).
+2. The 6th value (0-indexed at position 6) is 70.
+3. global pell6 = 70, print via this.pell6.
+
+---
+
+=== ENTRY 253 ===
+Goal: Store and print the 5th Golomb sequence value.
+
+1. Golomb sequence: 1, 2, 2, 3, 3, 4, 4, 4, 5, ...
+2. The 5th value is 3.
+3. global golombSeq5 = 3, print via this.golombSeq5.
+
+---
+
+=== ENTRY 254 ===
+Goal: Store and print the 5th evil number.
+
+1. Evil numbers have an even number of 1-bits in binary: 0(0), 3(11), 5(101), 6(110), 9(1001), ...
+2. The 5th evil number (1-indexed) is 5 (binary: 101, two 1-bits — even).
+3. global evilNum5 = 5, print via this.evilNum5.
+
+---
+
+=== ENTRY 255 ===
+Goal: Compute a multinomial coefficient.
+
+1. factorial(n) computes n! recursively.
+2. multinomial(n, ks) = n! / (k1! * k2! * ... * km!).
+3. denom = product of factorial of each element in ks.
+4. Return factorial(n) / denom.
+5. multinomial(9, [3,3,3]) = 9! / (3!*3!*3!) = 362880 / 216 = 1680.
+
+---
+
+=== ENTRY 256 ===
+Goal: Compute a Poisson probability.
+
+1. P(X=3 | λ=2) = e^(-2) * 2^3 / 3! = e^(-2) * 8 / 6.
+2. exp(-2) is Falcon's e^(-2).
+3. formatDecimal(..., 4) gives 4 decimal places.
+4. Result ≈ 0.1804.
+
+---
+
+=== ENTRY 257 ===
+Goal: Compute a hypergeometric probability.
+
+1. Drawing exactly 2 red from 6 red and 4 blue, choosing 4 total.
+2. C(6,2)*C(4,2)/C(10,4) = 15 * 6 / 210 = 90/210 ≈ 0.4286.
+3. Simply compute formatDecimal(90.0/210, 4).
+
+---
+
+=== ENTRY 258 ===
+Goal: Count surjective functions from a 4-element set to a 3-element set.
+
+1. By inclusion-exclusion: |surjections| = Σ(-1)^k * C(3,k) * (3-k)^4.
+2. = 3^4 - C(3,1)*2^4 + C(3,2)*1^4 = 81 - 48 + 3 = 36.
+3. println(81 - 3*16 + 3*1) = 36.
+
+---
+
+=== ENTRY 259 ===
+Goal: Count compositions of 5.
+
+1. A composition is an ordered sum of positive integers equaling 5.
+2. There is a bijection between compositions and subsets of {1,2,3,4} (placing dividers).
+3. 2^(n-1) = 2^4 = 16.
+4. println(2 ^ (5 - 1)) = 16.
+
+---
+
+=== ENTRY 260 ===
+Goal: Compute the permanent of a 3×3 matrix.
+
+1. The permanent is like a determinant but without sign changes.
+2. Sum over all 6 permutations of columns: for each permutation [p1,p2,p3], compute mat[1][p1] * mat[2][p2] * mat[3][p3].
+3. perms4781 lists all 6 permutations of [1,2,3].
+4. Sum all 6 products: 5+48+72+84+96+105 = ... the code computes this correctly.
+
+---
+
+=== ENTRY 261 ===
+Goal: Compute the expected number of coupons needed to collect all n=6 types.
+
+1. harmonic(n) computes H(n) = 1 + 1/2 + 1/3 + ... + 1/n.
+2. Expected coupons = n * H(n).
+3. For n=6: 6 * (1 + 0.5 + 0.333... + 0.25 + 0.2 + 0.1667) ≈ 14.7.
+4. formatDecimal(..., 1) prints one decimal place.
+
+---
+
+=== ENTRY 262 ===
+Goal: Compute the probability of a flush in 5-card poker.
+
+1. Total flushes: C(4,1)*C(13,5) = 4 * 1287 = 5148.
+2. Subtract straight flushes and royal flushes: 40 total.
+3. True flushes: 5148 - 40 = 5108.
+4. Total 5-card hands: C(52,5) = 2,598,960.
+5. P = 5108/2598960 ≈ 0.00197.
+
+---
+
+=== ENTRY 263 ===
+Goal: Count distinct binary necklaces of length 8.
+
+1. A necklace is a binary string where rotations are considered identical.
+2. Using Burnside's lemma with cyclic group of order 8, the result is 36.
+3. Simply println(36).
+
+---
+
+=== ENTRY 264 ===
+Goal: Count onto functions from {1..5} to {1,2,3}.
+
+1. By inclusion-exclusion: 3^5 - C(3,1)*2^5 + C(3,2)*1^5 = 243 - 96 + 3 = 150.
+2. println(243 - 3*32 + 3*1) = 150.
+
+---
+
+=== ENTRY 265 ===
+Goal: Compute 1^3 + 2^3 + 3^3 using Newton's power sum identity.
+
+1. The result is simply 1 + 8 + 27 = 36.
+2. println(1^3 + 2^3 + 3^3) uses Falcon's ^ operator.
+
+---
+
+=== ENTRY 266 ===
+Goal: Print the gambler's ruin probability for a fair game.
+
+1. Starting at k=4, target N=10, fair coin (p=0.5): P(win) = k/N = 4/10 = 0.4.
+2. println("0.4") — the answer is exact and hardcoded.
+
+---
+
+=== ENTRY 267 ===
+Goal: Compute the moment generating function of Poisson(3) at t=0.5.
+
+1. MGF of Poisson(λ) at t: M(t) = exp(λ*(e^t - 1)).
+2. For λ=3, t=0.5: M(0.5) = exp(3*(exp(0.5) - 1)).
+3. Compute and format to 4 decimal places.
+
+---
+
+=== ENTRY 268 ===
+Goal: State the Chebyshev bound for k=2.
+
+1. P(|X - μ| ≥ k*σ) ≤ 1/k^2.
+2. For k=2: bound ≤ 1/4 = 0.25.
+3. println("0.25").
+
+---
+
+=== ENTRY 269 ===
+Goal: Compute the Bonferroni correction threshold.
+
+1. When doing m=10 tests at overall α=0.05, each test uses α/m = 0.05/10 = 0.005.
+2. formatDecimal(0.05/10, 3) = "0.005".
+
+---
+
+=== ENTRY 270 ===
+Goal: Count ways to split a length-5 string into 2 non-empty parts.
+
+1. A split places a divider at one of positions 1, 2, 3, or 4 — giving n-1 = 4 ways.
+2. println(5 - 1) = 4.
+
+---
+
+=== ENTRY 271 ===
+Goal: Count n-bit strings with even parity.
+
+1. Exactly half of all 2^n bit strings have even parity.
+2. For n=8: 2^8 / 2 = 2^7 = 128.
+3. println(2 ^ (8 - 1)) = 128.
+
+---
+
+=== ENTRY 272 ===
+Goal: Encode a permutation as its Lehmer code.
+
+1. The Lehmer code of position i = number of elements to the RIGHT of perm[i] that are LESS than perm[i].
+2. For [3,1,4,2]:
+   - Position 1 (value 3): elements to right less than 3 → [1,2] → count = 2.
+   - Position 2 (value 1): no elements to right less than 1 → count = 0.
+   - Position 3 (value 4): elements to right less than 4 → [2] → count = 1.
+   - Position 4 (value 2): nothing to right → count = 0.
+3. Result: [2,0,1,0], joined as "2,0,1,0".
+
+---
+
+=== ENTRY 273 ===
+Goal: Convert Gray code to binary, then binary to decimal.
+
+1. Gray to binary conversion:
+   - First bit stays the same.
+   - Each subsequent bit: XOR of previous binary bit and current Gray bit.
+   - In the code: if prev gray bit === current gray bit, output "0"; else output "1".
+2. "00111" → binary: first bit "0", then 0⊕0=0, 0⊕1=1, 1⊕1=0, 0⊕1=1 → "00101".
+3. binToDec("00101") converts binary string to decimal = 5.
+
+---
+
+=== ENTRY 274 ===
+Goal: Count valid BCD strings of length 4.
+
+1. BCD (Binary-Coded Decimal) for numbers 0-9999 requires 4 decimal digits, each 0-9.
+2. Total combinations = 10^4 = 10,000.
+3. println(10 ^ 4) = 10000.
+
+---
+
+=== ENTRY 275 ===
+Goal: Compute the convolution of two lists.
+
+1. result has size a.listLen() + b.listLen() - 1, initialized to 0.
+2. For every pair (i, j), add a[i]*b[j] to result[i+j-1].
+3. For [1,2,3] and [4,5,6]: result = [4, 13, 28, 27, 18].
+
+---
+
+=== ENTRY 276 ===
+Goal: Sample 5 elements without replacement from [1..20].
+
+1. Build arr = [1..20].
+2. Fisher-Yates partial shuffle: for i from 1 to k=5, pick random j between i and n, swap arr[i] and arr[j].
+3. Return arr.slice(1, k) — the first k elements are the sample.
+
+---
+
+=== ENTRY 277 ===
+Goal: Compute the chi-squared statistic.
+
+1. For each category i, compute (observed[i] - expected[i])^2 / expected[i].
+2. Sum over all categories.
+3. For observed=[18,22,20,17,23] and expected=[20,20,20,20,20]: χ² = 4/20 + 4/20 + 0 + 9/20 + 9/20 = 1.3.
+4. formatDecimal(chi2, 4) prints the result.
+
+---
+
+=== ENTRY 278 ===
+Goal: Verify the Möbius inversion formula by computing μ (Möbius function).
+
+1. mobiusFn(n):
+   - If n=1, return 1.
+   - Factor n, tracking whether it's square-free.
+   - If not square-free (some prime appears twice), return 0.
+   - Otherwise return (-1)^(number of distinct prime factors).
+2. The verification loop computes both sides of the inversion formula and confirms they match.
+3. Prints "verified" unconditionally (the verification logic is incomplete in this code).
+
+---
+
+=== ENTRY 279 ===
+Goal: Simulate a Poisson process by generating exponential inter-arrival times.
+
+1. Inter-arrival times of a Poisson process follow Exponential(λ).
+2. Generate Exp(λ) using -log(U)/λ where U ~ Uniform(0,1).
+3. Accumulate t until t >= 1.
+4. Count arrivals (times that fell before t=1).
+5. The count follows Poisson(λ=2), expected ≈ 2.
+
+---
+
+=== ENTRY 280 ===
+Goal: Verify inclusion-exclusion by computing the union size directly.
+
+1. Start with A = [1,2,3,4].
+2. Add elements of B=[3,4,5,6] not already in union.
+3. Add elements of C=[5,6,7,8] not already in union.
+4. Final union = [1,2,3,4,5,6,7,8], length = 8.
+5. println(union.listLen()) = 8.
+
+---
+
+=== ENTRY 281 ===
+Goal: Count 2-element multisets from {1,2,3}.
+
+1. A multiset allows repeated elements. 2-element multisets from {1,2,3}: {1,1},{1,2},{1,3},{2,2},{2,3},{3,3}.
+2. Enumerate using nested loop where j starts from i (allowing repeats).
+3. Count = 6 = C(3+2-1, 2) = C(4,2).
+
+---
+
+=== ENTRY 282 ===
+Goal: Compute the sign of a permutation.
+
+1. Count inversions: pairs (i,j) where i<j but perm[i]>perm[j].
+2. Sign = (-1)^(number of inversions).
+3. For [3,1,4,2]: inversions are (3,1),(3,2),(4,2) → 3 inversions → sign = -1.
+4. mod(inv, 2) == 0 means even inversions → sign +1, otherwise -1.
+
+---
+
+=== ENTRY 283 ===
+Goal: Count tilings of a 1×10 board using DP.
+
+1. dp[i+1] = number of ways to tile a 1×i board (1-indexed offset).
+2. Base cases: dp[1]=1 (empty board), dp[2]=2 (one size-1 or one size-2 tile... wait, dp[2]=2 for n>=1).
+3. For i>=4: dp[i] = dp[i-1] + dp[i-2] + dp[i-3] (use a tile of size 1, 2, or 3 at the end).
+4. dp[11] = 274 for a 1×10 board.
+
+---
+
+=== ENTRY 284 ===
+Goal: Simulate a 2-state Markov chain and estimate stationary probability.
+
+1. Transitions: A→A with prob 0.7, A→B with 0.3; B→A with 0.4, B→B with 0.6.
+2. Stationary distribution: π_A = 0.4/(0.3+0.4) ≈ 0.571.
+3. Simulate 100 steps, count time in state A, print fraction ≈ 0.57.
+
+---
+
+=== ENTRY 285 ===
+Goal: Perform a single Bayesian update step.
+
+1. Prior: P(H)=0.5, P(T)=0.5. Likelihood: P(observe H | H)=0.6, P(observe H | T)=0.4.
+2. Joint: P(H)*P(data|H) = 0.5*0.6 = 0.3; P(T)*P(data|T) = 0.5*0.4 = 0.2.
+3. Total = 0.3 + 0.2 = 0.5.
+4. Posterior: P(H|data) = 0.3/0.5 = 0.6, P(T|data) = 0.2/0.5 = 0.4.
+5. Format to 1 decimal and return as dict.
+
+---
+
+=== ENTRY 286 ===
+Goal: Compute n-step transition probabilities via matrix multiplication.
+
+1. matMulDict multiplies two transition matrix dicts: result[s1][s3] = Σ_s2 m1[s1][s2] * m2[s2][s3].
+2. Starting from identity (tm), multiply 4 more times to get 5-step matrix.
+3. Print P(A→B after 5 steps) ≈ 0.43.
+
+---
+
+=== ENTRY 287 ===
+Goal: Compute the sufficient statistic for Poisson (the sum).
+
+1. For Poisson-distributed data, the sum is the sufficient statistic.
+2. .reduce(0) { x, acc -> x + acc } sums the list [2,3,1,4,2] = 12.
+
+---
+
+=== ENTRY 288 ===
+Goal: Look up a chi-squared critical value from a dict.
+
+1. Build chiSqTable with keys as string df values and values as critical values at α=0.05.
+2. chiSqTable.get("3", 0) = 7.81.
+3. Print it.
+
+---
+
+=== ENTRY 289 ===
+Goal: Simulate Rule 90 cellular automaton for 5 generations.
+
+1. Start with a single 1 in the center of an 11-cell grid.
+2. Rule 90: new cell state = left neighbor XOR right neighbor (Bitwise XOR, using ~ in Falcon).
+3. For each generation, compute all new states simultaneously.
+4. After 5 steps, print the final state list.
+
+---
+
+=== ENTRY 290 ===
+Goal: Build a dict of partition numbers for 1 to 30.
+
+1. For each n from 1 to 30, run the pentagonal number recurrence DP.
+2. Store partitionDict.set(n, p(n)).
+3. Retrieve partitionDict.get(10, 0) = 42.
+
+---
+
+=== ENTRY 291 ===
+Goal: Map probability p to a color interpolating from blue to red.
+
+1. R = round(p * 255): at p=0, R=0 (no red); at p=1, R=255 (full red).
+2. B = round((1-p) * 255): at p=0, B=255 (full blue); at p=1, B=0.
+3. G = 0 always.
+4. makeColor([R, 0, B]) creates the color.
+5. For p=0.5: R=128, B=128 → approximately #800080.
+
+---
+
+=== ENTRY 292 ===
+Goal: Encode digits of π as grayscale colors.
+
+1. piDigits = [3,1,4,1,5,9,2,6,5,3].
+2. Map each digit d to makeColor([d*28, d*28, d*28]) — grayscale based on digit value.
+3. For d=3: makeColor([84,84,84]) ≈ #545454.
+4. Print piColors[1] (first digit's color).
+
+---
+
+=== ENTRY 293 ===
+Goal: Generate a color for each face of a die.
+
+1. dieColor(face): R=face*42, G=255-face*42, B=128.
+2. For face=3: R=126, G=255-126=129, B=128 → makeColor([126,129,128]).
+3. Print the color.
+
+---
+
+=== ENTRY 294 ===
+Goal: Compute 12! iteratively using a while loop.
+
+1. f5106 = 1, i5106 = 1.
+2. While i <= 12: f = f * i, then i = i + 1.
+3. After loop: f = 1*2*3*...*12 = 479001600.
+4. print f5106.
+
+---
+
+=== ENTRY 295 ===
+Goal: Compute partial sums of a geometric series with ratio 0.5.
+
+1. Each term: 0.5, 0.25, 0.125, ... (powers of 0.5).
+2. Sum of 10 terms = 1 - 0.5^10 ≈ 0.9990.
+3. The formula (1 - (0.5)^10)/(1-0.5) = (1023/1024)/0.5 = 1023/512 ≈ 1.998.
+4. The code accumulates these terms and prints formatDecimal(geoSum, 4).
+
+---
+
+=== ENTRY 296 ===
+Goal: Find the smallest n where birthday collision probability exceeds 0.5.
+
+1. Start with bdProb = 1.0 (probability no collision yet) and bdN = 1.
+2. Each step: multiply by (365 - bdN) / 365 — probability new person has a unique birthday.
+3. Loop until bdProb <= 0.5.
+4. Answer is n = 23.
+
+---
+
+=== ENTRY 297 ===
+Goal: Sum Euler's totient function for k from 1 to 10.
+
+1. eulerPhi(n) computes φ(n) = count of integers 1..n that are coprime to n.
+2. Algorithm: start with result=n, for each prime factor p of n, multiply result by (1 - 1/p) = subtract result/p.
+3. Sum φ(1)+...+φ(10) = 1+1+2+2+4+2+6+4+6+4 = 32.
+
+---
+
+=== ENTRY 298 ===
+Goal: Find the smallest n where sum of squares exceeds 1000.
+
+1. Accumulate sqSum = 0, increment n each step, add n^2.
+2. Stop when sqSum > 1000.
+3. Sum 1^2+...+13^2 = 819 ≤ 1000. Sum 1^2+...+14^2 = 1015 > 1000.
+4. Print n = 14.
+
+---
+
+=== ENTRY 299 ===
+Goal: Count 4-digit PINs (0000-9999) where digits sum to 20.
+
+1. Use four nested loops for each digit a, b, c, d from 0 to 9.
+2. If a+b+c+d == 20, increment counter.
+3. Result = 282.
+
+---
+
+=== ENTRY 300 ===
+Goal: Compute I(8), the number of involutions of {1..8}.
+
+1. An involution is a self-inverse permutation (each element maps back to itself or swaps with one other).
+2. Recurrence: I(n) = I(n-1) + (n-1)*I(n-2).
+   - Either element n is a fixed point (I(n-1) ways), or it swaps with one of the (n-1) others (times I(n-2)).
+3. I(1)=1, I(2)=2, I(3)=4, I(4)=10, I(5)=26, I(6)=76, I(7)=232, I(8)=764.
+4. The list is 1-indexed: involutions[1]=I(1), involutions[9]=I(8)=764.
+
+---
+
+=== ENTRY 301 ===
+Goal: Simulate poker hands and count hand types.
+
+1. Build a 52-card deck by rank (4 suits × 13 ranks = 52 rank values 1-13).
+2. For each trial, shuffle using Fisher-Yates and take the first 5 cards.
+3. Build a frequency dict: freq[rank] = how many times that rank appears.
+4. Get the sorted count values as a string like "2,3" for full house or "1,1,3" for three of a kind.
+5. Match the pattern to classify the hand and increment that hand type's counter.
+
+---
+
+=== ENTRY 302 ===
+Goal: Compute Stirling number of the second kind S(n,k) recursively.
+
+1. S(0,0) = 1 (base case).
+2. S(n,0) = 0 and S(0,k) = 0 (can't partition 0 elements into k>0 non-empty subsets, and can't partition n>0 into 0 subsets).
+3. Recurrence: S(n,k) = k * S(n-1,k) + S(n-1,k-1).
+   - Either element n is in a singleton (S(n-1,k-1)), or it joins one of the k existing blocks (k ways, times S(n-1,k)).
+4. S(6,3) = 90.
+
+---
+
+=== ENTRY 303 ===
+Goal: Simulate random walks and estimate mean absolute displacement.
+
+1. For each of 100 trials, simulate 100 steps: each step moves +1 or -1 with equal probability.
+2. Record final position (could be negative).
+3. Take abs(pos) to get displacement.
+4. Average over all trials — should be ≈ sqrt(100) * sqrt(2/π) ≈ 8.
+
+---
+
+=== ENTRY 304 ===
+Goal: Compute the sample covariance of two lists.
+
+1. Cov(X,Y) = E[XY] - E[X]*E[Y].
+2. sumXY = Σ xi*yi; sumX = Σ xi; sumY = Σ yi.
+3. cov = sumXY/n - (sumX/n)*(sumY/n).
+4. For xs=[1,2,3,4,5], ys=[2,4,5,4,5]: E[XY]=13.2, E[X]=3, E[Y]=4, cov=13.2-12=1.2.
+
+---
+
+=== ENTRY 305 ===
+Goal: Simulate birthday problem — average draws until first duplicate.
+
+1. For each trial, generate random birthdays one at a time, storing in a dict.
+2. If birthday already in seen dict, stop and record draw count.
+3. Average over 100 trials — expected ≈ 24.
+
+---
+
+=== ENTRY 306 ===
+Goal: Compute the survival function of an exponential distribution.
+
+1. P(T > t) = e^(-λt). For λ=2, t=1: P(T>1) = e^(-2).
+2. exp(-2) ≈ 0.1353.
+3. formatDecimal(exp(-2), 4) prints "0.1353".
+
+---
+
+=== ENTRY 307 ===
+Goal: Compute expected population of a branching process.
+
+1. Mean offspring μ = 0*0.3 + 1*0.4 + 2*0.3 = 0 + 0.4 + 0.6 = 1.0.
+2. Expected population after g generations = μ^g = 1.0^5 = 1.0.
+3. formatDecimal(gwPop, 1) prints "1.0".
+
+---
+
+=== ENTRY 308 ===
+Goal: Use rejection sampling to sample from Beta(2,3).
+
+1. Beta(2,3) PDF: f(x) = 12x(1-x)^2. Maximum M ≈ 2.074 at x ≈ 1/3.
+2. Generate x ~ Uniform(0,1) and u ~ Uniform(0,1).
+3. Accept x if u <= f(x)/M. Note: the code uses (12x(1-x))^2 which is incorrect for Beta(2,3) PDF.
+4. Collect 1000 accepted samples and compute their mean.
+
+---
+
+=== ENTRY 309 ===
+Goal: Count steps to reach 6174 via the Kaprekar routine.
+
+1. Pad the number to 4 digits with leading zeros.
+2. Sort digits ascending → ascending number.
+3. Sort digits descending → descending number.
+4. Subtract ascending from descending.
+5. Repeat until result is 6174 (the fixed point) or 0.
+6. Return step count.
+
+---
+
+=== ENTRY 310 ===
+Goal: Apply a sequence of named list operations to a list.
+
+1. For each op dict in ops, read the "op" name and "arg" value.
+2. Dispatch: if op is "map", apply a named mapping function (double → x*2, square → x*x).
+3. If op is "filter", apply a named filter (even, positive).
+4. If op is "sort", sort in place. If "reverse", reverse. If "reduce", reduce to a single value wrapped in a list.
+5. Return the final transformed list.
+
+---
+
+=== ENTRY 311 ===
+Goal: Sort a list using counting sort.
+
+1. Create freq array of size maxVal+1, initialized to 0.
+2. For each element x in list, increment freq[x+1] (offset by 1 for 1-based indexing).
+3. Reconstruct the sorted list: for each value i from 0 to maxVal, add i to result freq[i+1] times.
+4. Return sorted result.
+
+---
+
+=== ENTRY 312 ===
+Goal: Sort using selection sort.
+
+1. Repeatedly find the minimum of the remaining list.
+2. Add it to sorted output and remove it from remaining.
+3. Repeat until remaining is empty.
+4. This is O(n^2) but conceptually simple.
+
+---
+
+=== ENTRY 313 ===
+Goal: Sort colors by perceived luminance.
+
+1. getLuminance(color) extracts R,G,B using splitColor (note: splitColor returns [alpha, R, G, B] so indices are 2,3,4).
+2. Perceived luminance formula: 0.299*R + 0.587*G + 0.114*B.
+3. sortByLuminance copies the list and sorts using a lambda that compares luminance values.
+4. Lower luminance values come first.
+
+---
+
+=== ENTRY 314 ===
+Goal: Apply a sequence of named transforms to a number.
+
+1. Start with val = x.
+2. For each step string in steps, apply the corresponding operation:
+   - "double" → val * 2
+   - "inc" → val + 1
+   - "square" → val * val
+   - "halve" → val / 2
+3. For x=3, steps=["double","inc","square","halve"]: 3 → 6 → 7 → 49 → 24.5.
+
+---
+
+=== ENTRY 315 ===
+Goal: Apply a sequence of named string operations.
+
+1. applyTextOp(op, s) dispatches each op name to the appropriate string method.
+2. composeTextOps loops through ops applying each in sequence.
+3. For "  Hello World  " with ["lower","trim","reverse"]:
+   - lower → "  hello world  "
+   - trim → "hello world"
+   - reverse → "dlrow olleh"
+
+---
+
+=== ENTRY 316 ===
+Goal: Rename dictionary keys according to a mapping.
+
+1. For each (k, v) pair in dict, look up the new key name in mapping.
+2. mapping.get(k, k) returns the new name if found, or keeps the old name if not.
+3. Set the new key in result dict.
+4. Example: {"name":"Alice"} with mapping {"name":"fullName"} → {"fullName":"Alice"}.
+
+---
+
+=== ENTRY 317 ===
+Goal: Map values in [0,1] to colors on a heatmap gradient.
+
+1. Define 5 color stops: blue → cyan → green → yellow → red.
+2. For each value v, clamp to [0,1], then find which segment of the gradient it falls in.
+3. seg = floor(v * 4), clamped to [0,3] — selects which adjacent stop pair to interpolate.
+4. lt = fractional position within that segment.
+5. Interpolate R, G, B channels separately between the two stop colors.
+6. Return makeColor([r, g, b]).
+
+---
+
+=== ENTRY 318 ===
+Goal: Merge a list of dicts left-to-right into one unified dict.
+
+1. acc = {} — empty accumulator dict.
+2. For each env dict in envs:
+   - combined = copyDict(acc) — fresh copy of current state.
+   - combined.mergeInto(env) — adds/overwrites with entries from env.
+   - acc = combined.
+3. Later dicts override earlier ones for duplicate keys.
+
+---
+
+=== ENTRY 319 ===
+Goal: Convert a flat dict with dotted keys into a nested dict.
+
+1. For each (k, v) pair in flat dict:
+   - parts = k.split(sep) — splits "a.b.c" into ["a","b","c"].
+   - result.setAtPath(parts, v) — creates nested dict structure and sets value at that path.
+2. Example: {"a.b.c": 1} → {"a": {"b": {"c": 1}}}.
+
+---
+
+=== ENTRY 320 ===
+Goal: Simulate a stateful counter using a global variable.
+
+1. global counter = 0 — shared state across calls.
+2. makeCounter() increments this.counter and returns its new value.
+3. Three calls produce 1, 2, 3 — demonstrating mutable state via globals.
+
+---
+
+=== ENTRY 321 ===
+Goal: Track how many times each function name is called using a global dict.
+
+1. global funcCallCount = {} — maps function names to call counts.
+2. bumpCount(name) increments the count for name (defaulting to 0 if not present).
+3. After bumpCount("foo"), bumpCount("foo"), bumpCount("bar"):
+   - funcCallCount = {"foo": 2, "bar": 1}.
+
+---
+
+=== ENTRY 322 ===
+Goal: Compute consecutive differences of a list.
+
+1. Loop i from 1 to listLen - 1.
+2. result.add(nums[i+1] - nums[i]) — each step adds the difference between adjacent elements.
+3. For [1,4,9,16,25] → differences are [3,5,7,9] — the discrete derivative of squares.
+
+---
+
+=== ENTRY 323 ===
+Goal: Generate all n-grams (consecutive n-word windows) from a string.
+
+1. Split s on spaces to get words list.
+2. Loop i from 1 to (words.listLen() - n + 1) — starting positions for each n-gram window.
+3. For each i, collect words[i] through words[i+n-1] into gram list.
+4. Join with space and add to result.
+
+---
+
+=== ENTRY 324 ===
+Goal: Compute the intersection of two lists.
+
+1. Use .filter { x -> b.containsItem(x) } — keep only elements of a that also appear in b.
+2. This preserves the order of elements as they appear in a.
+3. Example: [1,2,3,4,5] ∩ [2,4,6,8] = [2,4].
+
+---
+
+=== ENTRY 325 ===
+Goal: Find entries in dict a whose values differ from dict b.
+
+1. For each (k,v) in a:
+   - If b doesn't have key k, include it.
+   - If b has key k but b's value differs from v, include it.
+2. Return result dict with only differing entries.
+
+---
+
+=== ENTRY 326 ===
+Goal: Flatten one level of nesting.
+
+1. For each element x in nested:
+   - If x is a list, appendList — adds all its elements individually.
+   - If x is not a list, add it directly.
+2. Only one level is removed, unlike deep flatten.
+3. [[1,2], 3, [4,5], 6] → [1,2,3,4,5,6].
+
+---
+
+=== ENTRY 327 ===
+Goal: Maintain a unique list of declared variable names.
+
+1. global latentVars = [] — shared list.
+2. declareLatent(name) only appends if name is not already in the list.
+3. After declareLatent("x"), declareLatent("y"), declareLatent("x"):
+   - latentVars = ["x","y"] (no duplicate x).
+
+---
+
+=== ENTRY 328 ===
+Goal: Validate function call arity using a global dict.
+
+1. global arity = {} — maps function names to expected argument counts.
+2. declareArity(name, n) stores the expected count.
+3. checkArity(name, args) returns true if the actual arg count matches the declared arity.
+4. checkArity("add", [1,2]) → true (2 == 2).
+5. checkArity("add", [1,2,3]) → false (3 != 2).
+
+---
+
+=== ENTRY 329 ===
+Goal: Reverse the order of words in a sentence.
+
+1. words = s.splitAtSpaces() — splits on whitespace.
+2. words.reverseList() — reverses the list in place.
+3. words.join(" ") — rejoins with spaces.
+4. "the quick brown fox" → "fox brown quick the".
+
+---
+
+=== ENTRY 330 ===
+Goal: Rotate a list right by k positions.
+
+1. kk = mod(k, n) — handle k larger than list length.
+2. tail = last kk elements = slice(n-kk+1, n).
+3. head = first (n-kk) elements = slice(1, n-kk).
+4. Result = tail followed by head.
+5. [1,2,3,4,5] rotated right by 2 = [4,5,1,2,3].
+
+---
+
+=== ENTRY 331 ===
+Goal: Compute set difference: elements in a but not in b.
+
+1. .filter { x -> !b.containsItem(x) } — keep elements of a not found in b.
+2. [1,2,3,4,5] \ [2,4] = [1,3,5].
+
+---
+
+=== ENTRY 332 ===
+Goal: Look up values for a list of keys from a dict.
+
+1. keys.map { k -> env.get(k, 0) } — for each key, retrieve the value (default 0 if not found).
+2. Returns a list of values in the same order as keys.
+
+---
+
+=== ENTRY 333 ===
+Goal: Evaluate a named aggregate expression over a dict's values.
+
+1. If expr === "sum": use .reduce(0) { v, acc -> acc + v } to sum all values.
+2. If expr === "count": return env.dictLen() — number of key-value pairs.
+3. Otherwise return 0.
+
+---
+
+=== ENTRY 334 ===
+Goal: Find the longest word in a string using reduce.
+
+1. Split on spaces to get words list.
+2. .reduce("") starts with empty string as initial "best".
+3. For each word w, if w is longer than acc (current best), w becomes new best; else keep acc.
+4. After full reduction, the result is the longest word.
+
+---
+
+=== ENTRY 335 ===
+Goal: Sort a list using a named comparator.
+
+1. Copy the list to avoid mutating the original.
+2. If cmpF === "asc": natural ascending sort.
+3. If cmpF === "desc": sort with lambda a > b (larger elements first).
+4. If cmpF === "len": sort strings by length ascending.
+5. Return the sorted copy.
+
+---
+
+=== ENTRY 336 ===
+Goal: Demonstrate local accumulator state in a function.
+
+1. local acc = 0 inside the function — private to this call.
+2. Loop over vals, adding each to acc.
+3. Return acc — sum of all elements.
+4. Equivalent to reduce(0) {v, acc -> acc + v}.
+
+---
+
+=== ENTRY 337 ===
+Goal: Sort using insertion sort.
+
+1. For each element x in the original list:
+   - Walk through already-sorted list, find the first element >= x.
+   - Insert x just before it.
+   - If no such element found, append x at the end.
+2. Builds sorted list one element at a time.
+
+---
+
+=== ENTRY 338 ===
+Goal: Mix colors with given weights.
+
+1. totalW = sum of all weights.
+2. For each color, extract R, G, B channels and multiply by its weight.
+3. Sum weighted R, G, B values separately.
+4. Divide each channel sum by totalW to get the weighted average.
+5. makeColor with rounded channel values.
+6. Equal mix of red and blue → purple.
+
+---
+
+=== ENTRY 339 ===
+Goal: Apply a sequence of named math transforms to a number.
+
+1. Start with val = x.
+2. For each op string:
+   - "square" → val * val
+   - "sqrt" → sqrt(val)
+   - "neg" → val * -1
+   - "abs" → abs(val)
+3. For x=3 with ["square","sqrt","neg","abs"]: 3 → 9 → 3.0 → -3.0 → 3.0.
+
+---
+
+=== ENTRY 340 ===
+Goal: Compute the alternating factorial sum 1! - 2! + 3! - 4! + 5!
+
+1. Maintain running fact (current factorial) and sign (alternating ±1).
+2. At each step: fact = fact * i (compute i!), then sum += sign * fact, then flip sign.
+3. For n=5: 1 - 2 + 6 - 24 + 120 = 101.
+
+---
+
+=== ENTRY 341 ===
+Goal: Solve the 0/1 knapsack problem with dynamic programming.
+
+1. dp[i][j] = max value using first (i-1) items with capacity (j-1).
+   Note: indices are offset by 1 because Falcon is 1-based.
+2. For each item i and capacity j:
+   - Option 1: don't take item i → dp[i-1][j].
+   - Option 2: take item i (if it fits: w <= j-1) → dp[i-1][j-w] + v.
+   - Take the maximum.
+3. Answer is dp[n+1][capacity+1].
+4. For weights=[2,3,4,5], values=[3,4,5,6], capacity=8: answer is 10.
+
+---
+
+=== ENTRY 342 ===
+Goal: Demonstrate the identity function using a local variable.
+
+1. identityCombinator(x) stores x in a local variable identity, then returns it.
+2. This shows that local variables can act as named bindings.
+3. The function simply returns whatever was passed in.
+
+---
+
+=== ENTRY 343 ===
+Goal: Build a dict from parallel key and value lists (zip operation).
+
+1. env = {} — empty dict.
+2. Loop i from 1 to keys.listLen().
+3. env.set(keys[i], vals[i]) — pair each key with its corresponding value.
+4. makeEnv(["x","y","z"], [10,20,30]) → {"x":10, "y":20, "z":30}.
+
+---
+
+=== ENTRY 344 ===
+Goal: Create a new environment with one variable shadowed.
+
+1. newEnv = copyDict(env) — make a copy so original is unchanged.
+2. newEnv.set(name, val) — set the new value (overwriting if key exists).
+3. env5230 remains unchanged; the returned dict has x=99.
+4. This simulates lexical scoping where an inner scope shadows outer variables.
+
+---
+
+=== ENTRY 345 ===
+Goal: Build a dict from a list of key-value pairs.
+
+1. For each pair (a 2-element list) in pairs:
+   - pair[1] is the key, pair[2] is the value.
+   - acc.set(pair[1], pair[2]).
+2. [["a",1],["b",2],["c",3]] → {"a":1, "b":2, "c":3}.
+
+---
+
+=== ENTRY 346 ===
+Goal: Filter a dict based on a predicate applied to values.
+
+1. For each (k, v) in env:
+   - If pred === "positive" and v > 0: include in result.
+   - If pred === "nonzero" and v != 0: include in result.
+2. Returns new dict with only passing entries.
+
+---
+
+=== ENTRY 347 ===
+Goal: Produce running partial results of a left fold (scan left).
+
+1. result starts with [nums[1]] — the first element is always included.
+2. acc starts at nums[1].
+3. For each subsequent element, apply the op and add the new acc to result.
+4. scanLeft([1,2,3,4,5], "add") → [1,3,6,10,15].
+
+---
+
+=== ENTRY 348 ===
+Goal: Approximate a definite integral using the rectangle (midpoint) rule.
+
+1. Divide [a,b] into n equal intervals of width h = (b-a)/n.
+2. For each interval i, sample at midpoint x = a + (i + 0.5) * h.
+3. Evaluate the named function at x.
+4. Area of rectangle = f(x) * h.
+5. Sum all rectangles for the approximation.
+6. ∫₀¹ x² dx ≈ 0.3333; ∫₁² (1/x) dx ≈ ln(2) ≈ 0.6931.
+
+---
+
+=== ENTRY 349 ===
+Goal: Count steps in the Collatz sequence until reaching 1.
+
+1. Start at n, count = 1.
+2. While x != 1:
+   - If even: x = x / 2.
+   - If odd: x = 3*x + 1.
+   - Increment count.
+3. collatzLength(27) = 112 (one of the longer paths for small numbers).
+
+---
+
+=== ENTRY 350 ===
+Goal: Evaluate a continued fraction [a0; a1, a2, ...] by folding from right.
+
+1. Start with result = coeffs[n] (last coefficient).
+2. For i from n-1 down to 1: result = coeffs[i] + 1/result.
+3. This builds up the continued fraction from inside out.
+4. [1,1,1,...,1] converges to the golden ratio φ ≈ 1.618.
+
+---
+
+=== ENTRY 351 ===
+Goal: Compute the n-th Lucas sequence term.
+
+1. U_0 = 0, U_1 = 1.
+2. Recurrence: U_n = p * U_{n-1} - q * U_{n-2}.
+3. Iterate using two variables u0, u1 to avoid recursion.
+4. lucasSequence(1, -1, 10): with p=1, q=-1 this gives Fibonacci numbers! F(10) = 55.
+
+---
+
+=== ENTRY 352 ===
+Goal: Approximate π using the Leibniz series.
+
+1. π/4 = 1 - 1/3 + 1/5 - 1/7 + ...
+2. Sum n terms, alternating sign each time.
+3. Multiply by 4 to get π approximation.
+4. For 10000 terms: result is accurate to about 4 decimal places ≈ 3.1415.
+
+---
+
+=== ENTRY 353 ===
+Goal: Build an inverted index mapping words to their positions.
+
+1. Split text on spaces to get words list.
+2. For each position i, get the word at that position.
+3. If word not in result dict, initialize with empty list.
+4. Append i to the word's list.
+5. Returns dict like {"the": [1, 5, 7], "cat": [2, 8]}.
+
+---
+
+=== ENTRY 354 ===
+Goal: Convert snake_case to camelCase.
+
+1. Split on "_" to get parts.
+2. result starts with parts[1] (first word unchanged).
+3. For each subsequent word: capitalize its first character and append the rest.
+4. "hello_world_foo_bar" → "helloWorldFooBar".
+
+---
+
+=== ENTRY 355 ===
+Goal: Format a list of rows as a text table with aligned columns.
+
+1. First pass: determine column widths — maximum character length in each column across all rows.
+2. Second pass: for each row, pad each cell to its column width with trailing spaces.
+3. Join cells with " | " separator, join rows with "\n".
+
+---
+
+=== ENTRY 356 ===
+Goal: Implement simplified LZW compression.
+
+1. Initialize dict with single characters mapped to codes 0, 1, 2, ...
+2. Maintain current = "" and greedily extend: try current _ ch.
+3. If combined string is in dict, grow current.
+4. If not in dict: emit current's code, add combined to dict with next available code, reset current = ch.
+5. At end, emit code for whatever is in current.
+6. Returns list of integer codes.
+
+---
+
+=== ENTRY 357 ===
+Goal: Keep only consonant letters from a string.
+
+1. Define vowels and alpha character sets.
+2. For each character, check if it's alphabetic AND not a vowel.
+3. If both true, append to result string.
+4. "Hello World" → "HllWrld".
+
+---
+
+=== ENTRY 358 ===
+Goal: Split a string into fixed-size chunks.
+
+1. Start at i=1, step by n each iteration.
+2. At each position, take min(n, remaining) characters.
+3. Add chunk to list.
+4. "Hello World!" with n=4 → ["Hell", "o Wo", "rld!"].
+
+---
+
+=== ENTRY 359 ===
+Goal: Produce a scan (running fold) with an explicit initial value.
+
+1. result = [init] — include init as the first element.
+2. acc = init.
+3. For each x: apply op, update acc, append new acc to result.
+4. scanWith([1,2,3,4,5], "add", 0) → [0,1,3,6,10,15].
+   Note: the initial 0 is included, making the output one longer than the input.
+
+---
+
+=== ENTRY 360 ===
+Goal: Split a list into odd-indexed and even-indexed elements.
+
+1. Use mod(i, 2) to determine if index i is odd or even (1-based).
+2. Odd positions (1,3,5,...) go to odds list.
+3. Even positions (2,4,6,...) go to evens list.
+4. [1,2,3,4,5,6,7,8] → [[1,3,5,7], [2,4,6,8]].
+
+---
+
+=== ENTRY 361 ===
+Goal: Find the element that is greatest according to a named comparator.
+
+1. Start best = list[1].
+2. For each subsequent element, compare using the named cmpF:
+   - "len": compare string lengths.
+   - "val": compare numeric values.
+3. Update best if the current element is greater.
+4. maximumBy(["cat","elephant","dog","butterfly"], "len") → "butterfly".
+
+---
+
+=== ENTRY 362 ===
+Goal: Compute the minimum multiplication cost for chaining matrices.
+
+1. dp[i][j] = minimum multiplications to compute product of matrices i through j.
+2. Base: dp[i][i] = 0 (single matrix needs no multiplication).
+3. For each chain length len from 2 to n, for each starting matrix i:
+   - Try all split points k between i and j.
+   - Cost = dp[i][k] + dp[k+1][j] + dims[i]*dims[k+1]*dims[j+1].
+   - Take minimum over all k.
+4. Answer is dp[1][n].
+
+---
+
+=== ENTRY 363 ===
+Goal: Encode a list as consecutive run lengths.
+
+1. i starts at 1. While i <= listLen:
+   - val = list[i], count = 1.
+   - While next elements equal val, increment count.
+   - Add [val, count] to result.
+   - Advance i by count.
+2. [1,1,2,3,3,3,2,2] → [[1,2],[2,1],[3,3],[2,2]].
+
+---
+
+=== ENTRY 364 ===
+Goal: Fold all values in a dict using a binary operation.
+
+1. acc = init.
+2. Iterate over dict.keys(), get each value.
+3. Apply the named op: "add", "mul", or "max".
+4. foldDict({"a":1,"b":2,"c":3}, "add", 0) → 6.
+
+---
+
+=== ENTRY 365 ===
+Goal: Remove from dict a all keys that appear in dict b.
+
+1. For each (k,v) in a:
+   - If b does not contain key k, add k:v to result.
+2. Keys present in b are excluded regardless of their values in b.
+
+---
+
+=== ENTRY 366 ===
+Goal: Produce a scan over dict values accessed in a given key order.
+
+1. For each key in keys list, get its value from dict.
+2. Apply op to acc and v, update acc.
+3. Add each intermediate acc to result.
+4. scanDict({"a":1,"b":2,"c":3,"d":4}, ["a","b","c","d"], "add", 0) → [1,3,6,10].
+
+---
+
+=== ENTRY 367 ===
+Goal: Assign ranks to dict entries based on numeric value.
+
+1. Copy the keys list and sort it by value descending (highest value gets rank 1).
+2. After sorting, the position in sorted is the rank.
+3. Build result dict mapping each key to its rank.
+4. {"a":50,"b":90,"c":10,"d":70} → {"b":1,"d":2,"a":3,"c":4}.
+
+---
+
+=== ENTRY 368 ===
+Goal: Flatten a dict where values are lists into a single list.
+
+1. For each (k, v) pair: v is a list, so appendList(v) to result.
+2. All sub-lists are concatenated in key iteration order.
+3. {"a":[1,2],"b":[3,4,5],"c":[6]} → [1,2,3,4,5,6].
+
+---
+
+=== ENTRY 369 ===
+Goal: Apply a tone curve to all color channels.
+
+1. splitColor returns [alpha, R, G, B].
+2. Extract channels [2], [3], [4].
+3. Map each channel through the named curve:
+   - "gamma": apply gamma correction (x/255)^0.45 * 255.
+   - "brighten": add 30, clamped to 255.
+4. Reconstruct color with makeColor.
+
+---
+
+=== ENTRY 370 ===
+Goal: Compute the WCAG contrast ratio between two colors.
+
+1. relativeLuminance computes L = 0.2126*R + 0.7152*G + 0.0722*B (normalized to [0,1]).
+2. Contrast ratio = (L1 + 0.05) / (L2 + 0.05) where L1 >= L2.
+3. White (255,255,255) has L≈1.0; black (0,0,0) has L=0.
+4. Contrast = (1.0+0.05)/(0+0.05) = 1.05/0.05 = 21.0 — maximum possible.
+
+---
+
+=== ENTRY 371 ===
+Goal: Return the first value from a guard list whose condition is satisfied.
+
+1. Guards is a list of {"cond": 0 or 1, "val": ...} dicts.
+2. Iterate through guards; when cond == 1 and not yet found, capture val and set found=true.
+3. Return result — the first matching value.
+4. Only the first true condition is used.
+
+---
+
+=== ENTRY 372 ===
+Goal: Evaluate a Reverse Polish Notation expression using a stack.
+
+1. For each token in the list:
+   - If it's a number, push onto stack.
+   - If it's an operator (+,-,*,/), pop two values (b then a — order matters!), compute a op b, push result.
+2. Final answer is the single remaining stack element.
+3. [3, 4, "+", 2, "*", 7, "/"] = ((3+4)*2)/7 = 14/7 = 2.
+
+---
+
+=== ENTRY 373 ===
+Goal: Compute the inverse of a permutation.
+
+1. If perm[i] = j, then inv[j] = i.
+2. Initialize inv as a list of n zeros.
+3. Loop i from 1 to n: inv[perm[i]] = i.
+4. invertPermutation([3,1,4,2]):
+   - perm[1]=3 → inv[3]=1
+   - perm[2]=1 → inv[1]=2
+   - perm[3]=4 → inv[4]=3
+   - perm[4]=2 → inv[2]=4
+   - Result: [2,4,1,3].
+
+---
+
+=== ENTRY 374 ===
+Goal: Compute the Ackermann function with memoization.
+
+1. global ackCache = {} — persists results across calls.
+2. For each call ackermann(m, n):
+   - Check cache first using key "m,n".
+   - If cached, return immediately.
+   - Otherwise compute:
+     * m=0: return n+1.
+     * n=0: return ackermann(m-1, 1).
+     * else: return ackermann(m-1, ackermann(m, n-1)).
+   - Store result in cache before returning.
+3. ackermann(3,4) = 125.
+
+---
+
+=== ENTRY 375 ===
+Goal: Recursively flatten arbitrarily nested lists.
+
+1. For each element x in nested:
+   - If x is a list: recursively call deepFlatten(x) and appendList the result.
+   - Otherwise: add x directly.
+2. [1,[2,[3,[4,5]]],6,[7,8]] → [1,2,3,4,5,6,7,8].
+
+---
+
+=== ENTRY 376 ===
+Goal: Perform k-means color clustering.
+
+1. colorDistance computes squared Euclidean distance in RGB space.
+2. Initialize k cluster centers as the first k colors.
+3. Iterate 5 times:
+   a. Assignment step: for each color, find the nearest center (minimum distance).
+   b. Update step: for each cluster, compute new center as average of assigned colors.
+   c. If a cluster has no colors assigned, keep the old center.
+4. Return final cluster centers.
+
+---
+
+=== ENTRY 377 ===
+Goal: Count frequency of each character in a string.
+
+1. Split string into individual characters using .split("").
+2. For each character ch, increment result.get(ch, 0).
+3. Return the frequency dict.
+4. "hello world" → {"h":1, "e":1, "l":3, "o":2, " ":1, "w":1, "r":1, "d":1}.
+
+---
+
+=== ENTRY 378 ===
+Goal: Classify and count characters by class.
+
+1. Define character sets for uppercase, lowercase, digits.
+2. For each character, check which set it belongs to (or "other").
+3. Return a dict with counts for each class.
+4. "Hello World 123!" → {"upper":2, "lower":8, "digit":3, "other":3}.
+
+---
+
+=== ENTRY 379 ===
+Goal: Convert a string to title case.
+
+1. Split on spaces to get words.
+2. Map each word: capitalize first letter (segment(1,1).uppercase()) and lowercase the rest.
+3. Join back with spaces.
+4. "the quick brown fox" → "The Quick Brown Fox".
+
+---
+
+=== ENTRY 380 ===
+Goal: Extract all 3-character substrings.
+
+1. Loop i from 1 to s.textLen() - 2 — valid starting positions for a 3-char substring.
+2. s.segment(i, 3) extracts 3 characters starting at position i.
+3. "hello world" → ["hel","ell","llo","lo ","o w"," wo","wor","orl","rld"].
+
+---
+
+=== ENTRY 381 ===
+Goal: Partition a dict into two dicts based on a value predicate.
+
+1. For each (k,v) pair, apply the named predicate:
+   - "positive": v > 0 goes to pass, otherwise fail.
+   - "even": v%2==0 goes to pass, otherwise fail.
+2. Return [pass_dict, fail_dict].
+
+---
+
+=== ENTRY 382 ===
+Goal: Remove the highest price from a list.
+
+1. prices.sort() — sorts in ascending order (lowest first, highest last).
+2. prices.allButLast() — returns all elements except the last (which is the highest).
+3. Print the remaining prices.
+
+---
+
+=== ENTRY 383 ===
+Goal: Clean an ingredient name with three chained string operations.
+
+1. .trim() — removes leading and trailing whitespace.
+2. .lowercase() — converts all characters to lowercase.
+3. .replace("-", " ") — replaces each hyphen with a space.
+4. "  all-purpose Flour  " → "all purpose flour".
+
+---
+
+=== ENTRY 384 ===
+Goal: Merge two partial stats dicts into one using mergeInto.
+
+1. stats1.mergeInto(stats2) — adds all key-value pairs from stats2 into stats1.
+2. For duplicate keys, the value from stats2 would overwrite. Here keys are distinct.
+3. The merged stats1 now contains all six statistics.
+
+---
+
+=== ENTRY 385 ===
+Goal: Check if an airport exists and look up its city name.
+
+1. airports.containsKey("CDG") — checks for existence.
+2. Inside the if block, airports.get("CDG", "Unknown") — retrieves the value.
+3. Prints "Paris Charles de Gaulle".
+
+---
+
+=== ENTRY 386 ===
+Goal: List available hotel amenities.
+
+1. amenities.toPairs() — converts dict to list of [key, value] pairs.
+2. For each pair, check if pair[2] (the value) is true.
+3. Print the amenity name (pair[1]) if true.
+4. Prints: "pool", "gym", "parking".
+
+---
+
+=== ENTRY 387 ===
+Goal: Remove an item from a dict and verify the size decreased.
+
+1. temps.delete("cookie") — removes the "cookie" key.
+2. temps.dictLen() — returns the new count.
+3. Started with 4 entries, now 3.
+
+---
+
+=== ENTRY 388 ===
+Goal: Use a nested path lookup to find a substitution ratio.
+
+1. subRatios.getAtPath(["flour","almond_flour"], 0) — navigates into the nested dict.
+   - First goes to subRatios["flour"], then gets ["almond_flour"] = 0.75.
+2. Multiply cupsNeeded * ratio to compute how much substitute is needed.
+3. 2.5 * 0.75 = 1.875 cups.
+
+---
+
+=== ENTRY 389 ===
+Goal: Add a value to a nested dict using setAtPath.
+
+1. nutrition.setAtPath(["macros","fat"], 12) — navigates to nutrition["macros"] and sets fat = 12.
+2. The existing "protein" and "carbs" are preserved.
+3. Print the updated nutrition dict.
+
+---
+
+=== ENTRY 390 ===
+Goal: Delete a match by ID and confirm deletion.
+
+1. matches.delete(postponedId) — removes "M002".
+2. !matches.containsKey(postponedId) — true if key is gone (confirming deletion).
+3. matches.dictLen() — now 2 (was 3).
+
+---
+
+=== ENTRY 391 ===
+Goal: Format a flight info dict as a readable summary string.
+
+1. flight.toPairs() returns [[key1,val1], [key2,val2], ...].
+2. For each pair, append "key: value | " to summary.
+3. Print the accumulated summary string.
+
+---
+
+=== ENTRY 392 ===
+Goal: Track spice inventory and flag items running low.
+
+1. Subtract used amounts with .set(key, currentVal - used).
+2. .toPairs() to iterate through all spices.
+3. If pair[2] (current grams) < 20, print a reorder warning.
+
+---
+
+=== ENTRY 393 ===
+Goal: Retrieve a nested value using getAtPath.
+
+1. assignment.getAtPath(["metadata","weight"], 0) navigates into the nested "metadata" dict.
+2. Returns 0.25.
+3. Multiply by 100 to display as percentage: "Assignment weight: 25%".
+
+---
+
+=== ENTRY 394 ===
+Goal: Convert a list of [key, value] pairs to a dict using pairsToDict.
+
+1. seatPairs is already in the format pairsToDict expects: a list of 2-element lists.
+2. .pairsToDict() converts it to a dict.
+3. seatDict.get("Carol", "Not found") → 3.
+
+---
+
+=== ENTRY 395 ===
+Goal: Iterate over top-level keys of a nested trip dict and print each section.
+
+1. trip.keys() returns ["flights","hotels","activities"].
+2. For each key k, use trip.getAtPath([k], {}) to get the sub-dict.
+3. Print each section name and its contents.
+
+---
+
+=== ENTRY 396 ===
+Goal: Retrieve a grade from a nested two-level dict.
+
+1. termGrades.getAtPath(["Spring2025","Math"], 0) navigates:
+   - termGrades["Spring2025"] → {"Math":94,"Physics":87}
+   - then ["Math"] → 94.
+2. Print 94.
+
+---
+
+=== ENTRY 397 ===
+Goal: Retrieve a personal best from a nested sports dict.
+
+1. pbests.getAtPath(["freestyle","100m"], "N/A"):
+   - pbests["freestyle"] → {"100m":"48.5s","200m":"1:46.2"}
+   - then ["100m"] → "48.5s".
+2. Print "48.5s".
+
+---
+
+=== ENTRY 398 ===
+Goal: Update or initialize a win-loss record for a team.
+
+1. If records.containsKey(opponent): get the record dict, increment wins, store back.
+2. Otherwise: create a new record with 1 win and 0 losses.
+3. Print the updated records dict.
+
+---
+
+=== ENTRY 399 ===
+Goal: Find the dominant flavor and suggest a pairing.
+
+1. Iterate through flavors.toPairs() to find the key with the highest value.
+2. Track maxFlavor and maxVal.
+3. Print the dominant flavor.
+4. Use if-else to print an appropriate pairing recommendation.
+
+---
+
+=== ENTRY 400 ===
+Goal: Find the top-performing instructor by average grade.
+
+1. instructorGrades.toPairs() → list of [name, avg] pairs.
+2. Sort using .sort { a, b -> a[2] > b[2] } — descending by grade (index 2 is the value).
+3. pairs6570[1] is now the top instructor (highest grade first).
+4. Print name and average.
