@@ -682,7 +682,7 @@ func (p *Parser) dictRemove(block ast.Block) ast.Expr {
 
 func (p *Parser) dictSet(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
-	return p.makePropCall("set", pVals.get("KEY"), pVals.get("VALUE"))
+	return p.makePropCall("set", pVals.get("DICT"), pVals.get("KEY"), pVals.get("VALUE"))
 }
 
 func (p *Parser) dictLookup(block ast.Block) ast.Expr {

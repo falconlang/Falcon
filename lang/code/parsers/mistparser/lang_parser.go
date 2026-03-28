@@ -18,10 +18,9 @@ import (
 )
 
 type LangParser struct {
-	Tokens         []*l.Token
-	currIndex      int
-	tokenSize      int
-	currCheckpoint int
+	Tokens    []*l.Token
+	currIndex int
+	tokenSize int
 
 	strict bool
 
@@ -32,11 +31,10 @@ type LangParser struct {
 
 func NewLangParser(strict bool, tokens []*l.Token) *LangParser {
 	return &LangParser{
-		Tokens:         tokens,
-		tokenSize:      len(tokens),
-		currIndex:      0,
-		currCheckpoint: 0,
-		strict:         strict,
+		Tokens:    tokens,
+		tokenSize: len(tokens),
+		currIndex: 0,
+		strict:    strict,
 		Resolver: &NameResolver{
 			Procedures:        map[string]*Procedure{},
 			ComponentTypesMap: map[string]string{},
@@ -250,7 +248,7 @@ func (p *LangParser) varExpr() ast.Expr {
 	var names []string
 	var values []ast.Expr
 	for {
-		p.createCheckpoint()
+		locCurrIndex := p.currIndex
 		if !p.consume(l.Local) {
 			break
 		}
@@ -261,7 +259,7 @@ func (p *LangParser) varExpr() ast.Expr {
 		if ast.DependsOnVariables(value, names) {
 			// Since this variable depends on the last variable, we cannot include
 			// it in the current set.
-			p.backToPast()
+			p.currIndex = locCurrIndex
 			break
 		}
 
@@ -582,11 +580,11 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 				break
 			}
 		}
-		p.consume(l.RightArrow)
+		p.expect(l.RightArrow)
 	}
-	transformer := p.parse()
+	transformer := p.exprOrSmartBody()
 	p.ScopeCursor.Exit(ScopeTypeTransform)
-	p.consume(l.CloseCurly)
+	p.expect(l.CloseCurly)
 	errorMessage, signature := list.TestSignature(name, len(args), len(namesUsed))
 	if signature == nil {
 		p.aggregator.EnqueueSymbol(where, object, errorMessage)
@@ -600,6 +598,20 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 		Args:        args,
 		Names:       namesUsed,
 		Transformer: transformer}
+}
+
+func (p *LangParser) exprOrSmartBody() ast.Expr {
+	locCurrIndex := p.currIndex
+	simpleExpr := p.parse()
+	if simpleExpr.Consumable() {
+		return simpleExpr
+	}
+	p.currIndex = locCurrIndex
+	// we gotta do a manual smart body here
+	p.ScopeCursor.Enter(p.peek(), ScopeSmartBody)
+	smartBody := &fundamentals.SmartBody{Body: p.bodyUntilCurly()}
+	p.ScopeCursor.Exit(ScopeSmartBody)
+	return smartBody
 }
 
 func (p *LangParser) term() ast.Expr {
@@ -871,14 +883,6 @@ func (p *LangParser) next() *l.Token {
 	token := p.Tokens[p.currIndex]
 	p.currIndex++
 	return token
-}
-
-func (p *LangParser) createCheckpoint() {
-	p.currCheckpoint = p.currIndex
-}
-
-func (p *LangParser) backToPast() {
-	p.currIndex = p.currCheckpoint
 }
 
 func (p *LangParser) back() {

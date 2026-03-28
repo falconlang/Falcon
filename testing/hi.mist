@@ -1,8 +1,6 @@
-func relativeLuminance(c) =
-  {
-    local rgbC = splitColor(c)
-    local r = rgbC[1] / 255.0
-    local g = rgbC[2] / 255.0
-    local b = rgbC[3] / 255.0
-    0.2126 * r + 0.7152 * g + 0.0722 * b
-  }
+local numbs = [1, 2, 3, 4]
+numbs = numbs.map { e ->
+    println(e)
+    e * 2
+}
+println(numbs)

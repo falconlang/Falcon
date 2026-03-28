@@ -2,6 +2,7 @@ package list
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/ast/control"
 	"Falcon/code/lex"
 	"Falcon/code/sugar"
 	"strconv"
@@ -53,28 +54,58 @@ func TestSignature(transformerName string, argsCount int, namesCount int) (strin
 }
 
 func (t *Transformer) String() string {
+	if do, ok := t.Transformer.(*control.Do); ok {
+		return t.bodyTransformerString(do)
+	}
+	return t.singleExprTransformerString()
+}
+
+func (t *Transformer) singleExprTransformerString() string {
 	if len(t.Args) == 0 {
 		pFormat := "%\n  .% { % -> % }"
 		if !t.List.Continuous() {
-			pFormat = "(%)\n  .% { % -> %} "
+			pFormat = "(%)\n  .% { % -> % } "
 		}
 		return sugar.Format(pFormat,
 			t.List.String(),
 			t.Name,
-			strings.Join(t.Names, ", "),
-			t.Transformer.String())
-	} else {
-		pFormat := "%\n  .%(%) { % -> % }"
-		if !t.List.Continuous() {
-			pFormat = "(%)\n  .%(%) { % -> % }"
-		}
-		return sugar.Format(pFormat,
-			t.List.String(),
-			t.Name,
-			ast.JoinExprs(", ", t.Args),
 			strings.Join(t.Names, ", "),
 			t.Transformer.String())
 	}
+	pFormat := "%\n  .%(%) { % -> % }"
+	if !t.List.Continuous() {
+		pFormat = "(%)\n  .%(%) { % -> % }"
+	}
+	return sugar.Format(pFormat,
+		t.List.String(),
+		t.Name,
+		ast.JoinExprs(", ", t.Args),
+		strings.Join(t.Names, ", "),
+		t.Transformer.String())
+}
+
+func (t *Transformer) bodyTransformerString(do *control.Do) string {
+	if len(t.Args) == 0 {
+		pFormat := "%\n  .% { % -> \n%}"
+		if !t.List.Continuous() {
+			pFormat = "(%)\n  .% { % -> \n%} "
+		}
+		return sugar.Format(pFormat,
+			t.List.String(),
+			t.Name,
+			strings.Join(t.Names, ", "),
+			ast.PadDirect(ast.Pad(do.String())))
+	}
+	pFormat := "%\n  .%(%) { % -> \n%}"
+	if !t.List.Continuous() {
+		pFormat = "(%)\n  .%(%) { % -> \n%}"
+	}
+	return sugar.Format(pFormat,
+		t.List.String(),
+		t.Name,
+		ast.JoinExprs(", ", t.Args),
+		strings.Join(t.Names, ", "),
+		ast.PadDirect(ast.Pad(do.String())))
 }
 
 func (t *Transformer) Blockly(flags ...bool) ast.Block {

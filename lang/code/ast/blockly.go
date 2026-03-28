@@ -174,8 +174,7 @@ func ensureStatement(expr Expr) Block {
 	// This gives time for if expressions to mutate to if statement.
 	aBlock := expr.Blockly(true)
 	if expr.Consumable(true) {
-		// It's still consumable, wrap around evaluate but ignore result
-		return Block{Type: "controls_eval_but_ignore", Values: []Value{{Block: aBlock}}}
+		panic("result of `" + expr.String() + "` is never used")
 	}
 	return aBlock
 }

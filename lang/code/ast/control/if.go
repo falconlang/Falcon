@@ -84,7 +84,7 @@ func (i *If) Continuous() bool {
 }
 
 func (i *If) Consumable(flags ...bool) bool {
-	return false
+	return len(flags) > 0 && !flags[0]
 }
 
 func (i *If) Signature() []ast.Signature {

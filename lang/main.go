@@ -90,6 +90,9 @@ func runFile(path string) {
 	tokens := lex.NewLexer(codeContext).Lex()
 	langParser := mistParser.NewLangParser(false, tokens)
 	exprs := langParser.ParseAll()
+	for _, e := range exprs {
+		e.Blockly()
+	}
 	interp := runtime.NewInterpreter()
 	interp.Run(exprs)
 }
@@ -159,6 +162,9 @@ func repl() {
 			tokens := lex.NewLexer(codeContext).Lex()
 			langParser := mistParser.NewLangParser(false, tokens)
 			exprs := langParser.ParseAll()
+			for _, e := range exprs {
+				e.Blockly()
+			}
 			result := interp.RunGetLast(exprs)
 			if result.Type() != runtime.Null && result.Type() != runtime.NonConsumable {
 				fmt.Println("=", result.String())

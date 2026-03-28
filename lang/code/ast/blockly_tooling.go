@@ -3,7 +3,7 @@ package ast
 // DependsOnVariables checks if the expression references any of the variables in the list
 func DependsOnVariables(e Expr, variables []string) bool {
 	var references []string
-	getReferencedVariables(e.Blockly(), &references)
+	getReferencedVariables(e.Blockly(false), &references)
 
 	for _, reference := range references {
 		for _, match := range variables {
