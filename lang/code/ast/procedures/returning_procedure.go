@@ -3,6 +3,7 @@ package procedures
 import (
 	"Falcon/code/ast"
 	"Falcon/code/ast/control"
+	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/variables"
 	"Falcon/code/sugar"
 	"strings"
@@ -20,7 +21,16 @@ func (v *RetProcedure) String() string {
 	case *control.Do, *variables.VarResult:
 		resultString = ast.Pad("{\n" + ast.Pad(v.Result.String()) + "}")
 	default:
-		resultString = ast.Pad(v.Result.String())
+		if sb, ok := v.Result.(*fundamentals.SmartBody); ok && len(sb.Body) == 1 {
+			switch sb.Body[0].(type) {
+			case *variables.VarResult, *variables.Var:
+				resultString = ast.Pad("{\n" + ast.Pad(v.Result.String()) + "}")
+				break
+			}
+		}
+		if resultString == "" {
+			resultString = ast.Pad(v.Result.String())
+		}
 	}
 	return sugar.Format("func %(%) =\n%", v.Name, strings.Join(v.Parameters, ", "), resultString)
 }
