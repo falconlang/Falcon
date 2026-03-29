@@ -15,6 +15,9 @@ func (s *SmartBody) String() string {
 		if _, ok := s.Body[0].(*variables.VarResult); ok {
 			return s.Body[0].String()
 		}
+		if _, ok := s.Body[0].(*SmartBody); ok {
+			return s.Body[0].String()
+		}
 	}
 	return sugar.Format("{\n%}", ast.PadBody(s.Body))
 }

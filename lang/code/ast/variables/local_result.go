@@ -32,15 +32,13 @@ func (v *VarResult) String() string {
 	}
 
 	var builder strings.Builder
-	//builder.WriteString("{\n")
 	localLines := make([]string, len(combinedNames))
 	for k, name := range combinedNames {
 		localLines[k] = "local " + name + " = " + combinedValues[k].String()
 	}
-	builder.WriteString(ast.PadDirect(strings.Join(localLines, "\n")))
+	builder.WriteString(strings.Join(localLines, "\n"))
 	builder.WriteString("\n")
-	builder.WriteString(ast.PadDirect(result.String()))
-	//builder.WriteString("\n}")
+	builder.WriteString(result.String())
 	return builder.String()
 }
 
