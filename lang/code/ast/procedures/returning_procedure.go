@@ -3,6 +3,7 @@ package procedures
 import (
 	"Falcon/code/ast"
 	"Falcon/code/ast/control"
+	"Falcon/code/ast/variables"
 	"Falcon/code/sugar"
 	"strings"
 )
@@ -15,10 +16,11 @@ type RetProcedure struct {
 
 func (v *RetProcedure) String() string {
 	var resultString string
-	if _, ok := v.Result.(*control.Do); !ok {
-		resultString = ast.Pad(v.Result.String())
-	} else {
+	switch v.Result.(type) {
+	case *control.Do, *variables.VarResult:
 		resultString = ast.Pad("{\n" + ast.Pad(v.Result.String()) + "}")
+	default:
+		resultString = ast.Pad(v.Result.String())
 	}
 	return sugar.Format("func %(%) =\n%", v.Name, strings.Join(v.Parameters, ", "), resultString)
 }

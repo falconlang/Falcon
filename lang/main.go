@@ -35,6 +35,9 @@ func main() {
 		case "format":
 			formatStdin()
 			return
+		case "reformat":
+			reformatStdin()
+			return
 		}
 	}
 	//repl()
@@ -43,6 +46,43 @@ func main() {
 	//xmlTest()
 	//designTest()
 	//runProgram()
+}
+
+func reformatStdin() {
+	codeBytes, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+	source := string(codeBytes)
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintln(os.Stderr, "Error:", r)
+			os.Exit(1)
+		}
+	}()
+	codeContext := &context.CodeContext{SourceCode: &source, FileName: "<reformat>"}
+	tokens := lex.NewLexer(codeContext).Lex()
+	langParser := mistParser.NewLangParser(false, tokens)
+	exprs := langParser.ParseAll()
+	blocks := make([]ast.Block, len(exprs))
+	for i, expr := range exprs {
+		blocks[i] = expr.Blockly(true)
+	}
+	xmlBlock := ast.XmlRoot{
+		Blocks: blocks,
+		XMLNS:  "https://developers.google.com/blockly/xml",
+	}
+	xmlBytes, _ := xml.MarshalIndent(xmlBlock, "", "  ")
+	roundtripped := blocklyParser.NewParser(string(xmlBytes)).GenerateAST()
+	var out strings.Builder
+	for i, expr := range roundtripped {
+		if i > 0 {
+			out.WriteRune('\n')
+		}
+		out.WriteString(expr.String())
+	}
+	fmt.Print(out.String())
 }
 
 func formatStdin() {

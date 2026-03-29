@@ -34,20 +34,18 @@ func (s *SmartBody) Blockly(flags ...bool) ast.Block {
 	if len(s.Body) == 1 {
 		return s.Body[0].Blockly(flags...)
 	}
+	// Hoist SimpleVar declarations first so doBody no longer re-declares them.
+	namesLocal, valsLocal := s.mutateVars()
+
 	// prepare a do expression out of the then
 	doExpr := s.createDoSmt(s.Body[len(s.Body)-1], s.Body[:len(s.Body)-1])
 
-	var namesLocal = s.mutateVars()
 	if len(namesLocal) == 0 {
 		// no variables declared in the then, a do expression is enough
 		return doExpr
 	}
 	// We'd need to use a local result expression
-	var defaultLocalVals []ast.Expr
-	for k := range defaultLocalVals {
-		defaultLocalVals[k] = &Boolean{Value: false}
-	}
-	return s.createLocalResult(namesLocal, defaultLocalVals, doExpr)
+	return s.createLocalResult(namesLocal, valsLocal, doExpr)
 }
 
 func (s *SmartBody) createLocalResult(names []string, values []ast.Expr, doExpr ast.Block) ast.Block {
@@ -113,19 +111,25 @@ func createEmptyDoSmt(v *variables.Var) ast.Block {
 	}
 }
 
-// mutateVars returns a name list of declared variables, and the declarations are mutated to a set call.
-// The variables will later be defined at the top.
-func (s *SmartBody) mutateVars() []string {
+// mutateVars hoists SimpleVar declarations out of the body into DECL values.
+// It removes SimpleVar entries from the body (they become DECL0, DECL1, …) and
+// returns the extracted names and initial values. The last body element (result) is preserved.
+func (s *SmartBody) mutateVars() ([]string, []ast.Expr) {
 	var names []string
-	for k, expr := range s.Body {
-		// We only have simple variables
+	var values []ast.Expr
+	last := s.Body[len(s.Body)-1]
+	var filtered []ast.Expr
+	for _, expr := range s.Body[:len(s.Body)-1] {
 		if e, ok := expr.(*variables.SimpleVar); ok {
 			names = append(names, e.Name)
-			// Mutate it to a set function
-			s.Body[k] = &variables.Set{Global: false, Name: e.Name, Expr: e.Value}
+			values = append(values, e.Value)
+			// removed from body — hoisted to DECL
+		} else {
+			filtered = append(filtered, expr)
 		}
 	}
-	return names
+	s.Body = append(filtered, last)
+	return names, values
 }
 
 func (s *SmartBody) Continuous() bool {

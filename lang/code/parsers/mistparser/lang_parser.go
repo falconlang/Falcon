@@ -349,7 +349,9 @@ func (p *LangParser) ifSmt() ast.Expr {
 	var conditions []ast.Expr
 	var bodies [][]ast.Expr
 
+	p.expect(l.OpenCurve)
 	conditions = append(conditions, p.expr(0))
+	p.expect(l.CloseCurve)
 	if p.isNext(l.OpenCurly) {
 		bodies = append(bodies, p.body(ScopeIfBody))
 	} else {
@@ -359,7 +361,9 @@ func (p *LangParser) ifSmt() ast.Expr {
 	var elseBody []ast.Expr
 	for p.notEOF() && p.consume(l.Else) {
 		if p.consume(l.If) {
+			p.expect(l.OpenCurve)
 			conditions = append(conditions, p.expr(0))
+			p.expect(l.CloseCurve)
 			if p.isNext(l.OpenCurly) {
 				bodies = append(bodies, p.body(ScopeIfBody))
 			} else {
@@ -556,6 +560,7 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 	var args []ast.Expr
 	if p.isNext(l.OpenCurve) {
 		args = p.arguments()
+		// aw we gotta figure out how to differentiate
 		if !p.isNext(l.OpenCurly) {
 			// he's a simple call!
 			errorMessage, signature := method.TestSignature(name, len(args))

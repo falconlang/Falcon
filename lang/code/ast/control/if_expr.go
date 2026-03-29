@@ -48,8 +48,13 @@ func (s *SimpleIf) String() string {
 		}
 		var thenString string
 		if len(currIf.normalThen) == 1 {
-			ifFormat += "if (%) % "
 			thenString = currIf.normalThen[0].String()
+			if strings.ContainsRune(thenString, '\n') || strings.HasPrefix(thenString, "{") {
+				ifFormat += "if (%) {\n%} "
+				thenString = ast.PadBody(currIf.normalThen)
+			} else {
+				ifFormat += "if (%) % "
+			}
 		} else {
 			ifFormat += "if (%) {\n%} "
 			thenString = ast.PadBody(currIf.normalThen)
@@ -66,8 +71,13 @@ func (s *SimpleIf) String() string {
 		var elseFormat string
 		var elseString string
 		if len(currIf.normalElse) == 1 {
-			elseFormat = "else %"
 			elseString = currIf.normalElse[0].String()
+			if strings.ContainsRune(elseString, '\n') || strings.HasPrefix(elseString, "{") {
+				elseFormat = "else {\n%}"
+				elseString = ast.PadBody(currIf.normalElse)
+			} else {
+				elseFormat = "else %"
+			}
 		} else {
 			elseFormat = "else {\n%}"
 			elseString = ast.PadBody(currIf.normalElse)
