@@ -1,0 +1,8 @@
+func longestWord(s) =
+  {
+    s.splitAtSpaces()
+      .filter { w -> !w ? emptyText }
+      .max { a, b -> a.textLen() > b.textLen() }
+  }
+
+println(longestWord("the quick brown fox"))

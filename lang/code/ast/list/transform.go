@@ -3,6 +3,8 @@ package list
 import (
 	"Falcon/code/ast"
 	"Falcon/code/ast/control"
+	"Falcon/code/ast/fundamentals"
+	"Falcon/code/ast/variables"
 	"Falcon/code/lex"
 	"Falcon/code/sugar"
 	"strconv"
@@ -54,8 +56,16 @@ func TestSignature(transformerName string, argsCount int, namesCount int) (strin
 }
 
 func (t *Transformer) String() string {
-	if do, ok := t.Transformer.(*control.Do); ok {
-		return t.bodyTransformerString(do)
+	switch t.Transformer.(type) {
+	case *control.Do, *variables.VarResult:
+		return t.bodyTransformerString(t.Transformer)
+	default:
+		if sb, ok := t.Transformer.(*fundamentals.SmartBody); ok && len(sb.Body) == 1 {
+			switch sb.Body[0].(type) {
+			case *variables.VarResult, *variables.Var:
+				return t.bodyTransformerString(t.Transformer)
+			}
+		}
 	}
 	return t.singleExprTransformerString()
 }
@@ -84,7 +94,7 @@ func (t *Transformer) singleExprTransformerString() string {
 		t.Transformer.String())
 }
 
-func (t *Transformer) bodyTransformerString(do *control.Do) string {
+func (t *Transformer) bodyTransformerString(do ast.Expr) string {
 	if len(t.Args) == 0 {
 		pFormat := "%\n  .% { % -> \n%}"
 		if !t.List.Continuous() {

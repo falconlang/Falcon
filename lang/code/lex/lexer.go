@@ -220,11 +220,25 @@ func (l *Lexer) text() {
 			break
 		}
 		if c == '\\' {
-			// Only handle escaping of (")
 			e := l.peek()
-			if e == '"' || e == '\\' {
+			l.skip()
+			switch e {
+			case '"':
+				c = '"'
+			case '\\':
+				c = '\\'
+			case 'n':
+				writer.WriteByte('\n')
+				continue
+			case 't':
+				writer.WriteByte('\t')
+				continue
+			case 's':
+				writer.WriteByte(' ')
+				continue
+			default:
+				writer.WriteByte('\\')
 				c = e
-				l.skip()
 			}
 		}
 		writer.WriteByte(c)

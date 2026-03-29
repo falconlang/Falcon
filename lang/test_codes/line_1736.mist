@@ -1,0 +1,24 @@
+func kNN(points, labels, query, k) =
+  {
+    local dists = []
+    for (i: 1 .. points.listLen() step 1) {
+      local d = sqrt((points[i][1] - query[1]) ^ 2 + (points[i][2] - query[2]) ^ 2)
+      dists.add([d, labels[i]])
+    }
+    local sorted = dists
+      .sort { a, b -> a[1] < b[1] }
+    local kNearest = sorted.slice(1, k)
+    local votes = {  }
+    for (neighbor in kNearest) {
+      local label = neighbor[2]
+      votes.set(label, if (votes.containsKey(label)) {
+        votes.get(label, []) + 1
+      } else {
+        1
+      })
+    }
+    votes.toPairs()
+      .max { a, b -> a[2] > b[2] }
+  }
+
+println(kNN([[1, 1], [2, 2], [8, 8], [9, 9], [1, 2]], ["A", "A", "B", "B", "A"], [2, 1], 3))

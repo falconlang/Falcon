@@ -1,0 +1,9 @@
+func normalize(lst) =
+  {
+      local mx = lst
+        .max { a, b -> a > b }
+      lst
+        .map { x -> x / mx }
+  }
+
+println(normalize([2, 4, 8, 6]))

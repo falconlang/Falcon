@@ -1,0 +1,6 @@
+func maxIf(list, threshold) =
+  {
+    list
+      .filter { x -> x > threshold }
+      .max { m, n -> m > n }
+  }

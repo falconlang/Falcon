@@ -1,0 +1,9 @@
+func stripDebug(instructions) =
+  {
+    instructions
+      .filter { instr ->   local op = instr.get("op", [])
+      !op === "debug" || op === "nop_debug" || op === "source_map" }
+  }
+
+local debug_instrs = [{ "op" : "mov", "dest" : "r0" }, { "op" : "debug", "info" : "line 5" }, { "op" : "add", "dest" : "r1" }, { "op" : "source_map", "line" : 6 }]
+println(stripDebug(debug_instrs))

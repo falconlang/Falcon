@@ -1,0 +1,6 @@
+local triangles = [{ "verts" : [[0, 0, 5], [1, 0, 5], [0, 1, 5]] }, { "verts" : [[0, 0, 1], [1, 0, 1], [0, 1, 1]] }, { "verts" : [[0, 0, 3], [1, 0, 3], [0, 1, 3]] }]
+triangles = triangles
+  .sort { a, b ->   local za = (a.get("verts", [])[1][3] + a.get("verts", [])[2][3] + a.get("verts", [])[3][3]) / 3
+  local zb = (b.get("verts", [])[1][3] + b.get("verts", [])[2][3] + b.get("verts", [])[3][3]) / 3
+  za < zb }
+println(triangles)

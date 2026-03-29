@@ -1,0 +1,10 @@
+func longestWordLength(sentence) =
+  {
+    local words = sentence.splitAtSpaces()
+    if (words.listLen() == 0) {
+      0
+    } else {
+      words
+        .max { m, n -> m.textLen() > n.textLen() }.textLen()
+    }
+  }

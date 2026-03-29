@@ -4,5 +4,5 @@ func nearestColor(target, palette) =
       palette
         .min { a, b ->   local argb = splitColor(a)
         local brgb = splitColor(b)
-        (brgb[1] - trgb[1]) ^ 2 + (brgb[2] - trgb[2]) ^ 2 + (brgb[3] - trgb[3]) ^ 2 < (argb[1] - trgb[1]) ^ 2 + (argb[2] - trgb[2]) ^ 2 + (argb[3] - trgb[3]) ^ 2 }
+        (argb[1] - trgb[1]) ^ 2 + (argb[2] - trgb[2]) ^ 2 + (argb[3] - trgb[3]) ^ 2 < (brgb[1] - trgb[1]) ^ 2 + (brgb[2] - trgb[2]) ^ 2 + (brgb[3] - trgb[3]) ^ 2 }
   }

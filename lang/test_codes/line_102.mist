@@ -1,0 +1,13 @@
+func longestWordStartingWith(sentence, ch) =
+  {
+    local f = sentence.splitAtSpaces()
+      .filter { w -> {
+      startsWith(w.lowercase(), ch.lowercase())
+    } }
+    if (f.listLen() == 0) {
+      ""
+    } else {
+      f
+        .max { m, n -> m.textLen() > n.textLen() }
+    }
+  }

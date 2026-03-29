@@ -1,17 +1,8 @@
-func swapCase(s) =
+func nearestColor(target, palette) =
   {
-    local result = ""
-    for (i: 1 .. s.textLen() step 1) {
-      local ch = s.segment(i, 1)
-      local up = ch.uppercase()
-      if (ch === up) {
-        result = result _ ch.lowercase()
-      } else {
-        result = result _ up
-      }
-    }
-    result
+      local trgb = splitColor(target)
+      palette
+        .min { a, b ->   local argb = splitColor(a)
+        local brgb = splitColor(b)
+        (brgb[1] - trgb[1]) ^ 2 + (brgb[2] - trgb[2]) ^ 2 + (brgb[3] - trgb[3]) ^ 2 < (argb[1] - trgb[1]) ^ 2 + (argb[2] - trgb[2]) ^ 2 + (argb[3] - trgb[3]) ^ 2 }
   }
-
-println(swapCase("Hello World"))
-println(swapCase("fALCON"))

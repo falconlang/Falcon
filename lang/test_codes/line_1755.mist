@@ -1,0 +1,25 @@
+func radixSort(lst) =
+  {
+    local arr = copyList(lst)
+    local mx = arr
+      .max { a, b -> a > b }
+    local exp = 1
+    while (floor(mx / exp) > 0) {
+      local buckets = []
+      for (i: 0 .. 9 step 1) {
+        buckets.add([])
+      }
+      for (x in arr) {
+        local digit = floor(x / exp) % 10
+        buckets[digit + 1].add(x)
+      }
+      arr = []
+      for (b in buckets) {
+        arr.appendList(b)
+      }
+      exp = exp * 10
+    }
+    arr
+  }
+
+println(radixSort([170, 45, 75, 90, 802, 24, 2, 66]))

@@ -1,0 +1,5 @@
+func maxByField(list, field) =
+  {
+    list
+      .max { a, b -> a.get(field, []) > b.get(field, []) }
+  }

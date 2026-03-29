@@ -1,0 +1,19 @@
+func longestIncreasing(lst) =
+  {
+    local n = lst.listLen()
+    local dp = []
+    for (i: 1 .. n step 1) {
+      dp.add(1)
+    }
+    for (i: 2 .. n step 1) {
+      for (j: 1 .. i - 1 step 1) {
+        if (lst[j] < lst[i] && dp[j] + 1 > dp[i]) {
+          dp[i] = dp[j] + 1
+        }
+      }
+    }
+    dp
+      .max { a, b -> a > b }
+  }
+
+println(longestIncreasing([10, 9, 2, 5, 3, 7, 101, 18]))
