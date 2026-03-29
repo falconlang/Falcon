@@ -63,7 +63,7 @@ func (t *Transformer) String() string {
 		if sb, ok := t.Transformer.(*fundamentals.SmartBody); ok && len(sb.Body) == 1 {
 			switch sb.Body[0].(type) {
 			case *variables.VarResult, *variables.Var:
-				return t.bodyTransformerString(t.Transformer)
+				return t.bodyTransformerString(sb.Body[0])
 			}
 		}
 	}

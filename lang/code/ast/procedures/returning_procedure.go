@@ -24,7 +24,7 @@ func (v *RetProcedure) String() string {
 		if sb, ok := v.Result.(*fundamentals.SmartBody); ok && len(sb.Body) == 1 {
 			switch sb.Body[0].(type) {
 			case *variables.VarResult, *variables.Var:
-				resultString = ast.Pad("{\n" + ast.Pad(v.Result.String()) + "}")
+				resultString = ast.Pad("{\n" + ast.Pad(sb.Body[0].String()) + "}")
 				break
 			}
 		}
