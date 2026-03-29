@@ -210,12 +210,7 @@ func (p *LangParser) funcSmt() ast.Expr {
 		for _, parameter := range parameters {
 			p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
 		}
-		var result ast.Expr
-		if p.isNext(l.OpenCurly) {
-			result = p.smartBody()
-		} else {
-			result = p.parse()
-		}
+		result := p.parse()
 		p.ScopeCursor.Exit(ScopeRetProc)
 		return &procedures.RetProcedure{Name: name, Parameters: parameters, Result: result}
 	} else {

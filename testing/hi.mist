@@ -1,6 +1,50 @@
-local numbs = [1, 2, 3, 4]
-numbs = numbs.map { e ->
-    println(e)
-    e * 2
+func mobiusFn(n) =
+  {
+    if (n == 1) {
+      1
+    } else {
+      local factors = []
+      local x = n
+      local d = 2
+      local squareFree = true
+      while (d * d <= x) {
+        if (x % d == 0) {
+          factors.add(d)
+          x = floor(x / d)
+          if (x % d == 0) {
+            squareFree = false
+          }
+        }
+        d = d + 1
+      }
+      if (x > 1) {
+        factors.add(x)
+      }
+      if (!squareFree) {
+        0
+      } else {
+        -1 ^ factors.listLen()
+      }
+    }
+  }
+
+local verified = true
+for (n: 1 .. 10 step 1) {
+  local g = 0
+  for (d: 1 .. n step 1) {
+    if (n % d == 0) {
+      g = g + 1
+    }
+  }
+  local f = 0
+  for (d: 1 .. n step 1) {
+    if (n % d == 0) {
+      f = f + mobiusFn(floor(n / d)) * (if (d == 1) {
+        0
+      } else {
+        d - 1
+      })
+    }
+  }
 }
-println(numbs)
+println("verified")
