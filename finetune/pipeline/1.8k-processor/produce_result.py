@@ -5,12 +5,9 @@ Produce result.jsonl from MASTER.jsonl and merged_chunks.json.
 For each entry, combines:
 - Falcon code from MASTER.jsonl
 - Steps from merged_chunks.json
-- Output from executing the falcon code (if any)
 """
 
 import json
-import subprocess
-import tempfile
 import re
 from pathlib import Path
 
@@ -18,7 +15,6 @@ INPUT_DIR = Path("/home/kumaraswamy/Documents/falcon/finetune/dataset/1.8k-codes
 MASTER_FILE = INPUT_DIR / "MASTER.jsonl"
 CHUNKS_FILE = INPUT_DIR / "merged_chunks.json"
 OUTPUT_FILE = INPUT_DIR / "result.jsonl"
-FALCON_BIN = "/home/kumaraswamy/Documents/falcon/lang/Falcon"
 
 
 def extract_falcon_code(content: str) -> str:
@@ -27,30 +23,6 @@ def extract_falcon_code(content: str) -> str:
     if match:
         return match.group(1).strip()
     return content.strip()
-
-
-def execute_falcon(code: str) -> str | None:
-    """Execute falcon code and return output (if any)."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.fal', delete=False) as f:
-        f.write(code)
-        temp_path = f.name
-
-    try:
-        result = subprocess.run(
-            [FALCON_BIN, "run", temp_path],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        output = result.stdout.strip()
-        return output if output else None
-    except subprocess.TimeoutExpired:
-        return None
-    except Exception as e:
-        print(f"Error executing: {e}")
-        return None
-    finally:
-        Path(temp_path).unlink(missing_ok=True)
 
 
 def main():
@@ -84,17 +56,13 @@ def main():
         # Get corresponding steps
         step_content = steps[i] if i < len(steps) else ""
 
-        # Execute falcon code to get output
-        output = execute_falcon(falcon_code)
-
-        # Build new assistant content
-        new_assistant = falcon_code
+        # Build new assistant content: steps first, then program
+        new_assistant = ""
 
         if step_content:
-            new_assistant += "\n\n" + step_content
+            new_assistant += step_content + "\n\n"
 
-        if output:
-            new_assistant += "\n\nOutput\n```\n" + output + "\n```"
+        new_assistant += "```falcon\n" + falcon_code + "\n```"
 
         # Create result entry
         result_entry = {

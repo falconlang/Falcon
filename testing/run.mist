@@ -1,8 +1,14 @@
-func nearestColor(target, palette) =
+func flattenList(list) =
   {
-      local trgb = splitColor(target)
-      palette
-        .min { a, b ->   local argb = splitColor(a)
-        local brgb = splitColor(b)
-        (brgb[1] - trgb[1]) ^ 2 + (brgb[2] - trgb[2]) ^ 2 + (brgb[3] - trgb[3]) ^ 2 < (argb[1] - trgb[1]) ^ 2 + (argb[2] - trgb[2]) ^ 2 + (argb[3] - trgb[3]) ^ 2 }
+    local result = []
+    for (x in list) {
+      if (x ? list) {
+        result.appendList(flattenList(x))
+      } else {
+        result.add(x)
+      }
+    }
+    result
   }
+
+println(flattenList([1, [2, 3], 4, [5, [6]]]))

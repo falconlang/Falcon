@@ -1,11 +1,18 @@
-func interleave(s1, s2) =
-    {
-      local result = ""
-      local len = min(s1.textLen(), s2.textLen())
-      for (i: 1 .. len step 1) {
-        result = result _ s1.segment(i, 1) _ s2.segment(i, 1)
+func rle(s) =
+  {
+    local result = []
+    local current = s.segment(1, 1)
+    local count = 1
+    for (i: 2.. s.textLen() step 1) {
+      local ch = s.segment(i, 1)
+      if (ch === current) {
+        count = count + 1
+      } else {
+        result.add([current, count])
+        current = ch
+        count = 1
       }
-      result
     }
-
-println(interleave("abc", "123"))
+    result.add([current, count])
+    result
+  }

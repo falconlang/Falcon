@@ -42,10 +42,10 @@ func main() {
 	}
 	//repl()
 	//diffTest()
-	analyzeSyntax()
+	//analyzeSyntax()
 	//xmlTest()
 	//designTest()
-	//runProgram()
+	runProgram()
 }
 
 func reformatStdin() {
