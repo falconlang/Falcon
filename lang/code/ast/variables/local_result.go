@@ -43,7 +43,6 @@ func (v *VarResult) String() string {
 }
 
 func (v *VarResult) Blockly(flags ...bool) ast.Block {
-	println("called!")
 	return ast.Block{
 		Type:     "local_declaration_expression",
 		Mutation: &ast.Mutation{LocalNames: ast.MakeLocalNames(v.Names...)},

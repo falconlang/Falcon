@@ -504,6 +504,9 @@ func (p *LangParser) element() ast.Expr {
 			// constant value transformer
 			left = &common.Transform{Where: p.next(), On: left, Name: p.name()}
 		case l.OpenSquare:
+			if p.isOnNewLine() {
+				break // '[' is on a new line — new statement, not index access
+			}
 			p.skip()
 			// an index element access
 			left = &list.Get{List: left, Index: p.parse()}
@@ -665,7 +668,7 @@ func (p *LangParser) smartBody() ast.Expr {
 
 func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 	value := p.value(token)
-	if nameExpr, ok := value.(*variables.Get); ok && !nameExpr.Global && p.isNext(l.OpenCurve) {
+	if nameExpr, ok := value.(*variables.Get); ok && !nameExpr.Global && p.isNext(l.OpenCurve) && !p.isOnNewLine() {
 		arguments := p.arguments()
 		// check for in-built function call
 		_, funcCallSignature := common.TestSignature(nameExpr.Name, len(arguments))
@@ -899,4 +902,15 @@ func (p *LangParser) notEOF() bool {
 
 func (p *LangParser) isEOF() bool {
 	return p.currIndex >= p.tokenSize
+}
+
+// isOnNewLine reports whether the current (peeked) token is on a different
+// line than the last consumed token. Used to prevent cross-line postfix
+// continuation — if '[' or '(' appears on a new line it is a new statement,
+// not a continuation of the previous expression (mirrors Kotlin's rule).
+func (p *LangParser) isOnNewLine() bool {
+	if p.currIndex == 0 {
+		return false
+	}
+	return p.peek().Column > p.Tokens[p.currIndex-1].Column
 }

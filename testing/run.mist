@@ -1,14 +1,6 @@
-func flattenList(list) =
-  {
-    local result = []
-    for (x in list) {
-      if (x ? list) {
-        result.appendList(flattenList(x))
-      } else {
-        result.add(x)
-      }
-    }
-    result
-  }
-
-println(flattenList([1, [2, 3], 4, [5, [6]]]))
+func double(x, y) = {
+  local x2 = x * 2
+  local y2 = y * 2
+  [x2, y2]
+}
+println(double(3, 4))
