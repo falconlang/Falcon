@@ -1,6 +1,0 @@
-func double(x, y) = {
-  local x2 = x * 2
-  local y2 = y * 2
-  [x2, y2]
-}
-println(double(3, 4))
