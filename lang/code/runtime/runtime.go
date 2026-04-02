@@ -214,6 +214,9 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		i.lastToken = e.Where
 		hl := 1 + len(e.Index.String()) + 1 // covers full [index]
 		i.lastHighlight = hl
+		if listVal.Type() == String {
+			panic("expected a list value but got " + listVal.errorStr() + " — use .segment(start, length) to extract characters from text")
+		}
 		list := listVal.AsList()
 		i.lastHighlight = 0
 		idx := int(i.Eval(e.Index).AsNum())

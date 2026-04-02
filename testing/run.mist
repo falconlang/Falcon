@@ -1,22 +1,17 @@
-func runLengthEncode(input) = {
-  if (input.textLen() == 0) {
-    ""
-  } else {
-    local result = ""
-    local count = 1
-    local i = 2
-    while (i <= input.textLen()) {
-      if (input[i] == input[i - 1]) {
-        count = count + 1
-      } else {
-        result = result _ count _ input[i - 1]
-        count = 1
-      }
-      i = i + 1
+  func analyzeFunnel(rates) = {
+    local overall = rates.reduce(1) { rate, acc -> rate * acc }
+    local minRate = rates.min { a, b -> a < b }
+    local stepIndex = rates.indexOf(minRate)
+    {
+      "overall": overall,
+      "minRate": minRate,
+      "dropOffStep": stepIndex
     }
-    result _ count _ input[input.textLen()]
   }
-}
 
-local encoded = runLengthEncode("aaabbbccddddee")
-println(encoded)
+  local conversionRates = [0.5, 0.3, 0.8, 0.9]
+  local result = analyzeFunnel(conversionRates)
+  println("Funnel conversion rates: " _ conversionRates.join(" -> "))
+  println("Overall conversion: " _ result.get("overall", 0))
+  println("Greatest drop-off rate: " _ result.get("minRate", 0))
+  println("Drop-off occurs at step: " _ result.get("dropOffStep", 0))

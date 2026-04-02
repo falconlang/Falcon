@@ -558,8 +558,9 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 	var args []ast.Expr
 	if p.isNext(l.OpenCurve) {
 		args = p.arguments()
-		// aw we gotta figure out how to differentiate
-		if !p.isNext(l.OpenCurly) {
+		// Only treat as a transformer if the name is a known transformer signature
+		// AND the arg count matches — otherwise the '{' belongs to the surrounding expression.
+		if !p.isNext(l.OpenCurly) || !list.IsTransformer(name, len(args)) {
 			// he's a simple call!
 			errorMessage, signature := method.TestSignature(name, len(args))
 			if signature == nil {

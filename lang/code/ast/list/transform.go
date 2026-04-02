@@ -39,6 +39,11 @@ var transformers = map[string]*TransformerSignature{
 	"max":       makeSignature(0, 2),
 }
 
+func IsTransformer(name string, argCount int) bool {
+	sig, ok := transformers[name]
+	return ok && sig.ArgSize == argCount
+}
+
 func TestSignature(transformerName string, argsCount int, namesCount int) (string, *TransformerSignature) {
 	signature, ok := transformers[transformerName]
 	if !ok {
