@@ -2,10 +2,12 @@ package control
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/lex"
 	"Falcon/code/sugar"
 )
 
 type EachPair struct {
+	Where     *lex.Token
 	KeyName   string
 	ValueName string
 	Iterable  ast.Expr

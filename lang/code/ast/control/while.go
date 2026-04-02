@@ -2,10 +2,12 @@ package control
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/lex"
 	"Falcon/code/sugar"
 )
 
 type While struct {
+	Where     *lex.Token
 	Condition ast.Expr
 	Body      []ast.Expr
 }

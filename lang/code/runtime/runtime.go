@@ -24,9 +24,11 @@ type Procedure struct {
 
 // Interpreter implements Visitor and holds the runtime state.
 type Interpreter struct {
-	globalEnv  *Env
-	currEnv    *Env
-	procedures map[string]*Procedure
+	globalEnv     *Env
+	currEnv       *Env
+	procedures    map[string]*Procedure
+	lastToken     *lex.Token // last source token seen during Eval — used for runtime error reporting
+	lastHighlight int        // override highlight width (0 = use token's own content length)
 }
 
 func NewInterpreter() *Interpreter {
@@ -134,12 +136,16 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		return i.Eval(e.On) // for "obfuscate" unwrapping
 
 	case *common.BinaryExpr:
+		i.lastToken = e.Where
 		return i.binary(e)
 	case *common.FuncCall:
+		i.lastToken = e.Where
 		return i.evalFuncCall(e)
 	case *common.Question:
+		i.lastToken = e.Where
 		return i.question(e)
 	case *astmethod.Call:
+		i.lastToken = e.Where
 		return i.methodCall(e)
 
 	// Control blocks
@@ -148,12 +154,16 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 	case *control.SimpleIf:
 		return i.simpleIfExpr(e)
 	case *control.For:
+		i.lastToken = e.Where
 		return i.forSmt(e)
 	case *control.While:
+		i.lastToken = e.Where
 		return i.whileSmt(e)
 	case *control.Each:
+		i.lastToken = e.Where
 		return i.eachSmt(e)
 	case *control.EachPair:
+		i.lastToken = e.Where
 		return i.eachPairSmt(e)
 	case *control.Break:
 		panic(BreakSignal{})
@@ -163,6 +173,7 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 
 	// Variable blocks
 	case *variables.Get:
+		i.lastToken = e.Where
 		if e.Global {
 			return i.currEnv.GetGlobal(e.Name)
 		}
@@ -194,26 +205,42 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		i.procedures[e.Name] = &Procedure{params: e.Parameters, retExpr: e.Result}
 		return VoidVal()
 	case *procedures.Call:
+		i.lastToken = e.Where
 		return i.evalProcedureCall(e)
 
 	// List manipulation
 	case *astlist.Get:
-		list := i.Eval(e.List).AsList()
+		listVal := i.Eval(e.List)
+		i.lastToken = e.Where
+		hl := 1 + len(e.Index.String()) + 1 // covers full [index]
+		i.lastHighlight = hl
+		list := listVal.AsList()
+		i.lastHighlight = 0
 		idx := int(i.Eval(e.Index).AsNum())
 		if idx < 1 || idx > len(*list) {
+			i.lastToken = e.Where
+			i.lastHighlight = hl
 			panic("list index " + strconv.Itoa(idx) + " out of bounds (len=" + strconv.Itoa(len(*list)) + ")")
 		}
 		return (*list)[idx-1]
 	case *astlist.Set:
-		list := i.Eval(e.List).AsList()
+		listVal := i.Eval(e.List)
+		i.lastToken = e.Where
+		hl := 1 + len(e.Index.String()) + 1 // covers full [index]
+		i.lastHighlight = hl
+		list := listVal.AsList()
+		i.lastHighlight = 0
 		idx := int(i.Eval(e.Index).AsNum())
 		val := i.Eval(e.Value)
 		if idx < 1 || idx > len(*list) {
+			i.lastToken = e.Where
+			i.lastHighlight = hl
 			panic("list index " + strconv.Itoa(idx) + " out of bounds (len=" + strconv.Itoa(len(*list)) + ")")
 		}
 		(*list)[idx-1] = val
 		return VoidVal()
 	case *astlist.Transformer:
+		i.lastToken = e.Where
 		return i.evalTransformer(e)
 
 	// Component blocks
@@ -589,6 +616,25 @@ func (i *Interpreter) execBody(body []ast.Expr) Value {
 		last = i.Eval(expr)
 	}
 	return last
+}
+
+// FormatRuntimeError formats a recovered panic value as a runtime error message.
+// If a source token was recorded, the message includes the source line and a caret.
+func (i *Interpreter) FormatRuntimeError(r any) string {
+	msg := "runtime error"
+	switch v := r.(type) {
+	case string:
+		msg = v
+	case error:
+		msg = v.Error()
+	}
+	if i.lastToken != nil && i.lastToken.Column >= 0 {
+		if i.lastHighlight > 0 {
+			return i.lastToken.BuildErrorHighlight(true, i.lastHighlight, msg)
+		}
+		return i.lastToken.BuildError(true, msg)
+	}
+	return msg
 }
 
 // evaluates all exprs in a given list

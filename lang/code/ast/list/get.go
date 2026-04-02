@@ -2,10 +2,12 @@ package list
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/lex"
 	"Falcon/code/sugar"
 )
 
 type Get struct {
+	Where *lex.Token
 	List  ast.Expr
 	Index ast.Expr
 }

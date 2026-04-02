@@ -271,18 +271,18 @@ func (p *LangParser) varExpr() ast.Expr {
 }
 
 func (p *LangParser) whileExpr() *control.While {
-	p.skip()
+	whileTok := p.next()
 	p.expect(l.OpenCurve)
 	condition := p.parse()
 	p.expect(l.CloseCurve)
 	body := p.body(ScopeLoop)
-	return &control.While{Condition: condition, Body: body}
+	return &control.While{Where: whileTok, Condition: condition, Body: body}
 }
 
 func (p *LangParser) forExpr() ast.Expr {
 	// TODO:
 	//  We could refactor this later to reuse declaring variables inside body
-	p.skip()
+	forTok := p.next()
 	p.expect(l.OpenCurve)
 	firstName := p.name()
 	if p.consume(l.Comma) {
@@ -300,7 +300,7 @@ func (p *LangParser) forExpr() ast.Expr {
 		p.ScopeCursor.Exit(ScopeLoop)
 		p.expect(l.CloseCurly)
 
-		return &control.EachPair{KeyName: firstName, ValueName: valueName, Iterable: iterable, Body: body}
+		return &control.EachPair{Where: forTok, KeyName: firstName, ValueName: valueName, Iterable: iterable, Body: body}
 	} else if p.consume(l.In) {
 		// For each loop
 		iterable := p.parse()
@@ -313,7 +313,7 @@ func (p *LangParser) forExpr() ast.Expr {
 		p.ScopeCursor.Exit(ScopeLoop)
 		p.expect(l.CloseCurly)
 
-		return &control.Each{IName: firstName, Iterable: iterable, Body: body}
+		return &control.Each{Where: forTok, IName: firstName, Iterable: iterable, Body: body}
 	}
 	// For I loop
 	p.expect(l.Colon)
@@ -336,7 +336,7 @@ func (p *LangParser) forExpr() ast.Expr {
 	p.ScopeCursor.Exit(ScopeLoop)
 	p.expect(l.CloseCurly)
 
-	return &control.For{IName: firstName, From: from, To: to, By: by, Body: body}
+	return &control.For{Where: forTok, IName: firstName, From: from, To: to, By: by, Body: body}
 }
 
 func (p *LangParser) ifSmt() ast.Expr {
@@ -473,7 +473,7 @@ func (p *LangParser) assignSmt(left ast.Expr, right ast.Expr) (ast.Expr, bool) {
 		p.aggregator.MarkResolved(nameExpr.Where)
 		return &variables.Set{Global: nameExpr.Global, Name: nameExpr.Name, Expr: right}, true
 	} else if listGet, ok := left.(*list.Get); ok {
-		return &list.Set{List: listGet.List, Index: listGet.Index, Value: right}, true
+		return &list.Set{Where: listGet.Where, List: listGet.List, Index: listGet.Index, Value: right}, true
 	}
 	return nil, false
 }
@@ -507,9 +507,9 @@ func (p *LangParser) element() ast.Expr {
 			if p.isOnNewLine() {
 				break // '[' is on a new line — new statement, not index access
 			}
-			p.skip()
+			openSquare := p.next()
 			// an index element access
-			left = &list.Get{List: left, Index: p.parse()}
+			left = &list.Get{Where: openSquare, List: left, Index: p.parse()}
 			p.expect(l.CloseSquare)
 			continue
 		}
@@ -681,6 +681,7 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 		var funcCall *procedures.Call
 		if procedureSignature != nil {
 			funcCall = &procedures.Call{
+				Where:      nameExpr.Where,
 				Name:       nameExpr.Name,
 				Parameters: procedureSignature.Parameters,
 				Arguments:  arguments,
@@ -689,7 +690,7 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 			p.aggregator.MarkResolved(nameExpr.Where)
 		} else {
 			// just fill in a template, could be resolved later
-			funcCall = &procedures.Call{Name: nameExpr.Name, Arguments: arguments}
+			funcCall = &procedures.Call{Where: nameExpr.Where, Name: nameExpr.Name, Arguments: arguments}
 			p.aggregator.EnqueueSymbol(nameExpr.Where, funcCall, procedureErrorMessage)
 		}
 		return funcCall

@@ -228,6 +228,12 @@ func runProgram() {
 	exprs := langParser.ParseAll()
 
 	interp := runtime.NewInterpreter()
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintln(os.Stderr, interp.FormatRuntimeError(r))
+			os.Exit(1)
+		}
+	}()
 	interp.Run(exprs)
 }
 

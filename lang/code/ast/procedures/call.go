@@ -2,10 +2,12 @@ package procedures
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/lex"
 	"Falcon/code/sugar"
 )
 
 type Call struct {
+	Where      *lex.Token
 	Name       string
 	Parameters []string
 	Arguments  []ast.Expr

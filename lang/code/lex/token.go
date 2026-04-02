@@ -49,6 +49,16 @@ func (t *Token) BuildError(decorate bool, message string, args ...string) string
 	}
 }
 
+func (t *Token) BuildErrorHighlight(decorate bool, highlightSize int, message string) string {
+	if t.Context != nil {
+		// row marks the end of the token (1-indexed). Shift it right so the caret
+		// still starts at this token's first character but spans highlightSize chars.
+		rowShifted := t.Row + (highlightSize - len(*t.Content))
+		return (*t.Context).BuildError(decorate, t.Column, rowShifted, highlightSize, message)
+	}
+	return message
+}
+
 type StaticToken struct {
 	Type  Type
 	Flags []Flag
