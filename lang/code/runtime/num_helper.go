@@ -202,7 +202,7 @@ func evalAvgOf(args []Value) Value {
 func evalMaxOf(args []Value) Value {
 	list := args[0].AsList()
 	if len(*list) == 0 {
-		panic("maxOf: empty list")
+		panic("maxOf() requires a non-empty list")
 	}
 	mx := (*list)[0].AsNum()
 	for _, v := range (*list)[1:] {
@@ -216,7 +216,7 @@ func evalMaxOf(args []Value) Value {
 func evalMinOf(args []Value) Value {
 	list := args[0].AsList()
 	if len(*list) == 0 {
-		panic("minOf: empty list")
+		panic("minOf() requires a non-empty list")
 	}
 	mn := (*list)[0].AsNum()
 	for _, v := range (*list)[1:] {

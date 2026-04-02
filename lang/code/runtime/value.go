@@ -60,19 +60,67 @@ func EmptyDict() Value {
 
 func (v Value) Type() ValueType { return v.vtype }
 
+// TypeName returns a human-readable type name for use in error messages.
+func (v Value) TypeName() string {
+	switch v.vtype {
+	case Null:
+		return "null"
+	case Bool:
+		return "boolean"
+	case Number:
+		return "number"
+	case String:
+		return "text"
+	case List:
+		return "list"
+	case Dict:
+		return "dict"
+	case Color:
+		return "color"
+	default:
+		return "unknown"
+	}
+}
+
+// errorStr returns a short description of the value for use in error messages.
+func (v Value) errorStr() string {
+	switch v.vtype {
+	case Number:
+		return "number " + v.String()
+	case Bool:
+		return "boolean " + v.String()
+	case String:
+		s := v.strVal
+		if len(s) > 24 {
+			s = s[:24] + "..."
+		}
+		return "text \"" + s + "\""
+	case List:
+		return "list (length " + strconv.Itoa(len(*v.listVal)) + ")"
+	case Dict:
+		return "dict (length " + strconv.Itoa(v.dictVal.Len()) + ")"
+	case Null:
+		return "null"
+	case Color:
+		return "color " + v.strVal
+	default:
+		return "unknown"
+	}
+}
+
 func (v Value) AsBool() bool {
 	if v.vtype == NonConsumable {
-		panic("cannot consume a statement result as a boolean")
+		panic("expected a boolean value but got a statement result (void)")
 	}
 	if v.vtype != Bool {
-		panic("expected a boolean value")
+		panic("expected a boolean value but got " + v.errorStr())
 	}
 	return v.boolVal
 }
 
 func (v Value) AsNum() float64 {
 	if v.vtype == NonConsumable {
-		panic("cannot consume a statement result as a number")
+		panic("expected a number value but got a statement result (void)")
 	}
 	switch v.vtype {
 	case Number:
@@ -81,9 +129,9 @@ func (v Value) AsNum() float64 {
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v.strVal), 64); err == nil {
 			return f
 		}
-		panic("cannot convert string to number: " + v.strVal)
+		panic("cannot convert text to number: \"" + v.strVal + "\"")
 	default:
-		panic("expected a number value")
+		panic("expected a number value but got " + v.errorStr())
 	}
 }
 
@@ -116,20 +164,20 @@ func (v Value) AsStr() string {
 
 func (v Value) AsList() *[]Value {
 	if v.vtype == NonConsumable {
-		panic("cannot consume a statement result as a list")
+		panic("expected a list value but got a statement result (void)")
 	}
 	if v.vtype != List {
-		panic("expected a list value")
+		panic("expected a list value but got " + v.errorStr())
 	}
 	return v.listVal
 }
 
 func (v Value) AsDict() *OrderedDict {
 	if v.vtype == NonConsumable {
-		panic("cannot consume a statement result as a dict")
+		panic("expected a dict value but got a statement result (void)")
 	}
 	if v.vtype != Dict {
-		panic("expected a dict value")
+		panic("expected a dict value but got " + v.errorStr())
 	}
 	return v.dictVal
 }

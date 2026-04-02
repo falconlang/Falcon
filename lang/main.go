@@ -38,6 +38,13 @@ func main() {
 		case "reformat":
 			reformatStdin()
 			return
+		case "roundtrip":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: Falcon roundtrip <file.mist>")
+				os.Exit(1)
+			}
+			roundtripFile(os.Args[2])
+			return
 		}
 	}
 	//repl()
@@ -83,6 +90,73 @@ func reformatStdin() {
 		out.WriteString(expr.String())
 	}
 	fmt.Print(out.String())
+}
+
+// roundtripFile round-trips a Falcon source file through:
+//   Stage 1 (exit 1): Falcon source → mist parser → AST
+//   Stage 2 (exit 2): AST → Blockly serializer → XML
+//   Stage 3 (exit 3): XML → Blockly parser → AST → Falcon source
+func roundtripFile(path string) {
+	codeBytes, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+	source := string(codeBytes)
+	fileName := filepath.Base(path)
+
+	// Stage 1: Falcon source → AST
+	var exprs []ast.Expr
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Fprintln(os.Stderr, "stage 1 (mist parser):", r)
+				os.Exit(1)
+			}
+		}()
+		codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
+		tokens := lex.NewLexer(codeContext).Lex()
+		exprs = mistParser.NewLangParser(false, tokens).ParseAll()
+	}()
+
+	// Stage 2: AST → Blockly XML
+	var xmlBytes []byte
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Fprintln(os.Stderr, "stage 2 (blockly serializer):", r)
+				os.Exit(2)
+			}
+		}()
+		blocks := make([]ast.Block, len(exprs))
+		for i, expr := range exprs {
+			blocks[i] = expr.Blockly(true)
+		}
+		xmlBlock := ast.XmlRoot{
+			Blocks: blocks,
+			XMLNS:  "https://developers.google.com/blockly/xml",
+		}
+		xmlBytes, _ = xml.MarshalIndent(xmlBlock, "", "  ")
+	}()
+
+	// Stage 3: Blockly XML → AST → Falcon source
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Fprintln(os.Stderr, "stage 3 (blockly parser):", r)
+				os.Exit(3)
+			}
+		}()
+		roundtripped := blocklyParser.NewParser(string(xmlBytes)).GenerateAST()
+		var out strings.Builder
+		for i, expr := range roundtripped {
+			if i > 0 {
+				out.WriteRune('\n')
+			}
+			out.WriteString(expr.String())
+		}
+		fmt.Print(out.String())
+	}()
 }
 
 func formatStdin() {

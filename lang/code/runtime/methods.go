@@ -227,7 +227,7 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 	case "random":
 		list := *on.AsList()
 		if len(list) == 0 {
-			panic("random: empty list")
+			panic("random() requires a non-empty list")
 		}
 		return list[rngIntn(len(list))]
 	case "reverseList":
@@ -344,7 +344,7 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		return ListVal(pairs)
 
 	default:
-		panic("unknown method: " + e.Name)
+		panic("unknown method ." + e.Name + "() on " + on.TypeName() + " value")
 	}
 }
 
@@ -464,7 +464,7 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer) Value {
 		varM := e.Names[0]
 		varN := e.Names[1]
 		if len(*list) == 0 {
-			panic("min transformer: empty list")
+			panic("min() transformer requires a non-empty list")
 		}
 		best := (*list)[0]
 		for _, elem := range (*list)[1:] {
@@ -481,7 +481,7 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer) Value {
 		varM := e.Names[0]
 		varN := e.Names[1]
 		if len(*list) == 0 {
-			panic("max transformer: empty list")
+			panic("max() transformer requires a non-empty list")
 		}
 		best := (*list)[0]
 		for _, elem := range (*list)[1:] {
@@ -495,6 +495,6 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer) Value {
 		return best
 
 	default:
-		panic("unknown list transformer: " + e.Name)
+		panic("unknown list transformer ." + e.Name + "() — valid transformers: map, filter, sort, reduce, min, max")
 	}
 }
