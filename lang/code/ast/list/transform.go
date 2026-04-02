@@ -121,7 +121,7 @@ func (t *Transformer) bodyTransformerString(do ast.Expr) string {
 func (t *Transformer) Blockly(flags ...bool) ast.Block {
 	errorMessage, signature := TestSignature(t.Name, len(t.Args), len(t.Names))
 	if signature == nil {
-		panic(errorMessage)
+		t.Where.Error(errorMessage)
 	}
 	switch t.Name {
 	case "map":
@@ -155,7 +155,7 @@ func (t *Transformer) Consumable(flags ...bool) bool {
 func (t *Transformer) Signature() []ast.Signature {
 	errorMessage, transformerSignature := TestSignature(t.Name, len(t.Args), len(t.Names))
 	if transformerSignature == nil {
-		panic(errorMessage)
+		t.Where.Error(errorMessage)
 	}
 	// TODO: this has to be improved when we are improving type safety
 	if t.Name == "min" || t.Name == "max" || t.Name == "reduce" {

@@ -138,7 +138,7 @@ func (f *FuncCall) String() string {
 func (f *FuncCall) Blockly(flags ...bool) ast.Block {
 	errorMessage, signature := TestSignature(f.Name, len(f.Args))
 	if signature == nil {
-		panic(errorMessage)
+		f.Where.Error(errorMessage)
 	}
 	if len(flags) > 0 && !flags[0] && !f.Consumable() {
 		f.Where.Error("Expected a consumable but got a statement")
@@ -232,7 +232,7 @@ func (f *FuncCall) Consumable(flags ...bool) bool {
 func (f *FuncCall) Signature() []ast.Signature {
 	errorMessage, signature := TestSignature(f.Name, len(f.Args)) // signatures are already verified
 	if signature == nil {
-		panic(errorMessage)
+		f.Where.Error(errorMessage)
 	}
 	return []ast.Signature{signature.Signature}
 }

@@ -33,7 +33,8 @@ func (c *Call) textMethods(signature *CallSignature) ast.Block {
 	case "text_replace_mappings":
 		return c.textReplaceFrom()
 	default:
-		panic("Unknown text method " + signature.BlocklyName)
+		c.Where.Error("Unknown text method: %", signature.BlocklyName)
+		panic("")
 	}
 }
 

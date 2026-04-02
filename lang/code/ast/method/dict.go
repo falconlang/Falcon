@@ -27,7 +27,8 @@ func (c *Call) dictMethods(signature *CallSignature) ast.Block {
 	case "dictionaries_getters":
 		return c.dictGetters()
 	default:
-		panic("Unknown text method " + signature.BlocklyName)
+		c.Where.Error("Unknown dict method: %", signature.BlocklyName)
+		panic("")
 	}
 }
 

@@ -133,7 +133,7 @@ func (c *Call) String() string {
 func (c *Call) Blockly(flags ...bool) ast.Block {
 	errorMessage, signature := TestSignature(c.Name, len(c.Args))
 	if signature == nil {
-		panic(errorMessage)
+		c.Where.Error(errorMessage)
 	}
 	switch signature.Module {
 	case "text":
@@ -143,7 +143,8 @@ func (c *Call) Blockly(flags ...bool) ast.Block {
 	case "dict":
 		return c.dictMethods(signature)
 	default:
-		panic("Unknown module " + signature.Module)
+		c.Where.Error("Unknown method module: %", signature.Module)
+		panic("")
 	}
 }
 
@@ -162,7 +163,7 @@ func (c *Call) Consumable(flags ...bool) bool {
 func (c *Call) Signature() []ast.Signature {
 	errorMessage, signature := TestSignature(c.Name, len(c.Args))
 	if signature == nil {
-		panic(errorMessage)
+		c.Where.Error(errorMessage)
 	}
 	return []ast.Signature{signature.Signature}
 }

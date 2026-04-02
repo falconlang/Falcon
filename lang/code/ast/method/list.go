@@ -30,7 +30,8 @@ func (c *Call) listMethods(signature *CallSignature) ast.Block {
 	case "lists_slice":
 		return c.listSlice()
 	default:
-		panic("Unknown list method " + signature.BlocklyName)
+		c.Where.Error("Unknown list method: %", signature.BlocklyName)
+		panic("")
 	}
 }
 
