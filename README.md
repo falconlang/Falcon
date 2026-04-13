@@ -7,7 +7,7 @@ Falcon is a language designed for App Inventor to enable syntax-based programmin
 2. Falcon variables are dynamically typed. Do not declare variables.
 3. Lists and dictionaries are passed as references.
 4. Falcon follows Kotlin's style of functional expressions.
-5. Falcon does not have a return statement; the last expression in a body is returned.
+5. Falcon does not have a traditional return statement. In result functions, the last expression is returned. Use `yield` inside a result function for an early return.
 6. Falcon does NOT have a try-catch or a throw statement.
 7. Only single-line comments using double slash `//` are supported.
 8. Do not use `_` in place of unused variables
@@ -179,15 +179,44 @@ func double(n) = { n * 2 }
 Or multiple expressions:
 
 ```
-func FibSum(n) = {
+func Fib(n) = {
   if (n < 2) {
     n  
   } else {
-    FibSum(n - 1) + FibSum(n - 2)
+    Fib(n - 1) + Fib(n - 2)
   }
 }
 ```
-Note that there is no `return` statement in Falcon. The last statement in a body is taken as the output of an expression.
+Note that there is no `return` statement in Falcon. The last expression in a body is taken as the output of an expression.
+
+### yield
+
+`yield <expr>` exits a result function early and returns the given value to the caller. It only works inside result functions (`= { ... }`). If no `yield` is reached, the last expression in the body is returned as usual.
+
+```
+func first_divisible(n, list) = {
+  for (i: 1..list.listLen()) {
+    if (list[i] % n == 0) {
+      yield list[i]
+    }
+  }
+  -1
+}
+
+println(first_divisible(7, [3, 10, 21, 44]))  // Output: 21
+println(first_divisible(7, [1, 2, 3]))         // Output: -1
+```
+
+A common pattern is using `yield` as a guard clause:
+
+```
+func safe_div(a, b) = {
+  if (b == 0) {
+    yield 0
+  }
+  a / b
+}
+```
 
 ## Functions
 

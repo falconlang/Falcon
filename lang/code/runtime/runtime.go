@@ -627,25 +627,18 @@ func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
 				}()
 				return res
 			}
-			// a void procedure: run the body, catch yield for early return,
-			// and fall through to the body's last expression value.
-			var res Value
+			// a void procedure
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						switch rs := r.(type) {
-						case ReturnSignal:
-							// discard — void procedures don't return values via ReturnSignal
-						case YieldSignal:
-							res = rs.Val
-						default:
+						if _, ok := r.(ReturnSignal); !ok {
 							panic(r)
 						}
 					}
 				}()
-				res = i.execBody(proc.voidBody)
+				i.execBody(proc.voidBody)
 			}()
-			return res
+			return VoidVal()
 		})
 	}()
 	return result
