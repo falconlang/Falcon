@@ -74,4 +74,5 @@ const (
 	When
 	Any
 	Undefined
+	Yield
 )

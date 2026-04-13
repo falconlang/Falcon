@@ -11,6 +11,7 @@ import (
 	"Falcon/code/lex"
 	blocklyParser "Falcon/code/parsers/blocklytomist"
 	"Falcon/code/parsers/mistparser"
+	"Falcon/code/runtime"
 	"Falcon/design"
 	"encoding/xml"
 	"strings"
@@ -137,6 +138,44 @@ func convertXmlToSchema(this js.Value, p []js.Value) any {
 	})
 }
 
+// runCode executes Falcon source code and streams each printed line to JS via
+// the falconPrint(line) callback. Parse and runtime errors are sent to mistError(msg).
+func runCode(this js.Value, p []js.Value) any {
+	if len(p) < 1 {
+		js.Global().Call("mistError", "runCode(sourceCode) not provided!")
+		return js.Undefined()
+	}
+	sourceCode := p[0].String()
+
+	var interp *runtime.Interpreter
+	defer func() {
+		if r := recover(); r != nil {
+			var msg string
+			if interp != nil {
+				msg = interp.FormatRuntimeError(r)
+			} else if s, ok := r.(string); ok {
+				msg = s
+			} else if err, ok := r.(error); ok {
+				msg = err.Error()
+			} else {
+				msg = "unknown error"
+			}
+			js.Global().Call("mistError", msg)
+		}
+	}()
+
+	codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "wasm"}
+	tokens := lex.NewLexer(codeContext).Lex()
+	langParser := mistparser.NewLangParser(false, tokens)
+	expressions := langParser.ParseAll()
+
+	interp = runtime.NewInterpreterWithOutput(func(line string) {
+		js.Global().Call("falconPrint", line)
+	})
+	interp.Run(expressions)
+	return js.Undefined()
+}
+
 func main() {
 	println("Hello from wasm.go!")
 
@@ -145,5 +184,6 @@ func main() {
 	js.Global().Set("xmlToMist", js.FuncOf(xmlToMist))
 	js.Global().Set("schemaToXml", js.FuncOf(convertSchemaToXml))
 	js.Global().Set("xmlToSchema", js.FuncOf(convertXmlToSchema))
+	js.Global().Set("runCode", js.FuncOf(runCode))
 	<-c
 }

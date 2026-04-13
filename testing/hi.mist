@@ -1,18 +1,13 @@
-func rle(s) =
-  {
-    local result = []
-    local current = s.segment(1, 1)
-    local count = 1
-    for (i: 2.. s.textLen() step 1) {
-      local ch = s.segment(i, 1)
-      if (ch === current) {
-        count = count + 1
-      } else {
-        result.add([current, count])
-        current = ch
-        count = 1
-      }
+func find_index(target, list) = {
+  local result = -1
+  for (i: 1..list.listLen()) {
+    if (list[i] == target) {
+      result = i
+      break
     }
-    result.add([current, count])
-    result
   }
+  result
+}
+
+local myList = ["cat", "dog", "cheetha"]
+println(find_index("cat", myList))

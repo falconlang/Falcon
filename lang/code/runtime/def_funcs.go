@@ -17,7 +17,7 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 	switch e.Name {
 	// --- Output ---
 	case "println":
-		printLine(args[0].AsStr())
+		i.printLine(args[0].AsStr())
 		return VoidVal()
 
 	// --- Math single-arg ---
@@ -143,36 +143,36 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 
 	// --- App Inventor screen stubs ---
 	case "openScreen":
-		stub("openScreen(" + args[0].AsStr() + ")")
+		i.stub("openScreen(" + args[0].AsStr() + ")")
 		return VoidVal()
 	case "openScreenWithValue":
-		stub("openScreenWithValue(" + args[0].AsStr() + ", ...)")
+		i.stub("openScreenWithValue(" + args[0].AsStr() + ", ...)")
 		return VoidVal()
 	case "closeScreen":
-		stub("closeScreen()")
+		i.stub("closeScreen()")
 		return VoidVal()
 	case "closeScreenWithValue":
-		stub("closeScreenWithValue(...)")
+		i.stub("closeScreenWithValue(...)")
 		return VoidVal()
 	case "closeApp":
-		stub("closeApp()")
+		i.stub("closeApp()")
 		return VoidVal()
 	case "getPlainStartText":
-		stub("getPlainStartText()")
+		i.stub("getPlainStartText()")
 		return StrVal("")
 	case "closeScreenWithPlainText":
-		stub("closeScreenWithPlainText(...)")
+		i.stub("closeScreenWithPlainText(...)")
 		return VoidVal()
 	case "getStartValue":
-		stub("getStartValue()")
+		i.stub("getStartValue()")
 		return StrVal("")
 
 	// --- Generic component function stubs ---
 	case "set", "call", "vcall":
-		stub("component function '" + e.Name + "'")
+		i.stub("component function '" + e.Name + "'")
 		return VoidVal()
 	case "get", "every":
-		stub("component function '" + e.Name + "'")
+		i.stub("component function '" + e.Name + "'")
 		return NullVal()
 
 	default:

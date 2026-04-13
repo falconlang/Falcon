@@ -45,14 +45,21 @@ func main() {
 			}
 			roundtripFile(os.Args[2])
 			return
+		case "exec":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: Falcon exec <file.mist>")
+				os.Exit(1)
+			}
+			execFile(os.Args[2])
+			return
 		}
 	}
 	//repl()
 	//diffTest()
-	//analyzeSyntax()
+	analyzeSyntax()
 	//xmlTest()
 	//designTest()
-	runProgram()
+	//runProgram()
 }
 
 func reformatStdin() {
@@ -93,9 +100,10 @@ func reformatStdin() {
 }
 
 // roundtripFile round-trips a Falcon source file through:
-//   Stage 1 (exit 1): Falcon source → mist parser → AST
-//   Stage 2 (exit 2): AST → Blockly serializer → XML
-//   Stage 3 (exit 3): XML → Blockly parser → AST → Falcon source
+//
+//	Stage 1 (exit 1): Falcon source → mist parser → AST
+//	Stage 2 (exit 2): AST → Blockly serializer → XML
+//	Stage 3 (exit 3): XML → Blockly parser → AST → Falcon source
 func roundtripFile(path string) {
 	codeBytes, err := os.ReadFile(path)
 	if err != nil {
@@ -194,9 +202,10 @@ func runFile(path string) {
 	}
 	source := string(codeBytes)
 	fileName := filepath.Base(path)
+	interp := runtime.NewInterpreter()
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Fprintln(os.Stderr, "Error:", r)
+			fmt.Fprintln(os.Stderr, "Error:", interp.FormatRuntimeError(r))
 			os.Exit(1)
 		}
 	}()
@@ -207,7 +216,31 @@ func runFile(path string) {
 	for _, e := range exprs {
 		e.Blockly()
 	}
+	interp.Run(exprs)
+}
+
+// execFile runs a Falcon source file without the Blockly validation stage.
+// Use this when the program uses features (e.g. yield) that are not yet
+// representable in the Blockly XML serializer.
+func execFile(path string) {
+	codeBytes, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+	source := string(codeBytes)
+	fileName := filepath.Base(path)
 	interp := runtime.NewInterpreter()
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintln(os.Stderr, "Error:", interp.FormatRuntimeError(r))
+			os.Exit(1)
+		}
+	}()
+	codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
+	tokens := lex.NewLexer(codeContext).Lex()
+	langParser := mistParser.NewLangParser(false, tokens)
+	exprs := langParser.ParseAll()
 	interp.Run(exprs)
 }
 

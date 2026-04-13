@@ -69,11 +69,12 @@ func _() {
 	_ = x[When-58]
 	_ = x[Any-59]
 	_ = x[Undefined-60]
+	_ = x[Yield-61]
 }
 
-const _Type_name = "PlusDashTimesSlashPowerRemainderLogicOrLogicAndBitwiseOrBitwiseAndBitwiseXorEqualsNotEqualsLessThanLessThanEqualGreatThanGreaterThanEqualTextEqualsTextNotEqualsTextLessThanTextGreaterThanOpenCurveCloseCurveOpenSquareCloseSquareOpenCurlyCloseCurlyAssignDotCommaQuestionNotColonDoubleColonDoubleDotRightArrowUnderscoreAtTrueFalseTextNumberNameColorCodeIfElseForStepInWhileDoBreakWalkAllGlobalLocalComputeThisFuncWhenAnyUndefined"
+const _Type_name = "PlusDashTimesSlashPowerRemainderLogicOrLogicAndBitwiseOrBitwiseAndBitwiseXorEqualsNotEqualsLessThanLessThanEqualGreatThanGreaterThanEqualTextEqualsTextNotEqualsTextLessThanTextGreaterThanOpenCurveCloseCurveOpenSquareCloseSquareOpenCurlyCloseCurlyAssignDotCommaQuestionNotColonDoubleColonDoubleDotRightArrowUnderscoreAtTrueFalseTextNumberNameColorCodeIfElseForStepInWhileDoBreakWalkAllGlobalLocalComputeThisFuncWhenAnyUndefinedYield"
 
-var _Type_index = [...]uint16{0, 4, 8, 13, 18, 23, 32, 39, 47, 56, 66, 76, 82, 91, 99, 112, 121, 137, 147, 160, 172, 187, 196, 206, 216, 227, 236, 246, 252, 255, 260, 268, 271, 276, 287, 296, 306, 316, 318, 322, 327, 331, 337, 341, 350, 352, 356, 359, 363, 365, 370, 372, 377, 384, 390, 395, 402, 406, 410, 414, 417, 426}
+var _Type_index = [...]uint16{0, 4, 8, 13, 18, 23, 32, 39, 47, 56, 66, 76, 82, 91, 99, 112, 121, 137, 147, 160, 172, 187, 196, 206, 216, 227, 236, 246, 252, 255, 260, 268, 271, 276, 287, 296, 306, 316, 318, 322, 327, 331, 337, 341, 350, 352, 356, 359, 363, 365, 370, 372, 377, 384, 390, 395, 402, 406, 410, 414, 417, 426, 431}
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_Type_index)-1) {

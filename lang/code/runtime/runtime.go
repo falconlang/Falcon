@@ -22,13 +22,20 @@ type Procedure struct {
 	retExpr  ast.Expr   // for returning procedures
 }
 
+type stackFrame struct {
+	token *lex.Token
+	name  string
+}
+
 // Interpreter implements Visitor and holds the runtime state.
 type Interpreter struct {
-	globalEnv     *Env
-	currEnv       *Env
-	procedures    map[string]*Procedure
-	lastToken     *lex.Token // last source token seen during Eval — used for runtime error reporting
-	lastHighlight int        // override highlight width (0 = use token's own content length)
+	globalEnv      *Env
+	currEnv        *Env
+	procedures     map[string]*Procedure
+	lastToken      *lex.Token   // last source token seen during Eval — used for runtime error reporting
+	lastHighlight  int          // override highlight width (0 = use token's own content length)
+	stackTrace     []stackFrame // populated as panics propagate up through procedure calls
+	outputCallback func(string) // if non-nil, receives each printed line instead of stdout
 }
 
 func NewInterpreter() *Interpreter {
@@ -37,6 +44,19 @@ func NewInterpreter() *Interpreter {
 		globalEnv:  env,
 		currEnv:    env,
 		procedures: make(map[string]*Procedure),
+	}
+}
+
+// NewInterpreterWithOutput creates an Interpreter that calls callback for every
+// printed line instead of writing to stdout. Used by the WASM runtime to stream
+// output back to JavaScript.
+func NewInterpreterWithOutput(callback func(string)) *Interpreter {
+	env := NewEnv(nil)
+	return &Interpreter{
+		globalEnv:      env,
+		currEnv:        env,
+		procedures:     make(map[string]*Procedure),
+		outputCallback: callback,
 	}
 }
 
@@ -126,7 +146,7 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 	case *fundamentals.SmartBody:
 		return i.execBody(e.Body)
 	case *fundamentals.Component:
-		stub("component reference @" + e.Name + " (" + e.Type + ")")
+		i.stub("component reference @" + e.Name + " (" + e.Type + ")")
 		return NullVal()
 
 	// falcon specific features
@@ -167,6 +187,8 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		return i.eachPairSmt(e)
 	case *control.Break:
 		panic(BreakSignal{})
+	case *control.Yield:
+		panic(YieldSignal{Val: i.Eval(e.Expr)})
 	case *control.Do:
 		i.execBody(e.Body)
 		return i.Eval(e.Result)
@@ -248,31 +270,31 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 
 	// Component blocks
 	case *components.Event:
-		stub("event handler " + e.ComponentName + "." + e.Event)
+		i.stub("event handler " + e.ComponentName + "." + e.Event)
 		return VoidVal()
 	case *components.GenericEvent:
-		stub("generic event handler " + e.ComponentType + "." + e.Event)
+		i.stub("generic event handler " + e.ComponentType + "." + e.Event)
 		return VoidVal()
 	case *components.MethodCall:
-		stub("component method " + e.ComponentName + "." + e.Method + "(...)")
+		i.stub("component method " + e.ComponentName + "." + e.Method + "(...)")
 		return VoidVal()
 	case *components.GenericMethodCall:
-		stub("generic component method " + e.ComponentType + "." + e.Method + "(...)")
+		i.stub("generic component method " + e.ComponentType + "." + e.Method + "(...)")
 		return VoidVal()
 	case *components.PropertyGet:
-		stub("property get " + e.ComponentName + "." + e.Property)
+		i.stub("property get " + e.ComponentName + "." + e.Property)
 		return NullVal() // property reads are expressions
 	case *components.GenericPropertyGet:
-		stub("generic property get " + e.ComponentType + "." + e.Property)
+		i.stub("generic property get " + e.ComponentType + "." + e.Property)
 		return NullVal() // property reads are expressions
 	case *components.PropertySet:
-		stub("property set " + e.ComponentName + "." + e.Property)
+		i.stub("property set " + e.ComponentName + "." + e.Property)
 		return VoidVal()
 	case *components.GenericPropertySet:
-		stub("generic property set " + e.ComponentType + "." + e.Property)
+		i.stub("generic property set " + e.ComponentType + "." + e.Property)
 		return VoidVal()
 	case *components.EveryComponent:
-		stub("every(" + e.Type + ")")
+		i.stub("every(" + e.Type + ")")
 		return EmptyList()
 
 	default:
@@ -576,37 +598,57 @@ func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
 		callEnv.Define(param, argVals[k])
 	}
 
-	return i.inEnv(callEnv, func() Value {
-		if proc.retExpr != nil {
-			// a returning procedure
-			var result Value
+	var result Value
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				i.stackTrace = append(i.stackTrace, stackFrame{e.Where, e.Name})
+				panic(r)
+			}
+		}()
+		result = i.inEnv(callEnv, func() Value {
+			if proc.retExpr != nil {
+				// a returning procedure
+				var res Value
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							switch rs := r.(type) {
+							case ReturnSignal:
+								res = rs.Val
+							case YieldSignal:
+								res = rs.Val
+							default:
+								panic(r)
+							}
+						}
+					}()
+					res = i.Eval(proc.retExpr)
+				}()
+				return res
+			}
+			// a void procedure: run the body, catch yield for early return,
+			// and fall through to the body's last expression value.
+			var res Value
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						if rs, ok := r.(ReturnSignal); ok {
-							result = rs.Val
-						} else {
+						switch rs := r.(type) {
+						case ReturnSignal:
+							// discard — void procedures don't return values via ReturnSignal
+						case YieldSignal:
+							res = rs.Val
+						default:
 							panic(r)
 						}
 					}
 				}()
-				result = i.Eval(proc.retExpr)
+				res = i.execBody(proc.voidBody)
 			}()
-			return result
-		}
-		// a void procedure
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					if _, ok := r.(ReturnSignal); !ok {
-						panic(r)
-					}
-				}
-			}()
-			i.execBody(proc.voidBody)
-		}()
-		return VoidVal()
-	})
+			return res
+		})
+	}()
+	return result
 }
 
 // evaluates all expressions and returns the last expr result
@@ -631,13 +673,20 @@ func (i *Interpreter) FormatRuntimeError(r any) string {
 	case error:
 		msg = v.Error()
 	}
+	var result string
 	if i.lastToken != nil && i.lastToken.Column >= 0 {
 		if i.lastHighlight > 0 {
-			return i.lastToken.BuildErrorHighlight(true, i.lastHighlight, msg)
+			result = i.lastToken.BuildErrorHighlight(true, i.lastHighlight, msg)
+		} else {
+			result = i.lastToken.BuildError(true, msg)
 		}
-		return i.lastToken.BuildError(true, msg)
+	} else {
+		result = msg
 	}
-	return msg
+	for _, frame := range i.stackTrace {
+		result += "\n[line " + strconv.Itoa(frame.token.Column) + "] " + frame.name + "()"
+	}
+	return result
 }
 
 // evaluates all exprs in a given list

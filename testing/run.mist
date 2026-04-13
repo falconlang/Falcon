@@ -1,17 +1,29 @@
-  func analyzeFunnel(rates) = {
-    local overall = rates.reduce(1) { rate, acc -> rate * acc }
-    local minRate = rates.min { a, b -> a < b }
-    local stepIndex = rates.indexOf(minRate)
-    {
-      "overall": overall,
-      "minRate": minRate,
-      "dropOffStep": stepIndex
+func isPalindrome(s) = {
+  local n = s.textLen()
+  if (n <= 1) {
+    true
+  } else {
+    local first = s.segment(1, 1)
+    local last = s.segment(n, 1)
+    if (first == last) {
+      local middle = s.segment(2, n - 1)
+      if (middle == middle) {
+        true
+      } else {
+        local middleText = middle.segment(1, n - 1)
+        if (middleText == middleText) {
+          true
+        } else {
+          false
+        }
+      }
+    } else {
+      false
     }
   }
+}
 
-  local conversionRates = [0.5, 0.3, 0.8, 0.9]
-  local result = analyzeFunnel(conversionRates)
-  println("Funnel conversion rates: " _ conversionRates.join(" -> "))
-  println("Overall conversion: " _ result.get("overall", 0))
-  println("Greatest drop-off rate: " _ result.get("minRate", 0))
-  println("Drop-off occurs at step: " _ result.get("dropOffStep", 0))
+// Test with "madam"
+println("madam" _ isPalindrome("madam"))
+println("madam" _ isPalindrome("hola"))
+println("madam" _ isPalindrome("malayalam"))

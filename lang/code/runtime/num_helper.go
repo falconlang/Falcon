@@ -8,6 +8,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // --- Base-format predicates (used by the ? questionnaire operator) ---
@@ -154,7 +155,15 @@ func evalSplitColor(args []Value) Value {
 
 // --- RNG (xorshift64) ---
 
-var rngState uint64 = 0x9e3779b97f4a7c15 // non-zero default seed
+var rngState uint64 = 0x9e3779b97f4a7c15 // non-zero default seed; overwritten by init
+
+func init() {
+	s := uint64(time.Now().UnixNano())
+	if s == 0 {
+		s = 0x9e3779b97f4a7c15
+	}
+	rngState = s
+}
 
 func rngNext() uint64 {
 	rngState ^= rngState << 13

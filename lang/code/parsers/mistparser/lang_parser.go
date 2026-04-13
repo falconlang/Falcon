@@ -68,9 +68,7 @@ func (p *LangParser) ParseAll() []ast.Expr {
 		e := p.parse()
 		expressions = append(expressions, e)
 	}
-	if p.strict {
-		p.checkPendingSymbols()
-	}
+	p.checkPendingSymbols()
 	return expressions
 }
 
@@ -97,7 +95,7 @@ func (p *LangParser) checkPendingSymbols() {
 		}
 		errorMessages = append(errorMessages, token.BuildError(false, parseError.ErrorMessage))
 	}
-	if len(errorMessages) > 0 {
+	if p.strict && len(errorMessages) > 0 {
 		var errorWriter strings.Builder
 		errorWriter.WriteString(sugar.Format("compile failed with % syntax errors", strconv.Itoa(len(errorMessages))))
 		errorWriter.WriteString(strings.Join(errorMessages, ""))
@@ -136,6 +134,9 @@ func (p *LangParser) parse() ast.Expr {
 	case l.Break:
 		p.skip()
 		return &control.Break{}
+	case l.Yield:
+		p.skip()
+		return &control.Yield{Expr: p.parse()}
 	case l.Local:
 		return p.varExpr()
 	case l.Global:
