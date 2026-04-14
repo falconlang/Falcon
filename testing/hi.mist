@@ -1,13 +1,14 @@
-func find_index(target, list) = {
-  local result = -1
-  for (i: 1..list.listLen()) {
-    if (list[i] == target) {
-      result = i
-      break
-    }
-  }
-  result
-}
 
-local myList = ["cat", "dog", "cheetha"]
-println(find_index("cat", myList))
+println("=== 3. yield inside while loop ===")
+func first_even(list) = {
+  local i = 1
+  while (i <= list.listLen()) {
+    if (list[i] % 2 == 0) {
+      yield list[i]
+    }
+    i = i + 1
+  }
+  -1
+}
+println(first_even([1, 3, 5, 4, 7]))
+println(first_even([1, 3, 5]))

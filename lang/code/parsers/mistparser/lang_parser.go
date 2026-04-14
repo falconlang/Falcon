@@ -135,8 +135,7 @@ func (p *LangParser) parse() ast.Expr {
 		p.skip()
 		return &control.Break{}
 	case l.Yield:
-		p.skip()
-		return &control.Yield{Expr: p.parse()}
+		return p.yieldSmt()
 	case l.Local:
 		return p.varExpr()
 	case l.Global:
@@ -150,8 +149,40 @@ func (p *LangParser) parse() ast.Expr {
 		}
 		return p.event()
 	default:
-		// It cannot be consumable
 		return p.expr(0)
+	}
+}
+
+func (p *LangParser) yieldSmt() ast.Expr {
+	p.skip()
+	// Yield all the scopes!
+	yieldName := "_result"
+	var currScope = p.ScopeCursor.currScope
+	var yieldIndex = 0
+	for {
+		currScope.YieldIndex = yieldIndex
+		yieldIndex++
+		currScope.YieldName = &yieldName
+		if currScope.Type == ScopeRetProc {
+			break
+		}
+		child := currScope
+		currScope = currScope.Parent
+		if currScope == nil {
+			panic("[Error] Parent overflow")
+		}
+		currScope.ChildYieldScopeType = child.Type
+	}
+	// _result = [  true, <expr>  ]
+	return &variables.Set{
+		Global: false,
+		Name:   yieldName,
+		Expr: &fundamentals.List{
+			Elements: []ast.Expr{
+				&fundamentals.Boolean{Value: true},
+				p.parse(),
+			},
+		},
 	}
 }
 
@@ -211,20 +242,24 @@ func (p *LangParser) funcSmt() ast.Expr {
 		for _, parameter := range parameters {
 			p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
 		}
-		result := p.parse()
+		var result ast.Expr
+		if p.consume(l.OpenCurly) {
+			result = &fundamentals.SmartBody{Body: p.bodyUntilCurly()}
+			p.expect(l.CloseCurly)
+		} else {
+			result = p.parse()
+		}
 		p.ScopeCursor.Exit(ScopeRetProc)
 		return &procedures.RetProcedure{Name: name, Parameters: parameters, Result: result}
-	} else {
-		where := p.expect(l.OpenCurly)
-		p.ScopeCursor.Enter(where, ScopeProc)
-		for _, parameter := range parameters {
-			p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
-		}
-		body := p.bodyUntilCurly()
-		p.ScopeCursor.Exit(ScopeProc)
-		p.expect(l.CloseCurly)
-		return &procedures.VoidProcedure{Name: name, Parameters: parameters, Body: body}
 	}
+	p.ScopeCursor.Enter(p.expect(l.OpenCurly), ScopeProc)
+	for _, parameter := range parameters {
+		p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
+	}
+	body := p.bodyUntilCurly()
+	p.ScopeCursor.Exit(ScopeProc)
+	p.expect(l.CloseCurly)
+	return &procedures.VoidProcedure{Name: name, Parameters: parameters, Body: body}
 }
 
 func (p *LangParser) globVar() ast.Expr {
@@ -389,13 +424,100 @@ func (p *LangParser) body(scope ScopeType) []ast.Expr {
 func (p *LangParser) bodyUntilCurly() []ast.Expr {
 	var expressions []ast.Expr
 	if p.isNext(l.CloseCurly) {
+		// empty smart body
 		return expressions
 	}
+	var scopeYielded = false
+	var retFuncYieldIndex = -1
 	for p.notEOF() && !p.isNext(l.CloseCurly) {
-		expressions = append(expressions, p.parse())
+		expr := p.parse()
+		expressions = append(expressions, expr)
 		p.consume(l.Comma)
+
+		// no statements allowed after `break`
+		switch expr.(type) {
+		case *control.Break:
+			if !p.isNext(l.CloseCurly) {
+				p.peek().Error("unreachable code after '%'", expr.String())
+			}
+		}
+		// inject conditional breaking if Scope has yielded
+		if p.ScopeCursor.currScope.YieldName != nil && !scopeYielded {
+			scopeYielded = true
+			if p.ScopeCursor.currScope.YieldIndex == 0 {
+				// `break`
+				if p.ScopeCursor.currScope.InLoop() {
+					expressions = append(expressions, &control.Break{})
+				}
+				// no statements allowed after `yield <expr>`
+				if !p.isNext(l.CloseCurly) {
+					p.peek().Error("unreachable code after '%'", expr.String())
+				}
+			} else if p.ScopeCursor.currScope.InLoop() {
+				if !(p.ScopeCursor.currScope.YieldIndex == 1 && p.ScopeCursor.currScope.ChildYieldScopeType != ScopeLoop) {
+					// `if (_result[1]) break`
+					expressions = append(expressions, &control.If{
+						Conditions: []ast.Expr{p.retProcYieldVar("1")},
+						Bodies:     [][]ast.Expr{{&control.Break{}}},
+					})
+				}
+			} else if p.ScopeCursor.currScope.Type == ScopeRetProc {
+				retFuncYieldIndex = len(expressions)
+			}
+		}
+	}
+	if retFuncYieldIndex > 0 && len(expressions) > 1 {
+		// the func has yielded, identify yield source, and wrap rest in a condition
+		lastExpressions := make([]ast.Expr, len(expressions)-retFuncYieldIndex)
+		copy(lastExpressions, expressions[retFuncYieldIndex:])
+		expressions = expressions[:retFuncYieldIndex]
+		// wrap rest of the body in `if (_result[1]) { ... }`
+		if len(lastExpressions) > 1 {
+			expressions = append(expressions, &control.If{
+				Conditions: []ast.Expr{&fundamentals.Not{Expr: p.retProcYieldVar("1")}},
+				Bodies:     [][]ast.Expr{lastExpressions[:len(lastExpressions)-1]},
+			})
+		}
+		// `if (_result[1]) _result[2] else <expr>`
+		expressions = append(expressions, &control.If{
+			Conditions: []ast.Expr{p.retProcYieldVar("1")},
+			Bodies:     [][]ast.Expr{{p.retProcYieldVar("2")}},
+			ElseBody:   []ast.Expr{lastExpressions[len(lastExpressions)-1]},
+		})
+		// ```
+		//  local _result = [false, false]
+		//  <body>
+		// ```
+		expressions = []ast.Expr{
+			&variables.Var{
+				Names: []string{*p.ScopeCursor.currScope.YieldName},
+				Values: []ast.Expr{
+					&fundamentals.List{
+						Elements: []ast.Expr{
+							&fundamentals.Boolean{Value: false},
+							&fundamentals.Boolean{Value: false},
+						},
+					},
+				},
+				Body: expressions,
+			},
+		}
 	}
 	return expressions
+}
+
+func (p *LangParser) retProcYieldVar(index string) *list.Get {
+	// `_result[1]`
+	return &list.Get{
+		Where: l.MakeFakeToken(l.OpenSquare),
+		List: &variables.Get{
+			Where:          l.MakeFakeToken(l.Name),
+			Global:         false,
+			Name:           *p.ScopeCursor.currScope.YieldName,
+			ValueSignature: []ast.Signature{ast.SignList},
+		},
+		Index: &fundamentals.Number{Content: index},
+	}
 }
 
 func (p *LangParser) expr(minPrecedence int) ast.Expr {
@@ -448,10 +570,9 @@ func (p *LangParser) compoundOperator(opToken *l.Token, left ast.Expr) ast.Expr 
 	expr, done := p.assignSmt(left, binaryOperator)
 	if done {
 		return expr
-	} else {
-		opToken.Error("Unknown compound operator '%='", *opToken.Content)
-		panic("unreached")
 	}
+	opToken.Error("Unknown compound operator '%='", *opToken.Content)
+	panic("unreached")
 }
 
 func (p *LangParser) makeBinary(opToken *l.Token, left ast.Expr, right ast.Expr) ast.Expr {

@@ -6,6 +6,10 @@ type Scope struct {
 	Type      ScopeType
 	Parent    *Scope
 	Variables map[string][]ast.Signature
+
+	YieldIndex          int
+	ChildYieldScopeType ScopeType
+	YieldName           *string
 }
 
 func (s *Scope) DefineVariable(name string, signature []ast.Signature) {
@@ -21,6 +25,32 @@ func (s *Scope) ResolveVariable(name string) ([]ast.Signature, bool) {
 		return s.Parent.ResolveVariable(name)
 	}
 	return make([]ast.Signature, 0), false
+}
+
+func (s *Scope) InLoop() bool {
+	var currScope = s
+	for {
+		if currScope.Type == ScopeLoop {
+			return true
+		}
+		currScope = currScope.Parent
+		if currScope == nil {
+			return false
+		}
+	}
+}
+
+func (s *Scope) GetLoopScope() *Scope {
+	var currScope = s
+	for {
+		if currScope.Type == ScopeLoop {
+			return currScope
+		}
+		currScope = currScope.Parent
+		if currScope == nil {
+			return nil
+		}
+	}
 }
 
 func (s *Scope) IsRoot() bool {
