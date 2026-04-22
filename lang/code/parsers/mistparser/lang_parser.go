@@ -453,6 +453,7 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 		if p.ScopeCursor.currScope.YieldName != nil && !scopeYielded {
 			scopeYielded = true
 			if p.ScopeCursor.currScope.YieldIndex == 0 {
+				p.ScopeCursor.currScope.Yield.Confirmed = true
 				// `break`
 				if p.ScopeCursor.currScope.InLoop() {
 					expressions = append(expressions, &control.Break{})
@@ -462,6 +463,7 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 					p.peek().Error("unreachable code after '%'", expr.String())
 				}
 			} else if p.ScopeCursor.currScope.InLoop() {
+				p.ScopeCursor.currScope.Yield.Confirmed = true
 				if !(p.ScopeCursor.currScope.YieldIndex == 1 && p.ScopeCursor.currScope.ChildYieldScopeType != ScopeLoop) {
 					// `if (_result[1]) break`
 					expressions = append(expressions, &control.If{

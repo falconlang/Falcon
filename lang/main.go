@@ -56,10 +56,11 @@ func main() {
 	}
 	//repl()
 	//diffTest()
-	//analyzeSyntax()
+	analyzeSyntax()
 	//xmlTest()
 	//designTest()
-	runProgram()
+	//runProgram()
+	//runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
 }
 
 func reformatStdin() {
@@ -216,6 +217,7 @@ func runFile(path string) {
 	for _, e := range exprs {
 		e.Blockly()
 	}
+	println("blockly done")
 	interp.Run(exprs)
 }
 
