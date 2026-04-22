@@ -57,11 +57,11 @@ func main() {
 	}
 	//repl()
 	//diffTest()
-	//analyzeSyntax()
+	analyzeSyntax()
 	//xmlTest()
 	//designTest()
 	//runProgram()
-	runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
+	//runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
 }
 
 func reformatStdin() {

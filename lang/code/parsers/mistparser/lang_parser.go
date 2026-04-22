@@ -157,6 +157,10 @@ func (p *LangParser) yieldSmt() ast.Expr {
 	p.skip()
 	yieldName := "_result"
 	expr := p.parse()
+	if p.ScopeCursor.currScope.Type == ScopeRetProc && p.isNext(l.CloseCurly) {
+		// just return the expr as is
+		return expr
+	}
 	// _result = [  true, <expr>  ]
 	transformedExpr := &variables.Set{
 		Global: false,
@@ -168,19 +172,13 @@ func (p *LangParser) yieldSmt() ast.Expr {
 			},
 		},
 	}
-	yield := &fundamentals.Yield{
-		Expr:            expr,
-		TransformedExpr: transformedExpr,
-		Confirmed:       false,
-	}
-	// Yield all the scopes!
 	var currScope = p.ScopeCursor.currScope
 	var yieldIndex = 0
 	for {
 		currScope.YieldIndex = yieldIndex
 		yieldIndex++
 		currScope.YieldName = &yieldName
-		currScope.Yield = yield
+		//currScope.Yield = yield
 		if currScope.Type == ScopeRetProc {
 			break
 		}
@@ -191,7 +189,7 @@ func (p *LangParser) yieldSmt() ast.Expr {
 		}
 		currScope.ChildYieldScopeType = child.Type
 	}
-	return yield
+	return transformedExpr
 }
 
 func (p *LangParser) genericEvent() ast.Expr {
@@ -252,7 +250,7 @@ func (p *LangParser) funcSmt() ast.Expr {
 		}
 		var result ast.Expr
 		if p.consume(l.OpenCurly) {
-			result = &fundamentals.SmartBody{Body: p.bodyUntilCurly()}
+			result = &fundamentals.SmartBody{Body: p.bodyUntilCurlyWrap(true)}
 			p.expect(l.CloseCurly)
 		} else {
 			result = p.parse()
@@ -430,6 +428,10 @@ func (p *LangParser) body(scope ScopeType) []ast.Expr {
 }
 
 func (p *LangParser) bodyUntilCurly() []ast.Expr {
+	return p.bodyUntilCurlyWrap(false)
+}
+
+func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 	var expressions []ast.Expr
 	if p.isNext(l.CloseCurly) {
 		// empty smart body
@@ -453,7 +455,6 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 		if p.ScopeCursor.currScope.YieldName != nil && !scopeYielded {
 			scopeYielded = true
 			if p.ScopeCursor.currScope.YieldIndex == 0 {
-				p.ScopeCursor.currScope.Yield.Confirmed = true
 				// `break`
 				if p.ScopeCursor.currScope.InLoop() {
 					expressions = append(expressions, &control.Break{})
@@ -463,7 +464,6 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 					p.peek().Error("unreachable code after '%'", expr.String())
 				}
 			} else if p.ScopeCursor.currScope.InLoop() {
-				p.ScopeCursor.currScope.Yield.Confirmed = true
 				if !(p.ScopeCursor.currScope.YieldIndex == 1 && p.ScopeCursor.currScope.ChildYieldScopeType != ScopeLoop) {
 					// `if (_result[1]) break`
 					expressions = append(expressions, &control.If{
@@ -476,8 +476,7 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 			}
 		}
 	}
-	if retFuncYieldIndex > 0 && len(expressions) > 1 && len(expressions)-retFuncYieldIndex > 0 {
-		p.ScopeCursor.currScope.Yield.Confirmed = true
+	if retFuncYieldIndex > 0 && len(expressions) > 0 {
 		// the func has yielded, identify yield source, and wrap rest in a condition
 		lastExpressions := make([]ast.Expr, len(expressions)-retFuncYieldIndex)
 		copy(lastExpressions, expressions[retFuncYieldIndex:])
@@ -490,11 +489,13 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 			})
 		}
 		// `if (_result[1]) _result[2] else <expr>`
-		expressions = append(expressions, &control.If{
-			Conditions: []ast.Expr{p.retProcYieldVar("1")},
-			Bodies:     [][]ast.Expr{{p.retProcYieldVar("2")}},
-			ElseBody:   []ast.Expr{lastExpressions[len(lastExpressions)-1]},
-		})
+		if len(lastExpressions) > 0 {
+			expressions = append(expressions, &control.If{
+				Conditions: []ast.Expr{p.retProcYieldVar("1")},
+				Bodies:     [][]ast.Expr{{p.retProcYieldVar("2")}},
+				ElseBody:   []ast.Expr{lastExpressions[len(lastExpressions)-1]},
+			})
+		}
 		// ```
 		//  local _result = [false, false]
 		//  <body>
