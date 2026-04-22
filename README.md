@@ -1,6 +1,6 @@
 ![image|690x338](https://community.appinventor.mit.edu/uploads/default/original/3X/e/d/ed3b9d22ddaefffb4fd5ab71964b8816c56c63a1.png)
 
-Falcon is a language designed for App Inventor to enable syntax-based programming and for incorporating agenting coding abilities.
+Falcon is a language designed for App Inventor to enable syntax-based programming and for incorporating agentic coding abilities.
 
 ## Quirks
 1. Falcon follows 1-based indexing.
@@ -327,7 +327,7 @@ e.g. `"Hello  ".trim()`
 ### Dictionary
 
 - `dictLen()`
-- `get(key)`
+- `get(key, notFound)`
 - `set(key, value)`
 - `delete(key)`
 - `getAtPath(path_list, notfound)`

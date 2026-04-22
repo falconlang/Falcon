@@ -204,7 +204,7 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 	case "math_single":
 		return p.mathSingle(block)
 	case "math_atan2":
-		return common.MakeFuncCall("aTan2", p.fromVals(block.Values)...)
+		return common.MakeFuncCall("atan2", p.fromVals(block.Values)...)
 	case "math_format_as_decimal":
 		return common.MakeFuncCall("formatDecimal", p.fromMinVals(block.Values, 2)...)
 	case "math_divide":

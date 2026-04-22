@@ -145,6 +145,8 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		return ListVal([]Value{i.Eval(e.Key), i.Eval(e.Value)})
 	case *fundamentals.SmartBody:
 		return i.execBody(e.Body)
+	case *fundamentals.Yield:
+		return i.Eval(e.GetExpr())
 	case *fundamentals.Component:
 		i.stub("component reference @" + e.Name + " (" + e.Type + ")")
 		return NullVal()

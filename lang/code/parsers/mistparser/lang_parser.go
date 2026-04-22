@@ -155,14 +155,32 @@ func (p *LangParser) parse() ast.Expr {
 
 func (p *LangParser) yieldSmt() ast.Expr {
 	p.skip()
-	// Yield all the scopes!
 	yieldName := "_result"
+	expr := p.parse()
+	// _result = [  true, <expr>  ]
+	transformedExpr := &variables.Set{
+		Global: false,
+		Name:   yieldName,
+		Expr: &fundamentals.List{
+			Elements: []ast.Expr{
+				&fundamentals.Boolean{Value: true},
+				expr,
+			},
+		},
+	}
+	yield := &fundamentals.Yield{
+		Expr:            expr,
+		TransformedExpr: transformedExpr,
+		Confirmed:       false,
+	}
+	// Yield all the scopes!
 	var currScope = p.ScopeCursor.currScope
 	var yieldIndex = 0
 	for {
 		currScope.YieldIndex = yieldIndex
 		yieldIndex++
 		currScope.YieldName = &yieldName
+		currScope.Yield = yield
 		if currScope.Type == ScopeRetProc {
 			break
 		}
@@ -173,17 +191,7 @@ func (p *LangParser) yieldSmt() ast.Expr {
 		}
 		currScope.ChildYieldScopeType = child.Type
 	}
-	// _result = [  true, <expr>  ]
-	return &variables.Set{
-		Global: false,
-		Name:   yieldName,
-		Expr: &fundamentals.List{
-			Elements: []ast.Expr{
-				&fundamentals.Boolean{Value: true},
-				p.parse(),
-			},
-		},
-	}
+	return yield
 }
 
 func (p *LangParser) genericEvent() ast.Expr {
@@ -467,6 +475,7 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 		}
 	}
 	if retFuncYieldIndex > 0 && len(expressions) > 1 {
+		p.ScopeCursor.currScope.Yield.Confirmed = true
 		// the func has yielded, identify yield source, and wrap rest in a condition
 		lastExpressions := make([]ast.Expr, len(expressions)-retFuncYieldIndex)
 		copy(lastExpressions, expressions[retFuncYieldIndex:])

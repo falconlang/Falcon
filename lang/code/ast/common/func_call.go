@@ -165,7 +165,7 @@ func (f *FuncCall) Blockly(flags ...bool) ast.Block {
 		return f.modeOf()
 	case "mod", "rem", "quot":
 		return f.mathDivide()
-	case "aTan2":
+	case "atan2":
 		return f.atan2()
 	case "formatDecimal":
 		return f.formatDecimal()
