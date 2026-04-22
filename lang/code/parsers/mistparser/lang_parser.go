@@ -476,7 +476,7 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 			}
 		}
 	}
-	if retFuncYieldIndex > 0 && len(expressions) > 1 {
+	if retFuncYieldIndex > 0 && len(expressions) > 1 && len(expressions)-retFuncYieldIndex > 0 {
 		p.ScopeCursor.currScope.Yield.Confirmed = true
 		// the func has yielded, identify yield source, and wrap rest in a condition
 		lastExpressions := make([]ast.Expr, len(expressions)-retFuncYieldIndex)
