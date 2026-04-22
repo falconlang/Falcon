@@ -496,23 +496,26 @@ func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 				ElseBody:   []ast.Expr{lastExpressions[len(lastExpressions)-1]},
 			})
 		}
-		// ```
-		//  local _result = [false, false]
-		//  <body>
-		// ```
-		expressions = []ast.Expr{
-			&variables.Var{
-				Names: []string{*p.ScopeCursor.currScope.YieldName},
-				Values: []ast.Expr{
-					&fundamentals.List{
-						Elements: []ast.Expr{
-							&fundamentals.Boolean{Value: false},
-							&fundamentals.Boolean{Value: false},
+		if wrap {
+			// we have to only do it once!
+			// ```
+			//  local _result = [false, false]
+			//  <body>
+			// ```
+			expressions = []ast.Expr{
+				&variables.Var{
+					Names: []string{*p.ScopeCursor.currScope.YieldName},
+					Values: []ast.Expr{
+						&fundamentals.List{
+							Elements: []ast.Expr{
+								&fundamentals.Boolean{Value: false},
+								&fundamentals.Boolean{Value: false},
+							},
 						},
 					},
+					Body: expressions,
 				},
-				Body: expressions,
-			},
+			}
 		}
 	}
 	return expressions
