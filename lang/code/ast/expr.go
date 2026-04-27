@@ -4,7 +4,7 @@ type Expr interface {
 	String() string
 	Blockly(flags ...bool) Block
 	Continuous() bool
-	Consumable(flags ...bool) bool
+	Consumable() bool
 	Signature() []Signature
 }
 

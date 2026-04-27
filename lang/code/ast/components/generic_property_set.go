@@ -34,7 +34,7 @@ func (g *GenericPropertySet) Continuous() bool {
 	return false
 }
 
-func (g *GenericPropertySet) Consumable(flags ...bool) bool {
+func (g *GenericPropertySet) Consumable() bool {
 	return false
 }
 

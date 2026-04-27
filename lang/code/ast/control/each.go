@@ -30,7 +30,7 @@ func (e *Each) Continuous() bool {
 	return false
 }
 
-func (e *Each) Consumable(flags ...bool) bool {
+func (e *Each) Consumable() bool {
 	return false
 }
 

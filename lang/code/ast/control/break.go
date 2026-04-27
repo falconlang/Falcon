@@ -20,7 +20,7 @@ func (b *Break) Continuous() bool {
 	return true
 }
 
-func (b *Break) Consumable(flags ...bool) bool {
+func (b *Break) Consumable() bool {
 	return false
 }
 

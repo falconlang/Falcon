@@ -25,7 +25,7 @@ func (l *List) Continuous() bool {
 	return true
 }
 
-func (l *List) Consumable(flags ...bool) bool {
+func (l *List) Consumable() bool {
 	return true
 }
 

@@ -38,7 +38,7 @@ func (e *Event) Continuous() bool {
 	return false
 }
 
-func (e *Event) Consumable(flags ...bool) bool {
+func (e *Event) Consumable() bool {
 	return false
 }
 

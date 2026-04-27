@@ -33,7 +33,7 @@ func (s Set) Continuous() bool {
 	return false
 }
 
-func (s Set) Consumable(flags ...bool) bool {
+func (s Set) Consumable() bool {
 	return false
 }
 

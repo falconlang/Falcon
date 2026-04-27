@@ -44,7 +44,7 @@ func (g *Get) Continuous() bool {
 	return true
 }
 
-func (g *Get) Consumable(flags ...bool) bool {
+func (g *Get) Consumable() bool {
 	return true
 }
 

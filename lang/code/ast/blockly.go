@@ -173,7 +173,7 @@ func ensureStatement(expr Expr) Block {
 	// First evaluate Blockly(). True indicates we expect a statement.
 	// This gives time for if expressions to mutate to if statement.
 	aBlock := expr.Blockly(true)
-	if expr.Consumable(true) {
+	if expr.Consumable() {
 		panic("result of `" + expr.String() + "` is never used")
 	}
 	return aBlock

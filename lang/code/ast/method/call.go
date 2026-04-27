@@ -152,7 +152,7 @@ func (c *Call) Continuous() bool {
 	return true
 }
 
-func (c *Call) Consumable(flags ...bool) bool {
+func (c *Call) Consumable() bool {
 	signature, ok := signatures[c.Name]
 	if !ok {
 		c.Where.Error("Cannot find method .%()", c.Name)

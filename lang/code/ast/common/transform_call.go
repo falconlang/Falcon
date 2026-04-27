@@ -39,7 +39,7 @@ func (t *Transform) Continuous() bool {
 	return true
 }
 
-func (t *Transform) Consumable(flags ...bool) bool {
+func (t *Transform) Consumable() bool {
 	return false
 }
 

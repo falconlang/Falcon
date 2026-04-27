@@ -33,7 +33,7 @@ func (f *For) Continuous() bool {
 	return false
 }
 
-func (f *For) Consumable(flags ...bool) bool {
+func (f *For) Consumable() bool {
 	return false
 }
 

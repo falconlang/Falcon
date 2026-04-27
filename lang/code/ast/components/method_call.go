@@ -34,7 +34,7 @@ func (m *MethodCall) Continuous() bool {
 	return false
 }
 
-func (m *MethodCall) Consumable(flags ...bool) bool {
+func (m *MethodCall) Consumable() bool {
 	return false // may be consumable too
 }
 

@@ -115,7 +115,7 @@ func (s *SimpleIf) Continuous() bool {
 	return false
 }
 
-func (s *SimpleIf) Consumable(flags ...bool) bool {
+func (s *SimpleIf) Consumable() bool {
 	return true
 }
 

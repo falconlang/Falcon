@@ -90,7 +90,7 @@ func (b *BinaryExpr) Continuous() bool {
 	return false
 }
 
-func (b *BinaryExpr) Consumable(flags ...bool) bool {
+func (b *BinaryExpr) Consumable() bool {
 	return true
 }
 

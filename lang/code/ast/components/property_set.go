@@ -43,7 +43,7 @@ func (p *PropertySet) Continuous() bool {
 	return false
 }
 
-func (p *PropertySet) Consumable(flags ...bool) bool {
+func (p *PropertySet) Consumable() bool {
 	return false
 }
 

@@ -22,7 +22,7 @@ func (y *Yield) Continuous() bool {
 	return true
 }
 
-func (y *Yield) Consumable(flags ...bool) bool {
+func (y *Yield) Consumable() bool {
 	return false
 }
 

@@ -21,7 +21,7 @@ func (e *EmptySocket) Continuous() bool {
 	return true
 }
 
-func (e *EmptySocket) Consumable(flags ...bool) bool {
+func (e *EmptySocket) Consumable() bool {
 	return false
 }
 

@@ -93,7 +93,7 @@ func (s *SmartBody) createDoSmt(doResult ast.Expr, doBody []ast.Expr) ast.Block 
 			}
 		} else {
 			resultExpr := doResult.Blockly(false)
-			if !doResult.Consumable(false) {
+			if !doResult.Consumable() {
 				panic("Cannot include a statement for the required variable result")
 			}
 			doExpr = ast.Block{
@@ -139,7 +139,7 @@ func (s *SmartBody) Continuous() bool {
 	return false
 }
 
-func (s *SmartBody) Consumable(flags ...bool) bool {
+func (s *SmartBody) Consumable() bool {
 	return true
 }
 

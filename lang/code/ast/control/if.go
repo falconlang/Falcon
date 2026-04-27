@@ -83,7 +83,7 @@ func (i *If) Continuous() bool {
 	return false
 }
 
-func (i *If) Consumable(flags ...bool) bool {
+func (i *If) Consumable() bool {
 	if i.ElseBody == nil || len(i.ElseBody) == 0 {
 		return false
 	}

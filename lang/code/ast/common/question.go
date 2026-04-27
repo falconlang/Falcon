@@ -47,7 +47,7 @@ func (q *Question) Continuous() bool {
 	return false
 }
 
-func (q *Question) Consumable(flags ...bool) bool {
+func (q *Question) Consumable() bool {
 	return true
 }
 

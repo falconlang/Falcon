@@ -28,7 +28,7 @@ func (w *While) Continuous() bool {
 	return false
 }
 
-func (w *While) Consumable(flags ...bool) bool {
+func (w *While) Consumable() bool {
 	return false
 }
 

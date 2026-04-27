@@ -36,11 +36,11 @@ func (y *Yield) Continuous() bool {
 	return y.TransformedExpr.Continuous()
 }
 
-func (y *Yield) Consumable(flags ...bool) bool {
+func (y *Yield) Consumable() bool {
 	if y.Revert {
-		return y.Expr.Consumable(flags...)
+		return y.Expr.Consumable()
 	}
-	return y.TransformedExpr.Consumable(flags...)
+	return y.TransformedExpr.Consumable()
 }
 
 func (y *Yield) Signature() []ast.Signature {

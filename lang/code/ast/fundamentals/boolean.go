@@ -33,7 +33,7 @@ func (b *Boolean) Continuous() bool {
 	return true
 }
 
-func (b *Boolean) Consumable(flags ...bool) bool {
+func (b *Boolean) Consumable() bool {
 	return true
 }
 
@@ -60,7 +60,7 @@ func (n *Not) Continuous() bool {
 	return false
 }
 
-func (n *Not) Consumable(flags ...bool) bool {
+func (n *Not) Consumable() bool {
 	return true
 }
 
