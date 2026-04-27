@@ -84,9 +84,28 @@ func (i *If) Continuous() bool {
 }
 
 func (i *If) Consumable(flags ...bool) bool {
-	return len(flags) > 0 && !flags[0]
+	if i.ElseBody == nil || len(i.ElseBody) == 0 {
+		return false
+	}
+	for _, body := range i.Bodies {
+		if len(body) == 0 || !body[len(body)-1].Consumable() {
+			return false
+		}
+	}
+	if !i.ElseBody[len(i.ElseBody)-1].Consumable() {
+		return false
+	}
+	return true
 }
 
 func (i *If) Signature() []ast.Signature {
-	return []ast.Signature{ast.SignVoid}
+	if !i.Consumable() {
+		return []ast.Signature{ast.SignVoid}
+	}
+	var result []ast.Signature
+	for _, body := range i.Bodies {
+		result = ast.CombineSignatures(result, body[len(body)-1].Signature())
+	}
+	result = ast.CombineSignatures(result, i.ElseBody[len(i.ElseBody)-1].Signature())
+	return result
 }
