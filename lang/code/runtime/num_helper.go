@@ -18,6 +18,12 @@ func isBase10(s string) bool {
 	if len(s) == 0 {
 		return false
 	}
+	if s[0] == '-' {
+		s = s[1:]
+		if len(s) == 0 {
+			return false
+		}
+	}
 	for _, c := range s {
 		if c < '0' || c > '9' {
 			return false
@@ -122,20 +128,36 @@ func hexByte(n int) string {
 	return strings.ToUpper(s)
 }
 
+func clampByte(n int) int {
+	if n < 0 {
+		return 0
+	}
+	if n > 255 {
+		return 255
+	}
+	return n
+}
+
 func evalMakeColor(args []Value) Value {
 	list := args[0].AsList()
-	r := int((*list)[0].AsNum())
-	g := int((*list)[1].AsNum())
-	b := int((*list)[2].AsNum())
+	r := clampByte(int((*list)[0].AsNum()))
+	g := clampByte(int((*list)[1].AsNum()))
+	b := clampByte(int((*list)[2].AsNum()))
 	a := 255
 	if len(*list) >= 4 {
-		a = int((*list)[3].AsNum())
+		a = clampByte(int((*list)[3].AsNum()))
 	}
 	return ColorVal("#" + hexByte(a) + hexByte(r) + hexByte(g) + hexByte(b))
 }
 
 func evalSplitColor(args []Value) Value {
-	hex := strings.TrimPrefix(args[0].AsStr(), "#")
+	raw := args[0].AsStr()
+	hex := strings.TrimPrefix(raw, "#")
+	for _, c := range hex {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			panic("splitColor: invalid color value: " + raw)
+		}
+	}
 	var a, r, g, b int64
 	if len(hex) == 8 {
 		a, _ = strconv.ParseInt(hex[0:2], 16, 64)
@@ -147,8 +169,11 @@ func evalSplitColor(args []Value) Value {
 		r, _ = strconv.ParseInt(hex[0:2], 16, 64)
 		g, _ = strconv.ParseInt(hex[2:4], 16, 64)
 		b, _ = strconv.ParseInt(hex[4:6], 16, 64)
+	} else {
+		panic("splitColor: color must be 6 or 8 hex digits, got: " + raw)
 	}
-	return ListVal([]Value{NumVal(float64(r)), NumVal(float64(g)), NumVal(float64(b)), NumVal(float64(a))})
+	// Return [a, r, g, b] to match App Inventor channel order
+	return ListVal([]Value{NumVal(float64(a)), NumVal(float64(r)), NumVal(float64(g)), NumVal(float64(b))})
 }
 
 // --- Random ---
@@ -178,6 +203,9 @@ func rngIntn(n int) int {
 
 func evalRandInt(args []Value) Value {
 	lo, hi := int(args[0].AsNum()), int(args[1].AsNum())
+	if lo > hi {
+		lo, hi = hi, lo
+	}
 	return NumVal(float64(lo + rngIntn(hi-lo+1)))
 }
 
@@ -199,7 +227,7 @@ func evalSetRandSeed(args []Value) Value {
 func evalAvgOf(args []Value) Value {
 	list := args[0].AsList()
 	if len(*list) == 0 {
-		return NumVal(0)
+		panic("avgOf() requires a non-empty list")
 	}
 	sum := 0.0
 	for _, v := range *list {
@@ -239,7 +267,7 @@ func evalMinOf(args []Value) Value {
 func evalGeoMeanOf(args []Value) Value {
 	list := args[0].AsList()
 	if len(*list) == 0 {
-		return NumVal(0)
+		panic("geoMeanOf() requires a non-empty list")
 	}
 	product := 1.0
 	for _, v := range *list {
@@ -255,6 +283,9 @@ func evalStdDevOf(args []Value) Value {
 func evalStdErrOf(args []Value) Value {
 	list := args[0].AsList()
 	n := float64(len(*list))
+	if n == 0 {
+		panic("stdErrOf() requires a non-empty list")
+	}
 	if n <= 1 {
 		return NumVal(0)
 	}
@@ -263,31 +294,49 @@ func evalStdErrOf(args []Value) Value {
 
 func evalModeOf(args []Value) Value {
 	list := args[0].AsList()
-	counts := make(map[string]int)
+	if len(*list) == 0 {
+		panic("modeOf() requires a non-empty list")
+	}
+	type entry struct {
+		val   Value
+		count int
+	}
+	seen := make(map[string]*entry)
 	var order []string
 	for _, v := range *list {
-		s := v.String()
-		if counts[s] == 0 {
-			order = append(order, s)
+		// type-aware key prevents 1 and "1" from colliding
+		key := strconv.Itoa(int(v.Type())) + "\x00" + v.String()
+		if seen[key] == nil {
+			seen[key] = &entry{val: v, count: 0}
+			order = append(order, key)
 		}
-		counts[s]++
+		seen[key].count++
 	}
 	maxCount := 0
-	var modeVal string
-	for _, s := range order {
-		if counts[s] > maxCount {
-			maxCount = counts[s]
-			modeVal = s
+	for _, k := range order {
+		if seen[k].count > maxCount {
+			maxCount = seen[k].count
 		}
 	}
-	return ListVal([]Value{StrVal(modeVal)})
+	var modes []Value
+	for _, k := range order {
+		if seen[k].count == maxCount {
+			modes = append(modes, seen[k].val)
+		}
+	}
+	return ListVal(modes)
 }
 
 // --- Secondary math ops ---
 
 func evalMod(args []Value) Value {
 	a, b := args[0].AsNum(), args[1].AsNum()
-	return NumVal(math.Mod(math.Abs(a), math.Abs(b)) * sign(a))
+	// floor modulo: result has the same sign as the divisor
+	r := math.Mod(a, b)
+	if r != 0 && (r < 0) != (b < 0) {
+		r += b
+	}
+	return NumVal(r)
 }
 
 func evalRem(args []Value) Value {
@@ -305,7 +354,11 @@ func evalAtan2(args []Value) Value {
 }
 
 func evalFormatDecimal(args []Value) Value {
-	n, places := args[0].AsNum(), int(args[1].AsNum())
+	n, rawPlaces := args[0].AsNum(), args[1].AsNum()
+	places := int(rawPlaces)
+	if rawPlaces != float64(places) || places < 0 {
+		panic("formatDecimal: places must be a non-negative integer, got " + formatNum(rawPlaces))
+	}
 	return StrVal(strconv.FormatFloat(n, 'f', places, 64))
 }
 
@@ -314,7 +367,7 @@ func evalFormatDecimal(args []Value) Value {
 func listStdDev(list *[]Value, population bool) float64 {
 	n := float64(len(*list))
 	if n == 0 {
-		return 0
+		panic("stdDevOf() / stdErrOf() requires a non-empty list")
 	}
 	sum := 0.0
 	for _, v := range *list {

@@ -78,7 +78,6 @@ func (p *LangParser) checkPendingSymbols() {
 		// try resolve global variables again
 		if get, ok := parseError.Owner.(*variables.Get); ok && get.Global {
 			signatures, resolved := p.ScopeCursor.ResolveVariable(get.Name)
-			println("Failed to resolve: " + get.String())
 			if resolved {
 				get.ValueSignature = signatures
 				continue

@@ -15,13 +15,19 @@ type BinaryExpr struct {
 
 func (b *BinaryExpr) String() string {
 	myPrecedence := lex.PrecedenceOf(b.Where.Flags[0])
+	// For non-left-associative operators, right operands at the same precedence need parens
+	// to avoid changing semantics: e.g. 10-(3-2) must not become 10-3-2.
+	rightNeedsParensAtSamePrec := b.Operator == lex.Dash || b.Operator == lex.Slash || b.Operator == lex.Power
 	stringified := make([]string, len(b.Operands))
 	for i, operand := range b.Operands {
 		operandStr := operand.String()
 		needsParens := false
 		// If operand is a BinaryExpr with lower precedence, wrap it
 		if binExpr, ok := operand.(*BinaryExpr); ok {
-			if lex.PrecedenceOf(binExpr.Where.Flags[0]) < myPrecedence {
+			opPrec := lex.PrecedenceOf(binExpr.Where.Flags[0])
+			if opPrec < myPrecedence {
+				needsParens = true
+			} else if i > 0 && rightNeedsParensAtSamePrec && opPrec == myPrecedence {
 				needsParens = true
 			}
 		} else if !operand.Continuous() {
@@ -45,7 +51,10 @@ func (b *BinaryExpr) CanRepeat(testOperator lex.Type) bool {
 		return false
 	}
 	switch b.Operator {
-	case lex.Power, lex.Dash, lex.Slash:
+	case lex.Power, lex.Dash, lex.Slash,
+		lex.Equals, lex.NotEquals, lex.TextEquals, lex.TextNotEquals,
+		lex.LessThan, lex.LessThanEqual, lex.GreatThan, lex.GreaterThanEqual,
+		lex.TextLessThan, lex.TextGreaterThan:
 		return false
 	default:
 		return true
@@ -134,7 +143,7 @@ func (b *BinaryExpr) relationalExpr() ast.Block {
 	case lex.LessThan:
 		fieldOp = "LT"
 	case lex.LessThanEqual:
-		fieldOp = "LT"
+		fieldOp = "LTE"
 	case lex.GreatThan:
 		fieldOp = "GT"
 	case lex.GreaterThanEqual:

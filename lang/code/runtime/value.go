@@ -188,13 +188,22 @@ func CoerceNum(v Value) (float64, bool) {
 	}
 	if v.vtype == String {
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v.strVal), 64); err == nil {
-			return f, true
+			if !math.IsNaN(f) && !math.IsInf(f, 0) {
+				return f, true
+			}
 		}
 	}
 	return 0, false
 }
 
 func (v Value) String() string {
+	return v.stringDepth(0)
+}
+
+func (v Value) stringDepth(depth int) string {
+	if depth > 50 {
+		return "..."
+	}
 	switch v.vtype {
 	case Null:
 		return "null"
@@ -212,11 +221,11 @@ func (v Value) String() string {
 	case List:
 		parts := make([]string, len(*v.listVal))
 		for i, e := range *v.listVal {
-			parts[i] = e.String()
+			parts[i] = e.stringDepth(depth + 1)
 		}
 		return "[" + strings.Join(parts, ", ") + "]"
 	case Dict:
-		return v.dictVal.String()
+		return v.dictVal.stringDepth(depth)
 	case NonConsumable:
 		return "<void>"
 	default:
@@ -240,8 +249,38 @@ func formatNum(f float64) string {
 	return strconv.FormatFloat(f, 'f', -1, 64)
 }
 
+// deepCopyValue returns a fully independent deep copy of v.
+// Primitive values (null, bool, number, string, color) are immutable and returned as-is.
+// Lists and dicts are recursively cloned.
+func deepCopyValue(v Value) Value {
+	switch v.vtype {
+	case List:
+		src := *v.listVal
+		cp := make([]Value, len(src))
+		for i, elem := range src {
+			cp[i] = deepCopyValue(elem)
+		}
+		return Value{vtype: List, listVal: &cp}
+	case Dict:
+		nd := NewOrderedDict()
+		for _, entry := range v.dictVal.entries {
+			nd.Set(entry.Key, deepCopyValue(entry.Val))
+		}
+		return DictVal(nd)
+	default:
+		return v
+	}
+}
+
 // DeepEqual checks structural equality of two values.
 func DeepEqual(a, b Value) bool {
+	return deepEqualDepth(a, b, 0)
+}
+
+func deepEqualDepth(a, b Value, depth int) bool {
+	if depth > 50 {
+		panic("circular reference detected in equality comparison")
+	}
 	if a.vtype != b.vtype {
 		return false
 	}
@@ -255,24 +294,30 @@ func DeepEqual(a, b Value) bool {
 	case String, Color:
 		return a.strVal == b.strVal
 	case List:
+		if a.listVal == b.listVal {
+			return true // same pointer — same list (handles self-referential equality)
+		}
 		la, lb := *a.listVal, *b.listVal
 		if len(la) != len(lb) {
 			return false
 		}
 		for i := range la {
-			if !DeepEqual(la[i], lb[i]) {
+			if !deepEqualDepth(la[i], lb[i], depth+1) {
 				return false
 			}
 		}
 		return true
 	case Dict:
 		da, db := a.dictVal, b.dictVal
+		if da == db {
+			return true // same pointer — same dict
+		}
 		if da.Len() != db.Len() {
 			return false
 		}
 		for _, e := range da.entries {
 			bv, ok := db.Get(e.Key)
-			if !ok || !DeepEqual(e.Val, bv) {
+			if !ok || !deepEqualDepth(e.Val, bv, depth+1) {
 				return false
 			}
 		}
@@ -355,9 +400,16 @@ func (d *OrderedDict) Clone() *OrderedDict {
 }
 
 func (d *OrderedDict) String() string {
+	return d.stringDepth(0)
+}
+
+func (d *OrderedDict) stringDepth(depth int) string {
+	if depth > 50 {
+		return "{...}"
+	}
 	parts := make([]string, len(d.entries))
 	for i, e := range d.entries {
-		parts[i] = e.Key + ": " + e.Val.String()
+		parts[i] = e.Key + ": " + e.Val.stringDepth(depth+1)
 	}
 	return "{" + strings.Join(parts, ", ") + "}"
 }

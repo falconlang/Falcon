@@ -1,13 +1,1 @@
-  func lucas(n) = {                                                                                                                                                                                                                            
-    if (n == 0) {                                           
-      yield 2        // <-- result of `2` is never used
-    }                                                  
-    if (n == 1) {                                                                                                                                                                                                                              
-      yield 1    
-    }                                                                                                                                                                                                                                          
-    lucas(n - 1) + lucas(n - 2)                             
-  }                            
-   
-  for (i: 0 .. 9) {
-    println("L(" _ i _ ") = " _ lucas(i))
-  }
+println(1 <= 2)

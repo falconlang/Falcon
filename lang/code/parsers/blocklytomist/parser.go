@@ -113,7 +113,8 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 	case "controls_openAnotherScreen":
 		return common.MakeFuncCall("openScreen", p.singleExpr(block))
 	case "controls_openAnotherScreenWithStartValue":
-		return common.MakeFuncCall("openScreenWithValue", p.singleExpr(block))
+		pVals := p.makeValueMap(block.Values)
+		return common.MakeFuncCall("openScreenWithValue", pVals.get("SCREENNAME"), pVals.get("STARTVALUE"))
 	case "controls_getStartValue":
 		return common.MakeFuncCall("getStartValue")
 	case "controls_closeScreen":
@@ -677,7 +678,7 @@ func (p *Parser) dictLookupPath(block ast.Block) ast.Expr {
 
 func (p *Parser) dictRemove(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
-	return p.makePropCall("remove", pVals.get("DICT"), pVals.get("KEY"))
+	return p.makePropCall("delete", pVals.get("DICT"), pVals.get("KEY"))
 }
 
 func (p *Parser) dictSet(block ast.Block) ast.Expr {

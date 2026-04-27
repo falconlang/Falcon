@@ -3,13 +3,18 @@ package runtime
 import (
 	astlist "Falcon/code/ast/list"
 	astmethod "Falcon/code/ast/method"
+	"strconv"
 	"strings"
 )
 
 // methodCall dispatches method calls on text, list, and dict values.
 func (i *Interpreter) methodCall(e *astmethod.Call) Value {
+	savedToken := i.lastToken
+	savedHighlight := i.lastHighlight
 	on := i.Eval(e.On)
 	args := i.evalExprs(e.Args)
+	i.lastToken = savedToken
+	i.lastHighlight = savedHighlight
 
 	switch e.Name {
 	// ============ Text methods ============
@@ -58,22 +63,29 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		return ListVal([]Value{StrVal(on.AsStr()[:idx]), StrVal(on.AsStr()[idx+len(sep):])})
 	case "splitAtAny":
 		haystack := on.AsStr()
+		seps := *args[0].AsList()
 		var result []Value
-		remaining := haystack
-		for _, v := range *args[0].AsList() {
-			sep := v.AsStr()
-			parts := strings.Split(remaining, sep)
-			if len(parts) > 1 {
-				for k, p := range parts {
-					if k < len(parts)-1 {
-						result = append(result, StrVal(p))
-					} else {
-						remaining = p
-					}
+		for len(haystack) > 0 {
+			earliest := len(haystack)
+			earliestLen := 0
+			for _, v := range seps {
+				sep := v.AsStr()
+				if sep == "" {
+					continue
+				}
+				idx := strings.Index(haystack, sep)
+				if idx != -1 && idx < earliest {
+					earliest = idx
+					earliestLen = len(sep)
 				}
 			}
+			if earliestLen == 0 {
+				break
+			}
+			result = append(result, StrVal(haystack[:earliest]))
+			haystack = haystack[earliest+earliestLen:]
 		}
-		result = append(result, StrVal(remaining))
+		result = append(result, StrVal(haystack))
 		return ListVal(result)
 	case "splitAtFirstOfAny":
 		haystack := on.AsStr()
@@ -129,9 +141,18 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		if from < 0 {
 			from = 0
 		}
+		if length < 0 {
+			panic("segment: length must be non-negative, got " + strconv.Itoa(length))
+		}
+		if length == 0 {
+			return StrVal("")
+		}
 		end := from + length
 		if end > len(s) {
 			end = len(s)
+		}
+		if from > end {
+			return StrVal("")
 		}
 		return StrVal(string(s[from:end]))
 	case "replace":
@@ -182,6 +203,9 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 	case "insert":
 		list := on.AsList()
 		idx := int(args[0].AsNum()) - 1 // 1-based
+		if idx < 0 || idx > len(*list) {
+			panic("insert: index " + args[0].String() + " out of bounds (list length " + strconv.Itoa(len(*list)) + ")")
+		}
 		val := args[1]
 		*list = append(*list, NullVal())
 		copy((*list)[idx+1:], (*list)[idx:])
@@ -190,6 +214,9 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 	case "remove":
 		list := on.AsList()
 		idx := int(args[0].AsNum()) - 1 // 1-based
+		if idx < 0 || idx >= len(*list) {
+			panic("remove: index " + args[0].String() + " out of bounds (list length " + strconv.Itoa(len(*list)) + ")")
+		}
 		*list = append((*list)[:idx], (*list)[idx+1:]...)
 		return VoidVal()
 	case "appendList":
@@ -198,11 +225,11 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		*list = append(*list, *other...)
 		return VoidVal()
 	case "lookupInPairs":
-		key := args[0].AsStr()
+		keyVal := args[0]
 		notFound := args[1]
 		for _, v := range *on.AsList() {
 			pair := *v.AsList()
-			if len(pair) >= 2 && pair[0].AsStr() == key {
+			if len(pair) >= 2 && DeepEqual(pair[0], keyVal) {
 				return pair[1]
 			}
 		}
@@ -214,6 +241,9 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		}
 		return StrVal(strings.Join(parts, args[0].AsStr()))
 	case "slice":
+		if len(args) < 2 {
+			panic(".slice() requires 2 arguments (start, end)")
+		}
 		list := *on.AsList()
 		idx1 := int(args[0].AsNum()) - 1 // 1-based
 		idx2 := int(args[1].AsNum())     // 1-based inclusive → exclusive
@@ -222,6 +252,9 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		}
 		if idx2 > len(list) {
 			idx2 = len(list)
+		}
+		if idx1 > idx2 {
+			return ListVal(nil)
 		}
 		return ListVal(list[idx1:idx2])
 	case "random":
@@ -371,7 +404,7 @@ func dictSetAtPath(d *OrderedDict, path *[]Value, val Value) {
 	var cur Value = DictVal(d)
 	for _, key := range keys[:len(keys)-1] {
 		if cur.Type() != Dict {
-			return
+			panic("setAtPath: path segment '" + key.AsStr() + "' exists but is not a dict")
 		}
 		v, ok := cur.AsDict().Get(key.AsStr())
 		if !ok {
@@ -382,9 +415,10 @@ func dictSetAtPath(d *OrderedDict, path *[]Value, val Value) {
 			cur = v
 		}
 	}
-	if cur.Type() == Dict {
-		cur.AsDict().Set(keys[len(keys)-1].AsStr(), val)
+	if cur.Type() != Dict {
+		panic("setAtPath: cannot set at path, intermediate value is not a dict")
 	}
+	cur.AsDict().Set(keys[len(keys)-1].AsStr(), val)
 }
 
 // evalTransformer handles list lambda operations.
@@ -469,8 +503,10 @@ func (i *Interpreter) evalTransformer(e *astlist.Transformer) Value {
 		best := (*list)[0]
 		for _, elem := range (*list)[1:] {
 			lambdaEnv := NewEnv(outerEnv)
-			lambdaEnv.Define(varM, best)
-			lambdaEnv.Define(varN, elem)
+			// Swap: pass elem as m and best as n so the comparator
+			// returns true when the candidate (elem) beats current best.
+			lambdaEnv.Define(varM, elem)
+			lambdaEnv.Define(varN, best)
 			if i.inEnv(lambdaEnv, func() Value { return i.Eval(e.Transformer) }).AsBool() {
 				best = elem
 			}

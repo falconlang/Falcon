@@ -186,19 +186,19 @@ func (l *Lexer) createOp(op string) {
 
 func (l *Lexer) colorCode() {
 	startIndex := l.currIndex
-	// Read up to 6 hex characters
-	for i := 0; i < 6 && l.notEOF(); i++ {
+	// Read up to 8 hex characters (6 for RGB, 8 for ARGB)
+	for i := 0; i < 8 && l.notEOF(); i++ {
 		c := l.peek()
 		if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') {
 			l.skip()
 		} else {
-			l.error("Invalid color code character '%' in color literal", string(c))
+			break
 		}
 	}
 
 	length := l.currIndex - startIndex
-	if length != 6 {
-		l.error("Color code must be 6 hexadecimal characters, got %", strconv.Itoa(length))
+	if length != 6 && length != 8 {
+		l.error("Color code must be 6 or 8 hexadecimal characters, got %", strconv.Itoa(length))
 	}
 	content := l.source[startIndex-1 : l.currIndex] // include '#'
 	l.appendToken(&Token{
@@ -289,6 +289,19 @@ func (l *Lexer) numeric() {
 		} else {
 			l.back()
 		}
+	}
+	// scientific notation: optional e/E followed by optional sign and digits
+	if l.notEOF() && (l.peek() == 'e' || l.peek() == 'E') {
+		l.skip()
+		numb.WriteByte('e')
+		if l.notEOF() && (l.peek() == '+' || l.peek() == '-') {
+			numb.WriteByte(l.next())
+		}
+		exp := l.readNumeric()
+		if len(exp) == 0 {
+			l.error("Expected exponent digits after 'e' in numeric literal")
+		}
+		numb.WriteString(exp)
 	}
 	content := numb.String()
 	l.appendToken(&Token{

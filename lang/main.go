@@ -16,7 +16,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"strings"
 )
 
@@ -57,11 +56,11 @@ func main() {
 	}
 	//repl()
 	//diffTest()
-	analyzeSyntax()
+	//analyzeSyntax()
 	//xmlTest()
 	//designTest()
 	//runProgram()
-	//runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
+	runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
 }
 
 func reformatStdin() {
@@ -207,9 +206,9 @@ func runFile(path string) {
 	interp := runtime.NewInterpreter()
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Fprintln(os.Stderr, "Error:", interp.FormatRuntimeError(r))
-			fmt.Fprintln(os.Stderr, "\n--- Go stack trace ---")
-			fmt.Fprintln(os.Stderr, string(debug.Stack()))
+			fmt.Fprintln(os.Stderr, interp.FormatRuntimeError(r))
+			//fmt.Fprintln(os.Stderr, "\n--- Go stack trace ---")
+			//fmt.Fprintln(os.Stderr, string(debug.Stack()))
 			os.Exit(1)
 		}
 	}()
@@ -237,7 +236,7 @@ func execFile(path string) {
 	interp := runtime.NewInterpreter()
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Fprintln(os.Stderr, "Error:", interp.FormatRuntimeError(r))
+			fmt.Fprintln(os.Stderr, interp.FormatRuntimeError(r))
 			os.Exit(1)
 		}
 	}()

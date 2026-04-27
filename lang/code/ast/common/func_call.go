@@ -327,7 +327,7 @@ func (f *FuncCall) genericSet() ast.Block {
 
 func (f *FuncCall) splitColor() ast.Block {
 	return ast.Block{
-		Type:   "color_make_color",
+		Type:   "color_split_color",
 		Values: ast.MakeValues(f.Args, "COLOR"),
 	}
 }

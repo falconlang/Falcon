@@ -9,10 +9,14 @@ import (
 )
 
 func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
+	savedToken := i.lastToken
+	savedHighlight := i.lastHighlight
 	args := make([]Value, len(e.Args))
 	for k, a := range e.Args {
 		args[k] = i.Eval(a)
 	}
+	i.lastToken = savedToken
+	i.lastHighlight = savedHighlight
 
 	switch e.Name {
 	// --- Output ---
@@ -128,12 +132,9 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 
 	// --- List helpers ---
 	case "copyList":
-		src := args[0].AsList()
-		cp := make([]Value, len(*src))
-		copy(cp, *src)
-		return Value{vtype: List, listVal: &cp}
+		return deepCopyValue(args[0])
 	case "copyDict":
-		return DictVal(args[0].AsDict().Clone())
+		return deepCopyValue(args[0])
 
 	// --- Color (numops.go) ---
 	case "makeColor":

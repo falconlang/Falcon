@@ -1,36 +1,5 @@
-  func primesBitSieve(bits) = {
-    local n = 2 ^ bits
-    local sieve = []
-
-    for (i: 1 .. n + 1) {
-      sieve.add(true)
-    }
-
-    sieve[1] = false
-    if (n >= 1 && sieve.listLen() >= 2) {
-      sieve[2] = false
-    }
-
-    local limit = floor(sqrt(n))
-    for (i: 2 .. limit) {
-      if (sieve[i + 1]) {
-        local start = i * i
-        for (j: start .. n step i) {
-          sieve[j + 1] = false
-        }
-      }
-    }
-
-    local primes = []
-    for (num: 2 .. n) {
-      if (sieve[num + 1]) {
-        primes.add(num)
-        if (primes.listLen() == 5) {
-          yield primes
-        }
-      }
-    }
-    primes
-  }
-
-  println(primesBitSieve(8))
+func isPalindrome(s) = {
+  local reversed = s.lowercase().split(" ").reverse().join("")
+  s.lowercase().split(" ").join("") == reversed
+}
+println(isPalindrome("Malayalam"))

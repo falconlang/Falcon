@@ -21,6 +21,27 @@ func (c *CodeContext) ReportError(
 	panic(c.BuildError(true, column, row, highlightWordSize, message, args...))
 }
 
+func (c *CodeContext) GetLine(lineNum int) string {
+	code := *c.SourceCode
+	beginOfLine := sugar.IndexAfterNthOccurrence(code, lineNum-1, '\n') + 1
+	endOfLine := strings.Index(code[beginOfLine:], "\n")
+	if endOfLine == -1 {
+		endOfLine = len(code) - beginOfLine
+	}
+	return code[beginOfLine : beginOfLine+endOfLine]
+}
+
+func (c *CodeContext) BuildCaret(endColumn, highlightSize int) string {
+	if highlightSize <= 0 {
+		highlightSize = 1
+	}
+	start := endColumn - highlightSize
+	if start < 0 {
+		start = 0
+	}
+	return strings.Repeat(" ", start) + strings.Repeat("^", highlightSize)
+}
+
 func (c *CodeContext) BuildError(
 	decorate bool,
 	column int,

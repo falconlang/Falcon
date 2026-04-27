@@ -72,13 +72,17 @@ func (i *Interpreter) inEnv(env *Env, fn func() Value) Value {
 // RunGetLast runs the program like Run but returns the value of the last
 // non-definition top-level expression. Returns NullVal if none.
 func (i *Interpreter) RunGetLast(exprs []ast.Expr) Value {
+	// Register all procedures first so globals can call them.
 	for _, e := range exprs {
 		switch n := e.(type) {
 		case *procedures.VoidProcedure:
 			i.procedures[n.Name] = &Procedure{params: n.Parameters, voidBody: n.Body}
 		case *procedures.RetProcedure:
 			i.procedures[n.Name] = &Procedure{params: n.Parameters, retExpr: n.Result}
-		case *variables.Global:
+		}
+	}
+	for _, e := range exprs {
+		if n, ok := e.(*variables.Global); ok {
 			val := i.Eval(n.Value)
 			i.globalEnv.Define(n.Name, val)
 		}
@@ -96,23 +100,26 @@ func (i *Interpreter) RunGetLast(exprs []ast.Expr) Value {
 
 // Run executes a top-level list of expressions (a full program).
 func (i *Interpreter) Run(exprs []ast.Expr) {
-	// First pass: register all procedures and globals so forward calls work.
+	// Register all procedures first so global initializers can call them.
 	for _, e := range exprs {
 		switch n := e.(type) {
 		case *procedures.VoidProcedure:
 			i.procedures[n.Name] = &Procedure{params: n.Parameters, voidBody: n.Body}
 		case *procedures.RetProcedure:
 			i.procedures[n.Name] = &Procedure{params: n.Parameters, retExpr: n.Result}
-		case *variables.Global:
+		}
+	}
+	// Evaluate globals after all procedures are registered.
+	for _, e := range exprs {
+		if n, ok := e.(*variables.Global); ok {
 			val := i.Eval(n.Value)
 			i.globalEnv.Define(n.Name, val)
 		}
 	}
-	// Second pass: execute non-definition top-level statements.
+	// Execute non-definition top-level statements.
 	for _, e := range exprs {
 		switch e.(type) {
 		case *procedures.VoidProcedure, *procedures.RetProcedure, *variables.Global:
-			// already handled above
 		default:
 			i.Eval(e)
 		}
@@ -438,9 +445,17 @@ func (i *Interpreter) question(e *common.Question) Value {
 	case "emptyList":
 		return BoolVal(v.Type() == List && len(*v.listVal) == 0)
 	case "even":
-		return BoolVal(int64(v.AsNum())%2 == 0)
+		n := v.AsNum()
+		if n != math.Trunc(n) {
+			panic("? even requires an integer value, got " + formatNum(n))
+		}
+		return BoolVal(int64(n)%2 == 0)
 	case "odd":
-		return BoolVal(int64(v.AsNum())%2 != 0)
+		n := v.AsNum()
+		if n != math.Trunc(n) {
+			panic("? odd requires an integer value, got " + formatNum(n))
+		}
+		return BoolVal(int64(n)%2 != 0)
 	default:
 		panic("unknown ? question: " + e.Question)
 	}
@@ -594,7 +609,14 @@ func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
 		panic("undefined procedure: " + e.Name)
 	}
 	// Evaluate arguments in the current (caller) env before switching scope.
+	savedToken := i.lastToken
+	savedHighlight := i.lastHighlight
 	argVals := i.evalExprs(e.Arguments)
+	i.lastToken = savedToken
+	i.lastHighlight = savedHighlight
+	if len(argVals) != len(proc.params) {
+		panic("procedure " + e.Name + " expects " + strconv.Itoa(len(proc.params)) + " argument(s) but got " + strconv.Itoa(len(argVals)))
+	}
 	callEnv := NewEnv(i.globalEnv)
 	for k, param := range proc.params {
 		callEnv.Define(param, argVals[k])
@@ -668,20 +690,59 @@ func (i *Interpreter) FormatRuntimeError(r any) string {
 	case error:
 		msg = v.Error()
 	}
-	var result string
-	if i.lastToken != nil && i.lastToken.Column >= 0 {
-		if i.lastHighlight > 0 {
-			result = i.lastToken.BuildErrorHighlight(true, i.lastHighlight, msg)
+
+	var sb strings.Builder
+	sb.WriteString("Traceback (most recent call last):\n")
+
+	// stackTrace is stored innermost -> outermost; print outermost -> innermost
+	for j := len(i.stackTrace) - 1; j >= 0; j-- {
+		frame := i.stackTrace[j]
+		var funcName string
+		if j == len(i.stackTrace)-1 {
+			funcName = "<module>"
 		} else {
-			result = i.lastToken.BuildError(true, msg)
+			funcName = i.stackTrace[j+1].name
 		}
-	} else {
-		result = msg
+		sb.WriteString(i.formatTraceFrame(frame.token, funcName))
 	}
-	for _, frame := range i.stackTrace {
-		result += "\n[line " + strconv.Itoa(frame.token.Column) + "] " + frame.name + "()"
+
+	// The actual error location
+	if i.lastToken != nil && i.lastToken.Column >= 0 {
+		var funcName string
+		if len(i.stackTrace) > 0 {
+			funcName = i.stackTrace[0].name
+		} else {
+			funcName = "<module>"
+		}
+		sb.WriteString(i.formatTraceFrame(i.lastToken, funcName, true))
 	}
-	return result
+
+	sb.WriteString("RuntimeError: " + msg + "\n")
+	return sb.String()
+}
+
+func (i *Interpreter) formatTraceFrame(token *lex.Token, funcName string, isLast ...bool) string {
+	last := len(isLast) > 0 && isLast[0]
+	var sb strings.Builder
+	fileName := "<unknown>"
+	if token.Context != nil {
+		fileName = token.Context.FileName
+	}
+	sb.WriteString("  File \"" + fileName + "\", line " + strconv.Itoa(token.Column) + ", in " + funcName + "\n")
+
+	if token.Context != nil {
+		line := token.Context.GetLine(token.Column)
+		sb.WriteString("    " + line + "\n")
+		hlSize := 1
+		if token.Content != nil {
+			hlSize = len(*token.Content)
+		}
+		if last && i.lastHighlight > 0 {
+			hlSize = i.lastHighlight
+		}
+		sb.WriteString("    " + token.Context.BuildCaret(token.Row, hlSize) + "\n")
+	}
+	return sb.String()
 }
 
 // evaluates all exprs in a given list
