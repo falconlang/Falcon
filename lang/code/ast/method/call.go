@@ -2,9 +2,11 @@ package method
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/fzf"
 	"Falcon/code/lex"
 	"Falcon/code/sugar"
 	"strconv"
+	"strings"
 )
 
 type Call struct {
@@ -101,10 +103,70 @@ func sigString(name string, sig *CallSignature) string {
 	return "." + name + "(" + sig.Params + ")"
 }
 
-func TestSignature(methodName string, argsCount int) (string, *CallSignature) {
+func deriveAllowedModules(onSigs []ast.Signature) []string {
+	var modules []string
+	if ast.HasSignature(onSigs, ast.SignText) {
+		modules = append(modules, "text")
+	}
+	if ast.HasSignature(onSigs, ast.SignList) {
+		modules = append(modules, "list")
+	}
+	if ast.HasSignature(onSigs, ast.SignDict) {
+		modules = append(modules, "dict")
+	}
+	return modules
+}
+
+func joinOr(parts []string) string {
+	if len(parts) == 0 {
+		return ""
+	}
+	if len(parts) == 1 {
+		return parts[0]
+	}
+	if len(parts) == 2 {
+		return parts[0] + " or " + parts[1]
+	}
+	return strings.Join(parts[:len(parts)-1], ", ") + " or " + parts[len(parts)-1]
+}
+
+func methodSuggestions(methodName string, allowedModules []string) string {
+	candidates := make([]string, 0, len(signatures))
+	if len(allowedModules) > 0 {
+		for name, sig := range signatures {
+			if name == methodName {
+				continue
+			}
+			for _, mod := range allowedModules {
+				if sig.Module == mod {
+					candidates = append(candidates, name)
+					break
+				}
+			}
+		}
+	} else {
+		for name := range signatures {
+			if name == methodName {
+				continue
+			}
+			candidates = append(candidates, name)
+		}
+	}
+	suggestions := fzf.Top(methodName, candidates, 3)
+	if len(suggestions) > 0 {
+		parts := make([]string, len(suggestions))
+		for i, s := range suggestions {
+			parts[i] = "." + s + "()"
+		}
+		return ". Did you mean " + joinOr(parts) + "?"
+	}
+	return ""
+}
+
+func TestSignature(methodName string, argsCount int, allowedModules ...string) (string, *CallSignature) {
 	signature, ok := signatures[methodName]
 	if !ok {
-		return sugar.Format("Cannot find method .%()", methodName), nil
+		return "No method named ." + methodName + "()" + methodSuggestions(methodName, allowedModules), nil
 	}
 	sig := sigString(methodName, signature)
 	if signature.ParamCount >= 0 {
@@ -131,7 +193,8 @@ func (c *Call) String() string {
 }
 
 func (c *Call) Blockly(flags ...bool) ast.Block {
-	errorMessage, signature := TestSignature(c.Name, len(c.Args))
+	onSigs := c.On.Signature()
+	errorMessage, signature := TestSignature(c.Name, len(c.Args), deriveAllowedModules(onSigs)...)
 	if signature == nil {
 		c.Where.Error(errorMessage)
 	}
@@ -161,27 +224,26 @@ func (c *Call) Consumable() bool {
 }
 
 func (c *Call) Signature() []ast.Signature {
-	c.On.Signature()
+	onSigs := c.On.Signature()
 	for _, arg := range c.Args {
 		arg.Signature()
 	}
-	errorMessage, signature := TestSignature(c.Name, len(c.Args))
+	errorMessage, signature := TestSignature(c.Name, len(c.Args), deriveAllowedModules(onSigs)...)
 	if signature == nil {
 		c.Where.Error(errorMessage)
 	}
-	onSigs := c.On.Signature()
 	switch signature.Module {
 	case "text":
 		if !ast.HasSignature(onSigs, ast.SignText) {
-			c.Where.TypeError("Method .%() can only be called on text values, but got %", c.Name, ast.FormatSignatures(onSigs))
+			c.Where.TypeError(".%() is a text method, but this is a %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs)), c.Name, ast.FormatSignatures(onSigs))
 		}
 	case "list":
 		if !ast.HasSignature(onSigs, ast.SignList) {
-			c.Where.TypeError("Method .%() can only be called on list values, but got %", c.Name, ast.FormatSignatures(onSigs))
+			c.Where.TypeError(".%() is a list method, but this is a %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs)), c.Name, ast.FormatSignatures(onSigs))
 		}
 	case "dict":
 		if !ast.HasSignature(onSigs, ast.SignDict) {
-			c.Where.TypeError("Method .%() can only be called on dictionary values, but got %", c.Name, ast.FormatSignatures(onSigs))
+			c.Where.TypeError(".%() is a dictionary method, but this is a %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs)), c.Name, ast.FormatSignatures(onSigs))
 		}
 	}
 	return []ast.Signature{signature.Signature}

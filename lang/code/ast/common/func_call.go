@@ -4,9 +4,11 @@ import (
 	"Falcon/code/ast"
 	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/variables"
+	"Falcon/code/fzf"
 	"Falcon/code/lex"
 	"Falcon/code/sugar"
 	"strconv"
+	"strings"
 )
 
 type FuncCall struct {
@@ -98,10 +100,35 @@ func MakeFuncCall(name string, args ...ast.Expr) ast.Expr {
 	return &FuncCall{Where: lex.MakeFakeToken(lex.Func), Name: name, Args: args}
 }
 
+func joinOr(parts []string) string {
+	if len(parts) == 0 {
+		return ""
+	}
+	if len(parts) == 1 {
+		return parts[0]
+	}
+	if len(parts) == 2 {
+		return parts[0] + " or " + parts[1]
+	}
+	return strings.Join(parts[:len(parts)-1], ", ") + " or " + parts[len(parts)-1]
+}
+
 func TestSignature(funcName string, argsCount int) (string, *FuncCallSignature) {
 	callSignature, ok := signatures[funcName]
 	if !ok {
-		return sugar.Format("Cannot find function .%()", funcName), nil
+		candidates := make([]string, 0, len(signatures))
+		for name := range signatures {
+			candidates = append(candidates, name)
+		}
+		suggestions := fzf.Top(funcName, candidates, 3)
+		if len(suggestions) > 0 {
+			parts := make([]string, len(suggestions))
+			for i, s := range suggestions {
+				parts[i] = s + "()"
+			}
+			return "No function named " + funcName + "(). Did you mean " + joinOr(parts) + "?", nil
+		}
+		return "No function named " + funcName + "()", nil
 	}
 	if callSignature.ParamCount == -1 {
 		if argsCount == 0 {
