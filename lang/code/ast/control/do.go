@@ -30,5 +30,5 @@ func (d *Do) Consumable(flags ...bool) bool {
 }
 
 func (d *Do) Signature() []ast.Signature {
-	return []ast.Signature{ast.SignVoid}
+	return d.Result.Signature()
 }

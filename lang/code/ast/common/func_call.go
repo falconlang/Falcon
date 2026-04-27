@@ -42,8 +42,8 @@ var signatures = map[string]*FuncCallSignature{
 	"atan":     makeSignature("atan", 1, ast.SignNumb),
 	"degrees":  makeSignature("degrees", 1, ast.SignNumb),
 	"radians":  makeSignature("radians", 1, ast.SignNumb),
-	"decToHex": makeSignature("decToHex", 1, ast.SignNumb),
-	"decToBin": makeSignature("decToBin", 1, ast.SignNumb),
+	"decToHex": makeSignature("decToHex", 1, ast.SignText),
+	"decToBin": makeSignature("decToBin", 1, ast.SignText),
 	"hexToDec": makeSignature("hexToDec", 1, ast.SignNumb),
 	"binToDec": makeSignature("binToDec", 1, ast.SignNumb),
 
@@ -91,7 +91,7 @@ var signatures = map[string]*FuncCallSignature{
 	"get":   makeSignature("get", 3, ast.SignAny),
 	"call":  makeSignature("call", -1-(3), ast.SignVoid),
 	"vcall": makeSignature("vcall", -1-(3), ast.SignAny),
-	"every": makeSignature("every", 1, ast.SignAny),
+	"every": makeSignature("every", 1, ast.SignList),
 }
 
 func MakeFuncCall(name string, args ...ast.Expr) ast.Expr {

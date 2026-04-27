@@ -110,6 +110,8 @@ func (b *BinaryExpr) Signature() []ast.Signature {
 		return []ast.Signature{ast.SignText}
 	case lex.LessThan, lex.LessThanEqual, lex.GreatThan, lex.GreaterThanEqual:
 		return []ast.Signature{ast.SignBool}
+	case lex.Remainder:
+		return []ast.Signature{ast.SignNumb}
 	case lex.TextEquals, lex.TextNotEquals, lex.TextLessThan, lex.TextGreaterThan:
 		return []ast.Signature{ast.SignBool}
 	default:

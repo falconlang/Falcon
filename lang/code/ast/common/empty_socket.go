@@ -26,5 +26,5 @@ func (e *EmptySocket) Consumable(flags ...bool) bool {
 }
 
 func (e *EmptySocket) Signature() []ast.Signature {
-	return []ast.Signature{ast.SignText}
+	return []ast.Signature{ast.SignNumb}
 }

@@ -81,5 +81,5 @@ func (w *WalkAll) Consumable(flags ...bool) bool {
 }
 
 func (w *WalkAll) Signature() []ast.Signature {
-	return []ast.Signature{ast.SignText}
+	return []ast.Signature{ast.SignList}
 }

@@ -1,1 +1,10 @@
-println(1 <= 2)
+func fooBar(x) = {
+  println(x)
+  if (x) {
+    println(true)
+  } else {
+    println(false)
+  }
+}
+
+println(fooBar(true))

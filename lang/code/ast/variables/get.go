@@ -49,5 +49,8 @@ func (g *Get) Consumable(flags ...bool) bool {
 }
 
 func (g *Get) Signature() []ast.Signature {
+	if len(g.ValueSignature) > 0 {
+		return g.ValueSignature
+	}
 	return []ast.Signature{ast.SignAny}
 }
