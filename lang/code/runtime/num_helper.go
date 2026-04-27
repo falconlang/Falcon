@@ -151,6 +151,16 @@ func evalMakeColor(args []Value) Value {
 }
 
 func evalSplitColor(args []Value) Value {
+	var a, r, g, b int64
+	// A numeric argument is treated as a 32-bit ARGB integer.
+	if args[0].Type() == Number {
+		n := int64(args[0].AsNum())
+		a = (n >> 24) & 0xFF
+		r = (n >> 16) & 0xFF
+		g = (n >> 8) & 0xFF
+		b = n & 0xFF
+		return ListVal([]Value{NumVal(float64(a)), NumVal(float64(r)), NumVal(float64(g)), NumVal(float64(b))})
+	}
 	raw := args[0].AsStr()
 	hex := strings.TrimPrefix(raw, "#")
 	for _, c := range hex {
@@ -158,7 +168,6 @@ func evalSplitColor(args []Value) Value {
 			panic("splitColor: invalid color value: " + raw)
 		}
 	}
-	var a, r, g, b int64
 	if len(hex) == 8 {
 		a, _ = strconv.ParseInt(hex[0:2], 16, 64)
 		r, _ = strconv.ParseInt(hex[2:4], 16, 64)
