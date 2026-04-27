@@ -27,5 +27,6 @@ func (y *Yield) Consumable() bool {
 }
 
 func (y *Yield) Signature() []ast.Signature {
+	y.Expr.Signature()
 	return []ast.Signature{ast.SignVoid}
 }

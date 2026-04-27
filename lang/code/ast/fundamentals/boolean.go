@@ -65,5 +65,6 @@ func (n *Not) Consumable() bool {
 }
 
 func (n *Not) Signature() []ast.Signature {
+	n.Expr.Signature()
 	return []ast.Signature{ast.SignBool}
 }

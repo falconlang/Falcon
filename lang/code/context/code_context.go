@@ -18,7 +18,17 @@ func (c *CodeContext) ReportError(
 	message string,
 	args ...string,
 ) {
-	panic(c.BuildError(true, column, row, highlightWordSize, message, args...))
+	panic(c.BuildTracebackError(column, row, highlightWordSize, "CompileError", message, args...))
+}
+
+func (c *CodeContext) ReportTypeError(
+	column int,
+	row int,
+	highlightWordSize int,
+	message string,
+	args ...string,
+) {
+	panic(c.BuildTracebackError(column, row, highlightWordSize, "TypeError", message, args...))
 }
 
 func (c *CodeContext) GetLine(lineNum int) string {
@@ -40,6 +50,40 @@ func (c *CodeContext) BuildCaret(endColumn, highlightSize int) string {
 		start = 0
 	}
 	return strings.Repeat(" ", start) + strings.Repeat("^", highlightSize)
+}
+
+// FormatTracebackFrame formats a single traceback frame in the style of
+// Python tracebacks.  It is the common ground shared by compile-time
+// reporting and runtime.FormatRuntimeError.
+func (c *CodeContext) FormatTracebackFrame(
+	fileName string,
+	line int,
+	column int,
+	highlightSize int,
+	funcName string,
+) string {
+	var sb strings.Builder
+	sb.WriteString("  File \"" + fileName + "\", line " + strconv.Itoa(line) + ", in " + funcName + "\n")
+	sourceLine := c.GetLine(line)
+	sb.WriteString("    " + sourceLine + "\n")
+	sb.WriteString("    " + c.BuildCaret(column, highlightSize) + "\n")
+	return sb.String()
+}
+
+// BuildTracebackError assembles a full traceback-style error message.
+func (c *CodeContext) BuildTracebackError(
+	column int,
+	row int,
+	highlightWordSize int,
+	title string,
+	message string,
+	args ...string,
+) string {
+	var sb strings.Builder
+	sb.WriteString("Traceback (most recent call last):\n")
+	sb.WriteString(c.FormatTracebackFrame(c.FileName, column, row, highlightWordSize, "<module>"))
+	sb.WriteString(title + ": " + sugar.Format(message, args...) + "\n")
+	return sb.String()
 }
 
 func (c *CodeContext) BuildError(

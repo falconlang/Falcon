@@ -41,6 +41,14 @@ func (t *Token) Error(message string, args ...string) {
 	}
 }
 
+func (t *Token) TypeError(message string, args ...string) {
+	if t.Context != nil {
+		(*t.Context).ReportTypeError(t.Column, t.Row, len(*t.Content), message, args...)
+	} else {
+		panic(sugar.Format(message, args...))
+	}
+}
+
 func (t *Token) BuildError(decorate bool, message string, args ...string) string {
 	if t.Context != nil {
 		return (*t.Context).BuildError(decorate, t.Column, t.Row, len(*t.Content), message, args...)

@@ -35,9 +35,12 @@ func (m *MethodCall) Continuous() bool {
 }
 
 func (m *MethodCall) Consumable() bool {
-	return false // may be consumable too
+	return false
 }
 
 func (m *MethodCall) Signature() []ast.Signature {
+	for _, arg := range m.Args {
+		arg.Signature()
+	}
 	return []ast.Signature{ast.SignAny}
 }

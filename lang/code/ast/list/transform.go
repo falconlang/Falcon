@@ -158,6 +158,15 @@ func (t *Transformer) Consumable() bool {
 }
 
 func (t *Transformer) Signature() []ast.Signature {
+	t.List.Signature()
+	for _, arg := range t.Args {
+		arg.Signature()
+	}
+	t.Transformer.Signature()
+	listSigs := t.List.Signature()
+	if !ast.HasSignature(listSigs, ast.SignList) {
+		t.Where.TypeError("List transformer .% { } requires a list value, but got %", t.Name, ast.FormatSignatures(listSigs))
+	}
 	errorMessage, transformerSignature := TestSignature(t.Name, len(t.Args), len(t.Names))
 	if transformerSignature == nil {
 		t.Where.Error(errorMessage)

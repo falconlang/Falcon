@@ -40,9 +40,13 @@ func (g *GenericMethodCall) Continuous() bool {
 }
 
 func (g *GenericMethodCall) Consumable() bool {
-	return false // play safe, may be consumable too
+	return false
 }
 
 func (g *GenericMethodCall) Signature() []ast.Signature {
+	g.Component.Signature()
+	for _, arg := range g.Args {
+		arg.Signature()
+	}
 	return []ast.Signature{ast.SignAny}
 }

@@ -38,5 +38,6 @@ func (s Set) Consumable() bool {
 }
 
 func (s Set) Signature() []ast.Signature {
+	s.Expr.Signature()
 	return []ast.Signature{ast.SignVoid}
 }

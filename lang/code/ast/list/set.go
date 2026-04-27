@@ -37,5 +37,12 @@ func (s *Set) Consumable() bool {
 }
 
 func (s *Set) Signature() []ast.Signature {
+	s.List.Signature()
+	s.Index.Signature()
+	s.Value.Signature()
+	listSigs := s.List.Signature()
+	if !ast.HasSignature(listSigs, ast.SignList) {
+		s.Where.TypeError("List index assignment requires a list value, but got %", ast.FormatSignatures(listSigs))
+	}
 	return []ast.Signature{ast.SignVoid}
 }

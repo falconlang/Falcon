@@ -33,5 +33,9 @@ func (w *While) Consumable() bool {
 }
 
 func (w *While) Signature() []ast.Signature {
+	w.Condition.Signature()
+	for _, expr := range w.Body {
+		expr.Signature()
+	}
 	return []ast.Signature{ast.SignVoid}
 }

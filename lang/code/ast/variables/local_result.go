@@ -61,5 +61,8 @@ func (v *VarResult) Consumable() bool {
 }
 
 func (v *VarResult) Signature() []ast.Signature {
+	for _, value := range v.Values {
+		value.Signature()
+	}
 	return v.Result.Signature()
 }

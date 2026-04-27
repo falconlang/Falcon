@@ -48,5 +48,6 @@ func (p *PropertySet) Consumable() bool {
 }
 
 func (p *PropertySet) Signature() []ast.Signature {
+	p.Value.Signature()
 	return []ast.Signature{ast.SignVoid}
 }

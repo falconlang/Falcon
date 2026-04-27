@@ -38,5 +38,11 @@ func (f *For) Consumable() bool {
 }
 
 func (f *For) Signature() []ast.Signature {
+	f.From.Signature()
+	f.To.Signature()
+	f.By.Signature()
+	for _, expr := range f.Body {
+		expr.Signature()
+	}
 	return []ast.Signature{ast.SignVoid}
 }

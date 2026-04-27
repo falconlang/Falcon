@@ -39,5 +39,7 @@ func (g *GenericPropertySet) Consumable() bool {
 }
 
 func (g *GenericPropertySet) Signature() []ast.Signature {
+	g.Component.Signature()
+	g.Value.Signature()
 	return []ast.Signature{ast.SignVoid}
 }

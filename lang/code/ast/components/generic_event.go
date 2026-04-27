@@ -40,5 +40,8 @@ func (g *GenericEvent) Consumable() bool {
 }
 
 func (g *GenericEvent) Signature() []ast.Signature {
+	for _, expr := range g.Body {
+		expr.Signature()
+	}
 	return []ast.Signature{ast.SignVoid}
 }

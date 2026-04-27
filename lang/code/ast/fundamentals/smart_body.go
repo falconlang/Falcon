@@ -144,5 +144,8 @@ func (s *SmartBody) Consumable() bool {
 }
 
 func (s *SmartBody) Signature() []ast.Signature {
+	for _, expr := range s.Body {
+		expr.Signature()
+	}
 	return s.Body[len(s.Body)-1].Signature()
 }

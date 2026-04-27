@@ -30,5 +30,8 @@ func (l *List) Consumable() bool {
 }
 
 func (l *List) Signature() []ast.Signature {
+	for _, elem := range l.Elements {
+		elem.Signature()
+	}
 	return []ast.Signature{ast.SignList}
 }

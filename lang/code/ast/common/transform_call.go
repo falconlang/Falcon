@@ -44,5 +44,6 @@ func (t *Transform) Consumable() bool {
 }
 
 func (t *Transform) Signature() []ast.Signature {
+	t.On.Signature()
 	return []ast.Signature{ast.SignText}
 }

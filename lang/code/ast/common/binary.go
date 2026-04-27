@@ -96,6 +96,18 @@ func (b *BinaryExpr) Consumable() bool {
 
 func (b *BinaryExpr) Signature() []ast.Signature {
 	switch b.Operator {
+	case lex.Plus, lex.Times, lex.Dash, lex.Slash, lex.Power, lex.Remainder, lex.BitwiseAnd, lex.BitwiseOr, lex.BitwiseXor:
+		b.ensureSignature(ast.SignNumb)
+	case lex.LogicAnd, lex.LogicOr:
+		b.ensureSignature(ast.SignBool)
+	case lex.Underscore:
+		b.ensureSignature(ast.SignText)
+	case lex.TextEquals, lex.TextNotEquals, lex.TextLessThan, lex.TextGreaterThan:
+		b.ensureSignature(ast.SignText)
+	case lex.LessThan, lex.LessThanEqual, lex.GreatThan, lex.GreaterThanEqual:
+		b.ensureSignature(ast.SignNumb)
+	}
+	switch b.Operator {
 	case lex.BitwiseAnd, lex.BitwiseOr, lex.BitwiseXor:
 		return []ast.Signature{ast.SignNumb}
 	case lex.Equals, lex.NotEquals:
@@ -117,6 +129,15 @@ func (b *BinaryExpr) Signature() []ast.Signature {
 	default:
 		b.Where.Error("Unknown binary operator! " + b.Operator.String())
 		panic("") // unreachable
+	}
+}
+
+func (b *BinaryExpr) ensureSignature(signature ast.Signature) {
+	for _, op := range b.Operands {
+		opSigs := op.Signature()
+		if !ast.HasSignature(opSigs, signature) {
+			b.Where.TypeError("Operator '%' requires % operands, but got %", *b.Where.Content, signature.String(), ast.FormatSignatures(opSigs))
+		}
 	}
 }
 

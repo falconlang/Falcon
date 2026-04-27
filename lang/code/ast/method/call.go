@@ -155,15 +155,34 @@ func (c *Call) Continuous() bool {
 func (c *Call) Consumable() bool {
 	signature, ok := signatures[c.Name]
 	if !ok {
-		c.Where.Error("Cannot find method .%()", c.Name)
+		return true
 	}
 	return signature.Consumable
 }
 
 func (c *Call) Signature() []ast.Signature {
+	c.On.Signature()
+	for _, arg := range c.Args {
+		arg.Signature()
+	}
 	errorMessage, signature := TestSignature(c.Name, len(c.Args))
 	if signature == nil {
 		c.Where.Error(errorMessage)
+	}
+	onSigs := c.On.Signature()
+	switch signature.Module {
+	case "text":
+		if !ast.HasSignature(onSigs, ast.SignText) {
+			c.Where.TypeError("Method .%() can only be called on text values, but got %", c.Name, ast.FormatSignatures(onSigs))
+		}
+	case "list":
+		if !ast.HasSignature(onSigs, ast.SignList) {
+			c.Where.TypeError("Method .%() can only be called on list values, but got %", c.Name, ast.FormatSignatures(onSigs))
+		}
+	case "dict":
+		if !ast.HasSignature(onSigs, ast.SignDict) {
+			c.Where.TypeError("Method .%() can only be called on dictionary values, but got %", c.Name, ast.FormatSignatures(onSigs))
+		}
 	}
 	return []ast.Signature{signature.Signature}
 }

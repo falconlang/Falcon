@@ -42,6 +42,8 @@ func (v *Call) Consumable() bool {
 }
 
 func (v *Call) Signature() []ast.Signature {
-	// TODO: We'd have to lookup a procedure table to determine the signature.
+	for _, arg := range v.Arguments {
+		arg.Signature()
+	}
 	return []ast.Signature{ast.SignAny}
 }

@@ -99,7 +99,26 @@ func (i *If) Consumable() bool {
 }
 
 func (i *If) Signature() []ast.Signature {
-	if !i.Consumable() {
+	for _, cond := range i.Conditions {
+		cond.Signature()
+	}
+	for _, body := range i.Bodies {
+		for _, expr := range body {
+			expr.Signature()
+		}
+	}
+	for _, expr := range i.ElseBody {
+		expr.Signature()
+	}
+	if i.ElseBody == nil || len(i.ElseBody) == 0 {
+		return []ast.Signature{ast.SignVoid}
+	}
+	for _, body := range i.Bodies {
+		if len(body) == 0 || !body[len(body)-1].Consumable() {
+			return []ast.Signature{ast.SignVoid}
+		}
+	}
+	if !i.ElseBody[len(i.ElseBody)-1].Consumable() {
 		return []ast.Signature{ast.SignVoid}
 	}
 	var result []ast.Signature

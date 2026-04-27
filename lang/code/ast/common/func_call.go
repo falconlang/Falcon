@@ -230,6 +230,9 @@ func (f *FuncCall) Consumable() bool {
 }
 
 func (f *FuncCall) Signature() []ast.Signature {
+	for _, arg := range f.Args {
+		arg.Signature()
+	}
 	errorMessage, signature := TestSignature(f.Name, len(f.Args)) // signatures are already verified
 	if signature == nil {
 		f.Where.Error(errorMessage)

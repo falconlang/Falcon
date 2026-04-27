@@ -41,5 +41,9 @@ func (v *SimpleVar) Consumable() bool {
 }
 
 func (v *SimpleVar) Signature() []ast.Signature {
+	v.Value.Signature()
+	for _, expr := range v.Body {
+		expr.Signature()
+	}
 	return []ast.Signature{ast.SignVoid}
 }

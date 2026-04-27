@@ -1,10 +1,5 @@
-func fooBar(x) = {
-  println(x)
-  if (x) {
-    println(true)
-  } else {
-    println(false)
-  }
+func isPalindrome(s) = {
+  local reversed = s.lowercase().split(" ").reverse().join("")
+  s.lowercase().split(" ").join("") == reversed
 }
-
-println(fooBar(true))
+println(isPalindrome("Malayalam"))

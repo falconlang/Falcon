@@ -30,6 +30,9 @@ func (d *Dictionary) Consumable() bool {
 }
 
 func (d *Dictionary) Signature() []ast.Signature {
+	for _, elem := range d.Elements {
+		elem.Signature()
+	}
 	return []ast.Signature{ast.SignDict}
 }
 
@@ -58,6 +61,12 @@ func (p *Pair) Consumable() bool {
 }
 
 func (p *Pair) Signature() []ast.Signature {
+	if p.Key != nil {
+		p.Key.Signature()
+	}
+	if p.Value != nil {
+		p.Value.Signature()
+	}
 	return []ast.Signature{ast.SignList}
 }
 

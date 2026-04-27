@@ -683,9 +683,14 @@ func (i *Interpreter) execBody(body []ast.Expr) Value {
 // FormatRuntimeError formats a recovered panic value as a runtime error message.
 // If a source token was recorded, the message includes the source line and a caret.
 func (i *Interpreter) FormatRuntimeError(r any) string {
+	// If the panic value is already a fully-formatted traceback (e.g. from
+	// Token.TypeError / Token.Error), return it unchanged.
 	msg := "runtime error"
 	switch v := r.(type) {
 	case string:
+		if strings.HasPrefix(v, "Traceback (most recent call last):") {
+			return v
+		}
 		msg = v
 	case error:
 		msg = v.Error()
@@ -720,29 +725,23 @@ func (i *Interpreter) FormatRuntimeError(r any) string {
 	sb.WriteString("RuntimeError: " + msg + "\n")
 	return sb.String()
 }
-
 func (i *Interpreter) formatTraceFrame(token *lex.Token, funcName string, isLast ...bool) string {
 	last := len(isLast) > 0 && isLast[0]
-	var sb strings.Builder
 	fileName := "<unknown>"
 	if token.Context != nil {
 		fileName = token.Context.FileName
 	}
-	sb.WriteString("  File \"" + fileName + "\", line " + strconv.Itoa(token.Column) + ", in " + funcName + "\n")
-
-	if token.Context != nil {
-		line := token.Context.GetLine(token.Column)
-		sb.WriteString("    " + line + "\n")
-		hlSize := 1
-		if token.Content != nil {
-			hlSize = len(*token.Content)
-		}
-		if last && i.lastHighlight > 0 {
-			hlSize = i.lastHighlight
-		}
-		sb.WriteString("    " + token.Context.BuildCaret(token.Row, hlSize) + "\n")
+	hlSize := 1
+	if token.Content != nil {
+		hlSize = len(*token.Content)
 	}
-	return sb.String()
+	if last && i.lastHighlight > 0 {
+		hlSize = i.lastHighlight
+	}
+	if token.Context != nil {
+		return token.Context.FormatTracebackFrame(fileName, token.Column, token.Row, hlSize, funcName)
+	}
+	return "  File \"" + fileName + "\", line " + strconv.Itoa(token.Column) + ", in " + funcName + "\n"
 }
 
 // evaluates all exprs in a given list

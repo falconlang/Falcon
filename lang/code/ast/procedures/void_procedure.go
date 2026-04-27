@@ -34,5 +34,8 @@ func (v *VoidProcedure) Consumable() bool {
 }
 
 func (v *VoidProcedure) Signature() []ast.Signature {
+	for _, expr := range v.Body {
+		expr.Signature()
+	}
 	return []ast.Signature{ast.SignVoid}
 }

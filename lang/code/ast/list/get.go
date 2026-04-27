@@ -36,5 +36,11 @@ func (g *Get) Consumable() bool {
 }
 
 func (g *Get) Signature() []ast.Signature {
+	g.List.Signature()
+	g.Index.Signature()
+	listSigs := g.List.Signature()
+	if !ast.HasSignature(listSigs, ast.SignList) {
+		g.Where.TypeError("List index access requires a list value, but got %", ast.FormatSignatures(listSigs))
+	}
 	return []ast.Signature{ast.SignAny}
 }

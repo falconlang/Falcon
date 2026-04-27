@@ -52,6 +52,7 @@ func (q *Question) Consumable() bool {
 }
 
 func (q *Question) Signature() []ast.Signature {
+	q.On.Signature()
 	return []ast.Signature{ast.SignBool}
 }
 

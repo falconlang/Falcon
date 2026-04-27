@@ -35,5 +35,9 @@ func (e *Each) Consumable() bool {
 }
 
 func (e *Each) Signature() []ast.Signature {
+	e.Iterable.Signature()
+	for _, expr := range e.Body {
+		expr.Signature()
+	}
 	return []ast.Signature{ast.SignVoid}
 }

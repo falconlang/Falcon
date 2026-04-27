@@ -69,6 +69,9 @@ func (p *LangParser) ParseAll() []ast.Expr {
 		expressions = append(expressions, e)
 	}
 	p.checkPendingSymbols()
+	for _, e := range expressions {
+		e.Signature()
+	}
 	return expressions
 }
 

@@ -30,5 +30,6 @@ func (g *Global) Consumable() bool {
 }
 
 func (g *Global) Signature() []ast.Signature {
+	g.Value.Signature()
 	return []ast.Signature{ast.SignVoid}
 }

@@ -38,5 +38,6 @@ func (g *GenericPropertyGet) Consumable() bool {
 }
 
 func (g *GenericPropertyGet) Signature() []ast.Signature {
+	g.Component.Signature()
 	return []ast.Signature{ast.SignAny}
 }
