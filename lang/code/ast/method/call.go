@@ -10,10 +10,11 @@ import (
 )
 
 type Call struct {
-	Where *lex.Token
-	On    ast.Expr
-	Name  string
-	Args  []ast.Expr
+	Where      *lex.Token
+	On         ast.Expr
+	Name       string
+	Args       []ast.Expr
+	hintOutput *ast.Signature // nearest valid successor's input type, set by CorrectChain
 }
 
 type CallSignature struct {
@@ -103,6 +104,15 @@ func sigString(name string, sig *CallSignature) string {
 	return "." + name + "(" + sig.Params + ")"
 }
 
+// HintOutput returns the lookahead output constraint stored by CorrectChain,
+// or nil if no valid successor was found in the chain.
+func (c *Call) HintOutput() *ast.Signature { return c.hintOutput }
+
+// DeriveAllowedModules is exported for use in mistparser's checkPendingSymbols.
+func DeriveAllowedModules(onSigs []ast.Signature) []string {
+	return deriveAllowedModules(onSigs)
+}
+
 func deriveAllowedModules(onSigs []ast.Signature) []string {
 	var modules []string
 	if ast.HasSignature(onSigs, ast.SignText) {
@@ -130,27 +140,13 @@ func joinOr(parts []string) string {
 	return strings.Join(parts[:len(parts)-1], ", ") + " or " + parts[len(parts)-1]
 }
 
-func methodSuggestions(methodName string, allowedModules []string) string {
-	candidates := make([]string, 0, len(signatures))
-	if len(allowedModules) > 0 {
-		for name, sig := range signatures {
-			if name == methodName {
-				continue
-			}
-			for _, mod := range allowedModules {
-				if sig.Module == mod {
-					candidates = append(candidates, name)
-					break
-				}
-			}
-		}
-	} else {
-		for name := range signatures {
-			if name == methodName {
-				continue
-			}
-			candidates = append(candidates, name)
-		}
+// methodSuggestions returns a "Did you mean" suffix filtered by input module
+// and optionally by neededOutput (the output type the caller expects).
+// When neededOutput filtering leaves no candidates it falls back without it.
+func methodSuggestions(methodName string, allowedModules []string, neededOutput *ast.Signature) string {
+	candidates := collectCandidates(methodName, allowedModules, neededOutput)
+	if len(candidates) == 0 && neededOutput != nil {
+		candidates = collectCandidates(methodName, allowedModules, nil)
 	}
 	suggestions := fzf.Top(methodName, candidates, 3)
 	if len(suggestions) > 0 {
@@ -163,10 +159,54 @@ func methodSuggestions(methodName string, allowedModules []string) string {
 	return ""
 }
 
+func collectCandidates(methodName string, allowedModules []string, neededOutput *ast.Signature) []string {
+	candidates := make([]string, 0, len(signatures))
+	for name, sig := range signatures {
+		if name == methodName {
+			continue
+		}
+		if len(allowedModules) > 0 {
+			moduleMatch := false
+			for _, mod := range allowedModules {
+				if sig.Module == mod {
+					moduleMatch = true
+					break
+				}
+			}
+			if !moduleMatch {
+				continue
+			}
+		}
+		if neededOutput != nil && sig.Signature != *neededOutput && sig.Signature != ast.SignAny {
+			continue
+		}
+		candidates = append(candidates, name)
+	}
+	return candidates
+}
+
+// BuildSuggestions is exported for use in mistparser's checkPendingSymbols.
+func BuildSuggestions(methodName string, allowedModules []string, neededOutput *ast.Signature) string {
+	return methodSuggestions(methodName, allowedModules, neededOutput)
+}
+
+// FindBestSuggestion returns the single highest-scoring replacement name, or ""
+// if no candidate clears the scoring threshold.
+func FindBestSuggestion(methodName string, allowedModules []string, neededOutput *ast.Signature) string {
+	candidates := collectCandidates(methodName, allowedModules, neededOutput)
+	if len(candidates) == 0 && neededOutput != nil {
+		candidates = collectCandidates(methodName, allowedModules, nil)
+	}
+	if tops := fzf.Top(methodName, candidates, 1); len(tops) > 0 {
+		return tops[0]
+	}
+	return ""
+}
+
 func TestSignature(methodName string, argsCount int, allowedModules ...string) (string, *CallSignature) {
 	signature, ok := signatures[methodName]
 	if !ok {
-		return "No method named ." + methodName + "()" + methodSuggestions(methodName, allowedModules), nil
+		return "No method named ." + methodName + "()" + methodSuggestions(methodName, allowedModules, nil), nil
 	}
 	sig := sigString(methodName, signature)
 	if signature.ParamCount >= 0 {
@@ -232,18 +272,19 @@ func (c *Call) Signature() []ast.Signature {
 	if signature == nil {
 		c.Where.Error(errorMessage)
 	}
+	intendedOutput := signature.Signature
 	switch signature.Module {
 	case "text":
 		if !ast.HasSignature(onSigs, ast.SignText) {
-			c.Where.TypeError(".%() is a text method, but this is a %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs)), c.Name, ast.FormatSignatures(onSigs))
+			c.Where.TypeError(".%() operates on text, not %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs), &intendedOutput), c.Name, ast.FormatSignatures(onSigs))
 		}
 	case "list":
 		if !ast.HasSignature(onSigs, ast.SignList) {
-			c.Where.TypeError(".%() is a list method, but this is a %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs)), c.Name, ast.FormatSignatures(onSigs))
+			c.Where.TypeError(".%() operates on lists, not %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs), &intendedOutput), c.Name, ast.FormatSignatures(onSigs))
 		}
 	case "dict":
 		if !ast.HasSignature(onSigs, ast.SignDict) {
-			c.Where.TypeError(".%() is a dictionary method, but this is a %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs)), c.Name, ast.FormatSignatures(onSigs))
+			c.Where.TypeError(".%() operates on dictionaries, not %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs), &intendedOutput), c.Name, ast.FormatSignatures(onSigs))
 		}
 	}
 	return []ast.Signature{signature.Signature}

@@ -68,6 +68,9 @@ func (p *LangParser) ParseAll() []ast.Expr {
 		e := p.parse()
 		expressions = append(expressions, e)
 	}
+	for _, e := range expressions {
+		walkAndCorrect(e)
+	}
 	p.checkPendingSymbols()
 	for _, e := range expressions {
 		e.Signature()
@@ -77,6 +80,9 @@ func (p *LangParser) ParseAll() []ast.Expr {
 
 func (p *LangParser) checkPendingSymbols() {
 	var errorMessages []string
+	methodErrors := make(map[int][]pendingMethodError) // keyed by line number
+	methodErrorCount := 0
+
 	for token, parseError := range p.aggregator.Errors {
 		// try resolve global variables again
 		if get, ok := parseError.Owner.(*variables.Get); ok && get.Global {
@@ -85,6 +91,21 @@ func (p *LangParser) checkPendingSymbols() {
 				get.ValueSignature = signatures
 				continue
 			}
+		} else if mc, ok := parseError.Owner.(*method.Call); ok {
+			if _, sig := method.TestSignature(mc.Name, len(mc.Args)); sig != nil {
+				continue // autocorrect already fixed this name
+			}
+			inputSigs := safeSignature(mc.On)
+			allowedModules := method.DeriveAllowedModules(inputSigs)
+			suggestion := method.FindBestSuggestion(mc.Name, allowedModules, mc.HintOutput())
+			lineNum := token.Column
+			methodErrors[lineNum] = append(methodErrors[lineNum], pendingMethodError{
+				token:      token,
+				name:       mc.Name,
+				suggestion: suggestion,
+			})
+			methodErrorCount++
+			continue
 		} else if procCall, ok := parseError.Owner.(*procedures.Call); ok {
 			// a late resolution of procedure calls
 			procedureErrorMessage, procedureSignature := p.Resolver.ResolveProcedure(procCall.Name, len(procCall.Arguments))
@@ -97,9 +118,15 @@ func (p *LangParser) checkPendingSymbols() {
 		}
 		errorMessages = append(errorMessages, token.BuildError(false, parseError.ErrorMessage))
 	}
-	if p.strict && len(errorMessages) > 0 {
+
+	methodBlocks := renderMethodErrorGroups(methodErrors)
+	errorMessages = append(errorMessages, methodBlocks...)
+
+	// Count each individual bad method call, not each group block.
+	totalErrors := len(errorMessages) - len(methodBlocks) + methodErrorCount
+	if p.strict && totalErrors > 0 {
 		var errorWriter strings.Builder
-		errorWriter.WriteString(sugar.Format("compile failed with % syntax errors", strconv.Itoa(len(errorMessages))))
+		errorWriter.WriteString(sugar.Format("compile failed with % syntax errors", strconv.Itoa(totalErrors)))
 		errorWriter.WriteString(strings.Join(errorMessages, ""))
 		panic(errorWriter.String())
 	}
@@ -701,13 +728,14 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 		// AND the arg count matches — otherwise the '{' belongs to the surrounding expression.
 		if !p.isNext(l.OpenCurly) || !list.IsTransformer(name, len(args)) {
 			// he's a simple call!
+			call := &method.Call{Where: where, On: object, Name: name, Args: args}
 			errorMessage, signature := method.TestSignature(name, len(args))
 			if signature == nil {
-				p.aggregator.EnqueueSymbol(where, object, errorMessage)
+				p.aggregator.EnqueueSymbol(where, call, errorMessage)
 			} else {
 				p.aggregator.MarkResolved(where)
 			}
-			return &method.Call{Where: where, On: object, Name: name, Args: args}
+			return call
 		}
 	}
 	p.expect(l.OpenCurly)

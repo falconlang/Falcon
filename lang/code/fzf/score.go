@@ -5,11 +5,11 @@ import "strings"
 func TokenOverlap(a, b []string) float64 {
 	setA := make(map[string]struct{})
 	for _, t := range a {
-		setA[strings.ToLower(t)] = struct{}{}
+		setA[Canonical(t)] = struct{}{}
 	}
 	setB := make(map[string]struct{})
 	for _, t := range b {
-		setB[strings.ToLower(t)] = struct{}{}
+		setB[Canonical(t)] = struct{}{}
 	}
 
 	intersection := 0

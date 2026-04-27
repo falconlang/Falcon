@@ -1,5 +1,2 @@
-func isPalindrome(s) = {
-  local reversed = s.lowercase().split(" ").reverse().join("")
-  s.lowercase().split(" ").join("") == reversed
-}
-println(isPalindrome("Malayalam"))
+local s = "M e l on"
+println(s.uppercase().replace(" ", "").textLen())
