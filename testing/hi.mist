@@ -1,2 +1,2 @@
 local s = "M e l on"
-println(s.uppercase().replace(" ", "").textLen())
+println(s.isList())

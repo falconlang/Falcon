@@ -80,8 +80,12 @@ func (p *LangParser) ParseAll() []ast.Expr {
 
 func (p *LangParser) checkPendingSymbols() {
 	var errorMessages []string
-	methodErrors := make(map[int][]pendingMethodError) // keyed by line number
+	methodErrors := make(map[int][]pendingCallError) // keyed by line number
+	funcErrors := make(map[int][]pendingCallError)
+	questionErrors := make(map[int][]pendingCallError)
 	methodErrorCount := 0
+	funcErrorCount := 0
+	questionErrorCount := 0
 
 	for token, parseError := range p.aggregator.Errors {
 		// try resolve global variables again
@@ -99,12 +103,42 @@ func (p *LangParser) checkPendingSymbols() {
 			allowedModules := method.DeriveAllowedModules(inputSigs)
 			suggestion := method.FindBestSuggestion(mc.Name, allowedModules, mc.HintOutput())
 			lineNum := token.Column
-			methodErrors[lineNum] = append(methodErrors[lineNum], pendingMethodError{
+			methodErrors[lineNum] = append(methodErrors[lineNum], pendingCallError{
 				token:      token,
 				name:       mc.Name,
 				suggestion: suggestion,
 			})
 			methodErrorCount++
+			continue
+		} else if q, ok := parseError.Owner.(*common.Question); ok {
+			if common.IsKnownQuestion(q.Question) {
+				continue // autocorrect already fixed this
+			}
+			suggestion := common.FindBestQuestionSuggestion(q.Question)
+			hint := ""
+			if suggestion != "" {
+				hint = "? " + suggestion
+			}
+			lineNum := token.Column
+			questionErrors[lineNum] = append(questionErrors[lineNum], pendingCallError{
+				token:      token,
+				name:       q.Question,
+				suggestion: hint,
+			})
+			questionErrorCount++
+			continue
+		} else if fc, ok := parseError.Owner.(*common.FuncCall); ok {
+			if _, sig := common.TestSignature(fc.Name, len(fc.Args)); sig != nil {
+				continue // autocorrect already fixed this name
+			}
+			suggestion := common.FindBestSuggestion(fc.Name)
+			lineNum := token.Column
+			funcErrors[lineNum] = append(funcErrors[lineNum], pendingCallError{
+				token:      token,
+				name:       fc.Name,
+				suggestion: suggestion,
+			})
+			funcErrorCount++
 			continue
 		} else if procCall, ok := parseError.Owner.(*procedures.Call); ok {
 			// a late resolution of procedure calls
@@ -119,11 +153,16 @@ func (p *LangParser) checkPendingSymbols() {
 		errorMessages = append(errorMessages, token.BuildError(false, parseError.ErrorMessage))
 	}
 
-	methodBlocks := renderMethodErrorGroups(methodErrors)
+	methodBlocks := renderCallErrorGroups(methodErrors)
+	funcBlocks := renderCallErrorGroups(funcErrors)
+	questionBlocks := renderCallErrorGroups(questionErrors)
 	errorMessages = append(errorMessages, methodBlocks...)
+	errorMessages = append(errorMessages, funcBlocks...)
+	errorMessages = append(errorMessages, questionBlocks...)
 
-	// Count each individual bad method call, not each group block.
-	totalErrors := len(errorMessages) - len(methodBlocks) + methodErrorCount
+	// Count each individual bad call, not each group block.
+	groupBlocks := len(methodBlocks) + len(funcBlocks) + len(questionBlocks)
+	totalErrors := len(errorMessages) - groupBlocks + methodErrorCount + funcErrorCount + questionErrorCount
 	if p.strict && totalErrors > 0 {
 		var errorWriter strings.Builder
 		errorWriter.WriteString(sugar.Format("compile failed with % syntax errors", strconv.Itoa(totalErrors)))
@@ -731,6 +770,19 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 			call := &method.Call{Where: where, On: object, Name: name, Args: args}
 			errorMessage, signature := method.TestSignature(name, len(args))
 			if signature == nil {
+				// Before treating as a bad method, check if it looks like a question (? keyword).
+				// This catches patterns like .isNumber() → ? number and .number() → ? number.
+				if len(args) == 0 {
+					if common.FindBestQuestionSuggestion(name) != "" {
+						q := &common.Question{Where: where, On: object, Question: name}
+						if common.IsKnownQuestion(name) {
+							p.aggregator.MarkResolved(where)
+						} else {
+							p.aggregator.EnqueueSymbol(where, q, "")
+						}
+						return q
+					}
+				}
 				p.aggregator.EnqueueSymbol(where, call, errorMessage)
 			} else {
 				p.aggregator.MarkResolved(where)
@@ -846,21 +898,27 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 		}
 		// check for a user defined procedure
 		procedureErrorMessage, procedureSignature := p.Resolver.ResolveProcedure(nameExpr.Name, len(arguments))
-		var funcCall *procedures.Call
 		if procedureSignature != nil {
-			funcCall = &procedures.Call{
+			p.aggregator.MarkResolved(nameExpr.Where)
+			return &procedures.Call{
 				Where:      nameExpr.Where,
 				Name:       nameExpr.Name,
 				Parameters: procedureSignature.Parameters,
 				Arguments:  arguments,
 				Returning:  procedureSignature.Returning,
 			}
-			p.aggregator.MarkResolved(nameExpr.Where)
-		} else {
-			// just fill in a template, could be resolved later
-			funcCall = &procedures.Call{Where: nameExpr.Where, Name: nameExpr.Name, Arguments: arguments}
-			p.aggregator.EnqueueSymbol(nameExpr.Where, funcCall, procedureErrorMessage)
 		}
+		// Neither a known built-in nor a defined procedure.
+		// If the name closely resembles a built-in function, treat it as a misspelled function
+		// so the error gets caret+hint rendering instead of a plain procedure-not-found message.
+		if common.FindBestSuggestion(nameExpr.Name) != "" {
+			fc := &common.FuncCall{Where: nameExpr.Where, Name: nameExpr.Name, Args: arguments}
+			p.aggregator.EnqueueSymbol(nameExpr.Where, fc, "No function named "+nameExpr.Name+"()")
+			return fc
+		}
+		// Unknown — fill in a template that may be resolved later (forward-declared procedure).
+		funcCall := &procedures.Call{Where: nameExpr.Where, Name: nameExpr.Name, Arguments: arguments}
+		p.aggregator.EnqueueSymbol(nameExpr.Where, funcCall, procedureErrorMessage)
 		return funcCall
 	}
 	return value

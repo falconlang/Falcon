@@ -3,9 +3,58 @@ package common
 import (
 	"Falcon/code/ast"
 	"Falcon/code/ast/fundamentals"
+	"Falcon/code/fzf"
 	"Falcon/code/lex"
 	"Falcon/code/sugar"
 )
+
+var questionKeywords = []string{
+	"number", "base10", "hexa", "bin",
+	"text", "list", "dict",
+	"emptyText", "emptyList",
+	"even", "odd",
+}
+
+// IsKnownQuestion reports whether name is a valid question keyword.
+func IsKnownQuestion(name string) bool {
+	for _, k := range questionKeywords {
+		if k == name {
+			return true
+		}
+	}
+	return false
+}
+
+// FindBestQuestionSuggestion returns the closest question keyword for a method-call-style name.
+// It strips a leading "isX" camelCase prefix (e.g. "isNumber" → "number") before fuzzy matching.
+// Returns "" when no candidate clears the fzf threshold.
+func FindBestQuestionSuggestion(methodName string) string {
+	base := stripIsPrefix(methodName)
+	if IsKnownQuestion(base) {
+		return base
+	}
+	if tops := fzf.Top(base, questionKeywords, 1); len(tops) > 0 {
+		return tops[0]
+	}
+	if base != methodName {
+		if tops := fzf.Top(methodName, questionKeywords, 1); len(tops) > 0 {
+			return tops[0]
+		}
+	}
+	return ""
+}
+
+// stripIsPrefix removes a leading "is" + uppercase letter prefix from a camelCase name
+// and lowercases the first character of the remainder (e.g. "isNumber" → "number").
+func stripIsPrefix(name string) string {
+	if len(name) > 2 && name[0] == 'i' && name[1] == 's' {
+		rest := name[2:]
+		if len(rest) > 0 && rest[0] >= 'A' && rest[0] <= 'Z' {
+			return string(rest[0]+'a'-'A') + rest[1:]
+		}
+	}
+	return name
+}
 
 type Question struct {
 	Where    *lex.Token

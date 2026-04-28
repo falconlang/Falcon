@@ -8,24 +8,24 @@ import (
 	l "Falcon/code/lex"
 )
 
-type pendingMethodError struct {
+type pendingCallError struct {
 	token      *l.Token
 	name       string
 	suggestion string
 }
 
-// renderMethodErrorGroups groups bad method calls by source line and renders
-// each group as a single annotated block. The source line is shown with spaces
-// added around method-call dots for readability; all carets appear on one row
+// renderCallErrorGroups groups bad call names by source line and renders
+// each group as a single annotated block. All carets appear on one row
 // and all hints appear on the row below that, both aligned to each bad name.
+// For method chains, dots are expanded with surrounding spaces for readability.
 //
 // Example (autocorrect off, three bad names on one line):
 //
 //	println(s . upperCase() . replaceAll(" ", "") . size())
 //	            ^^^^^^^^^     ^^^^^^^^^^            ^^^^
-//	            uppercase     replace               textLen
+//	            uppercase     replace               textLen  ← correct names
 //	[line 2]
-func renderMethodErrorGroups(byLine map[int][]pendingMethodError) []string {
+func renderCallErrorGroups(byLine map[int][]pendingCallError) []string {
 	lineNums := make([]int, 0, len(byLine))
 	for ln := range byLine {
 		lineNums = append(lineNums, ln)
@@ -69,6 +69,7 @@ func renderMethodErrorGroups(byLine map[int][]pendingMethodError) []string {
 		caretBuf := makeLine(maxEnd)
 		hintBuf := makeLine(maxEnd)
 
+		hasSuggestion := false
 		for _, item := range items {
 			origStart := item.token.Row - len(item.name)
 			newStart := offsetAt(offsets, origStart)
@@ -78,8 +79,15 @@ func renderMethodErrorGroups(byLine map[int][]pendingMethodError) []string {
 			hint := item.suggestion
 			if hint == "" {
 				hint = "?"
+			} else {
+				hasSuggestion = true
 			}
 			writeTo(hintBuf, newStart, hint)
+		}
+
+		hintLine := strings.TrimRight(string(hintBuf), " ")
+		if hasSuggestion {
+			hintLine += "  ← correct names"
 		}
 
 		var sb strings.Builder
@@ -88,7 +96,7 @@ func renderMethodErrorGroups(byLine map[int][]pendingMethodError) []string {
 		sb.WriteByte('\n')
 		sb.WriteString(strings.TrimRight(string(caretBuf), " "))
 		sb.WriteByte('\n')
-		sb.WriteString(strings.TrimRight(string(hintBuf), " "))
+		sb.WriteString(hintLine)
 		sb.WriteByte('\n')
 		sb.WriteString("[line " + strconv.Itoa(lineNum) + "]")
 		blocks = append(blocks, sb.String())

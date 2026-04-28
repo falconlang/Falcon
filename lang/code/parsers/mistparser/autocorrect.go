@@ -74,6 +74,11 @@ func walkAndCorrect(expr ast.Expr) {
 
 	// Common expressions
 	case *common.FuncCall:
+		if !common.IsKnownFunction(e.Name) {
+			if best := common.FindBestSuggestion(e.Name); best != "" {
+				e.Name = best
+			}
+		}
 		for _, arg := range e.Args {
 			walkAndCorrect(arg)
 		}
@@ -82,6 +87,11 @@ func walkAndCorrect(expr ast.Expr) {
 			walkAndCorrect(op)
 		}
 	case *common.Question:
+		if !common.IsKnownQuestion(e.Question) {
+			if best := common.FindBestQuestionSuggestion(e.Question); best != "" {
+				e.Question = best
+			}
+		}
 		walkAndCorrect(e.On)
 
 	// Control flow

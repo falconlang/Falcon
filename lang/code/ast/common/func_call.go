@@ -100,6 +100,27 @@ func MakeFuncCall(name string, args ...ast.Expr) ast.Expr {
 	return &FuncCall{Where: lex.MakeFakeToken(lex.Func), Name: name, Args: args}
 }
 
+// IsKnownFunction reports whether name is a registered built-in function.
+func IsKnownFunction(name string) bool {
+	_, ok := signatures[name]
+	return ok
+}
+
+// FindBestSuggestion returns the single highest-scoring built-in function name
+// closest to funcName, or "" if no candidate clears the scoring threshold.
+func FindBestSuggestion(funcName string) string {
+	candidates := make([]string, 0, len(signatures))
+	for name := range signatures {
+		if name != funcName {
+			candidates = append(candidates, name)
+		}
+	}
+	if tops := fzf.Top(funcName, candidates, 1); len(tops) > 0 {
+		return tops[0]
+	}
+	return ""
+}
+
 func joinOr(parts []string) string {
 	if len(parts) == 0 {
 		return ""
