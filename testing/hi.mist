@@ -3,8 +3,8 @@ func fooBar() = {
     yield 0
   }
   local a = 1
-          println(a)
-          a
+  println(a)
+  a
 }
 
 println(fooBar())

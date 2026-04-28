@@ -274,7 +274,7 @@ func correctFile(path string) {
 	codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
 	tokens := lex.NewLexer(codeContext).Lex()
 	langParser := mistParser.NewLangParser(false, tokens)
-	langParser.EnableAutoCorrect()
+	//langParser.EnableAutoCorrect()
 	langParser.ParseAll()
 	fmt.Print(langParser.ReconstructedSource())
 }

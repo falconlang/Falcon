@@ -34,6 +34,15 @@ type LangParser struct {
 // EnableAutoCorrect turns on the auto-correction pass. Disabled by default.
 func (p *LangParser) EnableAutoCorrect() { p.autoCorrect = true }
 
+// ReconstructedSource returns the original source code with all auto-corrections
+// applied in-place.
+func (p *LangParser) ReconstructedSource() string {
+	if len(p.Tokens) == 0 || p.Tokens[0].Context == nil {
+		return ""
+	}
+	return ApplyPatches(*p.Tokens[0].Context.SourceCode, p.patches)
+}
+
 func NewLangParser(strict bool, tokens []*l.Token) *LangParser {
 	return &LangParser{
 		Tokens:    tokens,
@@ -64,74 +73,13 @@ func (p *LangParser) GetComponentDefinitionsCode() string {
 	return definitions.String()
 }
 
-// ReconstructedSource returns the original source code with all auto-corrections
-// applied in-place. Positions are taken directly from token Row/Column values so
-// the surrounding whitespace and formatting are preserved.
-func (p *LangParser) ReconstructedSource() string {
-	if len(p.Tokens) == 0 || p.Tokens[0].Context == nil {
-		return ""
-	}
-	return ApplyPatches(*p.Tokens[0].Context.SourceCode, p.patches)
-}
-
-// selfAssignMethods is the set of method names whose output type equals the type of their
-// receiver, making `obj = obj.method(...)` a semantically correct self-assignment correction.
-var selfAssignMethods = map[string]bool{
-	// text → text
-	"trim": true, "uppercase": true, "lowercase": true, "reverse": true,
-	"segment": true, "replace": true, "replaceFrom": true, "replaceFromLongestFirst": true,
-	// list → list
-	"sort": true, "reverseList": true, "slice": true, "allButFirst": true, "allButLast": true,
-	// dict → dict
-	"mergeInto": true,
-}
-
-// tryAutoAssign detects an unconsumed method call or sort-transformer whose output type
-// equals the receiver's type, and rewrites it as `varName = varName.method(...)`.
-// It applies only when the direct receiver is a local variable reference.
-// No-op when autoCorrect is disabled.
-func (p *LangParser) tryAutoAssign(expr ast.Expr) ast.Expr {
-	if !p.autoCorrect {
-		return expr
-	}
-	switch e := expr.(type) {
-	case *method.Call:
-		if !selfAssignMethods[e.Name] {
-			return expr
-		}
-		if recv, ok := e.On.(*variables.Get); ok && !recv.Global {
-			return p.emitSelfAssign(recv, expr)
-		}
-	case *list.Transformer:
-		if e.Name != "sort" {
-			return expr
-		}
-		if recv, ok := e.List.(*variables.Get); ok && !recv.Global {
-			return p.emitSelfAssign(recv, expr)
-		}
-	}
-	return expr
-}
-
-// emitSelfAssign patches the source to prepend "varName = " and wraps expr in variables.Set.
-func (p *LangParser) emitSelfAssign(recv *variables.Get, expr ast.Expr) ast.Expr {
-	insertPos := recv.Where.Row - len(recv.Name)
-	p.patches = append(p.patches, SourcePatch{
-		Line:  recv.Where.Column,
-		Start: insertPos,
-		End:   insertPos,
-		Text:  recv.Name + " = ",
-	})
-	return &variables.Set{Global: false, Name: recv.Name, Expr: expr}
-}
-
 func (p *LangParser) ParseAll() []ast.Expr {
 	var expressions []ast.Expr
 	if p.notEOF() {
 		p.defineStatements()
 	}
 	for p.notEOF() {
-		e := p.tryAutoAssign(p.parse())
+		e := p.parse()
 		expressions = append(expressions, e)
 	}
 	for _, e := range expressions {
@@ -163,47 +111,32 @@ func (p *LangParser) checkPendingSymbols() {
 			}
 		} else if mc, ok := parseError.Owner.(*method.Call); ok {
 			if _, sig := method.TestSignature(mc.Name, len(mc.Args)); sig != nil {
-				continue // autocorrect already fixed this name
+				continue
 			}
 			inputSigs := safeSignature(mc.On)
 			allowedModules := method.DeriveAllowedModules(inputSigs)
 			suggestion := method.FindBestSuggestion(mc.Name, allowedModules, mc.HintOutput())
-			lineNum := token.Column
-			methodErrors[lineNum] = append(methodErrors[lineNum], pendingCallError{
-				token:      token,
-				name:       mc.Name,
-				suggestion: suggestion,
-			})
+			methodErrors[token.Column] = append(methodErrors[token.Column], pendingCallError{token: token, name: mc.Name, suggestion: suggestion})
 			methodErrorCount++
 			continue
 		} else if q, ok := parseError.Owner.(*common.Question); ok {
 			if common.IsKnownQuestion(q.Question) {
-				continue // autocorrect already fixed this
+				continue
 			}
 			suggestion := common.FindBestQuestionSuggestion(q.Question)
 			hint := ""
 			if suggestion != "" {
 				hint = "? " + suggestion
 			}
-			lineNum := token.Column
-			questionErrors[lineNum] = append(questionErrors[lineNum], pendingCallError{
-				token:      token,
-				name:       q.Question,
-				suggestion: hint,
-			})
+			questionErrors[token.Column] = append(questionErrors[token.Column], pendingCallError{token: token, name: q.Question, suggestion: hint})
 			questionErrorCount++
 			continue
 		} else if fc, ok := parseError.Owner.(*common.FuncCall); ok {
 			if _, sig := common.TestSignature(fc.Name, len(fc.Args)); sig != nil {
-				continue // autocorrect already fixed this name
+				continue
 			}
 			suggestion := common.FindBestSuggestion(fc.Name)
-			lineNum := token.Column
-			funcErrors[lineNum] = append(funcErrors[lineNum], pendingCallError{
-				token:      token,
-				name:       fc.Name,
-				suggestion: suggestion,
-			})
+			funcErrors[token.Column] = append(funcErrors[token.Column], pendingCallError{token: token, name: fc.Name, suggestion: suggestion})
 			funcErrorCount++
 			continue
 		} else if procCall, ok := parseError.Owner.(*procedures.Call); ok {
@@ -219,6 +152,10 @@ func (p *LangParser) checkPendingSymbols() {
 		errorMessages = append(errorMessages, token.BuildError(false, parseError.ErrorMessage))
 	}
 
+	p.reportCompileErrors(errorMessages, methodErrors, funcErrors, questionErrors, methodErrorCount, funcErrorCount, questionErrorCount)
+}
+
+func (p *LangParser) reportCompileErrors(errorMessages []string, methodErrors, funcErrors, questionErrors map[int][]pendingCallError, methodErrorCount, funcErrorCount, questionErrorCount int) {
 	methodBlocks := renderCallErrorGroups(methodErrors)
 	funcBlocks := renderCallErrorGroups(funcErrors)
 	questionBlocks := renderCallErrorGroups(questionErrors)
@@ -339,14 +276,7 @@ func (p *LangParser) genericEvent() ast.Expr {
 	if p.isNext(l.OpenCurve) {
 		parameters = p.parameters()
 	}
-	where := p.expect(l.OpenCurly)
-	p.ScopeCursor.Enter(where, ScopeEvent)
-	for _, param := range parameters {
-		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignOfEvent, ast.SignAny})
-	}
-	body := p.bodyUntilCurly()
-	p.ScopeCursor.Exit(ScopeEvent)
-	p.expect(l.CloseCurly)
+	body := p.parseEventBody(parameters)
 	return &components.GenericEvent{ComponentType: componentType, Event: eventName, Parameters: parameters, Body: body}
 }
 
@@ -358,15 +288,7 @@ func (p *LangParser) event() ast.Expr {
 	if p.isNext(l.OpenCurve) {
 		parameters = p.parameters()
 	}
-	where := p.expect(l.OpenCurly)
-	p.ScopeCursor.Enter(where, ScopeEvent)
-	for _, param := range parameters {
-		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignOfEvent, ast.SignAny})
-	}
-	body := p.bodyUntilCurly()
-	p.ScopeCursor.Exit(ScopeEvent)
-	p.expect(l.CloseCurly)
-
+	body := p.parseEventBody(parameters)
 	return &components.Event{
 		ComponentName: component.Name,
 		ComponentType: component.Type,
@@ -376,27 +298,47 @@ func (p *LangParser) event() ast.Expr {
 	}
 }
 
+func (p *LangParser) parseEventBody(parameters []string) []ast.Expr {
+	where := p.expect(l.OpenCurly)
+	p.ScopeCursor.Enter(where, ScopeEvent)
+	for _, param := range parameters {
+		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignOfEvent, ast.SignAny})
+	}
+	body := p.bodyUntilCurly()
+	p.ScopeCursor.Exit(ScopeEvent)
+	p.expect(l.CloseCurly)
+	return body
+}
+
 func (p *LangParser) funcSmt() ast.Expr {
 	where := p.next()
 	name := p.name()
-	var parameters = p.parameters()
+	parameters := p.parameters()
 	returning := p.consume(l.Assign)
 	p.Resolver.Procedures[name] = &Procedure{Name: name, Parameters: parameters, Returning: returning}
 	if returning {
-		p.ScopeCursor.Enter(where, ScopeRetProc)
-		for _, parameter := range parameters {
-			p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
-		}
-		var result ast.Expr
-		if p.consume(l.OpenCurly) {
-			result = &fundamentals.SmartBody{Body: p.bodyUntilCurlyWrap(true)}
-			p.expect(l.CloseCurly)
-		} else {
-			result = p.parse()
-		}
-		p.ScopeCursor.Exit(ScopeRetProc)
-		return &procedures.RetProcedure{Name: name, Parameters: parameters, Result: result}
+		return p.retProcedure(where, name, parameters)
 	}
+	return p.voidProcedure(name, parameters)
+}
+
+func (p *LangParser) retProcedure(where *l.Token, name string, parameters []string) ast.Expr {
+	p.ScopeCursor.Enter(where, ScopeRetProc)
+	for _, parameter := range parameters {
+		p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
+	}
+	var result ast.Expr
+	if p.consume(l.OpenCurly) {
+		result = &fundamentals.SmartBody{Body: p.bodyUntilCurlyWrap(true)}
+		p.expect(l.CloseCurly)
+	} else {
+		result = p.parse()
+	}
+	p.ScopeCursor.Exit(ScopeRetProc)
+	return &procedures.RetProcedure{Name: name, Parameters: parameters, Result: result}
+}
+
+func (p *LangParser) voidProcedure(name string, parameters []string) ast.Expr {
 	p.ScopeCursor.Enter(p.expect(l.OpenCurly), ScopeProc)
 	for _, parameter := range parameters {
 		p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
@@ -425,7 +367,6 @@ func (p *LangParser) varExpr() ast.Expr {
 	var values []ast.Expr
 	for {
 		locCurrIndex := p.currIndex
-		locPatchLen := len(p.patches)
 		if !p.consume(l.Local) {
 			break
 		}
@@ -437,7 +378,6 @@ func (p *LangParser) varExpr() ast.Expr {
 			// Since this variable depends on the last variable, we cannot include
 			// it in the current set.
 			p.currIndex = locCurrIndex
-			p.patches = p.patches[:locPatchLen]
 			break
 		}
 
@@ -463,44 +403,46 @@ func (p *LangParser) whileExpr() *control.While {
 }
 
 func (p *LangParser) forExpr() ast.Expr {
-	// TODO:
-	//  We could refactor this later to reuse declaring variables inside body
 	forTok := p.next()
 	p.expect(l.OpenCurve)
 	firstName := p.name()
 	if p.consume(l.Comma) {
-		// Dictionary For each loop
-		valueName := p.name()
-		p.expect(l.In)
-		iterable := p.parse()
-		p.expect(l.CloseCurve)
-
-		where := p.expect(l.OpenCurly)
-		p.ScopeCursor.Enter(where, ScopeLoop)
-		p.ScopeCursor.DefineVariable(firstName, []ast.Signature{ast.SignAny})
-		p.ScopeCursor.DefineVariable(valueName, []ast.Signature{ast.SignAny})
-		body := p.bodyUntilCurly()
-		p.ScopeCursor.Exit(ScopeLoop)
-		p.expect(l.CloseCurly)
-
-		return &control.EachPair{Where: forTok, KeyName: firstName, ValueName: valueName, Iterable: iterable, Body: body}
+		return p.forEachPair(forTok, firstName)
 	} else if p.consume(l.In) {
-		// For each loop
-		iterable := p.parse()
-		p.expect(l.CloseCurve)
-
-		where := p.expect(l.OpenCurly)
-		p.ScopeCursor.Enter(where, ScopeLoop)
-		p.ScopeCursor.DefineVariable(firstName, []ast.Signature{ast.SignAny})
-		body := p.bodyUntilCurly()
-		p.ScopeCursor.Exit(ScopeLoop)
-		p.expect(l.CloseCurly)
-
-		return &control.Each{Where: forTok, IName: firstName, Iterable: iterable, Body: body}
+		return p.forEach(forTok, firstName)
 	}
-	// For I loop
+	return p.forRange(forTok, firstName)
+}
+
+func (p *LangParser) forEachPair(forTok *l.Token, keyName string) ast.Expr {
+	valueName := p.name()
+	p.expect(l.In)
+	iterable := p.parse()
+	p.expect(l.CloseCurve)
+	where := p.expect(l.OpenCurly)
+	p.ScopeCursor.Enter(where, ScopeLoop)
+	p.ScopeCursor.DefineVariable(keyName, []ast.Signature{ast.SignAny})
+	p.ScopeCursor.DefineVariable(valueName, []ast.Signature{ast.SignAny})
+	body := p.bodyUntilCurly()
+	p.ScopeCursor.Exit(ScopeLoop)
+	p.expect(l.CloseCurly)
+	return &control.EachPair{Where: forTok, KeyName: keyName, ValueName: valueName, Iterable: iterable, Body: body}
+}
+
+func (p *LangParser) forEach(forTok *l.Token, iName string) ast.Expr {
+	iterable := p.parse()
+	p.expect(l.CloseCurve)
+	where := p.expect(l.OpenCurly)
+	p.ScopeCursor.Enter(where, ScopeLoop)
+	p.ScopeCursor.DefineVariable(iName, []ast.Signature{ast.SignAny})
+	body := p.bodyUntilCurly()
+	p.ScopeCursor.Exit(ScopeLoop)
+	p.expect(l.CloseCurly)
+	return &control.Each{Where: forTok, IName: iName, Iterable: iterable, Body: body}
+}
+
+func (p *LangParser) forRange(forTok *l.Token, iName string) ast.Expr {
 	p.expect(l.Colon)
-	// Earlier we were using p.element(), check the side effects
 	from := p.parse()
 	p.expect(l.DoubleDot)
 	to := p.parse()
@@ -511,15 +453,13 @@ func (p *LangParser) forExpr() ast.Expr {
 		by = &fundamentals.Number{Content: "1"}
 	}
 	p.expect(l.CloseCurve)
-
 	where := p.expect(l.OpenCurly)
 	p.ScopeCursor.Enter(where, ScopeLoop)
-	p.ScopeCursor.DefineVariable(firstName, []ast.Signature{ast.SignNumb})
+	p.ScopeCursor.DefineVariable(iName, []ast.Signature{ast.SignNumb})
 	body := p.bodyUntilCurly()
 	p.ScopeCursor.Exit(ScopeLoop)
 	p.expect(l.CloseCurly)
-
-	return &control.For{Where: forTok, IName: firstName, From: from, To: to, By: by, Body: body}
+	return &control.For{Where: forTok, IName: iName, From: from, To: to, By: by, Body: body}
 }
 
 func (p *LangParser) ifSmt() ast.Expr {
@@ -530,11 +470,7 @@ func (p *LangParser) ifSmt() ast.Expr {
 	p.expect(l.OpenCurve)
 	conditions = append(conditions, p.expr(0))
 	p.expect(l.CloseCurve)
-	if p.isNext(l.OpenCurly) {
-		bodies = append(bodies, p.body(ScopeIfBody))
-	} else {
-		bodies = append(bodies, []ast.Expr{p.parse()})
-	}
+	bodies = append(bodies, p.parseConditionBody())
 
 	var elseBody []ast.Expr
 	for p.notEOF() && p.consume(l.Else) {
@@ -542,21 +478,20 @@ func (p *LangParser) ifSmt() ast.Expr {
 			p.expect(l.OpenCurve)
 			conditions = append(conditions, p.expr(0))
 			p.expect(l.CloseCurve)
-			if p.isNext(l.OpenCurly) {
-				bodies = append(bodies, p.body(ScopeIfBody))
-			} else {
-				bodies = append(bodies, []ast.Expr{p.parse()})
-			}
+			bodies = append(bodies, p.parseConditionBody())
 		} else {
-			if p.isNext(l.OpenCurly) {
-				elseBody = p.body(ScopeIfBody)
-			} else {
-				elseBody = []ast.Expr{p.parse()}
-			}
+			elseBody = p.parseConditionBody()
 			break
 		}
 	}
 	return &control.If{Conditions: conditions, Bodies: bodies, ElseBody: elseBody}
+}
+
+func (p *LangParser) parseConditionBody() []ast.Expr {
+	if p.isNext(l.OpenCurly) {
+		return p.body(ScopeIfBody)
+	}
+	return []ast.Expr{p.parse()}
 }
 
 func (p *LangParser) body(scope ScopeType) []ast.Expr {
@@ -575,13 +510,12 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 	var expressions []ast.Expr
 	if p.isNext(l.CloseCurly) {
-		// empty smart body
 		return expressions
 	}
 	var scopeYielded = false
 	var retFuncYieldIndex = -1
 	for p.notEOF() && !p.isNext(l.CloseCurly) {
-		expr := p.tryAutoAssign(p.parse())
+		expr := p.parse()
 		expressions = append(expressions, expr)
 		p.consume(l.Comma)
 
@@ -596,17 +530,14 @@ func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 		if p.ScopeCursor.currScope.YieldName != nil && !scopeYielded {
 			scopeYielded = true
 			if p.ScopeCursor.currScope.YieldIndex == 0 {
-				// `break`
 				if p.ScopeCursor.currScope.InLoop() {
 					expressions = append(expressions, &control.Break{})
 				}
-				// no statements allowed after `yield <expr>`
 				if !p.isNext(l.CloseCurly) {
 					p.peek().Error("unreachable code after '%'", expr.String())
 				}
 			} else if p.ScopeCursor.currScope.InLoop() {
 				if !(p.ScopeCursor.currScope.YieldIndex == 1 && p.ScopeCursor.currScope.ChildYieldScopeType != ScopeLoop) {
-					// `if (_result[1]) break`
 					expressions = append(expressions, &control.If{
 						Conditions: []ast.Expr{p.retProcYieldVar("1")},
 						Bodies:     [][]ast.Expr{{&control.Break{}}},
@@ -617,49 +548,45 @@ func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 			}
 		}
 	}
-	if retFuncYieldIndex > 0 && len(expressions) > 0 {
-		// the func has yielded, identify yield source, and wrap rest in a condition
-		lastExpressions := make([]ast.Expr, len(expressions)-retFuncYieldIndex)
-		copy(lastExpressions, expressions[retFuncYieldIndex:])
-		expressions = expressions[:retFuncYieldIndex]
-		// wrap rest of the body in `if (_result[1]) { ... }`
-		if len(lastExpressions) > 1 {
-			expressions = append(expressions, &control.If{
-				Conditions: []ast.Expr{&fundamentals.Not{Expr: p.retProcYieldVar("1")}},
-				Bodies:     [][]ast.Expr{lastExpressions[:len(lastExpressions)-1]},
-			})
-		}
-		// `if (_result[1]) _result[2] else <expr>`
-		if len(lastExpressions) > 0 {
-			expressions = append(expressions, &control.If{
-				Conditions: []ast.Expr{p.retProcYieldVar("1")},
-				Bodies:     [][]ast.Expr{{p.retProcYieldVar("2")}},
-				ElseBody:   []ast.Expr{lastExpressions[len(lastExpressions)-1]},
-			})
-		}
-		//else if len(expressions) == 1 {
-		//	p.ScopeCursor.currScope.Yield.Revert = true
-		//}
-		if wrap {
-			// we have to only do it once!
-			// ```
-			//  local _result = [false, false]
-			//  <body>
-			// ```
-			expressions = []ast.Expr{
-				&variables.Var{
-					Names: []string{*p.ScopeCursor.currScope.YieldName},
-					Values: []ast.Expr{
-						&fundamentals.List{
-							Elements: []ast.Expr{
-								&fundamentals.Boolean{Value: false},
-								&fundamentals.Boolean{Value: false},
-							},
+	return p.applyRetProcYieldWrap(expressions, retFuncYieldIndex, wrap)
+}
+
+func (p *LangParser) applyRetProcYieldWrap(expressions []ast.Expr, retFuncYieldIndex int, wrap bool) []ast.Expr {
+	if retFuncYieldIndex <= 0 || len(expressions) == 0 {
+		return expressions
+	}
+	lastExpressions := make([]ast.Expr, len(expressions)-retFuncYieldIndex)
+	copy(lastExpressions, expressions[retFuncYieldIndex:])
+	expressions = expressions[:retFuncYieldIndex]
+	// wrap pre-last expressions in `if (!_result[1]) { ... }`
+	if len(lastExpressions) > 1 {
+		expressions = append(expressions, &control.If{
+			Conditions: []ast.Expr{&fundamentals.Not{Expr: p.retProcYieldVar("1")}},
+			Bodies:     [][]ast.Expr{lastExpressions[:len(lastExpressions)-1]},
+		})
+	}
+	// `if (_result[1]) _result[2] else <lastExpr>`
+	if len(lastExpressions) > 0 {
+		expressions = append(expressions, &control.If{
+			Conditions: []ast.Expr{p.retProcYieldVar("1")},
+			Bodies:     [][]ast.Expr{{p.retProcYieldVar("2")}},
+			ElseBody:   []ast.Expr{lastExpressions[len(lastExpressions)-1]},
+		})
+	}
+	if wrap {
+		expressions = []ast.Expr{
+			&variables.Var{
+				Names: []string{*p.ScopeCursor.currScope.YieldName},
+				Values: []ast.Expr{
+					&fundamentals.List{
+						Elements: []ast.Expr{
+							&fundamentals.Boolean{Value: false},
+							&fundamentals.Boolean{Value: false},
 						},
 					},
-					Body: expressions,
 				},
-			}
+				Body: expressions,
+			},
 		}
 	}
 	return expressions
@@ -835,78 +762,43 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 	p.skip()
 	where := p.next()
 	name := *where.Content
-
 	var args []ast.Expr
 	if p.isNext(l.OpenCurve) {
 		args = p.arguments()
 		// Only treat as a transformer if the name is a known transformer signature
 		// AND the arg count matches — otherwise the '{' belongs to the surrounding expression.
 		if !p.isNext(l.OpenCurly) || !list.IsTransformer(name, len(args)) {
-			// Drop check: no-op type-conversion methods (.toString(), .toStr(), .toInt(), …)
-			// are silently removed — the receiver is returned as-is.
-			if p.autoCorrect && len(args) == 0 && common.IsDropMethod(name) {
-				p.patches = append(p.patches, SourcePatch{
-					Line:  where.Column,
-					Start: where.Row - len(name) - 1, // include the dot
-					End:   where.Row + 2,             // include ()
-					Text:  "",
-				})
-				return object
-			}
-
-			// charAt(n) → segment(n, 1): get character at 0-based index maps to a 1-step segment.
-			if p.autoCorrect && name == "charAt" && len(args) == 1 {
-				closeParen := p.Tokens[p.currIndex-1]
-				p.patches = append(p.patches, SourcePatch{
-					Line:  where.Column,
-					Start: where.Row - len("charAt"),
-					End:   where.Row,
-					Text:  "segment",
-				})
-				if where.Column == closeParen.Column {
-					// Insert ", 1" before the closing ")" to complete the segment(start, 1) call.
-					p.patches = append(p.patches, SourcePatch{
-						Line:  closeParen.Column,
-						Start: closeParen.Row - 1,
-						End:   closeParen.Row - 1,
-						Text:  ", 1",
-					})
-				}
-				p.aggregator.MarkResolved(where)
-				return &method.Call{
-					Where: where,
-					On:    object,
-					Name:  "segment",
-					Args:  []ast.Expr{args[0], &fundamentals.Number{Content: "1"}},
-				}
-			}
-
-			// he's a simple call!
-			call := &method.Call{Where: where, On: object, Name: name, Args: args}
-			errorMessage, signature := method.TestSignature(name, len(args))
-			if signature == nil {
-				// Before treating as a bad method, check if it looks like a question (? keyword).
-				// This catches patterns like .isNumber() → ? number and .number() → ? number.
-				if len(args) == 0 {
-					if common.FindBestQuestionSuggestion(name) != "" {
-						q := &common.Question{Where: where, On: object, Question: name, MethodCallSyntax: true}
-						if common.IsKnownQuestion(name) {
-							p.aggregator.MarkResolved(where)
-						} else {
-							p.aggregator.EnqueueSymbol(where, q, "")
-						}
-						return q
-					}
-				}
-				p.aggregator.EnqueueSymbol(where, call, errorMessage)
-			} else {
-				p.aggregator.MarkResolved(where)
-			}
-			return call
+			return p.parseMethodCall(object, where, name, args)
 		}
 	}
+	return p.parseTransformer(object, where, name, args)
+}
+
+func (p *LangParser) parseMethodCall(object ast.Expr, where *l.Token, name string, args []ast.Expr) ast.Expr {
+	call := &method.Call{Where: where, On: object, Name: name, Args: args}
+	errorMessage, signature := method.TestSignature(name, len(args))
+	if signature == nil {
+		// Before treating as a bad method, check if it looks like a question (? keyword).
+		if len(args) == 0 {
+			if common.FindBestQuestionSuggestion(name) != "" {
+				q := &common.Question{Where: where, On: object, Question: name, MethodCallSyntax: true}
+				if common.IsKnownQuestion(name) {
+					p.aggregator.MarkResolved(where)
+				} else {
+					p.aggregator.EnqueueSymbol(where, q, "")
+				}
+				return q
+			}
+		}
+		p.aggregator.EnqueueSymbol(where, call, errorMessage)
+	} else {
+		p.aggregator.MarkResolved(where)
+	}
+	return call
+}
+
+func (p *LangParser) parseTransformer(object ast.Expr, where *l.Token, name string, args []ast.Expr) ast.Expr {
 	p.expect(l.OpenCurly)
-	// oh, no! he's a transformer >_>
 	p.ScopeCursor.Enter(where, ScopeTypeTransform)
 	var namesUsed []string
 	if !p.consume(l.RightArrow) {
@@ -935,7 +827,8 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 		Name:        name,
 		Args:        args,
 		Names:       namesUsed,
-		Transformer: transformer}
+		Transformer: transformer,
+	}
 }
 
 func (p *LangParser) exprOrSmartBody() ast.Expr {
@@ -1011,22 +904,6 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 			p.aggregator.MarkResolved(nameExpr.Where)
 			return &common.FuncCall{Where: nameExpr.Where, Name: nameExpr.Name, Args: arguments}
 		}
-		// Arg-count correction: a known function called with the wrong number of args
-		// may be a common mistake that maps to a different built-in (e.g. round(n,d) → formatDecimal(n,d)).
-		if p.autoCorrect && common.IsKnownFunction(nameExpr.Name) {
-			if corrected := common.FindArgCountCorrection(nameExpr.Name, len(arguments)); corrected != "" {
-				if _, corrSig := common.TestSignature(corrected, len(arguments)); corrSig != nil {
-					p.patches = append(p.patches, SourcePatch{
-						Line:  nameExpr.Where.Column,
-						Start: nameExpr.Where.Row - len(nameExpr.Name),
-						End:   nameExpr.Where.Row,
-						Text:  corrected,
-					})
-					p.aggregator.MarkResolved(nameExpr.Where)
-					return &common.FuncCall{Where: nameExpr.Where, Name: corrected, Args: arguments}
-				}
-			}
-		}
 		// check for a user defined procedure
 		procedureErrorMessage, procedureSignature := p.Resolver.ResolveProcedure(nameExpr.Name, len(arguments))
 		if procedureSignature != nil {
@@ -1039,98 +916,6 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 				Returning:  procedureSignature.Returning,
 			}
 		}
-		// Neither a known built-in nor a defined procedure.
-		// Drop check: no-op type-cast wrappers like string(x), int(x), toString(x) are removed,
-		// returning the sole argument directly.
-		if p.autoCorrect && len(arguments) == 1 && common.IsDropFunction(nameExpr.Name) {
-			closeParenTok := p.Tokens[p.currIndex-1]
-			p.aggregator.MarkResolved(nameExpr.Where)
-			if nameExpr.Where.Column == closeParenTok.Column {
-				// Single-line call: patch out "name(" and ")" separately.
-				p.patches = append(p.patches, SourcePatch{
-					Line:  nameExpr.Where.Column,
-					Start: nameExpr.Where.Row - len(nameExpr.Name),
-					End:   nameExpr.Where.Row + 1, // removes "name("
-					Text:  "",
-				})
-				p.patches = append(p.patches, SourcePatch{
-					Line:  closeParenTok.Column,
-					Start: closeParenTok.Row - 1,
-					End:   closeParenTok.Row, // removes ")"
-					Text:  "",
-				})
-			}
-			return arguments[0]
-		}
-		// Func-to-question: isNumber(x) / number(x) style calls that map to the ? operator.
-		// Runs after the drop check so that bare type-cast forms (number(x), string(x)) are
-		// already handled before we try to interpret them as questions.
-		if p.autoCorrect && len(arguments) == 1 {
-			if question := common.FindBestQuestionSuggestion(nameExpr.Name); question != "" {
-				closeParenTok := p.Tokens[p.currIndex-1]
-				p.aggregator.MarkResolved(nameExpr.Where)
-				if nameExpr.Where.Column == closeParenTok.Column {
-					// Remove "funcName(" — positions: [Row-len(name), Row+1)
-					p.patches = append(p.patches, SourcePatch{
-						Line:  nameExpr.Where.Column,
-						Start: nameExpr.Where.Row - len(nameExpr.Name),
-						End:   nameExpr.Where.Row + 1,
-						Text:  "",
-					})
-					// Replace ")" with " ? question"
-					p.patches = append(p.patches, SourcePatch{
-						Line:  closeParenTok.Column,
-						Start: closeParenTok.Row - 1,
-						End:   closeParenTok.Row,
-						Text:  " ? " + question,
-					})
-				}
-				return &common.Question{
-					Where:    nameExpr.Where,
-					On:       arguments[0],
-					Question: question,
-				}
-			}
-		}
-		// Func-to-method lift: a bare function call like len(x) where len is unknown
-		// may really be a type-specific method on x, e.g. x.textLen() or x.listLen().
-		// Attempt the lift only when we have exactly 1 arg (receiver) mapping to a 0-arg method,
-		// and only when the arg's type is concretely known (not SignAny).
-		if p.autoCorrect && len(arguments) == 1 {
-			argSigs := safeSignature(arguments[0])
-			modules := method.DeriveAllowedModules(argSigs)
-			if len(modules) > 0 {
-				if best := method.FindBestSuggestion(nameExpr.Name, modules, nil); best != "" {
-					if _, methodSig := method.TestSignature(best, 0); methodSig != nil {
-						closeParenTok := p.Tokens[p.currIndex-1]
-						p.aggregator.MarkResolved(nameExpr.Where)
-						if nameExpr.Where.Column == closeParenTok.Column {
-							// Remove "name(" from source.
-							p.patches = append(p.patches, SourcePatch{
-								Line:  nameExpr.Where.Column,
-								Start: nameExpr.Where.Row - len(nameExpr.Name),
-								End:   nameExpr.Where.Row + 1,
-								Text:  "",
-							})
-							// Replace ")" with ".method()".
-							p.patches = append(p.patches, SourcePatch{
-								Line:  closeParenTok.Column,
-								Start: closeParenTok.Row - 1,
-								End:   closeParenTok.Row,
-								Text:  "." + best + "()",
-							})
-						}
-						return &method.Call{
-							Where: nameExpr.Where,
-							On:    arguments[0],
-							Name:  best,
-							Args:  []ast.Expr{},
-						}
-					}
-				}
-			}
-		}
-
 		// If the name closely resembles a built-in function, treat it as a misspelled function
 		// so the error gets caret+hint rendering instead of a plain procedure-not-found message.
 		if common.FindBestSuggestion(nameExpr.Name) != "" {
