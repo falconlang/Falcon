@@ -586,10 +586,8 @@ func (i *Interpreter) evalVar(e *variables.Var) Value {
 }
 
 func (i *Interpreter) evalSimpleVar(e *variables.SimpleVar) Value {
-	val := i.Eval(e.Value)
-	childEnv := NewEnv(i.currEnv)
-	childEnv.Define(e.Name, val)
-	return i.inEnv(childEnv, func() Value { return i.execBody(e.Body) })
+	i.currEnv.Define(e.Name, i.Eval(e.Value))
+	return VoidVal()
 }
 
 func (i *Interpreter) evalVarResult(e *variables.VarResult) Value {

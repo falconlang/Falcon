@@ -208,9 +208,9 @@ func (p *LangParser) parse() ast.Expr {
 	case l.Yield:
 		return p.yieldSmt()
 	case l.Local:
-		return p.varExpr()
+		return p.localSmt()
 	case l.Global:
-		return p.globVar()
+		return p.globalSmt()
 	case l.Func:
 		return p.funcSmt()
 	case l.When:
@@ -299,15 +299,11 @@ func (p *LangParser) event() ast.Expr {
 }
 
 func (p *LangParser) parseEventBody(parameters []string) []ast.Expr {
-	where := p.expect(l.OpenCurly)
-	p.ScopeCursor.Enter(where, ScopeEvent)
-	for _, param := range parameters {
-		p.ScopeCursor.DefineVariable(param, []ast.Signature{ast.SignOfEvent, ast.SignAny})
+	vars := make([]ScopeVar, len(parameters))
+	for i, param := range parameters {
+		vars[i] = scopeVar(param, ast.SignOfEvent, ast.SignAny)
 	}
-	body := p.bodyUntilCurly()
-	p.ScopeCursor.Exit(ScopeEvent)
-	p.expect(l.CloseCurly)
-	return body
+	return p.body(ScopeEvent, vars...)
 }
 
 func (p *LangParser) funcSmt() ast.Expr {
@@ -339,17 +335,15 @@ func (p *LangParser) retProcedure(where *l.Token, name string, parameters []stri
 }
 
 func (p *LangParser) voidProcedure(name string, parameters []string) ast.Expr {
-	p.ScopeCursor.Enter(p.expect(l.OpenCurly), ScopeProc)
-	for _, parameter := range parameters {
-		p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
+	vars := make([]ScopeVar, len(parameters))
+	for i, param := range parameters {
+		vars[i] = scopeVar(param, ast.SignAny)
 	}
-	body := p.bodyUntilCurly()
-	p.ScopeCursor.Exit(ScopeProc)
-	p.expect(l.CloseCurly)
+	body := p.body(ScopeProc, vars...)
 	return &procedures.VoidProcedure{Name: name, Parameters: parameters, Body: body}
 }
 
-func (p *LangParser) globVar() ast.Expr {
+func (p *LangParser) globalSmt() ast.Expr {
 	where := p.next()
 	if !p.ScopeCursor.AtRoot() {
 		where.Error("Global variables can only be defined at the root.")
@@ -361,36 +355,41 @@ func (p *LangParser) globVar() ast.Expr {
 	return &variables.Global{Name: name, Value: value}
 }
 
-func (p *LangParser) varExpr() ast.Expr {
-	// a clean full scope variable
-	var names []string
-	var values []ast.Expr
-	for {
-		locCurrIndex := p.currIndex
-		if !p.consume(l.Local) {
-			break
-		}
-		name := p.name()
-		p.expect(l.Assign)
-		value := p.parse()
-
-		if ast.DependsOnVariables(value, names) {
-			// Since this variable depends on the last variable, we cannot include
-			// it in the current set.
-			p.currIndex = locCurrIndex
-			break
-		}
-
-		names = append(names, name)
-		values = append(values, value)
-		p.ScopeCursor.DefineVariable(name, value.Signature())
-	}
-	// we have to parse rest of the body here
-	body := p.bodyUntilCurly()
-	if len(body) == 1 && body[0].Consumable() {
-		return &variables.VarResult{Names: names, Values: values, Result: body[0]}
-	}
-	return &variables.Var{Names: names, Values: values, Body: body}
+func (p *LangParser) localSmt() ast.Expr {
+	//// a clean full scope variable
+	//var names []string
+	//var values []ast.Expr
+	//for {
+	//	locCurrIndex := p.currIndex
+	//	if !p.consume(l.Local) {
+	//		break
+	//	}
+	//	name := p.name()
+	//	p.expect(l.Assign)
+	//	value := p.parse()
+	//
+	//	if ast.DependsOnVariables(value, names) {
+	//		// Since this variable depends on the last variable, we cannot include
+	//		// it in the current set.
+	//		p.currIndex = locCurrIndex
+	//		break
+	//	}
+	//
+	//	names = append(names, name)
+	//	values = append(values, value)
+	//	p.ScopeCursor.DefineVariable(name, value.Signature())
+	//}
+	//// we have to parse rest of the body here
+	//body := p.bodyUntilCurly()
+	//if len(body) == 1 && body[0].Consumable() {
+	//	return &variables.VarResult{Names: names, Values: values, Result: body[0]}
+	//}
+	//return &variables.Var{Names: names, Values: values, Body: body}
+	p.consume(l.Local)
+	name := p.name()
+	p.expect(l.Assign)
+	value := p.parse()
+	return &variables.SimpleVar{Name: name, Value: value}
 }
 
 func (p *LangParser) whileExpr() *control.While {
@@ -419,25 +418,14 @@ func (p *LangParser) forEachPair(forTok *l.Token, keyName string) ast.Expr {
 	p.expect(l.In)
 	iterable := p.parse()
 	p.expect(l.CloseCurve)
-	where := p.expect(l.OpenCurly)
-	p.ScopeCursor.Enter(where, ScopeLoop)
-	p.ScopeCursor.DefineVariable(keyName, []ast.Signature{ast.SignAny})
-	p.ScopeCursor.DefineVariable(valueName, []ast.Signature{ast.SignAny})
-	body := p.bodyUntilCurly()
-	p.ScopeCursor.Exit(ScopeLoop)
-	p.expect(l.CloseCurly)
+	body := p.body(ScopeLoop, scopeVar(keyName, ast.SignAny), scopeVar(valueName, ast.SignAny))
 	return &control.EachPair{Where: forTok, KeyName: keyName, ValueName: valueName, Iterable: iterable, Body: body}
 }
 
 func (p *LangParser) forEach(forTok *l.Token, iName string) ast.Expr {
 	iterable := p.parse()
 	p.expect(l.CloseCurve)
-	where := p.expect(l.OpenCurly)
-	p.ScopeCursor.Enter(where, ScopeLoop)
-	p.ScopeCursor.DefineVariable(iName, []ast.Signature{ast.SignAny})
-	body := p.bodyUntilCurly()
-	p.ScopeCursor.Exit(ScopeLoop)
-	p.expect(l.CloseCurly)
+	body := p.body(ScopeLoop, scopeVar(iName, ast.SignAny))
 	return &control.Each{Where: forTok, IName: iName, Iterable: iterable, Body: body}
 }
 
@@ -453,12 +441,7 @@ func (p *LangParser) forRange(forTok *l.Token, iName string) ast.Expr {
 		by = &fundamentals.Number{Content: "1"}
 	}
 	p.expect(l.CloseCurve)
-	where := p.expect(l.OpenCurly)
-	p.ScopeCursor.Enter(where, ScopeLoop)
-	p.ScopeCursor.DefineVariable(iName, []ast.Signature{ast.SignNumb})
-	body := p.bodyUntilCurly()
-	p.ScopeCursor.Exit(ScopeLoop)
-	p.expect(l.CloseCurly)
+	body := p.body(ScopeLoop, scopeVar(iName, ast.SignNumb))
 	return &control.For{Where: forTok, IName: iName, From: from, To: to, By: by, Body: body}
 }
 
@@ -494,9 +477,22 @@ func (p *LangParser) parseConditionBody() []ast.Expr {
 	return []ast.Expr{p.parse()}
 }
 
-func (p *LangParser) body(scope ScopeType) []ast.Expr {
+// ScopeVar declares a variable immediately after entering a new scope.
+type ScopeVar struct {
+	Name string
+	Sigs []ast.Signature
+}
+
+func scopeVar(name string, sigs ...ast.Signature) ScopeVar {
+	return ScopeVar{Name: name, Sigs: sigs}
+}
+
+func (p *LangParser) body(scope ScopeType, vars ...ScopeVar) []ast.Expr {
 	where := p.expect(l.OpenCurly)
 	p.ScopeCursor.Enter(where, scope)
+	for _, v := range vars {
+		p.ScopeCursor.DefineVariable(v.Name, v.Sigs)
+	}
 	expressions := p.bodyUntilCurly()
 	p.ScopeCursor.Exit(scope)
 	p.expect(l.CloseCurly)

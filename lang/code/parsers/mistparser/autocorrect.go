@@ -49,9 +49,6 @@ func (p *LangParser) walkAndCorrect(expr ast.Expr) {
 	// Variable declarations
 	case *variables.SimpleVar:
 		p.walkAndCorrect(e.Value)
-		for _, b := range e.Body {
-			p.walkAndCorrect(b)
-		}
 	case *variables.Var:
 		for _, v := range e.Values {
 			p.walkAndCorrect(v)

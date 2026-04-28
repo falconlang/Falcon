@@ -37,18 +37,7 @@ func (s *SmartBody) Blockly(flags ...bool) ast.Block {
 	if len(s.Body) == 1 {
 		return s.Body[0].Blockly(flags...)
 	}
-	// Hoist SimpleVar declarations first so doBody no longer re-declares them.
-	namesLocal, valsLocal := s.mutateVars()
-
-	// prepare a do expression out of the then
-	doExpr := s.createDoSmt(s.Body[len(s.Body)-1], s.Body[:len(s.Body)-1])
-
-	if len(namesLocal) == 0 {
-		// no variables declared in the then, a do expression is enough
-		return doExpr
-	}
-	// We'd need to use a local result expression
-	return s.createLocalResult(namesLocal, valsLocal, doExpr)
+	return s.createDoSmt(s.Body[len(s.Body)-1], s.Body[:len(s.Body)-1])
 }
 
 func (s *SmartBody) createLocalResult(names []string, values []ast.Expr, doExpr ast.Block) ast.Block {
@@ -112,27 +101,6 @@ func createEmptyDoSmt(v *variables.Var) ast.Block {
 		Type:   "lexical_variable_get",
 		Fields: []ast.Field{{Name: "VAR", Value: v.Names[len(v.Names)-1]}},
 	}
-}
-
-// mutateVars hoists SimpleVar declarations out of the body into DECL values.
-// It removes SimpleVar entries from the body (they become DECL0, DECL1, …) and
-// returns the extracted names and initial values. The last body element (result) is preserved.
-func (s *SmartBody) mutateVars() ([]string, []ast.Expr) {
-	var names []string
-	var values []ast.Expr
-	last := s.Body[len(s.Body)-1]
-	var filtered []ast.Expr
-	for _, expr := range s.Body[:len(s.Body)-1] {
-		if e, ok := expr.(*variables.SimpleVar); ok {
-			names = append(names, e.Name)
-			values = append(values, e.Value)
-			// removed from body — hoisted to DECL
-		} else {
-			filtered = append(filtered, expr)
-		}
-	}
-	s.Body = append(filtered, last)
-	return names, values
 }
 
 func (s *SmartBody) Continuous() bool {

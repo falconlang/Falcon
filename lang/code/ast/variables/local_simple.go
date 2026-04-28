@@ -8,7 +8,6 @@ import (
 type SimpleVar struct {
 	Name  string
 	Value ast.Expr
-	Body  []ast.Expr
 }
 
 func (v *SimpleVar) String() string {
@@ -18,18 +17,11 @@ func (v *SimpleVar) String() string {
 	builder.WriteString(" = ")
 	builder.WriteString(v.Value.String())
 	builder.WriteString("\n")
-	builder.WriteString(ast.JoinExprs("\n", v.Body))
 	return builder.String()
 }
 
 func (v *SimpleVar) Blockly(flags ...bool) ast.Block {
-	return ast.Block{
-		Type:       "local_declaration_statement",
-		Mutation:   &ast.Mutation{LocalNames: ast.MakeLocalNames(v.Name)},
-		Fields:     []ast.Field{{Name: "VAR0", Value: v.Name}},
-		Values:     []ast.Value{{Name: "DECL0", Block: v.Value.Blockly(false)}},
-		Statements: ast.OptionalStatement("STACK", v.Body),
-	}
+	panic("cannot call Blockly() on a SimpleVar")
 }
 
 func (v *SimpleVar) Continuous() bool {
@@ -42,8 +34,5 @@ func (v *SimpleVar) Consumable() bool {
 
 func (v *SimpleVar) Signature() []ast.Signature {
 	v.Value.Signature()
-	for _, expr := range v.Body {
-		expr.Signature()
-	}
 	return []ast.Signature{ast.SignVoid}
 }
