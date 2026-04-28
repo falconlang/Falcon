@@ -96,6 +96,20 @@ var signatures = map[string]*FuncCallSignature{
 	"every": makeSignature("every", 1, ast.SignList),
 }
 
+// argCountCorrections maps (funcName, argCount) → replacement function name for cases
+// where a known built-in is called with the wrong number of arguments but there is a
+// semantically equivalent function that accepts that count.
+// Key is "name:argCount" formatted by FindArgCountCorrection.
+var argCountCorrections = map[string]string{
+	"round:2": "formatDecimal", // round(n, decimalPlaces) → formatDecimal(n, decimalPlaces)
+}
+
+// FindArgCountCorrection returns the replacement function name when funcName is a known
+// built-in called with argCount arguments that don't match its signature, or "" if none.
+func FindArgCountCorrection(funcName string, argCount int) string {
+	return argCountCorrections[funcName+":"+strconv.Itoa(argCount)]
+}
+
 func MakeFuncCall(name string, args ...ast.Expr) ast.Expr {
 	return &FuncCall{Where: lex.MakeFakeToken(lex.Func), Name: name, Args: args}
 }

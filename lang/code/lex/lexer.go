@@ -215,6 +215,9 @@ func (l *Lexer) colorCode() {
 func (l *Lexer) text() {
 	var writer strings.Builder
 	for {
+		if !l.notEOF() {
+			l.error("Unterminated string literal")
+		}
 		c := l.next()
 		if c == '"' {
 			break

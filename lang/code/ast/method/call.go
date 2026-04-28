@@ -24,6 +24,7 @@ type CallSignature struct {
 	Params      string // human-readable parameter list, e.g. "key, notFound"
 	Consumable  bool
 	Signature   ast.Signature
+	ParamSigs   []ast.Signature // nil = accept any; non-nil = required type per positional param
 }
 
 func makeSignature(
@@ -44,38 +45,52 @@ func makeSignature(
 	}
 }
 
+func makeSignatureTyped(
+	module string,
+	blocklyName string,
+	paramCount int,
+	params string,
+	consumable bool,
+	signature ast.Signature,
+	paramSigs []ast.Signature,
+) *CallSignature {
+	cs := makeSignature(module, blocklyName, paramCount, params, consumable, signature)
+	cs.ParamSigs = paramSigs
+	return cs
+}
+
 var signatures = map[string]*CallSignature{
 	"textLen":                 makeSignature("text", "text_length", 0, "", true, ast.SignNumb),
 	"trim":                    makeSignature("text", "text_trim", 0, "", true, ast.SignText),
 	"uppercase":               makeSignature("text", "text_changeCase", 0, "", true, ast.SignText),
 	"lowercase":               makeSignature("text", "text_changeCase", 0, "", true, ast.SignText),
-	"startsWith":              makeSignature("text", "text_starts_at", 1, "prefix", true, ast.SignBool),
-	"contains":                makeSignature("text", "text_contains", 1, "piece", true, ast.SignBool),
-	"containsAny":             makeSignature("text", "text_contains", 1, "pieces", true, ast.SignBool),
-	"containsAll":             makeSignature("text", "text_contains", 1, "pieces", true, ast.SignBool),
-	"split":                   makeSignature("text", "text_split", 1, "separator", true, ast.SignList),
-	"splitAtFirst":            makeSignature("text", "text_split", 1, "separator", true, ast.SignList),
+	"startsWith":              makeSignatureTyped("text", "text_starts_at", 1, "prefix", true, ast.SignBool, []ast.Signature{ast.SignText}),
+	"contains":                makeSignatureTyped("text", "text_contains", 1, "piece", true, ast.SignBool, []ast.Signature{ast.SignText}),
+	"containsAny":             makeSignatureTyped("text", "text_contains", 1, "pieces", true, ast.SignBool, []ast.Signature{ast.SignList}),
+	"containsAll":             makeSignatureTyped("text", "text_contains", 1, "pieces", true, ast.SignBool, []ast.Signature{ast.SignList}),
+	"split":                   makeSignatureTyped("text", "text_split", 1, "separator", true, ast.SignList, []ast.Signature{ast.SignText}),
+	"splitAtFirst":            makeSignatureTyped("text", "text_split", 1, "separator", true, ast.SignList, []ast.Signature{ast.SignText}),
 	"splitAtAny":              makeSignature("text", "text_split", 1, "separators", true, ast.SignList),
 	"splitAtFirstOfAny":       makeSignature("text", "text_split", 1, "separators", true, ast.SignList),
 	"splitAtSpaces":           makeSignature("text", "text_split_at_spaces", 0, "", true, ast.SignList),
 	"reverse":                 makeSignature("text", "text_reverse", 0, "", true, ast.SignText),
 	"csvRowToList":            makeSignature("text", "lists_from_csv_row", 0, "", true, ast.SignList),
 	"csvTableToList":          makeSignature("text", "lists_from_csv_table", 0, "", true, ast.SignList),
-	"segment":                 makeSignature("text", "text_segment", 2, "start, length", true, ast.SignText),
-	"replace":                 makeSignature("text", "text_replace_all", 2, "from, to", true, ast.SignText),
-	"replaceFrom":             makeSignature("text", "text_replace_mappings", 1, "mappingDict", true, ast.SignText),
-	"replaceFromLongestFirst": makeSignature("text", "text_replace_mappings", 1, "mappingDict", true, ast.SignText),
+	"segment":                 makeSignatureTyped("text", "text_segment", 2, "start, length", true, ast.SignText, []ast.Signature{ast.SignNumb, ast.SignNumb}),
+	"replace":                 makeSignatureTyped("text", "text_replace_all", 2, "from, to", true, ast.SignText, []ast.Signature{ast.SignText, ast.SignText}),
+	"replaceFrom":             makeSignatureTyped("text", "text_replace_mappings", 1, "mappingDict", true, ast.SignText, []ast.Signature{ast.SignDict}),
+	"replaceFromLongestFirst": makeSignatureTyped("text", "text_replace_mappings", 1, "mappingDict", true, ast.SignText, []ast.Signature{ast.SignDict}),
 
 	"listLen":       makeSignature("list", "lists_length", 0, "", true, ast.SignNumb),
 	"add":           makeSignature("list", "lists_add_items", -1, "item...", false, ast.SignVoid),
 	"containsItem":  makeSignature("list", "lists_is_in", 1, "item", true, ast.SignBool),
 	"indexOf":       makeSignature("list", "lists_position_in", 1, "item", true, ast.SignNumb),
-	"insert":        makeSignature("list", "lists_insert_item", 2, "index, item", false, ast.SignVoid),
-	"remove":        makeSignature("list", "lists_remove_item", 1, "index", false, ast.SignVoid),
-	"appendList":    makeSignature("list", "lists_append_list", 1, "other", false, ast.SignVoid),
+	"insert":        makeSignatureTyped("list", "lists_insert_item", 2, "index, item", false, ast.SignVoid, []ast.Signature{ast.SignNumb, ast.SignAny}),
+	"remove":        makeSignatureTyped("list", "lists_remove_item", 1, "index", false, ast.SignVoid, []ast.Signature{ast.SignNumb}),
+	"appendList":    makeSignatureTyped("list", "lists_append_list", 1, "other", false, ast.SignVoid, []ast.Signature{ast.SignList}),
 	"lookupInPairs": makeSignature("list", "lists_lookup_in_pairs", 2, "key, notFound", true, ast.SignAny),
-	"join":          makeSignature("list", "lists_join_with_separator", 1, "separator", true, ast.SignText),
-	"slice":         makeSignature("list", "lists_slice", 2, "from, to", true, ast.SignList),
+	"join":          makeSignatureTyped("list", "lists_join_with_separator", 1, "separator", true, ast.SignText, []ast.Signature{ast.SignText}),
+	"slice":         makeSignatureTyped("list", "lists_slice", 2, "from, to", true, ast.SignList, []ast.Signature{ast.SignNumb, ast.SignNumb}),
 	"random":        makeSignature("list", "lists_pick_random_item", 0, "", true, ast.SignAny),
 	"reverseList":   makeSignature("list", "lists_reverse", 0, "", true, ast.SignList),
 	"toCsvRow":      makeSignature("list", "lists_to_csv_row", 0, "", true, ast.SignText),
@@ -89,10 +104,10 @@ var signatures = map[string]*CallSignature{
 	"get":         makeSignature("dict", "dictionaries_lookup", 2, "key, notFound", true, ast.SignAny),
 	"set":         makeSignature("dict", "dictionaries_set_pair", 2, "key, value", false, ast.SignVoid),
 	"delete":      makeSignature("dict", "dictionaries_delete_pair", 1, "key", false, ast.SignVoid),
-	"getAtPath":   makeSignature("dict", "dictionaries_recursive_lookup", 2, "keys, notFound", true, ast.SignAny),
-	"setAtPath":   makeSignature("dict", "dictionaries_recursive_set", 2, "keys, value", false, ast.SignVoid),
+	"getAtPath":   makeSignatureTyped("dict", "dictionaries_recursive_lookup", 2, "keys, notFound", true, ast.SignAny, []ast.Signature{ast.SignList, ast.SignAny}),
+	"setAtPath":   makeSignatureTyped("dict", "dictionaries_recursive_set", 2, "keys, value", false, ast.SignVoid, []ast.Signature{ast.SignList, ast.SignAny}),
 	"containsKey": makeSignature("dict", "dictionaries_is_key_in", 1, "key", true, ast.SignBool),
-	"mergeInto":   makeSignature("dict", "dictionaries_combine_dicts", 1, "other", true, ast.SignDict),
+	"mergeInto":   makeSignatureTyped("dict", "dictionaries_combine_dicts", 1, "other", true, ast.SignDict, []ast.Signature{ast.SignDict}),
 	"walkTree":    makeSignature("dict", "dictionaries_walk_tree", 1, "procedure", true, ast.SignAny),
 	"keys":        makeSignature("dict", "dictionaries_getters", 0, "", true, ast.SignList),
 	"values":      makeSignature("dict", "dictionaries_getters", 0, "", true, ast.SignList),

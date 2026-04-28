@@ -57,9 +57,10 @@ func stripIsPrefix(name string) string {
 }
 
 type Question struct {
-	Where    *lex.Token
-	On       ast.Expr
-	Question string
+	Where            *lex.Token
+	On               ast.Expr
+	Question         string
+	MethodCallSyntax bool // true when parsed from .name() or .isName() notation
 }
 
 func (q *Question) String() string {

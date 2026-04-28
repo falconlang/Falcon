@@ -101,7 +101,7 @@ func (b *BinaryExpr) Signature() []ast.Signature {
 	case lex.LogicAnd, lex.LogicOr:
 		b.ensureSignature(ast.SignBool)
 	case lex.Underscore:
-		b.ensureSignature(ast.SignText)
+		// _ auto-converts any operand type to text at runtime; no type enforcement here.
 	case lex.TextEquals, lex.TextNotEquals, lex.TextLessThan, lex.TextGreaterThan:
 		b.ensureSignature(ast.SignText)
 	case lex.LessThan, lex.LessThanEqual, lex.GreatThan, lex.GreaterThanEqual:

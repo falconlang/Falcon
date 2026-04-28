@@ -1,2 +1,11 @@
-local s = "M e l on"
-println(s.uppercase().replace(" ", "").textLen())
+func processValue(x) {
+  if (isNumber(x)) {
+    println(abs(x))
+  } else {
+    println("Invalid")
+  }
+}
+
+// Test cases
+processValue("hello")
+processValue([1, 2, 3])

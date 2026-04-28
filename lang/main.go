@@ -52,15 +52,22 @@ func main() {
 			}
 			execFile(os.Args[2])
 			return
+		case "correct":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: Falcon correct <file.mist>")
+				os.Exit(1)
+			}
+			correctFile(os.Args[2])
+			return
 		}
 	}
 	//repl()
 	//diffTest()
-	analyzeSyntax()
+	//analyzeSyntax()
 	//xmlTest()
 	//designTest()
 	//runProgram()
-	//runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
+	runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
 }
 
 func reformatStdin() {
@@ -216,6 +223,9 @@ func runFile(path string) {
 	tokens := lex.NewLexer(codeContext).Lex()
 	langParser := mistParser.NewLangParser(false, tokens)
 	exprs := langParser.ParseAll()
+	fmt.Println("--- corrected source ---")
+	fmt.Println(langParser.ReconstructedSource())
+	fmt.Println("------------------------")
 	for _, e := range exprs {
 		e.Blockly()
 	}
@@ -245,6 +255,27 @@ func execFile(path string) {
 	langParser := mistParser.NewLangParser(false, tokens)
 	exprs := langParser.ParseAll()
 	interp.Run(exprs)
+}
+
+func correctFile(path string) {
+	codeBytes, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+	source := string(codeBytes)
+	fileName := filepath.Base(path)
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintln(os.Stderr, "Error:", r)
+			os.Exit(1)
+		}
+	}()
+	codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
+	tokens := lex.NewLexer(codeContext).Lex()
+	langParser := mistParser.NewLangParser(false, tokens)
+	langParser.ParseAll()
+	fmt.Print(langParser.ReconstructedSource())
 }
 
 func repl() {

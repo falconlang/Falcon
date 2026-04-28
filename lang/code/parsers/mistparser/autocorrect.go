@@ -22,164 +22,199 @@ func safeSignature(expr ast.Expr) (sigs []ast.Signature) {
 	return expr.Signature()
 }
 
-// walkAndCorrect recursively visits every expression in the tree and corrects
-// method chain type mismatches (via method.CorrectChain) before the main
-// Signature() pass fires any type errors.
-func walkAndCorrect(expr ast.Expr) {
+// walkAndCorrect recursively visits every expression in the tree, corrects
+// auto-correctable names in-place, and records each change as a SourcePatch
+// so the original source can be reconstructed via ReconstructedSource().
+func (p *LangParser) walkAndCorrect(expr ast.Expr) {
 	if expr == nil {
 		return
 	}
 	switch e := expr.(type) {
 
 	case *method.Call:
-		method.CorrectChain(e)
+		var corrections []method.Correction
+		method.CorrectChainAndCollect(e, &corrections)
+		for _, c := range corrections {
+			p.patches = append(p.patches, SourcePatch{
+				Line:  c.Where.Column,
+				Start: c.Where.Row - len(c.OldName),
+				End:   c.Where.Row,
+				Text:  c.Replacement,
+			})
+		}
 		for _, arg := range e.Args {
-			walkAndCorrect(arg)
+			p.walkAndCorrect(arg)
 		}
 
 	// Variable declarations
 	case *variables.SimpleVar:
-		walkAndCorrect(e.Value)
+		p.walkAndCorrect(e.Value)
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *variables.Var:
 		for _, v := range e.Values {
-			walkAndCorrect(v)
+			p.walkAndCorrect(v)
 		}
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *variables.VarResult:
 		for _, v := range e.Values {
-			walkAndCorrect(v)
+			p.walkAndCorrect(v)
 		}
-		walkAndCorrect(e.Result)
+		p.walkAndCorrect(e.Result)
 	case *variables.Set:
-		walkAndCorrect(e.Expr)
+		p.walkAndCorrect(e.Expr)
 	case *variables.Global:
-		walkAndCorrect(e.Value)
+		p.walkAndCorrect(e.Value)
 
 	// Procedures
 	case *procedures.RetProcedure:
-		walkAndCorrect(e.Result)
+		p.walkAndCorrect(e.Result)
 	case *procedures.VoidProcedure:
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *procedures.Call:
 		for _, arg := range e.Arguments {
-			walkAndCorrect(arg)
+			p.walkAndCorrect(arg)
 		}
 
 	// Common expressions
 	case *common.FuncCall:
 		if !common.IsKnownFunction(e.Name) {
 			if best := common.FindBestSuggestion(e.Name); best != "" {
+				oldName := e.Name
 				e.Name = best
+				p.patches = append(p.patches, SourcePatch{
+					Line:  e.Where.Column,
+					Start: e.Where.Row - len(oldName),
+					End:   e.Where.Row,
+					Text:  best,
+				})
 			}
 		}
 		for _, arg := range e.Args {
-			walkAndCorrect(arg)
+			p.walkAndCorrect(arg)
 		}
 	case *common.BinaryExpr:
 		for _, op := range e.Operands {
-			walkAndCorrect(op)
+			p.walkAndCorrect(op)
 		}
 	case *common.Question:
+		oldQuestion := e.Question
 		if !common.IsKnownQuestion(e.Question) {
 			if best := common.FindBestQuestionSuggestion(e.Question); best != "" {
 				e.Question = best
 			}
 		}
-		walkAndCorrect(e.On)
+		if e.MethodCallSyntax {
+			// Source had .name() or .isName() — patch replaces dot + name + () with ? keyword.
+			// The leading space preserves the visual gap that the dot occupied (e.g. s.isString() → s ? text).
+			p.patches = append(p.patches, SourcePatch{
+				Line:  e.Where.Column,
+				Start: e.Where.Row - len(oldQuestion) - 1, // include the dot
+				End:   e.Where.Row + 2,                     // include ()
+				Text:  " ? " + e.Question,
+			})
+		} else if e.Question != oldQuestion {
+			// Source used ? syntax but with wrong keyword — simple in-place rename.
+			p.patches = append(p.patches, SourcePatch{
+				Line:  e.Where.Column,
+				Start: e.Where.Row - len(oldQuestion),
+				End:   e.Where.Row,
+				Text:  e.Question,
+			})
+		}
+		p.walkAndCorrect(e.On)
 
 	// Control flow
 	case *control.If:
 		for _, cond := range e.Conditions {
-			walkAndCorrect(cond)
+			p.walkAndCorrect(cond)
 		}
 		for _, body := range e.Bodies {
 			for _, b := range body {
-				walkAndCorrect(b)
+				p.walkAndCorrect(b)
 			}
 		}
 		for _, b := range e.ElseBody {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *control.For:
-		walkAndCorrect(e.From)
-		walkAndCorrect(e.To)
-		walkAndCorrect(e.By)
+		p.walkAndCorrect(e.From)
+		p.walkAndCorrect(e.To)
+		p.walkAndCorrect(e.By)
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *control.While:
-		walkAndCorrect(e.Condition)
+		p.walkAndCorrect(e.Condition)
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *control.Each:
-		walkAndCorrect(e.Iterable)
+		p.walkAndCorrect(e.Iterable)
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *control.EachPair:
-		walkAndCorrect(e.Iterable)
+		p.walkAndCorrect(e.Iterable)
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *control.Do:
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
-		walkAndCorrect(e.Result)
+		p.walkAndCorrect(e.Result)
 
 	// List operations
 	case *list.Transformer:
-		walkAndCorrect(e.List)
+		p.walkAndCorrect(e.List)
 		for _, arg := range e.Args {
-			walkAndCorrect(arg)
+			p.walkAndCorrect(arg)
 		}
-		walkAndCorrect(e.Transformer)
+		p.walkAndCorrect(e.Transformer)
 	case *list.Get:
-		walkAndCorrect(e.List)
-		walkAndCorrect(e.Index)
+		p.walkAndCorrect(e.List)
+		p.walkAndCorrect(e.Index)
 	case *list.Set:
-		walkAndCorrect(e.List)
-		walkAndCorrect(e.Index)
-		walkAndCorrect(e.Value)
+		p.walkAndCorrect(e.List)
+		p.walkAndCorrect(e.Index)
+		p.walkAndCorrect(e.Value)
 
 	// Fundamentals that can contain sub-expressions
 	case *fundamentals.SmartBody:
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *fundamentals.List:
 		for _, item := range e.Elements {
-			walkAndCorrect(item)
+			p.walkAndCorrect(item)
 		}
 
 	// Component event handlers
 	case *components.Event:
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *components.GenericEvent:
 		for _, b := range e.Body {
-			walkAndCorrect(b)
+			p.walkAndCorrect(b)
 		}
 	case *components.PropertySet:
-		walkAndCorrect(e.Value)
+		p.walkAndCorrect(e.Value)
 	case *components.GenericPropertySet:
-		walkAndCorrect(e.Value)
+		p.walkAndCorrect(e.Value)
 	case *components.MethodCall:
 		for _, arg := range e.Args {
-			walkAndCorrect(arg)
+			p.walkAndCorrect(arg)
 		}
 	case *components.GenericMethodCall:
 		for _, arg := range e.Args {
-			walkAndCorrect(arg)
+			p.walkAndCorrect(arg)
 		}
 	}
 }

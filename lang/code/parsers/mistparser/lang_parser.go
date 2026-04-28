@@ -27,6 +27,7 @@ type LangParser struct {
 	Resolver    *NameResolver
 	ScopeCursor *ScopeCursor
 	aggregator  *ErrorAggregator
+	patches     []SourcePatch
 }
 
 func NewLangParser(strict bool, tokens []*l.Token) *LangParser {
@@ -59,6 +60,16 @@ func (p *LangParser) GetComponentDefinitionsCode() string {
 	return definitions.String()
 }
 
+// ReconstructedSource returns the original source code with all auto-corrections
+// applied in-place. Positions are taken directly from token Row/Column values so
+// the surrounding whitespace and formatting are preserved.
+func (p *LangParser) ReconstructedSource() string {
+	if len(p.Tokens) == 0 || p.Tokens[0].Context == nil {
+		return ""
+	}
+	return ApplyPatches(*p.Tokens[0].Context.SourceCode, p.patches)
+}
+
 func (p *LangParser) ParseAll() []ast.Expr {
 	var expressions []ast.Expr
 	if p.notEOF() {
@@ -69,7 +80,7 @@ func (p *LangParser) ParseAll() []ast.Expr {
 		expressions = append(expressions, e)
 	}
 	for _, e := range expressions {
-		walkAndCorrect(e)
+		p.walkAndCorrect(e)
 	}
 	p.checkPendingSymbols()
 	for _, e := range expressions {
@@ -418,7 +429,7 @@ func (p *LangParser) forExpr() ast.Expr {
 
 		where := p.expect(l.OpenCurly)
 		p.ScopeCursor.Enter(where, ScopeLoop)
-		p.ScopeCursor.DefineVariable(firstName, iterable.Signature())
+		p.ScopeCursor.DefineVariable(firstName, []ast.Signature{ast.SignAny})
 		body := p.bodyUntilCurly()
 		p.ScopeCursor.Exit(ScopeLoop)
 		p.expect(l.CloseCurly)
@@ -766,6 +777,45 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 		// Only treat as a transformer if the name is a known transformer signature
 		// AND the arg count matches — otherwise the '{' belongs to the surrounding expression.
 		if !p.isNext(l.OpenCurly) || !list.IsTransformer(name, len(args)) {
+			// Drop check: no-op type-conversion methods (.toString(), .toStr(), .toInt(), …)
+			// are silently removed — the receiver is returned as-is.
+			if len(args) == 0 && common.IsDropMethod(name) {
+				p.patches = append(p.patches, SourcePatch{
+					Line:  where.Column,
+					Start: where.Row - len(name) - 1, // include the dot
+					End:   where.Row + 2,               // include ()
+					Text:  "",
+				})
+				return object
+			}
+
+			// charAt(n) → segment(n, 1): get character at 0-based index maps to a 1-step segment.
+			if name == "charAt" && len(args) == 1 {
+				closeParen := p.Tokens[p.currIndex-1]
+				p.patches = append(p.patches, SourcePatch{
+					Line:  where.Column,
+					Start: where.Row - len("charAt"),
+					End:   where.Row,
+					Text:  "segment",
+				})
+				if where.Column == closeParen.Column {
+					// Insert ", 1" before the closing ")" to complete the segment(start, 1) call.
+					p.patches = append(p.patches, SourcePatch{
+						Line:  closeParen.Column,
+						Start: closeParen.Row - 1,
+						End:   closeParen.Row - 1,
+						Text:  ", 1",
+					})
+				}
+				p.aggregator.MarkResolved(where)
+				return &method.Call{
+					Where: where,
+					On:    object,
+					Name:  "segment",
+					Args:  []ast.Expr{args[0], &fundamentals.Number{Content: "1"}},
+				}
+			}
+
 			// he's a simple call!
 			call := &method.Call{Where: where, On: object, Name: name, Args: args}
 			errorMessage, signature := method.TestSignature(name, len(args))
@@ -774,7 +824,7 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 				// This catches patterns like .isNumber() → ? number and .number() → ? number.
 				if len(args) == 0 {
 					if common.FindBestQuestionSuggestion(name) != "" {
-						q := &common.Question{Where: where, On: object, Question: name}
+						q := &common.Question{Where: where, On: object, Question: name, MethodCallSyntax: true}
 						if common.IsKnownQuestion(name) {
 							p.aggregator.MarkResolved(where)
 						} else {
@@ -896,6 +946,22 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 			p.aggregator.MarkResolved(nameExpr.Where)
 			return &common.FuncCall{Where: nameExpr.Where, Name: nameExpr.Name, Args: arguments}
 		}
+		// Arg-count correction: a known function called with the wrong number of args
+		// may be a common mistake that maps to a different built-in (e.g. round(n,d) → formatDecimal(n,d)).
+		if common.IsKnownFunction(nameExpr.Name) {
+			if corrected := common.FindArgCountCorrection(nameExpr.Name, len(arguments)); corrected != "" {
+				if _, corrSig := common.TestSignature(corrected, len(arguments)); corrSig != nil {
+					p.patches = append(p.patches, SourcePatch{
+						Line:  nameExpr.Where.Column,
+						Start: nameExpr.Where.Row - len(nameExpr.Name),
+						End:   nameExpr.Where.Row,
+						Text:  corrected,
+					})
+					p.aggregator.MarkResolved(nameExpr.Where)
+					return &common.FuncCall{Where: nameExpr.Where, Name: corrected, Args: arguments}
+				}
+			}
+		}
 		// check for a user defined procedure
 		procedureErrorMessage, procedureSignature := p.Resolver.ResolveProcedure(nameExpr.Name, len(arguments))
 		if procedureSignature != nil {
@@ -909,6 +975,97 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 			}
 		}
 		// Neither a known built-in nor a defined procedure.
+		// Drop check: no-op type-cast wrappers like string(x), int(x), toString(x) are removed,
+		// returning the sole argument directly.
+		if len(arguments) == 1 && common.IsDropFunction(nameExpr.Name) {
+			closeParenTok := p.Tokens[p.currIndex-1]
+			p.aggregator.MarkResolved(nameExpr.Where)
+			if nameExpr.Where.Column == closeParenTok.Column {
+				// Single-line call: patch out "name(" and ")" separately.
+				p.patches = append(p.patches, SourcePatch{
+					Line:  nameExpr.Where.Column,
+					Start: nameExpr.Where.Row - len(nameExpr.Name),
+					End:   nameExpr.Where.Row + 1, // removes "name("
+					Text:  "",
+				})
+				p.patches = append(p.patches, SourcePatch{
+					Line:  closeParenTok.Column,
+					Start: closeParenTok.Row - 1,
+					End:   closeParenTok.Row, // removes ")"
+					Text:  "",
+				})
+			}
+			return arguments[0]
+		}
+		// Func-to-question: isNumber(x) / number(x) style calls that map to the ? operator.
+		// Runs after the drop check so that bare type-cast forms (number(x), string(x)) are
+		// already handled before we try to interpret them as questions.
+		if len(arguments) == 1 {
+			if question := common.FindBestQuestionSuggestion(nameExpr.Name); question != "" {
+				closeParenTok := p.Tokens[p.currIndex-1]
+				p.aggregator.MarkResolved(nameExpr.Where)
+				if nameExpr.Where.Column == closeParenTok.Column {
+					// Remove "funcName(" — positions: [Row-len(name), Row+1)
+					p.patches = append(p.patches, SourcePatch{
+						Line:  nameExpr.Where.Column,
+						Start: nameExpr.Where.Row - len(nameExpr.Name),
+						End:   nameExpr.Where.Row + 1,
+						Text:  "",
+					})
+					// Replace ")" with " ? question"
+					p.patches = append(p.patches, SourcePatch{
+						Line:  closeParenTok.Column,
+						Start: closeParenTok.Row - 1,
+						End:   closeParenTok.Row,
+						Text:  " ? " + question,
+					})
+				}
+				return &common.Question{
+					Where:    nameExpr.Where,
+					On:       arguments[0],
+					Question: question,
+				}
+			}
+		}
+		// Func-to-method lift: a bare function call like len(x) where len is unknown
+		// may really be a type-specific method on x, e.g. x.textLen() or x.listLen().
+		// Attempt the lift only when we have exactly 1 arg (receiver) mapping to a 0-arg method,
+		// and only when the arg's type is concretely known (not SignAny).
+		if len(arguments) == 1 {
+			argSigs := safeSignature(arguments[0])
+			modules := method.DeriveAllowedModules(argSigs)
+			if len(modules) > 0 {
+				if best := method.FindBestSuggestion(nameExpr.Name, modules, nil); best != "" {
+					if _, methodSig := method.TestSignature(best, 0); methodSig != nil {
+						closeParenTok := p.Tokens[p.currIndex-1]
+						p.aggregator.MarkResolved(nameExpr.Where)
+						if nameExpr.Where.Column == closeParenTok.Column {
+							// Remove "name(" from source.
+							p.patches = append(p.patches, SourcePatch{
+								Line:  nameExpr.Where.Column,
+								Start: nameExpr.Where.Row - len(nameExpr.Name),
+								End:   nameExpr.Where.Row + 1,
+								Text:  "",
+							})
+							// Replace ")" with ".method()".
+							p.patches = append(p.patches, SourcePatch{
+								Line:  closeParenTok.Column,
+								Start: closeParenTok.Row - 1,
+								End:   closeParenTok.Row,
+								Text:  "." + best + "()",
+							})
+						}
+						return &method.Call{
+							Where: nameExpr.Where,
+							On:    arguments[0],
+							Name:  best,
+							Args:  []ast.Expr{},
+						}
+					}
+				}
+			}
+		}
+
 		// If the name closely resembles a built-in function, treat it as a misspelled function
 		// so the error gets caret+hint rendering instead of a plain procedure-not-found message.
 		if common.FindBestSuggestion(nameExpr.Name) != "" {

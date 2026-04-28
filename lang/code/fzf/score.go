@@ -5,10 +5,16 @@ import "strings"
 func TokenOverlap(a, b []string) float64 {
 	setA := make(map[string]struct{})
 	for _, t := range a {
+		if len(t) <= 2 {
+			continue // skip short positional/preposition tokens ("at", "of", "is", …)
+		}
 		setA[Canonical(t)] = struct{}{}
 	}
 	setB := make(map[string]struct{})
 	for _, t := range b {
+		if len(t) <= 2 {
+			continue
+		}
 		setB[Canonical(t)] = struct{}{}
 	}
 

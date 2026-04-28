@@ -3,6 +3,8 @@ package method
 import (
 	"Falcon/code/ast"
 	"Falcon/code/fzf"
+	"Falcon/code/lex"
+	"strings"
 )
 
 // flattenChain flattens a nested method chain into left-to-right call order
@@ -69,11 +71,31 @@ func signatureForModule(module string) ast.Signature {
 // that prefix-match cases like "upper" → "uppercase" (score ≈ 0.18) are accepted.
 const minCorrectionScore = 0.1
 
+// argSigCompatible reports whether the provided argument signatures are compatible
+// with the candidate method's declared parameter types. It checks only as many
+// positions as are available in both slices; unmatched trailing params are ignored.
+// A caller-side SignAny or a nil ParamSigs on the candidate means "any type OK".
+func argSigCompatible(sig *CallSignature, argSigs [][]ast.Signature) bool {
+	if sig.ParamSigs == nil {
+		return true
+	}
+	for i := 0; i < len(sig.ParamSigs) && i < len(argSigs); i++ {
+		required := sig.ParamSigs[i]
+		if required == ast.SignAny {
+			continue
+		}
+		if !ast.HasSignature(argSigs[i], required) && !ast.HasSignature(argSigs[i], ast.SignAny) {
+			return false
+		}
+	}
+	return true
+}
+
 // findBestCorrection returns the best replacement method name for wrongName such
-// that the replacement accepts inputSigs and (when neededOutput is non-nil) produces
-// a compatible output type. Falls back to ignoring the output constraint if the
-// constrained search yields nothing.
-func findBestCorrection(wrongName string, inputSigs []ast.Signature, neededOutput *ast.Signature) string {
+// that the replacement accepts inputSigs, its param types are compatible with
+// argSigs, and (when neededOutput is non-nil) it produces a compatible output type.
+// Falls back to ignoring the output constraint if the constrained search yields nothing.
+func findBestCorrection(wrongName string, inputSigs []ast.Signature, neededOutput *ast.Signature, argSigs [][]ast.Signature) string {
 	bestScore := -1.0
 	bestName := ""
 	for name, sig := range signatures {
@@ -86,6 +108,9 @@ func findBestCorrection(wrongName string, inputSigs []ast.Signature, neededOutpu
 		if neededOutput != nil && sig.Signature != *neededOutput && sig.Signature != ast.SignAny {
 			continue
 		}
+		if !argSigCompatible(sig, argSigs) {
+			continue
+		}
 		if s := fzf.Score(wrongName, name); s > bestScore {
 			bestScore = s
 			bestName = name
@@ -95,7 +120,7 @@ func findBestCorrection(wrongName string, inputSigs []ast.Signature, neededOutpu
 		return bestName
 	}
 	if neededOutput != nil {
-		return findBestCorrection(wrongName, inputSigs, nil)
+		return findBestCorrection(wrongName, inputSigs, nil, argSigs)
 	}
 	return ""
 }
@@ -162,6 +187,16 @@ func applyDecomposition(c *Call, parts []string) {
 	c.Name = parts[len(parts)-1]
 }
 
+// Correction records a single name substitution made by CorrectChainAndCollect.
+// Replacement is the text that replaces OldName at [Where.Row-len(OldName), Where.Row)
+// in the source line. For AND-decompositions it is "a().b" style; for simple renames
+// it is just the new method name.
+type Correction struct {
+	Where       *lex.Token
+	OldName     string
+	Replacement string
+}
+
 // CorrectChain inspects the full method chain rooted at call and rewrites any
 // method names that are mismatched with their receiver types. Two strategies
 // are applied in order for each invalid call:
@@ -173,6 +208,12 @@ func applyDecomposition(c *Call, parts []string) {
 //
 // Returns true if at least one correction was made.
 func CorrectChain(call *Call) bool {
+	return CorrectChainAndCollect(call, nil)
+}
+
+// CorrectChainAndCollect is like CorrectChain but also appends a Correction
+// record for every name change it makes, enabling source-level reconstruction.
+func CorrectChainAndCollect(call *Call, corrections *[]Correction) bool {
 	chain, root := flattenChain(call)
 	if len(chain) == 0 {
 		return false
@@ -186,12 +227,21 @@ func CorrectChain(call *Call) bool {
 		isValid := exists && moduleMatchesSig(sig.Module, inputSig)
 
 		if !isValid {
+			oldName := c.Name
 			// Strategy 1: try to split a merged "And"-joined name into two calls.
 			if parts := tryDecomposeAnd(c.Name, inputSig); len(parts) >= 2 {
 				applyDecomposition(c, parts)
 				sig = signatures[c.Name]
 				exists = sig != nil
 				corrected = true
+				if corrections != nil {
+					// Replacement text: "a().b" (last part keeps the original source parens)
+					*corrections = append(*corrections, Correction{
+						Where:       c.Where,
+						OldName:     oldName,
+						Replacement: strings.Join(parts, "()."),
+					})
+				}
 			} else {
 				// Strategy 2: fuzzy rename — find the closest valid single method.
 				// Scan forward past any consecutive invalid calls to find the first
@@ -205,11 +255,22 @@ func CorrectChain(call *Call) bool {
 					}
 				}
 				c.hintOutput = neededOutput // retained for error message generation if correction fails
-				if bestName := findBestCorrection(c.Name, inputSig, neededOutput); bestName != "" {
+				argSigs := make([][]ast.Signature, len(c.Args))
+				for i, arg := range c.Args {
+					argSigs[i] = safeRootSignature(arg)
+				}
+				if bestName := findBestCorrection(c.Name, inputSig, neededOutput, argSigs); bestName != "" {
 					c.Name = bestName
 					sig = signatures[bestName]
 					exists = true
 					corrected = true
+					if corrections != nil {
+						*corrections = append(*corrections, Correction{
+							Where:       c.Where,
+							OldName:     oldName,
+							Replacement: bestName,
+						})
+					}
 				}
 			}
 		}
