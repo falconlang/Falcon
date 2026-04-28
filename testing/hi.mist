@@ -1,2 +1,10 @@
-local s = "M e l on"
-println(s.isList())
+func fooBar() = {
+  if (true) {
+    yield 0
+  }
+  local a = 1
+          println(a)
+          a
+}
+
+println(fooBar())

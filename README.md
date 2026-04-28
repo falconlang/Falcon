@@ -405,7 +405,7 @@ Usage `.min { m, n -> bool_m_preceeds_n }` and `.max { m, n -> bool_m_preceeds_n
 local names = ["Bob", "Alice", "John"]
 // Find the longest name
 local longestName = names
-  .max { m, n -> n.textLen() > m.textLen() }  // use min { } for the shortest name
+  .max { m, n -> m.textLen() < n.textLen() }  // use min { } for the shortest name
 println(longestName)
 ```
 

@@ -97,15 +97,15 @@ func (b *BinaryExpr) Consumable() bool {
 func (b *BinaryExpr) Signature() []ast.Signature {
 	switch b.Operator {
 	case lex.Plus, lex.Times, lex.Dash, lex.Slash, lex.Power, lex.Remainder, lex.BitwiseAnd, lex.BitwiseOr, lex.BitwiseXor:
-		b.ensureSignature(ast.SignNumb)
+		b.ensureSignature(ast.SignNumb, ast.SignText)
 	case lex.LogicAnd, lex.LogicOr:
-		b.ensureSignature(ast.SignBool)
+		b.ensureSignature(ast.SignBool, ast.SignText)
 	case lex.Underscore:
 		// _ auto-converts any operand type to text at runtime; no type enforcement here.
 	case lex.TextEquals, lex.TextNotEquals, lex.TextLessThan, lex.TextGreaterThan:
-		b.ensureSignature(ast.SignText)
+		b.ensureSignature(ast.SignText, ast.SignNumb)
 	case lex.LessThan, lex.LessThanEqual, lex.GreatThan, lex.GreaterThanEqual:
-		b.ensureSignature(ast.SignNumb)
+		b.ensureSignature(ast.SignNumb, ast.SignText)
 	}
 	switch b.Operator {
 	case lex.BitwiseAnd, lex.BitwiseOr, lex.BitwiseXor:
@@ -132,13 +132,16 @@ func (b *BinaryExpr) Signature() []ast.Signature {
 	}
 }
 
-func (b *BinaryExpr) ensureSignature(signature ast.Signature) {
+func (b *BinaryExpr) ensureSignature(acceptableSignature ...ast.Signature) {
 	for _, op := range b.Operands {
 		opSigs := op.Signature()
-		if !ast.HasSignature(opSigs, signature) {
-			b.Where.TypeError("Operator '%' requires % operands, but got %", *b.Where.Content, signature.String(), ast.FormatSignatures(opSigs))
+		for _, signature := range acceptableSignature {
+			if ast.HasSignature(opSigs, signature) {
+				return
+			}
 		}
 	}
+	b.Where.TypeError("Operator '%' requires % operand types", *b.Where.Content, ast.FormatSignatures(acceptableSignature))
 }
 
 func (b *BinaryExpr) textCompare() ast.Block {

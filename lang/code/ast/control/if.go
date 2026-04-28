@@ -9,6 +9,9 @@ type If struct {
 	Conditions []ast.Expr
 	Bodies     [][]ast.Expr
 	ElseBody   []ast.Expr
+
+	mutated  bool
+	mutation ast.Expr
 }
 
 func (i *If) String() string {
@@ -76,6 +79,8 @@ func (i *If) createSimpleIf() ast.Block {
 		simpleIf := MakeSimpleIf(condition, then, currElseBlock)
 		currElseBlock = []ast.Expr{simpleIf}
 	}
+	i.mutated = true
+	i.mutation = currElseBlock[0]
 	return currElseBlock[0].Blockly()
 }
 
@@ -84,6 +89,9 @@ func (i *If) Continuous() bool {
 }
 
 func (i *If) Consumable() bool {
+	if i.mutated {
+		return true
+	}
 	if i.ElseBody == nil || len(i.ElseBody) == 0 {
 		return false
 	}

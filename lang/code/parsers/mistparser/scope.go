@@ -2,6 +2,7 @@ package mistparser
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/ast/fundamentals"
 )
 
 type Scope struct {
@@ -12,7 +13,7 @@ type Scope struct {
 	YieldIndex          int
 	ChildYieldScopeType ScopeType
 	YieldName           *string
-	//Yield               *fundamentals.Yield
+	Yield               *fundamentals.Yield
 }
 
 func (s *Scope) DefineVariable(name string, signature []ast.Signature) {

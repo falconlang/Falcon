@@ -22,13 +22,17 @@ type LangParser struct {
 	currIndex int
 	tokenSize int
 
-	strict bool
+	strict      bool
+	autoCorrect bool
 
 	Resolver    *NameResolver
 	ScopeCursor *ScopeCursor
 	aggregator  *ErrorAggregator
 	patches     []SourcePatch
 }
+
+// EnableAutoCorrect turns on the auto-correction pass. Disabled by default.
+func (p *LangParser) EnableAutoCorrect() { p.autoCorrect = true }
 
 func NewLangParser(strict bool, tokens []*l.Token) *LangParser {
 	return &LangParser{
@@ -70,13 +74,64 @@ func (p *LangParser) ReconstructedSource() string {
 	return ApplyPatches(*p.Tokens[0].Context.SourceCode, p.patches)
 }
 
+// selfAssignMethods is the set of method names whose output type equals the type of their
+// receiver, making `obj = obj.method(...)` a semantically correct self-assignment correction.
+var selfAssignMethods = map[string]bool{
+	// text → text
+	"trim": true, "uppercase": true, "lowercase": true, "reverse": true,
+	"segment": true, "replace": true, "replaceFrom": true, "replaceFromLongestFirst": true,
+	// list → list
+	"sort": true, "reverseList": true, "slice": true, "allButFirst": true, "allButLast": true,
+	// dict → dict
+	"mergeInto": true,
+}
+
+// tryAutoAssign detects an unconsumed method call or sort-transformer whose output type
+// equals the receiver's type, and rewrites it as `varName = varName.method(...)`.
+// It applies only when the direct receiver is a local variable reference.
+// No-op when autoCorrect is disabled.
+func (p *LangParser) tryAutoAssign(expr ast.Expr) ast.Expr {
+	if !p.autoCorrect {
+		return expr
+	}
+	switch e := expr.(type) {
+	case *method.Call:
+		if !selfAssignMethods[e.Name] {
+			return expr
+		}
+		if recv, ok := e.On.(*variables.Get); ok && !recv.Global {
+			return p.emitSelfAssign(recv, expr)
+		}
+	case *list.Transformer:
+		if e.Name != "sort" {
+			return expr
+		}
+		if recv, ok := e.List.(*variables.Get); ok && !recv.Global {
+			return p.emitSelfAssign(recv, expr)
+		}
+	}
+	return expr
+}
+
+// emitSelfAssign patches the source to prepend "varName = " and wraps expr in variables.Set.
+func (p *LangParser) emitSelfAssign(recv *variables.Get, expr ast.Expr) ast.Expr {
+	insertPos := recv.Where.Row - len(recv.Name)
+	p.patches = append(p.patches, SourcePatch{
+		Line:  recv.Where.Column,
+		Start: insertPos,
+		End:   insertPos,
+		Text:  recv.Name + " = ",
+	})
+	return &variables.Set{Global: false, Name: recv.Name, Expr: expr}
+}
+
 func (p *LangParser) ParseAll() []ast.Expr {
 	var expressions []ast.Expr
 	if p.notEOF() {
 		p.defineStatements()
 	}
 	for p.notEOF() {
-		e := p.parse()
+		e := p.tryAutoAssign(p.parse())
 		expressions = append(expressions, e)
 	}
 	for _, e := range expressions {
@@ -251,13 +306,18 @@ func (p *LangParser) yieldSmt() ast.Expr {
 			},
 		},
 	}
+	yield := &fundamentals.Yield{
+		Expr:            expr,
+		TransformedExpr: transformedExpr,
+		Revert:          false,
+	}
 	var currScope = p.ScopeCursor.currScope
 	var yieldIndex = 0
 	for {
 		currScope.YieldIndex = yieldIndex
 		yieldIndex++
 		currScope.YieldName = &yieldName
-		//currScope.Yield = yield
+		currScope.Yield = yield
 		if currScope.Type == ScopeRetProc {
 			break
 		}
@@ -268,7 +328,7 @@ func (p *LangParser) yieldSmt() ast.Expr {
 		}
 		currScope.ChildYieldScopeType = child.Type
 	}
-	return transformedExpr
+	return yield
 }
 
 func (p *LangParser) genericEvent() ast.Expr {
@@ -365,6 +425,7 @@ func (p *LangParser) varExpr() ast.Expr {
 	var values []ast.Expr
 	for {
 		locCurrIndex := p.currIndex
+		locPatchLen := len(p.patches)
 		if !p.consume(l.Local) {
 			break
 		}
@@ -376,6 +437,7 @@ func (p *LangParser) varExpr() ast.Expr {
 			// Since this variable depends on the last variable, we cannot include
 			// it in the current set.
 			p.currIndex = locCurrIndex
+			p.patches = p.patches[:locPatchLen]
 			break
 		}
 
@@ -415,8 +477,8 @@ func (p *LangParser) forExpr() ast.Expr {
 
 		where := p.expect(l.OpenCurly)
 		p.ScopeCursor.Enter(where, ScopeLoop)
-		p.ScopeCursor.DefineVariable(firstName, iterable.Signature())
-		p.ScopeCursor.DefineVariable(valueName, iterable.Signature())
+		p.ScopeCursor.DefineVariable(firstName, []ast.Signature{ast.SignAny})
+		p.ScopeCursor.DefineVariable(valueName, []ast.Signature{ast.SignAny})
 		body := p.bodyUntilCurly()
 		p.ScopeCursor.Exit(ScopeLoop)
 		p.expect(l.CloseCurly)
@@ -519,7 +581,7 @@ func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 	var scopeYielded = false
 	var retFuncYieldIndex = -1
 	for p.notEOF() && !p.isNext(l.CloseCurly) {
-		expr := p.parse()
+		expr := p.tryAutoAssign(p.parse())
 		expressions = append(expressions, expr)
 		p.consume(l.Comma)
 
@@ -574,6 +636,8 @@ func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 				Bodies:     [][]ast.Expr{{p.retProcYieldVar("2")}},
 				ElseBody:   []ast.Expr{lastExpressions[len(lastExpressions)-1]},
 			})
+		} else {
+			p.ScopeCursor.currScope.Yield.Revert = true
 		}
 		if wrap {
 			// we have to only do it once!
@@ -779,18 +843,18 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 		if !p.isNext(l.OpenCurly) || !list.IsTransformer(name, len(args)) {
 			// Drop check: no-op type-conversion methods (.toString(), .toStr(), .toInt(), …)
 			// are silently removed — the receiver is returned as-is.
-			if len(args) == 0 && common.IsDropMethod(name) {
+			if p.autoCorrect && len(args) == 0 && common.IsDropMethod(name) {
 				p.patches = append(p.patches, SourcePatch{
 					Line:  where.Column,
 					Start: where.Row - len(name) - 1, // include the dot
-					End:   where.Row + 2,               // include ()
+					End:   where.Row + 2,             // include ()
 					Text:  "",
 				})
 				return object
 			}
 
 			// charAt(n) → segment(n, 1): get character at 0-based index maps to a 1-step segment.
-			if name == "charAt" && len(args) == 1 {
+			if p.autoCorrect && name == "charAt" && len(args) == 1 {
 				closeParen := p.Tokens[p.currIndex-1]
 				p.patches = append(p.patches, SourcePatch{
 					Line:  where.Column,
@@ -948,7 +1012,7 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 		}
 		// Arg-count correction: a known function called with the wrong number of args
 		// may be a common mistake that maps to a different built-in (e.g. round(n,d) → formatDecimal(n,d)).
-		if common.IsKnownFunction(nameExpr.Name) {
+		if p.autoCorrect && common.IsKnownFunction(nameExpr.Name) {
 			if corrected := common.FindArgCountCorrection(nameExpr.Name, len(arguments)); corrected != "" {
 				if _, corrSig := common.TestSignature(corrected, len(arguments)); corrSig != nil {
 					p.patches = append(p.patches, SourcePatch{
@@ -977,7 +1041,7 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 		// Neither a known built-in nor a defined procedure.
 		// Drop check: no-op type-cast wrappers like string(x), int(x), toString(x) are removed,
 		// returning the sole argument directly.
-		if len(arguments) == 1 && common.IsDropFunction(nameExpr.Name) {
+		if p.autoCorrect && len(arguments) == 1 && common.IsDropFunction(nameExpr.Name) {
 			closeParenTok := p.Tokens[p.currIndex-1]
 			p.aggregator.MarkResolved(nameExpr.Where)
 			if nameExpr.Where.Column == closeParenTok.Column {
@@ -1000,7 +1064,7 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 		// Func-to-question: isNumber(x) / number(x) style calls that map to the ? operator.
 		// Runs after the drop check so that bare type-cast forms (number(x), string(x)) are
 		// already handled before we try to interpret them as questions.
-		if len(arguments) == 1 {
+		if p.autoCorrect && len(arguments) == 1 {
 			if question := common.FindBestQuestionSuggestion(nameExpr.Name); question != "" {
 				closeParenTok := p.Tokens[p.currIndex-1]
 				p.aggregator.MarkResolved(nameExpr.Where)
@@ -1031,7 +1095,7 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 		// may really be a type-specific method on x, e.g. x.textLen() or x.listLen().
 		// Attempt the lift only when we have exactly 1 arg (receiver) mapping to a 0-arg method,
 		// and only when the arg's type is concretely known (not SignAny).
-		if len(arguments) == 1 {
+		if p.autoCorrect && len(arguments) == 1 {
 			argSigs := safeSignature(arguments[0])
 			modules := method.DeriveAllowedModules(argSigs)
 			if len(modules) > 0 {

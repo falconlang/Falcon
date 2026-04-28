@@ -1,11 +1,10 @@
-func processValue(x) {
-  if (isNumber(x)) {
-    println(abs(x))
-  } else {
-    println("Invalid")
+func fooBar() = {
+  if (true) {
+    yield 0
   }
+  local a = 1
+  println(a)
+  a
 }
 
-// Test cases
-processValue("hello")
-processValue([1, 2, 3])
+println(fooBar())

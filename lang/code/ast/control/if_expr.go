@@ -96,15 +96,15 @@ func (s *SimpleIf) String() string {
 func (s *SimpleIf) Blockly(flags ...bool) ast.Block {
 	// SimpleIf is always an expression (controls_choose).
 	// It should never appear in a statement position.
-	// if len(flags) > 0 && flags[0] {
-	// 	// Blockly expects a statement here, we have to mutate
-	// 	fullIf := If{
-	// 		Conditions: []ast.Expr{s.condition},
-	// 		Bodies:     [][]ast.Expr{s.normalThen},
-	// 		ElseBody:   s.normalElse,
-	// 	}
-	// 	return fullIf.Blockly()
-	// }
+	if len(flags) > 0 && flags[0] {
+		// Blockly expects a statement here, we have to mutate
+		fullIf := If{
+			Conditions: []ast.Expr{s.condition},
+			Bodies:     [][]ast.Expr{s.normalThen},
+			ElseBody:   s.normalElse,
+		}
+		return fullIf.Blockly()
+	}
 	return ast.Block{
 		Type:   "controls_choose",
 		Values: ast.MakeValues([]ast.Expr{s.condition, s.smartThen, s.smartElse}, "TEST", "THENRETURN", "ELSERETURN"),

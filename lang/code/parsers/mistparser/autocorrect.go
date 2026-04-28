@@ -26,7 +26,7 @@ func safeSignature(expr ast.Expr) (sigs []ast.Signature) {
 // auto-correctable names in-place, and records each change as a SourcePatch
 // so the original source can be reconstructed via ReconstructedSource().
 func (p *LangParser) walkAndCorrect(expr ast.Expr) {
-	if expr == nil {
+	if !p.autoCorrect || expr == nil {
 		return
 	}
 	switch e := expr.(type) {
@@ -115,7 +115,7 @@ func (p *LangParser) walkAndCorrect(expr ast.Expr) {
 			p.patches = append(p.patches, SourcePatch{
 				Line:  e.Where.Column,
 				Start: e.Where.Row - len(oldQuestion) - 1, // include the dot
-				End:   e.Where.Row + 2,                     // include ()
+				End:   e.Where.Row + 2,                    // include ()
 				Text:  " ? " + e.Question,
 			})
 		} else if e.Question != oldQuestion {

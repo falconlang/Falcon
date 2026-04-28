@@ -63,11 +63,11 @@ func main() {
 	}
 	//repl()
 	//diffTest()
-	//analyzeSyntax()
+	analyzeSyntax()
 	//xmlTest()
 	//designTest()
 	//runProgram()
-	runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
+	//runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
 }
 
 func reformatStdin() {
@@ -223,9 +223,9 @@ func runFile(path string) {
 	tokens := lex.NewLexer(codeContext).Lex()
 	langParser := mistParser.NewLangParser(false, tokens)
 	exprs := langParser.ParseAll()
-	fmt.Println("--- corrected source ---")
-	fmt.Println(langParser.ReconstructedSource())
-	fmt.Println("------------------------")
+	//fmt.Println("--- corrected source ---")
+	//fmt.Println(langParser.ReconstructedSource())
+	//fmt.Println("------------------------")
 	for _, e := range exprs {
 		e.Blockly()
 	}
@@ -274,6 +274,7 @@ func correctFile(path string) {
 	codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
 	tokens := lex.NewLexer(codeContext).Lex()
 	langParser := mistParser.NewLangParser(false, tokens)
+	langParser.EnableAutoCorrect()
 	langParser.ParseAll()
 	fmt.Print(langParser.ReconstructedSource())
 }
