@@ -636,9 +636,10 @@ func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 				Bodies:     [][]ast.Expr{{p.retProcYieldVar("2")}},
 				ElseBody:   []ast.Expr{lastExpressions[len(lastExpressions)-1]},
 			})
-		} else {
-			p.ScopeCursor.currScope.Yield.Revert = true
 		}
+		//else if len(expressions) == 1 {
+		//	p.ScopeCursor.currScope.Yield.Revert = true
+		//}
 		if wrap {
 			// we have to only do it once!
 			// ```
