@@ -5,47 +5,47 @@ import "Falcon/code/ast"
 type Yield struct {
 	Expr            ast.Expr
 	TransformedExpr ast.Expr
-	Revert          bool
+	UseTransformed  bool
 }
 
 func (y *Yield) GetExpr() ast.Expr {
-	if y.Revert {
-		return y.Expr
+	if y.UseTransformed {
+		return y.TransformedExpr
 	}
-	return y.TransformedExpr
+	return y.Expr
 }
 
 func (y *Yield) String() string {
-	if y.Revert {
-		return y.Expr.String()
+	if y.UseTransformed {
+		return y.TransformedExpr.String()
 	}
-	return y.TransformedExpr.String()
+	return y.Expr.String()
 }
 
 func (y *Yield) Blockly(flags ...bool) ast.Block {
-	if y.Revert {
-		return y.Expr.Blockly(flags...)
+	if y.UseTransformed {
+		return y.TransformedExpr.Blockly(flags...)
 	}
-	return y.TransformedExpr.Blockly(flags...)
+	return y.Expr.Blockly(flags...)
 }
 
 func (y *Yield) Continuous() bool {
-	if y.Revert {
-		return y.Expr.Continuous()
+	if y.UseTransformed {
+		return y.TransformedExpr.Continuous()
 	}
-	return y.TransformedExpr.Continuous()
+	return y.Expr.Continuous()
 }
 
 func (y *Yield) Consumable() bool {
-	if y.Revert {
-		return y.Expr.Consumable()
+	if y.UseTransformed {
+		return y.TransformedExpr.Consumable()
 	}
-	return y.TransformedExpr.Consumable()
+	return y.Expr.Consumable()
 }
 
 func (y *Yield) Signature() []ast.Signature {
-	if y.Revert {
-		return y.Expr.Signature()
+	if y.UseTransformed {
+		return y.TransformedExpr.Signature()
 	}
-	return y.TransformedExpr.Signature()
+	return y.Expr.Signature()
 }

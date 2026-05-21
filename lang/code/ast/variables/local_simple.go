@@ -5,34 +5,36 @@ import (
 	"strings"
 )
 
-type SimpleVar struct {
-	Name  string
-	Value ast.Expr
+type VarStack struct {
+	Names  []string
+	Values []ast.Expr
 }
 
-func (v *SimpleVar) String() string {
+func (v *VarStack) String() string {
 	var builder strings.Builder
-	builder.WriteString("local ")
-	builder.WriteString(v.Name)
-	builder.WriteString(" = ")
-	builder.WriteString(v.Value.String())
-	builder.WriteString("\n")
+	localLines := make([]string, len(v.Names))
+	for k, name := range v.Names {
+		localLines[k] = "local " + name + " = " + v.Values[k].String()
+	}
+	builder.WriteString(strings.Join(localLines, "\n"))
 	return builder.String()
 }
 
-func (v *SimpleVar) Blockly(flags ...bool) ast.Block {
-	panic("cannot call Blockly() on a SimpleVar")
+func (v *VarStack) Blockly(flags ...bool) ast.Block {
+	panic("cannot call Blockly() on a VarStack")
 }
 
-func (v *SimpleVar) Continuous() bool {
+func (v *VarStack) Continuous() bool {
 	return false
 }
 
-func (v *SimpleVar) Consumable() bool {
+func (v *VarStack) Consumable() bool {
 	return false
 }
 
-func (v *SimpleVar) Signature() []ast.Signature {
-	v.Value.Signature()
+func (v *VarStack) Signature() []ast.Signature {
+	for _, value := range v.Values {
+		value.Signature()
+	}
 	return []ast.Signature{ast.SignVoid}
 }

@@ -2,33 +2,50 @@ package mistparser
 
 import (
 	"Falcon/code/ast"
-	"Falcon/code/ast/fundamentals"
 )
+
+type VarEntry struct {
+	Signatures []ast.Signature
+	Count      int
+}
 
 type Scope struct {
 	Type      ScopeType
 	Parent    *Scope
-	Variables map[string][]ast.Signature
-
-	YieldIndex          int
-	ChildYieldScopeType ScopeType
-	YieldName           *string
-	Yield               *fundamentals.Yield
+	Variables map[string]*VarEntry
 }
 
-func (s *Scope) DefineVariable(name string, signature []ast.Signature) {
-	s.Variables[name] = signature
+func (s *Scope) DefineVariable(name string, signatures []ast.Signature) {
+	s.Variables[name] = &VarEntry{Signatures: signatures, Count: 0}
 }
 
-func (s *Scope) ResolveVariable(name string) ([]ast.Signature, bool) {
-	signature, ok := s.Variables[name]
+func (s *Scope) ReferVariable(name string) ([]ast.Signature, bool) {
+	variable, ok := s.Variables[name]
 	if ok {
-		return signature, true
+		variable.Count += 1
+		return variable.Signatures, true
 	}
 	if s.Parent != nil {
-		return s.Parent.ResolveVariable(name)
+		return s.Parent.ReferVariable(name)
 	}
 	return make([]ast.Signature, 0), false
+}
+
+func (s *Scope) ReferGlobalVariable(name string) ([]ast.Signature, bool) {
+	variable, ok := s.Variables[name]
+	if ok {
+		variable.Count += 1
+		return variable.Signatures, true
+	}
+	return make([]ast.Signature, 0), false
+}
+
+func (s *Scope) GetVariableReferCount(name string) int {
+	variable, ok := s.Variables[name]
+	if ok {
+		return variable.Count
+	}
+	return -1
 }
 
 func (s *Scope) InLoop() bool {

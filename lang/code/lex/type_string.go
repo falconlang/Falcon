@@ -63,22 +63,22 @@ func _() {
 	_ = x[WalkAll-52]
 	_ = x[Global-53]
 	_ = x[Local-54]
-	_ = x[Compute-55]
-	_ = x[This-56]
-	_ = x[Func-57]
-	_ = x[When-58]
-	_ = x[Any-59]
-	_ = x[Undefined-60]
-	_ = x[Yield-61]
+	_ = x[This-55]
+	_ = x[Func-56]
+	_ = x[When-57]
+	_ = x[Any-58]
+	_ = x[Undefined-59]
+	_ = x[Yield-60]
 }
 
-const _Type_name = "PlusDashTimesSlashPowerRemainderLogicOrLogicAndBitwiseOrBitwiseAndBitwiseXorEqualsNotEqualsLessThanLessThanEqualGreatThanGreaterThanEqualTextEqualsTextNotEqualsTextLessThanTextGreaterThanOpenCurveCloseCurveOpenSquareCloseSquareOpenCurlyCloseCurlyAssignDotCommaQuestionNotColonDoubleColonDoubleDotRightArrowUnderscoreAtTrueFalseTextNumberNameColorCodeIfElseForStepInWhileDoBreakWalkAllGlobalLocalComputeThisFuncWhenAnyUndefinedYield"
+const _Type_name = "PlusDashTimesSlashPowerRemainderLogicOrLogicAndBitwiseOrBitwiseAndBitwiseXorEqualsNotEqualsLessThanLessThanEqualGreatThanGreaterThanEqualTextEqualsTextNotEqualsTextLessThanTextGreaterThanOpenCurveCloseCurveOpenSquareCloseSquareOpenCurlyCloseCurlyAssignDotCommaQuestionNotColonDoubleColonDoubleDotRightArrowUnderscoreAtTrueFalseTextNumberNameColorCodeIfElseForStepInWhileDoBreakWalkAllGlobalLocalThisFuncWhenAnyUndefinedYield"
 
-var _Type_index = [...]uint16{0, 4, 8, 13, 18, 23, 32, 39, 47, 56, 66, 76, 82, 91, 99, 112, 121, 137, 147, 160, 172, 187, 196, 206, 216, 227, 236, 246, 252, 255, 260, 268, 271, 276, 287, 296, 306, 316, 318, 322, 327, 331, 337, 341, 350, 352, 356, 359, 363, 365, 370, 372, 377, 384, 390, 395, 402, 406, 410, 414, 417, 426, 431}
+var _Type_index = [...]uint16{0, 4, 8, 13, 18, 23, 32, 39, 47, 56, 66, 76, 82, 91, 99, 112, 121, 137, 147, 160, 172, 187, 196, 206, 216, 227, 236, 246, 252, 255, 260, 268, 271, 276, 287, 296, 306, 316, 318, 322, 327, 331, 337, 341, 350, 352, 356, 359, 363, 365, 370, 372, 377, 384, 390, 395, 399, 403, 407, 410, 419, 424}
 
 func (i Type) String() string {
-	if i < 0 || i >= Type(len(_Type_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Type_index)-1 {
 		return "Type(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Type_name[_Type_index[i]:_Type_index[i+1]]
+	return _Type_name[_Type_index[idx]:_Type_index[idx+1]]
 }

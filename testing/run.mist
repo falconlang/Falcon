@@ -1,10 +1,28 @@
 func fooBar() = {
   if (true) {
-    yield 0
+    println("kat")
+  } else if (false) {
+    println("duhh")
+  } else {
+    yield 1
+  }
+  if (true) {
+    println("a")
+  } else if (false) {
+    println("bugg")
+  } else {
+    yield 100000
   }
   local a = 1
   println(a)
-  a
+  if (false) {
+    println("katze")
+    yield "hola"
+  }
+  if (true) {
+    yield "boww"
+  }
+  "meow"
 }
 
 println(fooBar())

@@ -63,7 +63,6 @@ var Keywords = map[string]StaticToken{
 	"walkAll":   staticOf(WalkAll),
 	"global":    staticOf(Global),
 	"local":     staticOf(Local),
-	"compute":   staticOf(Compute),
 	"this":      staticOf(This, Value),
 	"func":      staticOf(Func),
 	"when":      staticOf(When),

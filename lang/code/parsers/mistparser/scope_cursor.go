@@ -27,13 +27,13 @@ type ScopeCursor struct {
 }
 
 func MakeScopeCursor() *ScopeCursor {
-	headScope := &Scope{Type: ScopeRoot, Parent: nil, Variables: map[string][]ast.Signature{}}
+	headScope := &Scope{Type: ScopeRoot, Parent: nil, Variables: map[string]*VarEntry{}}
 	return &ScopeCursor{allScopes: []*Scope{headScope}, headScope: headScope, currScope: headScope}
 }
 
 func (s *ScopeCursor) Enter(where *lex.Token, t ScopeType) {
 	s.checkScope(where, t)
-	newScope := &Scope{Type: t, Parent: s.currScope, Variables: map[string][]ast.Signature{}}
+	newScope := &Scope{Type: t, Parent: s.currScope, Variables: map[string]*VarEntry{}}
 	s.allScopes = append(s.allScopes, newScope)
 	s.currScope = newScope
 }
@@ -68,8 +68,16 @@ func (s *ScopeCursor) DefineVariable(name string, signature []ast.Signature) {
 	s.currScope.DefineVariable(name, signature)
 }
 
-func (s *ScopeCursor) ResolveVariable(name string) ([]ast.Signature, bool) {
-	return s.currScope.ResolveVariable(name)
+func (s *ScopeCursor) ReferVariable(name string) ([]ast.Signature, bool) {
+	return s.currScope.ReferVariable(name)
+}
+
+func (s *ScopeCursor) ReferGlobalVariable(name string) ([]ast.Signature, bool) {
+	return s.currScope.ReferGlobalVariable(name)
+}
+
+func (s *ScopeCursor) GetVariableReferCount(name string) int {
+	return s.currScope.GetVariableReferCount(name)
 }
 
 func (s *ScopeCursor) In(t ScopeType) bool {

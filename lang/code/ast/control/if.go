@@ -2,10 +2,12 @@ package control
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/lex"
 	"strings"
 )
 
 type If struct {
+	Where      *lex.Token
 	Conditions []ast.Expr
 	Bodies     [][]ast.Expr
 	ElseBody   []ast.Expr
@@ -15,7 +17,6 @@ type If struct {
 }
 
 func (i *If) String() string {
-	// TODO: accept flags here too
 	var builder strings.Builder
 
 	numConditions := len(i.Conditions)
@@ -41,6 +42,21 @@ func (i *If) String() string {
 		builder.WriteString("}")
 	}
 	return builder.String()
+}
+
+func (i *If) Decompose(nthBody int) *If {
+	nextIf := If{
+		Where:      i.Where,
+		Conditions: i.Conditions[nthBody:],
+		Bodies:     i.Bodies[nthBody:],
+		ElseBody:   i.ElseBody,
+		mutated:    false,
+		mutation:   nil,
+	}
+	i.Conditions = i.Conditions[:nthBody]
+	i.Bodies = i.Bodies[:nthBody]
+	i.ElseBody = nil
+	return &nextIf
 }
 
 func (i *If) Blockly(flags ...bool) ast.Block {

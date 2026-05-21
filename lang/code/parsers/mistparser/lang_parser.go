@@ -104,7 +104,7 @@ func (p *LangParser) checkPendingSymbols() {
 	for token, parseError := range p.aggregator.Errors {
 		// try resolve global variables again
 		if get, ok := parseError.Owner.(*variables.Get); ok && get.Global {
-			signatures, resolved := p.ScopeCursor.ResolveVariable(get.Name)
+			signatures, resolved := p.ScopeCursor.ReferGlobalVariable(get.Name)
 			if resolved {
 				get.ValueSignature = signatures
 				continue
@@ -232,40 +232,22 @@ func (p *LangParser) yieldSmt() ast.Expr {
 		// just return the expr as is
 		return expr
 	}
-	// _result = [  true, <expr>  ]
+	// _result = [  false, <expr>  ]
 	transformedExpr := &variables.Set{
 		Global: false,
 		Name:   yieldName,
 		Expr: &fundamentals.List{
 			Elements: []ast.Expr{
-				&fundamentals.Boolean{Value: true},
+				&fundamentals.Boolean{Value: false},
 				expr,
 			},
 		},
 	}
-	yield := &fundamentals.Yield{
+	return &fundamentals.Yield{
 		Expr:            expr,
 		TransformedExpr: transformedExpr,
-		Revert:          false,
+		UseTransformed:  false,
 	}
-	var currScope = p.ScopeCursor.currScope
-	var yieldIndex = 0
-	for {
-		currScope.YieldIndex = yieldIndex
-		yieldIndex++
-		currScope.YieldName = &yieldName
-		currScope.Yield = yield
-		if currScope.Type == ScopeRetProc {
-			break
-		}
-		child := currScope
-		currScope = currScope.Parent
-		if currScope == nil {
-			panic("[Error] Parent overflow")
-		}
-		currScope.ChildYieldScopeType = child.Type
-	}
-	return yield
 }
 
 func (p *LangParser) genericEvent() ast.Expr {
@@ -325,7 +307,8 @@ func (p *LangParser) retProcedure(where *l.Token, name string, parameters []stri
 	}
 	var result ast.Expr
 	if p.consume(l.OpenCurly) {
-		result = &fundamentals.SmartBody{Body: p.bodyUntilCurlyWrap(true)}
+		yieldParser := &YieldParser{Exprs: p.bodyUntilCurly()}
+		result = &fundamentals.SmartBody{Body: yieldParser.ParseYield()}
 		p.expect(l.CloseCurly)
 	} else {
 		result = p.parse()
@@ -356,40 +339,50 @@ func (p *LangParser) globalSmt() ast.Expr {
 }
 
 func (p *LangParser) localSmt() ast.Expr {
-	//// a clean full scope variable
-	//var names []string
-	//var values []ast.Expr
-	//for {
-	//	locCurrIndex := p.currIndex
-	//	if !p.consume(l.Local) {
-	//		break
-	//	}
-	//	name := p.name()
-	//	p.expect(l.Assign)
-	//	value := p.parse()
-	//
-	//	if ast.DependsOnVariables(value, names) {
-	//		// Since this variable depends on the last variable, we cannot include
-	//		// it in the current set.
-	//		p.currIndex = locCurrIndex
-	//		break
-	//	}
-	//
-	//	names = append(names, name)
-	//	values = append(values, value)
-	//	p.ScopeCursor.DefineVariable(name, value.Signature())
-	//}
+	// a clean full scope variable
+	var names []string
+	var values []ast.Expr
+	for {
+		locCurrIndex := p.currIndex
+		if !p.consume(l.Local) {
+			break
+		}
+		name := p.name()
+		p.expect(l.Assign)
+		preParseSumVarRefCount := p.GetSummatedVarRefCount(names)
+		value := p.parse()
+		postParseSumVarRefCount := p.GetSummatedVarRefCount(names)
+
+		if postParseSumVarRefCount > preParseSumVarRefCount {
+			// Since this variable depends on the last variable, we cannot include
+			// it in the current set.
+			p.currIndex = locCurrIndex
+			break
+		}
+
+		names = append(names, name)
+		values = append(values, value)
+		p.ScopeCursor.DefineVariable(name, value.Signature())
+	}
 	//// we have to parse rest of the body here
 	//body := p.bodyUntilCurly()
 	//if len(body) == 1 && body[0].Consumable() {
 	//	return &variables.VarResult{Names: names, Values: values, Result: body[0]}
 	//}
 	//return &variables.Var{Names: names, Values: values, Body: body}
-	p.consume(l.Local)
-	name := p.name()
-	p.expect(l.Assign)
-	value := p.parse()
-	return &variables.SimpleVar{Name: name, Value: value}
+	return &variables.VarStack{Names: names, Values: values}
+}
+
+func (p *LangParser) GetSummatedVarRefCount(names []string) int {
+	summatedCount := 0
+	for _, name := range names {
+		refCount := p.ScopeCursor.GetVariableReferCount(name)
+		if refCount == -1 {
+			panic("Trying to query ref count of undeclared variable: " + name)
+		}
+		summatedCount += refCount
+	}
+	return summatedCount
 }
 
 func (p *LangParser) whileExpr() *control.While {
@@ -446,7 +439,7 @@ func (p *LangParser) forRange(forTok *l.Token, iName string) ast.Expr {
 }
 
 func (p *LangParser) ifSmt() ast.Expr {
-	p.skip()
+	where := p.next()
 	var conditions []ast.Expr
 	var bodies [][]ast.Expr
 
@@ -467,7 +460,7 @@ func (p *LangParser) ifSmt() ast.Expr {
 			break
 		}
 	}
-	return &control.If{Conditions: conditions, Bodies: bodies, ElseBody: elseBody}
+	return &control.If{Where: where, Conditions: conditions, Bodies: bodies, ElseBody: elseBody}
 }
 
 func (p *LangParser) parseConditionBody() []ast.Expr {
@@ -500,16 +493,10 @@ func (p *LangParser) body(scope ScopeType, vars ...ScopeVar) []ast.Expr {
 }
 
 func (p *LangParser) bodyUntilCurly() []ast.Expr {
-	return p.bodyUntilCurlyWrap(false)
-}
-
-func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 	var expressions []ast.Expr
 	if p.isNext(l.CloseCurly) {
 		return expressions
 	}
-	var scopeYielded = false
-	var retFuncYieldIndex = -1
 	for p.notEOF() && !p.isNext(l.CloseCurly) {
 		expr := p.parse()
 		expressions = append(expressions, expr)
@@ -517,89 +504,20 @@ func (p *LangParser) bodyUntilCurlyWrap(wrap bool) []ast.Expr {
 
 		// no statements allowed after `break`
 		switch expr.(type) {
-		case *control.Break:
-			if !p.isNext(l.CloseCurly) {
+		case *control.Break, *fundamentals.Yield:
+			if p.notEOF() && !p.isNext(l.CloseCurly) {
 				p.peek().Error("unreachable code after '%'", expr.String())
 			}
 		}
-		// inject conditional breaking if Scope has yielded
-		if p.ScopeCursor.currScope.YieldName != nil && !scopeYielded {
-			scopeYielded = true
-			if p.ScopeCursor.currScope.YieldIndex == 0 {
-				if p.ScopeCursor.currScope.InLoop() {
-					expressions = append(expressions, &control.Break{})
-				}
-				if !p.isNext(l.CloseCurly) {
-					p.peek().Error("unreachable code after '%'", expr.String())
-				}
-			} else if p.ScopeCursor.currScope.InLoop() {
-				if !(p.ScopeCursor.currScope.YieldIndex == 1 && p.ScopeCursor.currScope.ChildYieldScopeType != ScopeLoop) {
-					expressions = append(expressions, &control.If{
-						Conditions: []ast.Expr{p.retProcYieldVar("1")},
-						Bodies:     [][]ast.Expr{{&control.Break{}}},
-					})
-				}
-			} else if p.ScopeCursor.currScope.Type == ScopeRetProc {
-				retFuncYieldIndex = len(expressions)
+		switch expr.(type) {
+		case *fundamentals.Yield:
+			if p.ScopeCursor.In(ScopeLoop) {
+				// we have to inject a break statement here
+				expressions = append(expressions, &control.Break{})
 			}
 		}
 	}
-	return p.applyRetProcYieldWrap(expressions, retFuncYieldIndex, wrap)
-}
-
-func (p *LangParser) applyRetProcYieldWrap(expressions []ast.Expr, retFuncYieldIndex int, wrap bool) []ast.Expr {
-	if retFuncYieldIndex <= 0 || len(expressions) == 0 {
-		return expressions
-	}
-	lastExpressions := make([]ast.Expr, len(expressions)-retFuncYieldIndex)
-	copy(lastExpressions, expressions[retFuncYieldIndex:])
-	expressions = expressions[:retFuncYieldIndex]
-	// wrap pre-last expressions in `if (!_result[1]) { ... }`
-	if len(lastExpressions) > 1 {
-		expressions = append(expressions, &control.If{
-			Conditions: []ast.Expr{&fundamentals.Not{Expr: p.retProcYieldVar("1")}},
-			Bodies:     [][]ast.Expr{lastExpressions[:len(lastExpressions)-1]},
-		})
-	}
-	// `if (_result[1]) _result[2] else <lastExpr>`
-	if len(lastExpressions) > 0 {
-		expressions = append(expressions, &control.If{
-			Conditions: []ast.Expr{p.retProcYieldVar("1")},
-			Bodies:     [][]ast.Expr{{p.retProcYieldVar("2")}},
-			ElseBody:   []ast.Expr{lastExpressions[len(lastExpressions)-1]},
-		})
-	}
-	if wrap {
-		expressions = []ast.Expr{
-			&variables.Var{
-				Names: []string{*p.ScopeCursor.currScope.YieldName},
-				Values: []ast.Expr{
-					&fundamentals.List{
-						Elements: []ast.Expr{
-							&fundamentals.Boolean{Value: false},
-							&fundamentals.Boolean{Value: false},
-						},
-					},
-				},
-				Body: expressions,
-			},
-		}
-	}
 	return expressions
-}
-
-func (p *LangParser) retProcYieldVar(index string) *list.Get {
-	// `_result[1]`
-	return &list.Get{
-		Where: l.MakeFakeToken(l.OpenSquare),
-		List: &variables.Get{
-			Where:          l.MakeFakeToken(l.Name),
-			Global:         false,
-			Name:           *p.ScopeCursor.currScope.YieldName,
-			ValueSignature: []ast.Signature{ast.SignList},
-		},
-		Index: &fundamentals.Number{Content: index},
-	}
 }
 
 func (p *LangParser) expr(minPrecedence int) ast.Expr {
@@ -862,8 +780,6 @@ func (p *LangParser) term() ast.Expr {
 	case l.If:
 		p.back()
 		return p.ifSmt()
-	case l.Compute:
-		return p.computeExpr()
 	case l.WalkAll:
 		return &fundamentals.WalkAll{}
 	default:
@@ -925,29 +841,6 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 		return funcCall
 	}
 	return value
-}
-
-func (p *LangParser) computeExpr() *variables.VarResult {
-	var varNames []string
-	var varValues []ast.Expr
-	p.expect(l.OpenCurve)
-
-	// a result local var
-	for p.notEOF() && !p.isNext(l.CloseCurve) {
-		name := p.name()
-		p.expect(l.Assign)
-		value := p.parse()
-
-		varNames = append(varNames, name)
-		varValues = append(varValues, value)
-
-		if !p.consume(l.Comma) {
-			break
-		}
-	}
-	p.expect(l.CloseCurve)
-	p.expect(l.RightArrow)
-	return &variables.VarResult{Names: varNames, Values: varValues, Result: p.parse()}
 }
 
 func (p *LangParser) dictionary() *fundamentals.Dictionary {
@@ -1022,7 +915,7 @@ func (p *LangParser) value(t *l.Token) ast.Expr {
 			return &fundamentals.Component{Name: *t.Content, Type: compType}
 		}
 		// May not be variable reference always. It could be a func or a method call.
-		signatures, found := p.ScopeCursor.ResolveVariable(*t.Content)
+		signatures, found := p.ScopeCursor.ReferVariable(*t.Content)
 		get := &variables.Get{Where: t, Global: false, Name: *t.Content, ValueSignature: signatures}
 		if !found {
 			p.aggregator.EnqueueSymbol(t, get, "Cannot find symbol '"+*t.Content+"'")
@@ -1032,7 +925,7 @@ func (p *LangParser) value(t *l.Token) ast.Expr {
 		p.expect(l.Dot)
 		nameToken := p.expect(l.Name)
 		name := *nameToken.Content
-		signatures, found := p.ScopeCursor.ResolveVariable(name)
+		signatures, found := p.ScopeCursor.ReferGlobalVariable(name)
 		get := &variables.Get{Where: t, Global: true, Name: name, ValueSignature: signatures}
 		if !found {
 			p.aggregator.EnqueueSymbol(nameToken, get, "Cannot find symbol '"+*nameToken.Content+"'")
