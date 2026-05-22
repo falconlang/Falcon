@@ -85,11 +85,11 @@ outerLoop:
 						nextIf := e.Decompose(j + 1)
 						// wrap rest of the code in yield var check
 						nextIf.ElseBody = append(nextIf.ElseBody, y.yieldResultQuery(y.edits(exprs[k+1:])))
-						addedExprs = append(addedExprs, y.addLoopBreaking(currPath))
+						addedExprs = append(addedExprs, y.addLoopBreaking(currPath, e))
 						addedExprs = append(addedExprs, nextIf)
 					} else {
 						// already decomposed position, simply wrap rest of the code in yield var check
-						addedExprs = append(addedExprs, y.addLoopBreaking(currPath))
+						addedExprs = append(addedExprs, y.addLoopBreaking(currPath, e))
 						addedExprs = append(addedExprs, y.yieldResultQuery(y.edits(exprs[k+1:])))
 					}
 					if !requiresDeclaration {
@@ -161,11 +161,12 @@ outerLoop:
 			// wrap rest of the body in a check
 			p := y.nextPath()
 			if p.yield != nil {
-				newExprs = y.wrapInResultCheck(p.yield, exprs[k+1:], newExprs, y.addLoopBreaking(p))
+				newExprs = y.wrapInResultCheck(p.yield, exprs[k+1:], newExprs, y.addLoopBreaking(p, e))
 				break outerLoop
 			}
 			newExprs = append(newExprs, expr)
 		case *variables.Var:
+			println("yeahhhhhhhhhh")
 			e.Body = y.edits(e.Body)
 			newExprs = append(newExprs, e)
 			break outerLoop
@@ -176,11 +177,15 @@ outerLoop:
 	return newExprs
 }
 
-func (y *YieldParser) addLoopBreaking(p path) ast.Expr {
+func (y *YieldParser) addLoopBreaking(p path, currFor ast.Expr) ast.Expr {
 	totalLoops := 0
-	for _, frame := range p.frames {
+	currIndexMatch := 0
+	for k, frame := range p.frames {
 		if frame.FrameType == FrameTypeLoop {
 			totalLoops++
+		}
+		if frame.Expr == currFor {
+			currIndexMatch = k
 		}
 	}
 	loopIndex := 0
@@ -212,7 +217,7 @@ func (y *YieldParser) addLoopBreaking(p path) ast.Expr {
 			loopIndex++
 		}
 	}
-	return p.frames[0].Expr
+	return p.frames[currIndexMatch].Expr
 }
 
 func (y *YieldParser) wrapInResultCheck(yield *fundamentals.Yield, restOfTheBody []ast.Expr, newExprs []ast.Expr, currExpr ast.Expr) []ast.Expr {
