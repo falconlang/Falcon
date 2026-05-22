@@ -1,1 +1,0 @@
-println(quot(10, 0))

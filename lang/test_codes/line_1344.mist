@@ -1,3 +1,0 @@
-local list3999 = [42, 17, 99, 3, 55]
-println(list3999
-  .min { a, b -> a < b })

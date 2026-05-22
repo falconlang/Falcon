@@ -1,1 +1,0 @@
-println(mod(10, 0))

@@ -1,3 +1,0 @@
-// Verify copyList/copyDict on wrong types
-println(copyList(5))
-println(copyDict(5))

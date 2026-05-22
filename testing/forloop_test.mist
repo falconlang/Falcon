@@ -1,7 +1,0 @@
-// Test for loop behavior
-local forResult = []
-for (i: 0.0 .. 1.0 step 0.1) {
-  forResult.add(i)
-}
-println(forResult)
-println(forResult.listLen())

@@ -1,1 +1,0 @@
-println(rem(10, 0))

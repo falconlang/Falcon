@@ -1,8 +1,0 @@
-func longestWord(s) =
-  {
-      local words = s.splitAtSpaces()
-      words
-        .max { a, b -> a.textLen() > b.textLen() }
-  }
-
-println(longestWord("I love programming in Falcon"))

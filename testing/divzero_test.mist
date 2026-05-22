@@ -1,2 +1,0 @@
-// Verify division by zero bugs
-println(10 / 0)

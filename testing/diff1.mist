@@ -1,3 +1,0 @@
-when any Button.Click() {
-   Notifier1.ShowAlert("Hello, World!")
-}

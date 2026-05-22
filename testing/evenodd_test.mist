@@ -1,2 +1,0 @@
-// Verify even/odd on large float
-println(9007199254740993 ? even)

@@ -1,4 +1,0 @@
-local lapTimes = [62.3, 61.8, 63.1, 60.5, 62.7]
-local fastest = lapTimes
-  .min { a, b -> a < b }
-println("Fastest: " _ fastest _ "s | Improvement: " _ formatDecimal(lapTimes[1] - fastest, 1) _ "s")

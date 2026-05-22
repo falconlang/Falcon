@@ -1,6 +1,0 @@
-func voidProc() {
-  yield 5
-}
-
-voidProc()
-println("done")

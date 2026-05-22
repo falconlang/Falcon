@@ -1,2 +1,0 @@
-// Verify geoMeanOf with negative values
-println(geoMeanOf([-1, -2, -3]))
