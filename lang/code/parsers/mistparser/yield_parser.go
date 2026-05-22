@@ -310,6 +310,10 @@ func (y *YieldParser) mapRouteToYields(traverseExprs []ast.Expr, frames []Frame)
 			handled = true
 			y.mapRouteToYields([]ast.Expr{e.Result}, AppendFrame(frames, FrameTypeVar, e))
 			continue
+		case *variables.Var:
+			handled = true
+			y.mapRouteToYields(e.Body, AppendFrame(frames, FrameTypeVar, e))
+			continue
 		}
 	}
 	if !handled {
