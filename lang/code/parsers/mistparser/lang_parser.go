@@ -203,7 +203,10 @@ func (p *LangParser) parse() ast.Expr {
 	case l.While:
 		return p.whileExpr()
 	case l.Break:
-		p.skip()
+		tok := p.next()
+		if !p.ScopeCursor.In(ScopeLoop) {
+			tok.Error("break can only be used inside a loop")
+		}
 		return &control.Break{}
 	case l.Yield:
 		return p.yieldSmt()
@@ -225,7 +228,10 @@ func (p *LangParser) parse() ast.Expr {
 }
 
 func (p *LangParser) yieldSmt() ast.Expr {
-	p.skip()
+	tok := p.next()
+	if !p.ScopeCursor.In(ScopeRetProc) {
+		tok.Error("yield can only be used inside a returning procedure")
+	}
 	yieldName := "_result"
 	expr := p.parse()
 	if p.ScopeCursor.currScope.Type == ScopeRetProc && p.isNext(l.CloseCurly) {
