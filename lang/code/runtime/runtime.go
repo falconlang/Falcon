@@ -223,8 +223,6 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		return VoidVal()
 	case *variables.Var:
 		return i.evalVar(e)
-	case *variables.VarStack:
-		return i.evalSimpleVar(e)
 	case *variables.VarResult:
 		return i.evalVarResult(e)
 
@@ -583,14 +581,6 @@ func (i *Interpreter) evalVar(e *variables.Var) Value {
 		childEnv.Define(name, val)
 	}
 	return i.inEnv(childEnv, func() Value { return i.execBody(e.Body) })
-}
-
-func (i *Interpreter) evalSimpleVar(e *variables.VarStack) Value {
-	for k, name := range e.Names {
-		val := i.Eval(e.Values[k]) // values evaluated in parent scope
-		i.currEnv.Define(name, val)
-	}
-	return VoidVal()
 }
 
 func (i *Interpreter) evalVarResult(e *variables.VarResult) Value {

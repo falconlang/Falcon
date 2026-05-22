@@ -47,10 +47,6 @@ func (p *LangParser) walkAndCorrect(expr ast.Expr) {
 		}
 
 	// Variable declarations
-	case *variables.VarStack:
-		for _, v := range e.Values {
-			p.walkAndCorrect(v)
-		}
 	case *variables.Var:
 		for _, v := range e.Values {
 			p.walkAndCorrect(v)

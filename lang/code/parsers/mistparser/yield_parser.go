@@ -74,20 +74,28 @@ outerLoop:
 				// a loop makes for a potential yield, not confirmed, so debranch If
 				if currPath.hasLoopInPath() {
 					currPath.yield.UseTransformed = true
-					if !y.localResultDeclared {
-						newExprs = append(newExprs, y.declareLocalResult())
+					requiresDeclaration := !y.localResultDeclared
+					if requiresDeclaration {
+						// this ensures the child edit() calls do not declare it themselves
+						y.localResultDeclared = true
 					}
+					var addedExprs []ast.Expr
 					if j+1 < len(e.Bodies) {
 						// decompose if branch
 						nextIf := e.Decompose(j + 1)
 						// wrap rest of the code in yield var check
 						nextIf.ElseBody = append(nextIf.ElseBody, y.yieldResultQuery(y.edits(exprs[k+1:])))
-						newExprs = append(newExprs, y.addLoopBreaking(currPath))
-						newExprs = append(newExprs, nextIf)
+						addedExprs = append(addedExprs, y.addLoopBreaking(currPath))
+						addedExprs = append(addedExprs, nextIf)
 					} else {
 						// already decomposed position, simply wrap rest of the code in yield var check
-						newExprs = append(newExprs, y.addLoopBreaking(currPath))
-						newExprs = append(newExprs, y.yieldResultQuery(y.edits(exprs[k+1:])))
+						addedExprs = append(addedExprs, y.addLoopBreaking(currPath))
+						addedExprs = append(addedExprs, y.yieldResultQuery(y.edits(exprs[k+1:])))
+					}
+					if !requiresDeclaration {
+						newExprs = append(newExprs, addedExprs...)
+					} else {
+						newExprs = append(newExprs, y.declareLocalResult(addedExprs))
 					}
 					break outerLoop
 				}
@@ -202,11 +210,13 @@ func (y *YieldParser) addLoopBreaking(p path) ast.Expr {
 
 func (y *YieldParser) wrapInResultCheck(yield *fundamentals.Yield, restOfTheBody []ast.Expr, newExprs []ast.Expr, currExpr ast.Expr) []ast.Expr {
 	yield.UseTransformed = true
-	if !y.localResultDeclared {
-		newExprs = append(newExprs, y.declareLocalResult())
+	yieldQuery := y.yieldResultQuery(y.edits(restOfTheBody))
+	if y.localResultDeclared {
+		newExprs = append(newExprs, currExpr)
+		newExprs = append(newExprs, yieldQuery)
+	} else {
+		newExprs = append(newExprs, y.declareLocalResult([]ast.Expr{currExpr, yieldQuery}))
 	}
-	newExprs = append(newExprs, currExpr)
-	newExprs = append(newExprs, y.yieldResultQuery(y.edits(restOfTheBody)))
 	return newExprs
 }
 
@@ -233,15 +243,16 @@ func (y *YieldParser) localResultQuery(index string) *list.Get {
 	}
 }
 
-func (y *YieldParser) declareLocalResult() ast.Expr {
+func (y *YieldParser) declareLocalResult(restOfTheBody []ast.Expr) ast.Expr {
 	y.localResultDeclared = true
 	// `_result = [true, false]`,
 	// where the first var indicates if unset, second var holds the value
-	return &variables.VarStack{
+	return &variables.Var{
 		Names: []string{"_result"},
 		Values: []ast.Expr{&fundamentals.List{
 			Elements: []ast.Expr{&fundamentals.Boolean{Value: true}, &fundamentals.Boolean{Value: false}},
 		}},
+		Body: restOfTheBody,
 	}
 }
 
@@ -293,7 +304,11 @@ func (y *YieldParser) mapRouteToYields(traverseExprs []ast.Expr, frames []Frame)
 			continue
 		case *fundamentals.SmartBody:
 			handled = true
-			y.mapRouteToYields(e.Body, AppendFrame(frames, FrameTypeLoop, e))
+			y.mapRouteToYields(e.Body, AppendFrame(frames, FrameTypeSmartBody, e))
+			continue
+		case *variables.VarResult:
+			handled = true
+			y.mapRouteToYields([]ast.Expr{e.Result}, AppendFrame(frames, FrameTypeVar, e))
 			continue
 		}
 	}

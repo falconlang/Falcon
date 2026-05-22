@@ -364,13 +364,13 @@ func (p *LangParser) localSmt() ast.Expr {
 		values = append(values, value)
 		p.ScopeCursor.DefineVariable(name, value.Signature())
 	}
-	//// we have to parse rest of the body here
-	//body := p.bodyUntilCurly()
-	//if len(body) == 1 && body[0].Consumable() {
-	//	return &variables.VarResult{Names: names, Values: values, Result: body[0]}
-	//}
-	//return &variables.Var{Names: names, Values: values, Body: body}
-	return &variables.VarStack{Names: names, Values: values}
+	// we have to parse rest of the body here
+	body := p.bodyUntilCurly()
+	if len(body) == 1 && body[0].Consumable() {
+		return &variables.VarResult{Names: names, Values: values, Result: body[0]}
+	}
+	return &variables.Var{Names: names, Values: values, Body: body}
+	//return &variables.VarStack{Names: names, Values: values}
 }
 
 func (p *LangParser) GetSummatedVarRefCount(names []string) int {

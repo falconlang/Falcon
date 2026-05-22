@@ -8,6 +8,8 @@ type FrameType int
 const (
 	FrameTypeIf FrameType = iota
 	FrameTypeLoop
+	FrameTypeSmartBody
+	FrameTypeVar
 	FrameTypeYield
 	FrameTypeNoYield
 )
