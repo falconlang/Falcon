@@ -1,14 +1,13 @@
 func fooBar() = {
-if (true) {
-  for (b in []) {
-    for (a in []) {
-                println("meow")
-                if (true) {
-                  yield 1
-                }
-              }
-}
-}
+  if (true) {
+    yield -7
+  } else if (false) {
+    println("bruh")
+  } else if (false) {
+    yield 8
+  } else if (true) {
+    println("meow")
+  }
   -1
 }
 

@@ -68,11 +68,12 @@ outerLoop:
 				currPath := y.nextPath()
 				var lastPath *path = nil
 				if j > 0 {
-					lastPath = &y.paths[j-1]
+					lastPath = &y.paths[y.pathIndex-2]
 				}
 				if currPath.yield == nil {
 					allBodiesYield = false
 				}
+				println(j)
 				// a loop makes for a potential yield, not confirmed, so debranch If
 				if currPath.hasLoopInPath() {
 					currPath.yield.UseTransformed = true
@@ -95,14 +96,31 @@ outerLoop:
 				}
 				if lastPath != nil {
 					// last path didn't have yield, but this one does, so debranchIf
-					// OR last path had yield, but this one doesn't, so debranch
-					if lastPath.yield == nil && currPath.yield != nil || (lastPath.yield != nil && lastPath.yield == nil) {
+					if lastPath.yield == nil && currPath.yield != nil {
 						nextIf := e.Decompose(j)
-						nextIf.ElseBody = append(nextIf.ElseBody, y.edits(exprs[k+1:])...)
+						// append the current If
 						newExprs = append(newExprs, e)
-						newExprs = append(newExprs, nextIf)
+						// re-edit for next if + remaining code
+						var remainingBody []ast.Expr
+						remainingBody = append(remainingBody, nextIf)
+						remainingBody = append(remainingBody, exprs[k+1:]...)
+						y.pathIndex--
+						newExprs = append(newExprs, y.edits(remainingBody)...)
+						break outerLoop
+					} else if lastPath.yield != nil && currPath.yield == nil {
+						// OR last path had yield, but this one doesn't, so debranch to else
+						nextIf := e.Decompose(j)
+						e.ElseBody = []ast.Expr{nextIf}
+						e.ElseBody = append(e.ElseBody, exprs[k+1:]...)
+						y.pathIndex--
+						e.ElseBody = y.edits(e.ElseBody)
+						newExprs = append(newExprs, e)
 						break outerLoop
 					}
+				}
+				if j+1 == len(e.Bodies) && currPath.yield == nil {
+					newExprs = append(newExprs, e)
+					continue outerLoop
 				}
 			}
 			// set rest of the body as else branch
@@ -263,6 +281,7 @@ func (y *YieldParser) mapRouteToYields(traverseExprs []ast.Expr, frames []Frame)
 		switch e := expr.(type) {
 		case *control.If:
 			{
+				handled = true
 				for _, body := range e.Bodies {
 					y.mapRouteToYields(body, AppendFrame(frames, FrameTypeIf, e))
 				}
