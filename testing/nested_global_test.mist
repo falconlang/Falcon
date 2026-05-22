@@ -1,0 +1,14 @@
+global x = 42
+
+func test() = {
+  local y = 10
+  local result = 0
+  for (i: 1..3) {
+    if (i == 2) {
+      result = this.x
+    }
+  }
+  result
+}
+
+println(test())

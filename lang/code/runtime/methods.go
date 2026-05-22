@@ -93,6 +93,9 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		sep := ""
 		for _, v := range *args[0].AsList() {
 			s := v.AsStr()
+			if s == "" {
+				continue
+			}
 			idx := strings.Index(haystack, s)
 			if idx != -1 && idx < earliest {
 				earliest = idx

@@ -357,9 +357,16 @@ func (i *Interpreter) binary(e *common.BinaryExpr) Value {
 		}
 		return NumVal(result)
 	case lex.Slash:
-		return NumVal(vals[0].AsNum() / vals[1].AsNum())
+		b := vals[1].AsNum()
+		if b == 0 {
+			panic("division by zero")
+		}
+		return NumVal(vals[0].AsNum() / b)
 	case lex.Remainder:
 		a, b := vals[0].AsNum(), vals[1].AsNum()
+		if b == 0 {
+			panic("division by zero (remainder)")
+		}
 		return NumVal(math.Mod(a, b))
 	case lex.Power:
 		return NumVal(math.Pow(vals[0].AsNum(), vals[1].AsNum()))
@@ -447,11 +454,17 @@ func (i *Interpreter) question(e *common.Question) Value {
 		if n != math.Trunc(n) {
 			panic("? even requires an integer value, got " + formatNum(n))
 		}
+		if math.Abs(n) > 9007199254740992 {
+			panic("? even: number is too large to determine parity")
+		}
 		return BoolVal(int64(n)%2 == 0)
 	case "odd":
 		n := v.AsNum()
 		if n != math.Trunc(n) {
 			panic("? odd requires an integer value, got " + formatNum(n))
+		}
+		if math.Abs(n) > 9007199254740992 {
+			panic("? odd: number is too large to determine parity")
 		}
 		return BoolVal(int64(n)%2 != 0)
 	default:
@@ -498,9 +511,15 @@ func (i *Interpreter) forSmt(e *control.For) Value {
 			}
 		}()
 		i.inEnv(loopEnv, func() Value {
-			for cur := from; (by > 0 && cur <= to) || (by < 0 && cur >= to); cur += by {
+			step := 0
+			for {
+				cur := from + float64(step)*by
+				if (by > 0 && cur > to) || (by < 0 && cur < to) {
+					break
+				}
 				loopEnv.Define(e.IName, NumVal(cur))
 				i.execBody(e.Body)
+				step++
 			}
 			return VoidVal()
 		})

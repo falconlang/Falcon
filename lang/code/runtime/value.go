@@ -322,6 +322,8 @@ func deepEqualDepth(a, b Value, depth int) bool {
 			}
 		}
 		return true
+	case NonConsumable:
+		return true
 	}
 	return false
 }

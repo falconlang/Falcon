@@ -95,12 +95,13 @@ func (s *StaticToken) Normal(
 
 // TODO: (future) it'll point to something meaningful
 func MakeFakeToken(t Type) *Token {
+	empty := ""
 	return &Token{
 		Column:  -1,
 		Row:     -1,
 		Context: nil,
 		Type:    t,
 		Flags:   make([]Flag, 0),
-		Content: nil,
+		Content: &empty,
 	}
 }

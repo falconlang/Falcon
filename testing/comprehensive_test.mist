@@ -1,0 +1,41 @@
+// Comprehensive verification of fixed bugs
+
+// 1. For loop float accumulation
+println("=== for loop ===")
+local forResult = []
+for (i: 0.0 .. 0.3 step 0.1) {
+  forResult.add(i)
+}
+println(forResult)
+
+// 2. Base conversions with prefixes
+println("=== base conversions ===")
+println(hexToDec("0xFF"))
+println(binToDec("0b1010"))
+println(hexa("0x1A"))
+
+// 3. isBase10 with + prefix
+println("=== isBase10 + ===")
+println("+123" ? base10)
+
+// 4. splitAtFirstOfAny with empty sep
+println("=== splitAtFirstOfAny empty ===")
+println("hello".splitAtFirstOfAny([""]))
+
+// 5. copyDict on wrong type
+println("=== copyDict wrong type ===")
+// println(copyDict(5))  // should error
+
+// 6. decToHex non-int
+println("=== decToHex non-int ===")
+// println(decToHex(15.7))  // should error
+
+// 7. setRandSeed negative
+println("=== setRandSeed negative ===")
+// println(setRandSeed(-1))  // should error
+
+// 8. mod/rem/quot by zero
+println("=== mod by zero ===")
+// println(mod(10, 0))  // should error
+
+println("Done")

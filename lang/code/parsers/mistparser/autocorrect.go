@@ -189,6 +189,17 @@ func (p *LangParser) walkAndCorrect(expr ast.Expr) {
 		for _, item := range e.Elements {
 			p.walkAndCorrect(item)
 		}
+	case *fundamentals.Dictionary:
+		for _, item := range e.Elements {
+			p.walkAndCorrect(item)
+		}
+	case *fundamentals.Pair:
+		p.walkAndCorrect(e.Key)
+		p.walkAndCorrect(e.Value)
+	case *fundamentals.Not:
+		p.walkAndCorrect(e.Expr)
+	case *common.Transform:
+		p.walkAndCorrect(e.On)
 
 	// Component event handlers
 	case *components.Event:

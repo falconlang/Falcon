@@ -133,6 +133,9 @@ func (b *BinaryExpr) Signature() []ast.Signature {
 }
 
 func (b *BinaryExpr) ensureSignature(acceptableSignature ...ast.Signature) {
+	if len(b.Operands) == 0 {
+		return
+	}
 	for _, op := range b.Operands {
 		opSigs := op.Signature()
 		for _, signature := range acceptableSignature {

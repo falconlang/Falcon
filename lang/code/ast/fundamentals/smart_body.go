@@ -23,6 +23,9 @@ func (s *SmartBody) String() string {
 }
 
 func (s *SmartBody) Blockly(flags ...bool) ast.Block {
+	if len(s.Body) == 0 {
+		panic("SmartBody.Blockly: empty body")
+	}
 	// a single expression, just inline it
 	if v, ok := s.Body[0].(*variables.Var); ok {
 		// it's a var body, but we want a var result!
@@ -112,6 +115,9 @@ func (s *SmartBody) Consumable() bool {
 }
 
 func (s *SmartBody) Signature() []ast.Signature {
+	if len(s.Body) == 0 {
+		return []ast.Signature{ast.SignAny}
+	}
 	for _, expr := range s.Body {
 		expr.Signature()
 	}

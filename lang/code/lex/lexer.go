@@ -233,6 +233,9 @@ func (l *Lexer) text() {
 			case 'n':
 				writer.WriteByte('\n')
 				continue
+			case 'r':
+				writer.WriteByte('\r')
+				continue
 			case 't':
 				writer.WriteByte('\t')
 				continue

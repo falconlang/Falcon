@@ -32,6 +32,9 @@ func MakeSimpleIf(condition ast.Expr, then []ast.Expr, elze []ast.Expr) *SimpleI
 }
 
 func (s *SimpleIf) String() string {
+	if len(s.normalThen) == 0 || len(s.normalElse) == 0 {
+		panic("SimpleIf.String: empty then or else body")
+	}
 	var branches []string
 	currIf := s
 	var hasDiscontinuity = false

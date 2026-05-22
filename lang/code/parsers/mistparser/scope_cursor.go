@@ -73,7 +73,7 @@ func (s *ScopeCursor) ReferVariable(name string) ([]ast.Signature, bool) {
 }
 
 func (s *ScopeCursor) ReferGlobalVariable(name string) ([]ast.Signature, bool) {
-	return s.currScope.ReferGlobalVariable(name)
+	return s.headScope.ReferGlobalVariable(name)
 }
 
 func (s *ScopeCursor) GetVariableReferCount(name string) int {

@@ -1,0 +1,2 @@
+// Verify formatDecimal DoS
+println(formatDecimal(3.14, 100000000))

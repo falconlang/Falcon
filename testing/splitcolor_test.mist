@@ -1,0 +1,2 @@
+// Verify splitColor with negative number
+println(splitColor(-1))

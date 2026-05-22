@@ -132,8 +132,14 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 
 	// --- List helpers ---
 	case "copyList":
+		if args[0].Type() != List {
+			panic("copyList requires a list, got " + args[0].TypeName())
+		}
 		return deepCopyValue(args[0])
 	case "copyDict":
+		if args[0].Type() != Dict {
+			panic("copyDict requires a dict, got " + args[0].TypeName())
+		}
 		return deepCopyValue(args[0])
 
 	// --- Color (numops.go) ---

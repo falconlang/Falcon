@@ -1,0 +1,7 @@
+global x = 42
+
+func test() = {
+  this.x
+}
+
+println(test())

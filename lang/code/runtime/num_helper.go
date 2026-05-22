@@ -18,7 +18,7 @@ func isBase10(s string) bool {
 	if len(s) == 0 {
 		return false
 	}
-	if s[0] == '-' {
+	if s[0] == '-' || s[0] == '+' {
 		s = s[1:]
 		if len(s) == 0 {
 			return false
@@ -61,16 +61,25 @@ func isBinary(s string) bool {
 // --- Base conversions ---
 
 func evalDecToHex(args []Value) Value {
-	n := int64(args[0].AsNum())
-	return StrVal(strings.ToUpper(strconv.FormatInt(n, 16)))
+	n := args[0].AsNum()
+	if n != math.Trunc(n) {
+		panic("decToHex requires an integer, got " + formatNum(n))
+	}
+	return StrVal(strings.ToUpper(strconv.FormatInt(int64(n), 16)))
 }
 
 func evalDecToBin(args []Value) Value {
-	return StrVal(strconv.FormatInt(int64(args[0].AsNum()), 2))
+	n := args[0].AsNum()
+	if n != math.Trunc(n) {
+		panic("decToBin requires an integer, got " + formatNum(n))
+	}
+	return StrVal(strconv.FormatInt(int64(n), 2))
 }
 
 func evalHexToDec(args []Value) Value {
-	n, err := strconv.ParseInt(args[0].AsStr(), 16, 64)
+	s := strings.TrimPrefix(args[0].AsStr(), "0x")
+	s = strings.TrimPrefix(s, "0X")
+	n, err := strconv.ParseInt(s, 16, 64)
 	if err != nil {
 		panic("invalid hex string: " + args[0].AsStr())
 	}
@@ -78,7 +87,9 @@ func evalHexToDec(args []Value) Value {
 }
 
 func evalBinToDec(args []Value) Value {
-	n, err := strconv.ParseInt(args[0].AsStr(), 2, 64)
+	s := strings.TrimPrefix(args[0].AsStr(), "0b")
+	s = strings.TrimPrefix(s, "0B")
+	n, err := strconv.ParseInt(s, 2, 64)
 	if err != nil {
 		panic("invalid binary string: " + args[0].AsStr())
 	}
@@ -94,7 +105,9 @@ func evalDec(args []Value) Value {
 }
 
 func evalBin(args []Value) Value {
-	n, err := strconv.ParseInt(args[0].AsStr(), 2, 64)
+	s := strings.TrimPrefix(args[0].AsStr(), "0b")
+	s = strings.TrimPrefix(s, "0B")
+	n, err := strconv.ParseInt(s, 2, 64)
 	if err != nil {
 		panic("invalid binary string: " + args[0].AsStr())
 	}
@@ -102,7 +115,9 @@ func evalBin(args []Value) Value {
 }
 
 func evalOctal(args []Value) Value {
-	n, err := strconv.ParseInt(args[0].AsStr(), 8, 64)
+	s := strings.TrimPrefix(args[0].AsStr(), "0o")
+	s = strings.TrimPrefix(s, "0O")
+	n, err := strconv.ParseInt(s, 8, 64)
 	if err != nil {
 		panic("invalid octal string: " + args[0].AsStr())
 	}
@@ -110,7 +125,9 @@ func evalOctal(args []Value) Value {
 }
 
 func evalHexa(args []Value) Value {
-	n, err := strconv.ParseInt(args[0].AsStr(), 16, 64)
+	s := strings.TrimPrefix(args[0].AsStr(), "0x")
+	s = strings.TrimPrefix(s, "0X")
+	n, err := strconv.ParseInt(s, 16, 64)
 	if err != nil {
 		panic("invalid hex string: " + args[0].AsStr())
 	}
@@ -140,6 +157,9 @@ func clampByte(n int) int {
 
 func evalMakeColor(args []Value) Value {
 	list := args[0].AsList()
+	if len(*list) < 3 {
+		panic("makeColor requires a list of at least 3 elements [r, g, b]")
+	}
 	r := clampByte(int((*list)[0].AsNum()))
 	g := clampByte(int((*list)[1].AsNum()))
 	b := clampByte(int((*list)[2].AsNum()))
@@ -154,11 +174,15 @@ func evalSplitColor(args []Value) Value {
 	var a, r, g, b int64
 	// A numeric argument is treated as a 32-bit ARGB integer.
 	if args[0].Type() == Number {
-		n := int64(args[0].AsNum())
-		a = (n >> 24) & 0xFF
-		r = (n >> 16) & 0xFF
-		g = (n >> 8) & 0xFF
-		b = n & 0xFF
+		nf := args[0].AsNum()
+		if nf < 0 {
+			panic("splitColor: color number must be non-negative, got " + formatNum(nf))
+		}
+		n := uint64(int64(nf))
+		a = int64((n >> 24) & 0xFF)
+		r = int64((n >> 16) & 0xFF)
+		g = int64((n >> 8) & 0xFF)
+		b = int64(n & 0xFF)
 		return ListVal([]Value{NumVal(float64(a)), NumVal(float64(r)), NumVal(float64(g)), NumVal(float64(b))})
 	}
 	raw := args[0].AsStr()
@@ -219,15 +243,20 @@ func evalRandInt(args []Value) Value {
 }
 
 func evalRandFloat(_ []Value) Value {
-	return NumVal(float64(rngNext()) / (1 << 64))
+	// Use the high 53 bits for a uniform [0,1) float64.
+	return NumVal(float64(rngNext()>>11) / (1 << 53))
 }
 
 func evalSetRandSeed(args []Value) Value {
-	s := uint64(args[0].AsNum())
-	if s == 0 {
-		s = 1 // xorshift64 must not be zero
+	s := args[0].AsNum()
+	if s < 0 {
+		panic("setRandSeed requires a non-negative seed, got " + formatNum(s))
 	}
-	rngState = s
+	seed := uint64(s)
+	if seed == 0 {
+		seed = 1 // xorshift64 must not be zero
+	}
+	rngState = seed
 	return NullVal()
 }
 
@@ -252,8 +281,13 @@ func evalMaxOf(args []Value) Value {
 	}
 	mx := (*list)[0].AsNum()
 	for _, v := range (*list)[1:] {
-		if v.AsNum() > mx {
-			mx = v.AsNum()
+		n := v.AsNum()
+		if math.IsNaN(n) {
+			mx = n
+			break
+		}
+		if n > mx {
+			mx = n
 		}
 	}
 	return NumVal(mx)
@@ -266,8 +300,13 @@ func evalMinOf(args []Value) Value {
 	}
 	mn := (*list)[0].AsNum()
 	for _, v := range (*list)[1:] {
-		if v.AsNum() < mn {
-			mn = v.AsNum()
+		n := v.AsNum()
+		if math.IsNaN(n) {
+			mn = n
+			break
+		}
+		if n < mn {
+			mn = n
 		}
 	}
 	return NumVal(mn)
@@ -280,7 +319,11 @@ func evalGeoMeanOf(args []Value) Value {
 	}
 	product := 1.0
 	for _, v := range *list {
-		product *= v.AsNum()
+		n := v.AsNum()
+		if n < 0 {
+			panic("geoMeanOf() requires non-negative values")
+		}
+		product *= n
 	}
 	return NumVal(math.Pow(product, 1.0/float64(len(*list))))
 }
@@ -310,27 +353,27 @@ func evalModeOf(args []Value) Value {
 		val   Value
 		count int
 	}
-	seen := make(map[string]*entry)
-	var order []string
+	var entries []*entry
+outer:
 	for _, v := range *list {
-		// type-aware key prevents 1 and "1" from colliding
-		key := strconv.Itoa(int(v.Type())) + "\x00" + v.String()
-		if seen[key] == nil {
-			seen[key] = &entry{val: v, count: 0}
-			order = append(order, key)
+		for _, e := range entries {
+			if DeepEqual(v, e.val) {
+				e.count++
+				continue outer
+			}
 		}
-		seen[key].count++
+		entries = append(entries, &entry{val: v, count: 1})
 	}
 	maxCount := 0
-	for _, k := range order {
-		if seen[k].count > maxCount {
-			maxCount = seen[k].count
+	for _, e := range entries {
+		if e.count > maxCount {
+			maxCount = e.count
 		}
 	}
 	var modes []Value
-	for _, k := range order {
-		if seen[k].count == maxCount {
-			modes = append(modes, seen[k].val)
+	for _, e := range entries {
+		if e.count == maxCount {
+			modes = append(modes, e.val)
 		}
 	}
 	return ListVal(modes)
@@ -338,8 +381,23 @@ func evalModeOf(args []Value) Value {
 
 // --- Secondary math ops ---
 
+func evalFormatDecimal(args []Value) Value {
+	n, rawPlaces := args[0].AsNum(), args[1].AsNum()
+	places := int(rawPlaces)
+	if rawPlaces != float64(places) || places < 0 {
+		panic("formatDecimal: places must be a non-negative integer, got " + formatNum(rawPlaces))
+	}
+	if places > 100 {
+		panic("formatDecimal: places cannot exceed 100")
+	}
+	return StrVal(strconv.FormatFloat(n, 'f', places, 64))
+}
+
 func evalMod(args []Value) Value {
 	a, b := args[0].AsNum(), args[1].AsNum()
+	if b == 0 {
+		panic("modulus by zero")
+	}
 	// floor modulo: result has the same sign as the divisor
 	r := math.Mod(a, b)
 	if r != 0 && (r < 0) != (b < 0) {
@@ -350,25 +408,22 @@ func evalMod(args []Value) Value {
 
 func evalRem(args []Value) Value {
 	a, b := args[0].AsNum(), args[1].AsNum()
+	if b == 0 {
+		panic("remainder by zero")
+	}
 	return NumVal(math.Mod(a, b))
 }
 
 func evalQuot(args []Value) Value {
 	a, b := args[0].AsNum(), args[1].AsNum()
+	if b == 0 {
+		panic("quotient by zero")
+	}
 	return NumVal(math.Trunc(a / b))
 }
 
 func evalAtan2(args []Value) Value {
 	return NumVal(math.Atan2(args[0].AsNum(), args[1].AsNum()))
-}
-
-func evalFormatDecimal(args []Value) Value {
-	n, rawPlaces := args[0].AsNum(), args[1].AsNum()
-	places := int(rawPlaces)
-	if rawPlaces != float64(places) || places < 0 {
-		panic("formatDecimal: places must be a non-negative integer, got " + formatNum(rawPlaces))
-	}
-	return StrVal(strconv.FormatFloat(n, 'f', places, 64))
 }
 
 // --- Shared helpers ---

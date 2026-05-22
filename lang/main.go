@@ -313,11 +313,25 @@ func repl() {
 			break
 		}
 
+		inString := false
+		escaped := false
 		for _, c := range line {
-			if c == '{' {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if c == '\\' && inString {
+				escaped = true
+				continue
+			}
+			if c == '"' {
+				inString = !inString
+			} else if !inString && c == '{' {
 				openBraces++
-			} else if c == '}' {
-				openBraces--
+			} else if !inString && c == '}' {
+				if openBraces > 0 {
+					openBraces--
+				}
 			}
 		}
 		inputBuf.WriteString(line)

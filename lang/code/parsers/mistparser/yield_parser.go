@@ -329,6 +329,9 @@ func (y *YieldParser) mapRouteToYields(traverseExprs []ast.Expr, frames []Frame)
 }
 
 func (y *YieldParser) nextPath() path {
+	if y.pathIndex >= len(y.paths) {
+		panic("yield parser: no more paths available (index out of range)")
+	}
 	p := y.paths[y.pathIndex]
 	y.pathIndex += 1
 	return p

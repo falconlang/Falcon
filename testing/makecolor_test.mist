@@ -1,0 +1,2 @@
+// Verify makeColor crash on short list
+println(makeColor([1, 2]))
