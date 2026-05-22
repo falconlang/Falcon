@@ -1,24 +1,26 @@
-func fooBar() = {
-  if (false) {
-    for (a in []) {
-        for (b in []) {
-          if (true) {
-            yield 10
-          }
-        }
-      }
+func runLengthEncode(text) = {
+  if (text.textLen() == 0) {
+    yield ""
   }
-  println("katze")
-  if (true) {
-    yield -7
-  } else if (false) {
-    println("bruh")
-  } else if (false) {
-    yield 8
-  } else if (true) {
-    println("meow")
+
+  local result = ""
+  local currentChar = text.segment(1, 1)
+  local count = 1
+
+  for (i: 2 .. text.textLen()) {
+    if (text.segment(i, 1) === currentChar) {
+      count = count + 1
+    } else {
+      result = result _ currentChar _ count
+      currentChar = text.segment(i, 1)
+      count = 1
+    }
   }
-  -1
+
+  // Append the last group
+  result = result _ currentChar _ count
+  result
 }
 
-println(fooBar())
+// Test case
+println(runLengthEncode("aaaabbbcc"))

@@ -1,28 +1,36 @@
-func fooBar() = {
-  if (true) {
-    println("kat")
-  } else if (false) {
-    println("duhh")
-  } else {
-    yield 1
+func decodeRLE(encoded) = {
+  if (encoded ? emptyText) {
+    yield ""
   }
-  if (true) {
-    println("a")
-  } else if (false) {
-    println("bugg")
-  } else {
-    yield 100000
+
+  local result = ""
+  local countStr = ""
+  local currentChar = ""
+
+  // Iterate through each character in the encoded string
+  for (i: 1 .. encoded.textLen()) {
+    local char = encoded.segment(i, 1)
+
+    // Check if we are at the end of the number (or the last character)
+    if (i == encoded.textLen() || i === 1 && char == char.uppercase()) {
+      countStr = countStr _ char
+    } else {
+      // Add the character to the current group
+      if (countStr !== "") {
+        result = result _ countStr
+        countStr = ""
+      }
+      result = result _ char
+    }
   }
-  local a = 1
-  println(a)
-  if (false) {
-    println("katze")
-    yield "hola"
+
+  // Add the final number group
+  if (countStr !== "") {
+    result = result _ countStr
   }
-  if (true) {
-    yield "boww"
-  }
-  "meow"
+
+  result
 }
 
-println(fooBar())
+// Test case
+println(decodeRLE("a4b3c2"))

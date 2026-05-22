@@ -72,7 +72,7 @@ outerLoop:
 					allBodiesYield = false
 				}
 				// a loop makes for a potential yield, not confirmed, so debranch If
-				if currPath.hasLoopInPath() {
+				if currPath.hasLoopInPath() && currPath.yield != nil {
 					currPath.yield.UseTransformed = true
 					requiresDeclaration := !y.localResultDeclared
 					if requiresDeclaration {
@@ -160,7 +160,14 @@ outerLoop:
 		case *control.For, *control.While, *control.Each, *control.EachPair:
 			// wrap rest of the body in a check
 			p := y.nextPath()
-			newExprs = y.wrapInResultCheck(p.yield, exprs[k+1:], newExprs, y.addLoopBreaking(p))
+			if p.yield != nil {
+				newExprs = y.wrapInResultCheck(p.yield, exprs[k+1:], newExprs, y.addLoopBreaking(p))
+				break outerLoop
+			}
+			newExprs = append(newExprs, expr)
+		case *variables.Var:
+			e.Body = y.edits(e.Body)
+			newExprs = append(newExprs, e)
 			break outerLoop
 		default:
 			newExprs = append(newExprs, expr)
