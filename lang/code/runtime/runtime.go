@@ -248,7 +248,7 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		}
 		list := listVal.AsList()
 		i.lastHighlight = 0
-		idx := int(i.Eval(e.Index).AsNum())
+		idx := coerceIndex(i.Eval(e.Index), "list index")
 		if idx < 1 || idx > len(*list) {
 			i.lastToken = e.Where
 			i.lastHighlight = hl
@@ -262,7 +262,7 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		i.lastHighlight = hl
 		list := listVal.AsList()
 		i.lastHighlight = 0
-		idx := int(i.Eval(e.Index).AsNum())
+		idx := coerceIndex(i.Eval(e.Index), "list index")
 		val := i.Eval(e.Value)
 		if idx < 1 || idx > len(*list) {
 			i.lastToken = e.Where

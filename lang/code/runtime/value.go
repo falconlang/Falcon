@@ -196,6 +196,20 @@ func CoerceNum(v Value) (float64, bool) {
 	return 0, false
 }
 
+func coerceIndex(v Value, context string) int {
+	n := v.AsNum()
+	if math.IsNaN(n) {
+		panic(context + " is NaN")
+	}
+	if math.IsInf(n, 0) {
+		panic(context + " is infinite")
+	}
+	if math.Trunc(n) != n {
+		panic(context + " must be a whole number, got " + v.String())
+	}
+	return int(n)
+}
+
 func (v Value) String() string {
 	return v.stringDepth(0)
 }

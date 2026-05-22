@@ -139,8 +139,8 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		return ListVal(rows)
 	case "segment":
 		s := []rune(on.AsStr())
-		from := int(args[0].AsNum()) - 1 // 1-based
-		length := int(args[1].AsNum())
+		from := coerceIndex(args[0], "segment start") - 1 // 1-based
+		length := coerceIndex(args[1], "segment length")
 		if from < 0 {
 			from = 0
 		}
@@ -205,7 +205,7 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		return NumVal(0)
 	case "insert":
 		list := on.AsList()
-		idx := int(args[0].AsNum()) - 1 // 1-based
+		idx := coerceIndex(args[0], "insert index") - 1 // 1-based
 		if idx < 0 || idx > len(*list) {
 			panic("insert: index " + args[0].String() + " out of bounds (list length " + strconv.Itoa(len(*list)) + ")")
 		}
@@ -216,7 +216,7 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		return VoidVal()
 	case "remove":
 		list := on.AsList()
-		idx := int(args[0].AsNum()) - 1 // 1-based
+		idx := coerceIndex(args[0], "remove index") - 1 // 1-based
 		if idx < 0 || idx >= len(*list) {
 			panic("remove: index " + args[0].String() + " out of bounds (list length " + strconv.Itoa(len(*list)) + ")")
 		}
@@ -248,8 +248,8 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 			panic(".slice() requires 2 arguments (start, end)")
 		}
 		list := *on.AsList()
-		idx1 := int(args[0].AsNum()) - 1 // 1-based
-		idx2 := int(args[1].AsNum())     // 1-based inclusive → exclusive
+		idx1 := coerceIndex(args[0], "slice start") - 1 // 1-based
+		idx2 := coerceIndex(args[1], "slice end")       // 1-based inclusive → exclusive
 		if idx1 < 0 {
 			idx1 = 0
 		}
