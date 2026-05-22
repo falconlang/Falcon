@@ -1,12 +1,10 @@
 func repro() = {
   local i = 1
-  for (a in []) {
-    while (i <= 3) {
-      if (i == 2) {
-        yield i
-      }
-      i = i + 1
+  while (i <= 3) {
+    if (i == 2) {
+      yield i
     }
+    i = i + 1
   }
   -1
 }

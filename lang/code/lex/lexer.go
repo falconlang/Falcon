@@ -373,6 +373,9 @@ func (l *Lexer) error(message string, args ...string) {
 }
 
 func (l *Lexer) consume(expect uint8) bool {
+	if !l.notEOF() {
+		return false
+	}
 	if l.peek() == expect {
 		l.currIndex++
 		l.currRow++
@@ -392,6 +395,9 @@ func (l *Lexer) skip() {
 }
 
 func (l *Lexer) peek() uint8 {
+	if l.isEOF() {
+		return 0
+	}
 	return l.source[l.currIndex]
 }
 
