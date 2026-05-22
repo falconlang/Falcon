@@ -322,6 +322,9 @@ func (i *Interpreter) dictionary(e *fundamentals.Dictionary) Value {
 }
 
 func (i *Interpreter) binary(e *common.BinaryExpr) Value {
+	if len(e.Operands) == 0 {
+		panic("binary expression has no operands")
+	}
 	// Short-circuit logical operators
 	switch e.Operator {
 	case lex.LogicAnd:

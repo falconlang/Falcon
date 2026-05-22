@@ -2,6 +2,7 @@ package common
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/ast/fundamentals"
 	"Falcon/code/lex"
 	"testing"
 )
@@ -9,7 +10,7 @@ import (
 func TestBinaryExprRemainderSignature(t *testing.T) {
 	b := &BinaryExpr{
 		Where:    lex.MakeFakeToken(lex.Plus),
-		Operands: []ast.Expr{},
+		Operands: []ast.Expr{&fundamentals.Number{Content: "5"}, &fundamentals.Number{Content: "2"}},
 		Operator: lex.Remainder,
 	}
 	sig := b.Signature()
@@ -21,7 +22,7 @@ func TestBinaryExprRemainderSignature(t *testing.T) {
 func TestBinaryExprPlusSignature(t *testing.T) {
 	b := &BinaryExpr{
 		Where:    lex.MakeFakeToken(lex.Plus),
-		Operands: []ast.Expr{},
+		Operands: []ast.Expr{&fundamentals.Number{Content: "1"}, &fundamentals.Number{Content: "2"}},
 		Operator: lex.Plus,
 	}
 	sig := b.Signature()
@@ -33,7 +34,7 @@ func TestBinaryExprPlusSignature(t *testing.T) {
 func TestBinaryExprTextJoinSignature(t *testing.T) {
 	b := &BinaryExpr{
 		Where:    lex.MakeFakeToken(lex.Underscore),
-		Operands: []ast.Expr{},
+		Operands: []ast.Expr{&fundamentals.Number{Content: "1"}},
 		Operator: lex.Underscore,
 	}
 	sig := b.Signature()

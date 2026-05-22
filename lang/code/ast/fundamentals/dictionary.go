@@ -61,12 +61,11 @@ func (p *Pair) Consumable() bool {
 }
 
 func (p *Pair) Signature() []ast.Signature {
-	if p.Key != nil {
-		p.Key.Signature()
+	if p.Key == nil || p.Value == nil {
+		panic("Pair.Signature: nil key or value")
 	}
-	if p.Value != nil {
-		p.Value.Signature()
-	}
+	p.Key.Signature()
+	p.Value.Signature()
 	return []ast.Signature{ast.SignList}
 }
 

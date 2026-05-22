@@ -61,3 +61,17 @@ func safe_div(a, b) = {
 println(safe_div(10, 2))
 println(safe_div(9, 3))
 println(safe_div(5, 0))
+
+println("=== 6. regression: local + while + nested if + yield (stack overflow fix) ===")
+func repro() = {
+  local i = 1
+  while (i <= 3) {
+    if (i == 2) {
+      yield i
+    }
+    i = i + 1
+  }
+  -1
+}
+
+println(repro())

@@ -1,36 +1,12 @@
-func decodeRLE(encoded) = {
-  if (encoded ? emptyText) {
-    yield ""
-  }
-
-  local result = ""
-  local countStr = ""
-  local currentChar = ""
-
-  // Iterate through each character in the encoded string
-  for (i: 1 .. encoded.textLen()) {
-    local char = encoded.segment(i, 1)
-
-    // Check if we are at the end of the number (or the last character)
-    if (i == encoded.textLen() || i === 1 && char == char.uppercase()) {
-      countStr = countStr _ char
-    } else {
-      // Add the character to the current group
-      if (countStr !== "") {
-        result = result _ countStr
-        countStr = ""
-      }
-      result = result _ char
+func repro() = {
+  local i = 1
+  while (i <= 3) {
+    if (i == 2) {
+      yield i
     }
+    i = i + 1
   }
-
-  // Add the final number group
-  if (countStr !== "") {
-    result = result _ countStr
-  }
-
-  result
+  -1
 }
 
-// Test case
-println(decodeRLE("a4b3c2"))
+println(repro())

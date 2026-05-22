@@ -116,7 +116,7 @@ func (s *SmartBody) Consumable() bool {
 
 func (s *SmartBody) Signature() []ast.Signature {
 	if len(s.Body) == 0 {
-		return []ast.Signature{ast.SignAny}
+		panic("SmartBody.Signature: empty body")
 	}
 	for _, expr := range s.Body {
 		expr.Signature()

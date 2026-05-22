@@ -22,7 +22,10 @@ func TestDictionarySignature(t *testing.T) {
 }
 
 func TestPairSignature(t *testing.T) {
-	p := &Pair{}
+	p := &Pair{
+		Key:   &Number{Content: "1"},
+		Value: &Number{Content: "2"},
+	}
 	sig := p.Signature()
 	if len(sig) != 1 || sig[0] != ast.SignList {
 		t.Errorf("Expected SignList for Pair, got %v", sig)

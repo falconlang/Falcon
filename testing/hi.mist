@@ -1,26 +1,14 @@
-func runLengthEncode(text) = {
-  if (text.textLen() == 0) {
-    yield ""
-  }
-
-  local result = ""
-  local currentChar = text.segment(1, 1)
-  local count = 1
-
-  for (i: 2 .. text.textLen()) {
-    if (text.segment(i, 1) === currentChar) {
-      count = count + 1
-    } else {
-      result = result _ currentChar _ count
-      currentChar = text.segment(i, 1)
-      count = 1
+func repro() = {
+  local i = 1
+  for (a in []) {
+    while (i <= 3) {
+      if (i == 2) {
+        yield i
+      }
+      i = i + 1
     }
   }
-
-  // Append the last group
-  result = result _ currentChar _ count
-  result
+  -1
 }
 
-// Test case
-println(runLengthEncode("aaaabbbcc"))
+println(repro())
