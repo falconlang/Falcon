@@ -36,8 +36,6 @@ type YieldParser struct {
 	paths     []path
 	pathIndex int
 
-	oldSchoolWay bool // the use of _result = [true, false] to keep track of yields
-
 	localResultDeclared bool //  if `_result = [true, false]` has been added
 }
 
@@ -73,7 +71,6 @@ outerLoop:
 				if currPath.yield == nil {
 					allBodiesYield = false
 				}
-				println(j)
 				// a loop makes for a potential yield, not confirmed, so debranch If
 				if currPath.hasLoopInPath() {
 					currPath.yield.UseTransformed = true
@@ -97,15 +94,7 @@ outerLoop:
 				if lastPath != nil {
 					// last path didn't have yield, but this one does, so debranchIf
 					if lastPath.yield == nil && currPath.yield != nil {
-						nextIf := e.Decompose(j)
-						// append the current If
-						newExprs = append(newExprs, e)
-						// re-edit for next if + remaining code
-						var remainingBody []ast.Expr
-						remainingBody = append(remainingBody, nextIf)
-						remainingBody = append(remainingBody, exprs[k+1:]...)
-						y.pathIndex--
-						newExprs = append(newExprs, y.edits(remainingBody)...)
+						newExprs = y.wrapInResultCheck(currPath.yield, exprs[k+1:], newExprs, e)
 						break outerLoop
 					} else if lastPath.yield != nil && currPath.yield == nil {
 						// OR last path had yield, but this one doesn't, so debranch to else
@@ -163,8 +152,6 @@ outerLoop:
 		case *control.For, *control.While, *control.Each, *control.EachPair:
 			// wrap rest of the body in a check
 			p := y.nextPath()
-			println(p.yield)
-			println(p.yield.UseTransformed)
 			newExprs = y.wrapInResultCheck(p.yield, exprs[k+1:], newExprs, y.addLoopBreaking(p))
 			break outerLoop
 		default:
