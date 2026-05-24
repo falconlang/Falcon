@@ -280,12 +280,18 @@ func (c *Call) Consumable() bool {
 
 func (c *Call) Signature() []ast.Signature {
 	onSigs := c.On.Signature()
-	for _, arg := range c.Args {
-		arg.Signature()
-	}
 	errorMessage, signature := TestSignature(c.Name, len(c.Args), deriveAllowedModules(onSigs)...)
 	if signature == nil {
 		c.Where.Error(errorMessage)
+	}
+	for i, arg := range c.Args {
+		argSigs := arg.Signature()
+		if i < len(signature.ParamSigs) {
+			expected := signature.ParamSigs[i]
+			if expected != ast.SignAny && !ast.HasSignature(argSigs, expected) {
+				c.Where.TypeError(".%() argument % expects %, not %", c.Name, strconv.Itoa(i+1), expected.String(), ast.FormatSignatures(argSigs))
+			}
+		}
 	}
 	intendedOutput := signature.Signature
 	switch signature.Module {

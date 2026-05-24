@@ -200,6 +200,12 @@ func (l *Lexer) colorCode() {
 	if length != 6 && length != 8 {
 		l.error("Color code must be 6 or 8 hexadecimal characters, got %", strconv.Itoa(length))
 	}
+	if l.notEOF() {
+		c := l.peek()
+		if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') {
+			l.error("Color code must be 6 or 8 hexadecimal characters, got more than 8")
+		}
+	}
 	content := l.source[startIndex-1 : l.currIndex] // include '#'
 	l.appendToken(&Token{
 		Context: l.ctx,
@@ -221,6 +227,10 @@ func (l *Lexer) text() {
 		c := l.next()
 		if c == '"' {
 			break
+		}
+		if c == '\n' {
+			l.currColumn++
+			l.currRow = 0
 		}
 		if c == '\\' {
 			e := l.peek()

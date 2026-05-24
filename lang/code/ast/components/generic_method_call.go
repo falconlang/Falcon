@@ -24,12 +24,17 @@ func (g *GenericMethodCall) String() string {
 }
 
 func (g *GenericMethodCall) Blockly(flags ...bool) ast.Block {
+	shape := "statement"
+	if g.Returning {
+		shape = "value"
+	}
 	return ast.Block{
 		Type: "component_method",
 		Mutation: &ast.Mutation{
 			MethodName:    g.Method,
 			IsGeneric:     true,
 			ComponentType: g.ComponentType,
+			Shape:         shape,
 		},
 		Values: ast.ValueArgsByPrefix(g.Component, "COMPONENT", "ARG", g.Args),
 	}
@@ -40,7 +45,7 @@ func (g *GenericMethodCall) Continuous() bool {
 }
 
 func (g *GenericMethodCall) Consumable() bool {
-	return false
+	return g.Returning
 }
 
 func (g *GenericMethodCall) Signature() []ast.Signature {

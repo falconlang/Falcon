@@ -31,6 +31,31 @@ type Value struct {
 	XMLName xml.Name `xml:"value"`
 	Name    string   `xml:"name,attr"`
 	Block   Block    `xml:"block"`
+	Shadow  *Shadow  `xml:"shadow"`
+}
+
+type Shadow struct {
+	XMLName    xml.Name    `xml:"shadow"`
+	Type       string      `xml:"type,attr"`
+	Mutation   *Mutation   `xml:"mutation,omitempty"`
+	Fields     []Field     `xml:"field"`
+	Values     []Value     `xml:"value"`
+	Statements []Statement `xml:"statement"`
+	Next       *Next       `xml:"next"`
+}
+
+func (s *Shadow) BlockValue() Block {
+	if s == nil {
+		return Block{}
+	}
+	return Block{
+		Type:       s.Type,
+		Mutation:   s.Mutation,
+		Fields:     s.Fields,
+		Values:     s.Values,
+		Statements: s.Statements,
+		Next:       s.Next,
+	}
 }
 
 type Mutation struct {
@@ -116,7 +141,7 @@ func ValuesByPrefix(namePrefix string, operands []Expr) []Value {
 
 func ValueArgsByPrefix(on Expr, onName string, namePrefix string, operands []Expr) []Value {
 	values := make([]Value, len(operands)+1)
-	values[0] = Value{Name: onName, Block: on.Blockly()}
+	values[0] = Value{Name: onName, Block: on.Blockly(false)}
 	for i, operand := range operands {
 		values[i+1] = Value{Name: namePrefix + strconv.Itoa(i), Block: operand.Blockly(false)}
 	}
@@ -139,7 +164,7 @@ func MakeValueArgs(on Expr, onName string, operands []Expr, names ...string) []V
 		panic("len(operands) != len(names)")
 	}
 	values := make([]Value, len(operands)+1)
-	values[0] = Value{Name: onName, Block: on.Blockly()}
+	values[0] = Value{Name: onName, Block: on.Blockly(false)}
 	for i, operand := range operands {
 		values[i+1] = Value{Name: names[i], Block: operand.Blockly(false)}
 	}

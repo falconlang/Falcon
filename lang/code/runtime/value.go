@@ -127,6 +127,9 @@ func (v Value) AsNum() float64 {
 		return v.numVal
 	case String:
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v.strVal), 64); err == nil {
+			if math.IsNaN(f) || math.IsInf(f, 0) {
+				panic("cannot convert text to finite number: \"" + v.strVal + "\"")
+			}
 			return f
 		}
 		panic("cannot convert text to number: \"" + v.strVal + "\"")
@@ -267,18 +270,30 @@ func formatNum(f float64) string {
 // Primitive values (null, bool, number, string, color) are immutable and returned as-is.
 // Lists and dicts are recursively cloned.
 func deepCopyValue(v Value) Value {
+	return deepCopyValueMemo(v, make(map[*[]Value]*[]Value), make(map[*OrderedDict]*OrderedDict))
+}
+
+func deepCopyValueMemo(v Value, lists map[*[]Value]*[]Value, dicts map[*OrderedDict]*OrderedDict) Value {
 	switch v.vtype {
 	case List:
+		if cp, ok := lists[v.listVal]; ok {
+			return Value{vtype: List, listVal: cp}
+		}
 		src := *v.listVal
 		cp := make([]Value, len(src))
+		lists[v.listVal] = &cp
 		for i, elem := range src {
-			cp[i] = deepCopyValue(elem)
+			cp[i] = deepCopyValueMemo(elem, lists, dicts)
 		}
 		return Value{vtype: List, listVal: &cp}
 	case Dict:
+		if nd, ok := dicts[v.dictVal]; ok {
+			return DictVal(nd)
+		}
 		nd := NewOrderedDict()
+		dicts[v.dictVal] = nd
 		for _, entry := range v.dictVal.entries {
-			nd.Set(entry.Key, deepCopyValue(entry.Val))
+			nd.Set(entry.Key, deepCopyValueMemo(entry.Val, lists, dicts))
 		}
 		return DictVal(nd)
 	default:
@@ -288,13 +303,17 @@ func deepCopyValue(v Value) Value {
 
 // DeepEqual checks structural equality of two values.
 func DeepEqual(a, b Value) bool {
-	return deepEqualDepth(a, b, 0)
+	return deepEqualMemo(a, b, make(map[equalPair]bool))
 }
 
-func deepEqualDepth(a, b Value, depth int) bool {
-	if depth > 50 {
-		panic("circular reference detected in equality comparison")
-	}
+type equalPair struct {
+	aList *[]Value
+	bList *[]Value
+	aDict *OrderedDict
+	bDict *OrderedDict
+}
+
+func deepEqualMemo(a, b Value, seen map[equalPair]bool) bool {
 	if a.vtype != b.vtype {
 		return false
 	}
@@ -311,12 +330,17 @@ func deepEqualDepth(a, b Value, depth int) bool {
 		if a.listVal == b.listVal {
 			return true // same pointer — same list (handles self-referential equality)
 		}
+		pair := equalPair{aList: a.listVal, bList: b.listVal}
+		if seen[pair] {
+			return true
+		}
+		seen[pair] = true
 		la, lb := *a.listVal, *b.listVal
 		if len(la) != len(lb) {
 			return false
 		}
 		for i := range la {
-			if !deepEqualDepth(la[i], lb[i], depth+1) {
+			if !deepEqualMemo(la[i], lb[i], seen) {
 				return false
 			}
 		}
@@ -326,12 +350,17 @@ func deepEqualDepth(a, b Value, depth int) bool {
 		if da == db {
 			return true // same pointer — same dict
 		}
+		pair := equalPair{aDict: da, bDict: db}
+		if seen[pair] {
+			return true
+		}
+		seen[pair] = true
 		if da.Len() != db.Len() {
 			return false
 		}
 		for _, e := range da.entries {
 			bv, ok := db.Get(e.Key)
-			if !ok || !deepEqualDepth(e.Val, bv, depth+1) {
+			if !ok || !deepEqualMemo(e.Val, bv, seen) {
 				return false
 			}
 		}

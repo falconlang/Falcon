@@ -157,14 +157,14 @@ func clampByte(n int) int {
 
 func evalMakeColor(args []Value) Value {
 	list := args[0].AsList()
-	if len(*list) < 3 {
-		panic("makeColor requires a list of at least 3 elements [r, g, b]")
+	if len(*list) != 3 && len(*list) != 4 {
+		panic("makeColor requires a list of 3 or 4 elements [r, g, b] or [r, g, b, a]")
 	}
 	r := clampByte(int((*list)[0].AsNum()))
 	g := clampByte(int((*list)[1].AsNum()))
 	b := clampByte(int((*list)[2].AsNum()))
 	a := 255
-	if len(*list) >= 4 {
+	if len(*list) == 4 {
 		a = clampByte(int((*list)[3].AsNum()))
 	}
 	return ColorVal("#" + hexByte(a) + hexByte(r) + hexByte(g) + hexByte(b))

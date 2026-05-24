@@ -822,6 +822,11 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 			p.aggregator.MarkResolved(nameExpr.Where)
 			return &common.FuncCall{Where: nameExpr.Where, Name: nameExpr.Name, Args: arguments}
 		}
+		if common.IsKnownFunction(nameExpr.Name) {
+			fc := &common.FuncCall{Where: nameExpr.Where, Name: nameExpr.Name, Args: arguments}
+			p.aggregator.EnqueueSymbol(nameExpr.Where, fc, "Bad call to function "+nameExpr.Name+"()")
+			return fc
+		}
 		// check for a user defined procedure
 		procedureErrorMessage, procedureSignature := p.Resolver.ResolveProcedure(nameExpr.Name, len(arguments))
 		if procedureSignature != nil {
@@ -834,12 +839,12 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 				Returning:  procedureSignature.Returning,
 			}
 		}
-		// If the name closely resembles a built-in function, treat it as a misspelled function
-		// so the error gets caret+hint rendering instead of a plain procedure-not-found message.
+		// Unknown calls may be forward-declared procedures. Keep them resolvable, but
+		// retain the built-in spelling hint if late resolution still fails.
 		if common.FindBestSuggestion(nameExpr.Name) != "" {
-			fc := &common.FuncCall{Where: nameExpr.Where, Name: nameExpr.Name, Args: arguments}
-			p.aggregator.EnqueueSymbol(nameExpr.Where, fc, "No function named "+nameExpr.Name+"()")
-			return fc
+			funcCall := &procedures.Call{Where: nameExpr.Where, Name: nameExpr.Name, Arguments: arguments}
+			p.aggregator.EnqueueSymbol(nameExpr.Where, funcCall, "No function named "+nameExpr.Name+"()")
+			return funcCall
 		}
 		// Unknown — fill in a template that may be resolved later (forward-declared procedure).
 		funcCall := &procedures.Call{Where: nameExpr.Where, Name: nameExpr.Name, Arguments: arguments}

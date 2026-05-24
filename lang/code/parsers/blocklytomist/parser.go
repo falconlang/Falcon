@@ -75,7 +75,7 @@ func (p *Parser) decodeXML() []ast.Block {
 func (p *Parser) parseAllBlocks(allBlocks []ast.Block) []ast.Expr {
 	var parsedBlocks []ast.Expr
 	for i := range allBlocks {
-		parsedBlocks = append(parsedBlocks, p.parseBlock(allBlocks[i]))
+		parsedBlocks = append(parsedBlocks, p.recursiveParse(allBlocks[i])...)
 	}
 	return parsedBlocks
 }
@@ -84,7 +84,7 @@ func (p *Parser) singleExpr(block ast.Block) ast.Expr {
 	if len(block.Values) == 0 {
 		return &common.EmptySocket{}
 	}
-	return p.parseBlock(block.Values[0].Block)
+	return p.parseValue(block.Values[0])
 }
 
 func (p *Parser) parseBlock(block ast.Block) ast.Expr {
@@ -1122,6 +1122,10 @@ func (p *Parser) optSingleBody(block ast.Block) []ast.Expr {
 func (p *Parser) makeStatementMap(allStatements []ast.Statement) StatementMap {
 	statementMap := make(map[string][]ast.Expr, len(allStatements))
 	for _, stmt := range allStatements {
+		if stmt.Block == nil {
+			statementMap[stmt.Name] = []ast.Expr{}
+			continue
+		}
 		statementMap[stmt.Name] = p.recursiveParse(*stmt.Block)
 	}
 	return StatementMap{statementMap: statementMap}
@@ -1131,7 +1135,7 @@ func (p *Parser) recursiveParse(currBlock ast.Block) []ast.Expr {
 	var pParsed []ast.Expr
 	for {
 		pParsed = append(pParsed, p.parseBlock(currBlock))
-		if currBlock.Next == nil {
+		if currBlock.Next == nil || currBlock.Next.Block == nil {
 			break
 		}
 		currBlock = *currBlock.Next.Block
@@ -1150,7 +1154,7 @@ func (p *Parser) makeFieldMap(allFields []ast.Field) map[string]string {
 func (p *Parser) makeValueMap(allValues []ast.Value) ValueMap {
 	valueMap := make(map[string]ast.Expr, len(allValues))
 	for _, val := range allValues {
-		valueMap[val.Name] = p.parseBlock(val.Block)
+		valueMap[val.Name] = p.parseValue(val)
 	}
 	return ValueMap{valueMap: valueMap}
 }
@@ -1158,7 +1162,7 @@ func (p *Parser) makeValueMap(allValues []ast.Value) ValueMap {
 func (p *Parser) fromVals(allValues []ast.Value) []ast.Expr {
 	arrBlocks := make([]ast.Expr, len(allValues))
 	for i := range allValues {
-		arrBlocks[i] = p.parseBlock(allValues[i].Block)
+		arrBlocks[i] = p.parseValue(allValues[i])
 	}
 	return arrBlocks
 }
@@ -1167,10 +1171,20 @@ func (p *Parser) fromMinVals(allValues []ast.Value, minCount int) []ast.Expr {
 	size := max(minCount, len(allValues))
 	arrExprs := make([]ast.Expr, size)
 	for i := range allValues {
-		arrExprs[i] = p.parseBlock(allValues[i].Block)
+		arrExprs[i] = p.parseValue(allValues[i])
 	}
 	for i := len(allValues); i < size; i++ {
 		arrExprs[i] = &common.EmptySocket{}
 	}
 	return arrExprs
+}
+
+func (p *Parser) parseValue(val ast.Value) ast.Expr {
+	if val.Block.Type != "" {
+		return p.parseBlock(val.Block)
+	}
+	if val.Shadow != nil {
+		return p.parseBlock(val.Shadow.BlockValue())
+	}
+	return &common.EmptySocket{}
 }
