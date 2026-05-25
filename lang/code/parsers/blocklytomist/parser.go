@@ -915,7 +915,7 @@ func (p *Parser) textContains(block ast.Block) ast.Expr {
 
 func (p *Parser) textStartsWith(block ast.Block) ast.Expr {
 	pVals := p.makeValueMap(block.Values)
-	return p.makePropCall("startsWith", pVals.get("TEXT"), pVals.get("PIECE"))
+	return p.makePropCall("startsAt", pVals.get("TEXT"), pVals.get("PIECE"))
 }
 
 func (p *Parser) textChangeCase(block ast.Block) ast.Expr {

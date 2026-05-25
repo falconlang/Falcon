@@ -286,7 +286,7 @@ e.g. `"Hello  ".trim()`
 - `trim()`
 - `uppercase()`
 - `lowercase()`
-- `startsWith(piece)`
+- `startsAt(piece)` → Int (1-based position of first occurrence, or 0 if not found)
 - `contains(piece)`
 - `containsAny(word list)`
 - `containsAll(word list)`

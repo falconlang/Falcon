@@ -64,7 +64,7 @@ var signatures = map[string]*CallSignature{
 	"trim":                    makeSignature("text", "text_trim", 0, "", true, ast.SignText),
 	"uppercase":               makeSignature("text", "text_changeCase", 0, "", true, ast.SignText),
 	"lowercase":               makeSignature("text", "text_changeCase", 0, "", true, ast.SignText),
-	"startsWith":              makeSignatureTyped("text", "text_starts_at", 1, "prefix", true, ast.SignBool, []ast.Signature{ast.SignText}),
+	"startsAt":                makeSignatureTyped("text", "text_starts_at", 1, "prefix", true, ast.SignNumb, []ast.Signature{ast.SignText}),
 	"contains":                makeSignatureTyped("text", "text_contains", 1, "piece", true, ast.SignBool, []ast.Signature{ast.SignText}),
 	"containsAny":             makeSignatureTyped("text", "text_contains", 1, "pieces", true, ast.SignBool, []ast.Signature{ast.SignList}),
 	"containsAll":             makeSignatureTyped("text", "text_contains", 1, "pieces", true, ast.SignBool, []ast.Signature{ast.SignList}),

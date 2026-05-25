@@ -1,4 +1,39 @@
-func fib(n) = {
-  if (n < 2) n
-  else fib(n - 1) + fib(n - 2)
+@TextBox { firstNumberTextBox, secondNumberTextBox }
+@Button { AddButton, SubtractButton, MultiplyButton, DivideButton }
+@Notifier { Notifier1 }
+
+func checkTextBoxes() = {
+  if (!(firstNumberTextBox.Text ? number) || !(secondNumberTextBox.Text ? number)) {
+    Notifier1.ShowAlert("Please enter numeric values in the textbox!")
+    yield false
+  }
+  true
+}
+
+when AddButton.Click {
+  if (checkTextBoxes()) {
+    firstNumberTextBox.Text = firstNumberTextBox.Text + secondNumberTextBox.Text
+    secondNumberTextBox.Text = ""
+  }
+}
+
+when SubtractButton.Click {
+  if (checkTextBoxes()) {
+    firstNumberTextBox.Text = firstNumberTextBox.Text - secondNumberTextBox.Text
+    secondNumberTextBox.Text = ""
+  }
+}
+
+when MultiplyButton.Click {
+  if (checkTextBoxes()) {
+    firstNumberTextBox.Text = firstNumberTextBox.Text * secondNumberTextBox.Text
+    secondNumberTextBox.Text = ""
+  }
+}
+
+when DivideButton.Click {
+  if (checkTextBoxes()) {
+    firstNumberTextBox.Text = firstNumberTextBox.Text / secondNumberTextBox.Text
+    secondNumberTextBox.Text = ""
+  }
 }

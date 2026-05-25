@@ -67,6 +67,20 @@ func main() {
 			}
 			companionRun(os.Args[2], os.Args[3])
 			return
+		case "companion-serve":
+			if len(os.Args) < 4 {
+				fmt.Fprintln(os.Stderr, "usage: Falcon companion-serve <file.mist> <Screen.ann>")
+				os.Exit(1)
+			}
+			companionServe(os.Args[2], os.Args[3])
+			return
+		case "eval":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: Falcon eval \"<falcon code>\"")
+				os.Exit(1)
+			}
+			evalSend(strings.Join(os.Args[2:], " "))
+			return
 		}
 	}
 	//repl()
@@ -74,7 +88,8 @@ func main() {
 	//analyzeSyntax()
 	//xmlTest()
 	//designTest()
-	annTest()
+	//annTest()
+	companionTest()
 	//runProgram()
 	//runFile("/home/kumaraswamy/Documents/falcon/lang/testing/run.mist")
 }
@@ -436,6 +451,11 @@ func annTest() {
 	}
 	println("\n=== Companion REPL YAIL ===\n")
 	println(yailCode)
+}
+
+func companionTest() {
+	const testingDir = "/home/kumaraswamy/Documents/falcon/lang/testing/"
+	companionServe(testingDir+"hi.mist", testingDir+"Screen1.ann")
 }
 
 func xmlTest() {

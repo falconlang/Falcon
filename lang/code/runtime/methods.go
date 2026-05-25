@@ -26,8 +26,12 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		return StrVal(strings.ToUpper(on.AsStr()))
 	case "lowercase":
 		return StrVal(strings.ToLower(on.AsStr()))
-	case "startsWith":
-		return BoolVal(strings.HasPrefix(on.AsStr(), args[0].AsStr()))
+	case "startsAt":
+		idx := strings.Index(on.AsStr(), args[0].AsStr())
+		if idx < 0 {
+			return NumVal(0)
+		}
+		return NumVal(float64(idx + 1))
 	case "contains":
 		return BoolVal(strings.Contains(on.AsStr(), args[0].AsStr()))
 	case "containsAny":

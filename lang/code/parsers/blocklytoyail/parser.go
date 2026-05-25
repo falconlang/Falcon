@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+const (
+	yailNull          = `(get-var *the-null-value*)`
+	yailEmptyListCode = `(call-yail-primitive make-yail-list (*list-for-runtime*) '() "make a list")`
+	yailEmptyYailList = `'(*list*)`
+	yailEmptyDict     = `(make com.google.appinventor.components.runtime.util.YailDictionary)`
+)
+
 type Parser struct {
 	xmlContent string
 }
@@ -99,19 +106,19 @@ func (p *Parser) genBlock(b ast.Block) string {
 		start := p.vs(b.Values, "START", "0")
 		end := p.vs(b.Values, "END", "0")
 		step := p.vs(b.Values, "STEP", "0")
-		body := p.ss(b.Statements, "DO", "#f")
+		body := p.ss(b.Statements, "DO", yailNull)
 		return "(forrange " + loopVar + " (begin " + body + ") " + start + " " + end + " " + step + ")"
 	case "controls_forEach":
 		loopVar := "$" + fieldByName(b, "VAR")
-		list := p.vs(b.Values, "LIST", "(list)")
-		body := p.ss(b.Statements, "DO", "#f")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
+		body := p.ss(b.Statements, "DO", yailNull)
 		return "(foreach " + loopVar + " (begin " + body + ") " + list + ")"
 	case "controls_for_each_dict":
 		loopVar := "$item"
 		keyVar := "$" + fieldByName(b, "KEY")
 		valVar := "$" + fieldByName(b, "VALUE")
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
-		body := p.ss(b.Statements, "DO", "#f")
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
+		body := p.ss(b.Statements, "DO", yailNull)
 		getKey := callPrimitive("yail-list-get-item",
 			[]string{"(lexical-value " + loopVar + ")", "1"},
 			[]string{"list", "number"}, "select list item")
@@ -121,15 +128,15 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return "(foreach " + loopVar + " (let ((" + keyVar + " " + getKey + ")(" + valVar + " " + getVal + ")) (begin " + body + ")) " + dict + ")"
 	case "controls_while":
 		test := p.vs(b.Values, "TEST", "#f")
-		body := p.ss(b.Statements, "DO", "#f")
+		body := p.ss(b.Statements, "DO", yailNull)
 		return "(while " + test + " (begin " + body + "))"
 	case "controls_choose":
 		test := p.vs(b.Values, "TEST", "#f")
 		thenRet := p.vs(b.Values, "THENRETURN", "#f")
 		elseRet := p.vs(b.Values, "ELSERETURN", "#f")
 		return "(if " + test + " " + thenRet + " " + elseRet + ")"
-	case "controls_do_then_return":
-		stm := p.ss(b.Statements, "STM", "#f")
+	case "controls_do_then_return", "procedures_do_then_return":
+		stm := p.ss(b.Statements, "STM", yailNull)
 		val := p.vs(b.Values, "VALUE", "#f")
 		return "(begin " + stm + " " + val + ")"
 	case "controls_eval_but_ignore":
@@ -137,6 +144,16 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return "(begin " + val + " \"ignored\")"
 	case "controls_break":
 		return "(*yail-break* #f)"
+	case "controls_nothing":
+		return yailNull
+	case "controls_run_in_background":
+		proc := p.vs(b.Values, "PROCEDURE", yailNull)
+		cb := p.vs(b.Values, "CALLBACK", yailNull)
+		return callPrimitive("run-in-background", []string{proc, cb}, []string{"any", "any"}, "run in background")
+	case "controls_run_after_period":
+		millis := p.vs(b.Values, "MILLIS", yailNull)
+		proc := p.vs(b.Values, "PROCEDURE", yailNull)
+		return callPrimitive("run-after-period", []string{millis, proc}, []string{"any", "any"}, "run after period")
 	case "controls_openAnotherScreen":
 		name := p.vs(b.Values, "SCREEN", `""`)
 		return callPrimitive("open-another-screen", []string{name}, []string{"text"}, "open another screen")
@@ -173,19 +190,25 @@ func (p *Parser) genBlock(b ast.Block) string {
 		val := p.vs(b.Values, "BOOL", "#f")
 		return callPrimitive("yail-not", []string{val}, []string{"boolean"}, "not")
 	case "logic_compare":
-		a := p.vs(b.Values, "A", "0")
-		bv := p.vs(b.Values, "B", "0")
+		a := p.vs(b.Values, "A", "#f")
+		bv := p.vs(b.Values, "B", "#f")
 		if fieldByName(b, "OP") == "NEQ" {
 			return callPrimitive("yail-not-equal?", []string{a, bv}, []string{"any", "any"}, "not =")
 		}
 		return callPrimitive("yail-equal?", []string{a, bv}, []string{"any", "any"}, "=")
 	case "logic_operation", "logic_or":
-		a := p.vs(b.Values, "A", "#f")
-		bv := p.vs(b.Values, "B", "#f")
-		if field(b) == "AND" {
-			return "(and-delayed " + a + " " + bv + ")"
+		op := fieldByName(b, "OP")
+		def := "#f"
+		yailOp := "or-delayed"
+		if op == "AND" {
+			def = "#t"
+			yailOp = "and-delayed"
 		}
-		return "(or-delayed " + a + " " + bv + ")"
+		args := []string{p.vs(b.Values, "A", def), p.vs(b.Values, "B", def)}
+		for i := 2; i < mutItemCount(b); i++ {
+			args = append(args, p.vs(b.Values, "BOOL"+strconv.Itoa(i), "#f"))
+		}
+		return "(" + yailOp + " " + strings.Join(args, " ") + ")"
 
 	case "text":
 		return quoteStr(field(b))
@@ -232,7 +255,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("string-contains", []string{txt, piece}, []string{"text", "text"}, "string contains")
 	case "text_split":
 		txt := p.vs(b.Values, "TEXT", `""`)
-		at := p.vs(b.Values, "AT", `""`)
+		at := p.vs(b.Values, "AT", "1")
 		switch field(b) {
 		case "SPLITATFIRST":
 			return callPrimitive("string-split-at-first", []string{txt, at}, []string{"text", "text"}, "split at first")
@@ -264,12 +287,12 @@ func (p *Parser) genBlock(b ast.Block) string {
 		case "GT":
 			return callPrimitive("string>?", []string{t1, t2}, []string{"text", "text"}, "text>")
 		case "NEQ":
-			return "(not " + callPrimitive("string=?", []string{t1, t2}, []string{"text", "text"}, "text=") + ")"
+			return "(not " + callPrimitive("string=?", []string{t1, t2}, []string{"text", "text"}, "not =") + ")"
 		}
 		return callPrimitive("string=?", []string{t1, t2}, []string{"text", "text"}, "text=")
 	case "text_replace_mappings":
 		txt := p.vs(b.Values, "TEXT", `""`)
-		mappings := p.vs(b.Values, "MAPPINGS", "(make-yail-dictionary)")
+		mappings := p.vs(b.Values, "MAPPINGS", yailEmptyDict)
 		if field(b) == "DICTIONARY_ORDER" {
 			return callPrimitive("string-replace-mappings-dictionary",
 				[]string{txt, mappings}, []string{"text", "dictionary"}, "replace with mappings")
@@ -305,9 +328,11 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "math_compare":
 		a := p.vs(b.Values, "A", "0")
 		bv := p.vs(b.Values, "B", "0")
-		switch field(b) {
+		switch fieldByName(b, "OP") {
 		case "NEQ":
-			return callPrimitive("not=", []string{a, bv}, []string{"number", "number"}, "not=")
+			return callPrimitive("yail-not-equal?", []string{a, bv}, []string{"any", "any"}, "not =")
+		case "EQ":
+			return callPrimitive("yail-equal?", []string{a, bv}, []string{"any", "any"}, "=")
 		case "LT":
 			return callPrimitive("<", []string{a, bv}, []string{"number", "number"}, "<")
 		case "LTE":
@@ -319,20 +344,37 @@ func (p *Parser) genBlock(b ast.Block) string {
 		}
 		return callPrimitive("=", []string{a, bv}, []string{"number", "number"}, "=")
 	case "math_add":
-		vals := allValuesMin(p.allValues(b.Values, "0"), 2)
-		return callPrimitive("+", vals, repeatStr("number", len(vals)), "+")
+		n := mutItemCount(b)
+		if n < 2 {
+			n = 2
+		}
+		args := make([]string, n)
+		for i := 0; i < n; i++ {
+			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
+		}
+		return callPrimitive("+", args, repeatStr("number", n), "+")
 	case "math_subtract":
-		vals := allValuesMin(p.allValues(b.Values, "0"), 2)
-		return callPrimitive("-", vals, repeatStr("number", len(vals)), "-")
+		a := p.vs(b.Values, "A", "0")
+		bv := p.vs(b.Values, "B", "0")
+		return callPrimitive("-", []string{a, bv}, []string{"number", "number"}, "-")
 	case "math_multiply":
-		vals := allValuesMin(p.allValues(b.Values, "0"), 2)
-		return callPrimitive("*", vals, repeatStr("number", len(vals)), "*")
+		n := mutItemCount(b)
+		if n < 2 {
+			n = 2
+		}
+		args := make([]string, n)
+		for i := 0; i < n; i++ {
+			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
+		}
+		return callPrimitive("*", args, repeatStr("number", n), "*")
 	case "math_division":
-		vals := allValuesMin(p.allValues(b.Values, "0"), 2)
-		return callPrimitive("/", vals, repeatStr("number", len(vals)), "/")
+		a := p.vs(b.Values, "A", "0")
+		bv := p.vs(b.Values, "B", "0")
+		return callPrimitive("yail-divide", []string{a, bv}, []string{"number", "number"}, "yail-divide")
 	case "math_power":
-		vals := allValuesMin(p.allValues(b.Values, "0"), 2)
-		return callPrimitive("expt", vals, repeatStr("number", len(vals)), "expt")
+		a := p.vs(b.Values, "A", "0")
+		bv := p.vs(b.Values, "B", "0")
+		return callPrimitive("expt", []string{a, bv}, []string{"number", "number"}, "expt")
 	case "math_bitwise":
 		n := mutItemCount(b)
 		if n < 2 {
@@ -350,7 +392,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		}
 		return callPrimitive("bitwise-xor", args, repeatStr("number", n), "bitwise-xor")
 	case "math_single":
-		val := p.vs(b.Values, "NUM", "0")
+		val := p.vs(b.Values, "NUM", "1")
 		switch field(b) {
 		case "ROOT":
 			return callPrimitive("sqrt", []string{val}, []string{"number"}, "sqrt")
@@ -386,11 +428,27 @@ func (p *Parser) genBlock(b ast.Block) string {
 		}
 		return callPrimitive("sin-degrees", []string{val}, []string{"number"}, "sin")
 	case "math_on_list":
-		vals := allValuesMin(p.allValues(b.Values, "0"), 1)
+		n := mutItemCount(b)
 		op := strings.ToLower(field(b))
-		return callPrimitive(op, vals, repeatStr("number", len(vals)), op)
+		var identityDef string
+		switch op {
+		case "min":
+			identityDef = "+inf.0"
+		case "max":
+			identityDef = "-inf.0"
+		default:
+			identityDef = "0"
+		}
+		if n == 0 {
+			return callPrimitive(op, []string{identityDef}, []string{"number"}, op)
+		}
+		args := make([]string, n)
+		for i := 0; i < n; i++ {
+			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), identityDef)
+		}
+		return callPrimitive(op, args, repeatStr("number", n), op)
 	case "math_on_list2":
-		val := p.vs(b.Values, "LIST", "(list)")
+		val := p.vs(b.Values, "LIST", yailEmptyYailList)
 		switch field(b) {
 		case "MIN":
 			return callPrimitive("minl", []string{val}, []string{"list-of-number"}, "min")
@@ -405,11 +463,11 @@ func (p *Parser) genBlock(b ast.Block) string {
 		}
 		return callPrimitive("avg", []string{val}, []string{"list-of-number"}, "avg")
 	case "math_mode_of_list":
-		val := p.vs(b.Values, "LIST", "(list)")
-		return callPrimitive("mode", []string{val}, []string{"list"}, "mode")
+		val := p.vs(b.Values, "LIST", yailEmptyYailList)
+		return callPrimitive("mode", []string{val}, []string{"list-of-number"}, "mode")
 	case "math_atan2":
-		y := p.vs(b.Values, "Y", "0")
-		x := p.vs(b.Values, "X", "0")
+		y := p.vs(b.Values, "Y", "1")
+		x := p.vs(b.Values, "X", "1")
 		return callPrimitive("atan2-degrees", []string{y, x}, []string{"number", "number"}, "atan2")
 	case "math_divide":
 		dividend := p.vs(b.Values, "DIVIDEND", "0")
@@ -423,10 +481,10 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("quotient", []string{dividend, divisor}, []string{"number", "number"}, "quotient")
 	case "math_format_as_decimal":
 		num := p.vs(b.Values, "NUM", "0")
-		places := p.vs(b.Values, "PLACES", "2")
+		places := p.vs(b.Values, "PLACES", "0")
 		return callPrimitive("format-as-decimal", []string{num, places}, []string{"number", "number"}, "format as decimal")
 	case "math_is_a_number":
-		val := p.vs(b.Values, "VALUE", `""`)
+		val := p.vs(b.Values, "NUM", "#f")
 		switch field(b) {
 		case "BASE10":
 			return callPrimitive("is-base10?", []string{val}, []string{"text"}, "is base10?")
@@ -435,18 +493,18 @@ func (p *Parser) genBlock(b ast.Block) string {
 		case "BINARY":
 			return callPrimitive("is-binary?", []string{val}, []string{"text"}, "is binary?")
 		}
-		return callPrimitive("is-number?", []string{val}, []string{"any"}, "is a number?")
+		return callPrimitive("is-number?", []string{val}, []string{"text"}, "is a number?")
 	case "math_convert_number":
-		val := p.vs(b.Values, "NUM", `""`)
+		val := p.vs(b.Values, "NUM", "0")
 		switch field(b) {
 		case "HEX_TO_DEC":
 			return callPrimitive("math-convert-hex-dec", []string{val}, []string{"text"}, "convert hex to dec")
 		case "DEC_TO_BIN":
-			return callPrimitive("math-convert-dec-bin", []string{val}, []string{"number"}, "convert dec to bin")
+			return callPrimitive("math-convert-dec-bin", []string{val}, []string{"text"}, "convert dec to bin")
 		case "BIN_TO_DEC":
 			return callPrimitive("math-convert-bin-dec", []string{val}, []string{"text"}, "convert bin to dec")
 		}
-		return callPrimitive("math-convert-dec-hex", []string{val}, []string{"number"}, "convert dec to hex")
+		return callPrimitive("math-convert-dec-hex", []string{val}, []string{"text"}, "convert dec to hex")
 	case "math_convert_angles":
 		val := p.vs(b.Values, "NUM", "0")
 		if field(b) == "DEGREES_TO_RADIANS" {
@@ -465,15 +523,17 @@ func (p *Parser) genBlock(b ast.Block) string {
 
 	case "lists_create_with":
 		n := mutItemCount(b)
-		args := make([]string, n)
-		types := make([]string, n)
+		var args, types []string
 		for i := 0; i < n; i++ {
-			args[i] = p.vs(b.Values, "ADD"+strconv.Itoa(i), "#f")
-			types[i] = "any"
+			s := p.genValueSlot(b.Values, "ADD"+strconv.Itoa(i))
+			if s != "" {
+				args = append(args, s)
+				types = append(types, "any")
+			}
 		}
 		return callPrimitive("make-yail-list", args, types, "make a list")
 	case "lists_add_items":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		n := mutItemCount(b)
 		args := make([]string, 1+n)
 		types := make([]string, 1+n)
@@ -486,50 +546,50 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("yail-list-add-to-list!", args, types, "add items to list")
 	case "lists_is_in":
 		thing := p.vs(b.Values, "ITEM", "#f")
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-member?", []string{thing, list}, []string{"any", "list"}, "is in list?")
 	case "lists_length":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-length", []string{list}, []string{"list"}, "length of list")
 	case "lists_is_empty":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-empty?", []string{list}, []string{"list"}, "is list empty?")
 	case "lists_pick_random_item":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-pick-random", []string{list}, []string{"list"}, "pick a random item")
 	case "lists_position_in":
 		thing := p.vs(b.Values, "ITEM", "#f")
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-index", []string{thing, list}, []string{"any", "list"}, "index in list")
 	case "lists_select_item":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		idx := p.vs(b.Values, "NUM", "1")
 		return callPrimitive("yail-list-get-item", []string{list, idx}, []string{"list", "number"}, "select list item")
 	case "lists_insert_item":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		idx := p.vs(b.Values, "INDEX", "1")
 		item := p.vs(b.Values, "ITEM", "#f")
 		return callPrimitive("yail-list-insert-item!", []string{list, idx, item}, []string{"list", "number", "any"}, "insert list item")
 	case "lists_replace_item":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		idx := p.vs(b.Values, "NUM", "1")
 		item := p.vs(b.Values, "ITEM", "#f")
 		return callPrimitive("yail-list-set-item!", []string{list, idx, item}, []string{"list", "number", "any"}, "replace list item")
 	case "lists_remove_item":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		idx := p.vs(b.Values, "INDEX", "1")
 		return callPrimitive("yail-list-remove-item!", []string{list, idx}, []string{"list", "number"}, "remove list item")
 	case "lists_copy":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-copy", []string{list}, []string{"list"}, "copy list")
 	case "lists_reverse":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-reverse", []string{list}, []string{"list"}, "reverse list")
 	case "lists_to_csv_row":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-to-csv-row", []string{list}, []string{"list"}, "list to csv row")
 	case "lists_to_csv_table":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-to-csv-table", []string{list}, []string{"list"}, "list to csv table")
 	case "lists_from_csv_row":
 		txt := p.vs(b.Values, "TEXT", `""`)
@@ -539,158 +599,158 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("yail-list-from-csv-table", []string{txt}, []string{"text"}, "list from csv table")
 	case "lists_lookup_in_pairs":
 		key := p.vs(b.Values, "KEY", "#f")
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
-		notFound := p.vs(b.Values, "NOTFOUND", "#f")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
+		notFound := p.vs(b.Values, "NOTFOUND", yailNull)
 		return callPrimitive("yail-alist-lookup", []string{key, list, notFound}, []string{"any", "list", "any"}, "lookup in pairs")
 	case "lists_join_with_separator":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		sep := p.vs(b.Values, "SEPARATOR", `""`)
 		return callPrimitive("yail-list-join-with-separator", []string{list, sep}, []string{"list", "text"}, "join with separator")
 	case "lists_sort":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-sort", []string{list}, []string{"list"}, "sort")
 	case "lists_is_list":
 		thing := p.vs(b.Values, "ITEM", "#f")
 		return callPrimitive("yail-list?", []string{thing}, []string{"any"}, "is a list?")
 	case "lists_but_first":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-but-first", []string{list}, []string{"list"}, "but first of list")
 	case "lists_but_last":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-but-last", []string{list}, []string{"list"}, "but last of list")
 	case "lists_slice":
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		idx1 := p.vs(b.Values, "INDEX1", "1")
 		idx2 := p.vs(b.Values, "INDEX2", "1")
 		return callPrimitive("yail-list-slice", []string{list, idx1, idx2}, []string{"list", "number", "number"}, "slice list")
 	case "lists_append_list":
-		list1 := p.vs(b.Values, "LIST0", "(make-yail-list)")
-		list2 := p.vs(b.Values, "LIST1", "(make-yail-list)")
-		return callPrimitive("yail-list-append", []string{list1, list2}, []string{"list", "list"}, "append to list")
+		list1 := p.vs(b.Values, "LIST0", yailEmptyListCode)
+		list2 := p.vs(b.Values, "LIST1", yailEmptyListCode)
+		return callPrimitive("yail-list-append!", []string{list1, list2}, []string{"list", "list"}, "append to list")
 	case "lists_map":
 		loopVar := "$" + field(b)
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyYailList)
 		to := p.vs(b.Values, "TO", "#f")
-		return "(map (lambda (" + loopVar + ") " + to + ") " + list + ")"
+		return "(map_nondest " + loopVar + " " + to + " " + list + ")"
 	case "lists_filter":
 		loopVar := "$" + field(b)
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyYailList)
 		test := p.vs(b.Values, "TEST", "#f")
-		return "(filter (lambda (" + loopVar + ") " + test + ") " + list + ")"
+		return "(filter_nondest " + loopVar + " " + test + " " + list + ")"
 	case "lists_reduce":
 		fm := fieldMap(b)
 		var1 := "$" + fm["VAR1"]
 		var2 := "$" + fm["VAR2"]
-		init := p.vs(b.Values, "INITANSWER", "0")
+		init := p.vs(b.Values, "INITANSWER", "#f")
 		combine := p.vs(b.Values, "COMBINE", "#f")
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
-		return "(reduce (lambda (" + var2 + " " + var1 + ") " + combine + ") " + init + " " + list + ")"
+		list := p.vs(b.Values, "LIST", yailEmptyYailList)
+		return "(reduceovereach " + init + " " + var2 + " " + var1 + " " + combine + " " + list + ")"
 	case "lists_sort_comparator":
 		fm := fieldMap(b)
 		var1 := "$" + fm["VAR1"]
 		var2 := "$" + fm["VAR2"]
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyYailList)
 		cmp := p.vs(b.Values, "COMPARE", "#f")
-		return "(yail-list-sort-comparator (lambda (" + var1 + " " + var2 + ") " + cmp + ") " + list + ")"
+		return "(sortcomparator_nondest " + var1 + " " + var2 + " " + cmp + " " + list + ")"
 	case "lists_sort_key":
 		loopVar := "$" + field(b)
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyYailList)
 		key := p.vs(b.Values, "KEY", "#f")
-		return "(yail-list-sort-key (lambda (" + loopVar + ") " + key + ") " + list + ")"
+		return "(sortkey_nondest " + loopVar + " " + key + " " + list + ")"
 	case "lists_minimum_value":
 		fm := fieldMap(b)
 		var1 := "$" + fm["VAR1"]
 		var2 := "$" + fm["VAR2"]
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyYailList)
 		cmp := p.vs(b.Values, "COMPARE", "#f")
-		return "(yail-list-minimum (lambda (" + var1 + " " + var2 + ") " + cmp + ") " + list + ")"
+		return "(mincomparator-nondest " + var1 + " " + var2 + " " + cmp + " " + list + ")"
 	case "lists_maximum_value":
 		fm := fieldMap(b)
 		var1 := "$" + fm["VAR1"]
 		var2 := "$" + fm["VAR2"]
-		list := p.vs(b.Values, "LIST", "(make-yail-list)")
+		list := p.vs(b.Values, "LIST", yailEmptyYailList)
 		cmp := p.vs(b.Values, "COMPARE", "#f")
-		return "(yail-list-maximum (lambda (" + var1 + " " + var2 + ") " + cmp + ") " + list + ")"
+		return "(maxcomparator-nondest " + var1 + " " + var2 + " " + cmp + " " + list + ")"
 
 	case "pair":
 		key := p.vs(b.Values, "KEY", "#f")
 		val := p.vs(b.Values, "VALUE", "#f")
-		return callPrimitive("make-yail-pair", []string{key, val}, []string{"key", "value"}, "make a pair")
+		return callPrimitive("make-dictionary-pair", []string{key, val}, []string{"key", "any"}, "make a pair")
 	case "dictionaries_create_with":
 		n := mutItemCount(b)
 		args := make([]string, n)
 		types := make([]string, n)
 		for i := 0; i < n; i++ {
-			args[i] = p.vs(b.Values, "PAIR"+strconv.Itoa(i), "(make-yail-pair #f #f)")
+			args[i] = p.vs(b.Values, "ADD"+strconv.Itoa(i), yailNull)
 			types[i] = "pair"
 		}
 		return callPrimitive("make-yail-dictionary", args, types, "make a dictionary")
 	case "dictionaries_lookup":
 		key := p.vs(b.Values, "KEY", "#f")
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
-		notFound := p.vs(b.Values, "NOTFOUND", "#f")
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
+		notFound := p.vs(b.Values, "NOTFOUND", yailNull)
 		return callPrimitive("yail-dictionary-lookup",
 			[]string{key, dict, notFound}, []string{"key", "dictionary", "any"}, "get value for key")
 	case "dictionaries_set_pair":
 		key := p.vs(b.Values, "KEY", "#f")
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		val := p.vs(b.Values, "VALUE", "#f")
 		return callPrimitive("yail-dictionary-set-pair",
 			[]string{key, dict, val}, []string{"key", "dictionary", "any"}, "set value for key")
 	case "dictionaries_delete_pair":
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		key := p.vs(b.Values, "KEY", "#f")
 		return callPrimitive("yail-dictionary-delete-pair",
 			[]string{dict, key}, []string{"dictionary", "key"}, "delete entry for key")
 	case "dictionaries_recursive_lookup":
-		keys := p.vs(b.Values, "KEYS", "(make-yail-list)")
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
-		notFound := p.vs(b.Values, "NOTFOUND", "#f")
+		keys := p.vs(b.Values, "KEYS", yailEmptyYailList)
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
+		notFound := p.vs(b.Values, "NOTFOUND", yailNull)
 		return callPrimitive("yail-dictionary-recursive-lookup",
 			[]string{keys, dict, notFound}, []string{"list", "dictionary", "any"}, "get value at key path")
 	case "dictionaries_recursive_set":
-		keys := p.vs(b.Values, "KEYS", "(make-yail-list)")
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
+		keys := p.vs(b.Values, "KEYS", yailEmptyYailList)
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		val := p.vs(b.Values, "VALUE", "#f")
 		return callPrimitive("yail-dictionary-recursive-set",
 			[]string{keys, dict, val}, []string{"list", "dictionary", "any"}, "set value for key path")
-	case "dictionaries_getters":
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
+	case "dictionaries_getters", "dictionaries_get_values":
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		if field(b) == "VALUES" {
 			return callPrimitive("yail-dictionary-get-values", []string{dict}, []string{"dictionary"}, "get values")
 		}
 		return callPrimitive("yail-dictionary-get-keys", []string{dict}, []string{"dictionary"}, "get keys")
 	case "dictionaries_is_key_in":
 		key := p.vs(b.Values, "KEY", "#f")
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		return callPrimitive("yail-dictionary-is-key-in",
 			[]string{key, dict}, []string{"key", "dictionary"}, "is key in dictionary?")
 	case "dictionaries_length":
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		return callPrimitive("yail-dictionary-length", []string{dict}, []string{"dictionary"}, "number of pairs")
 	case "dictionaries_alist_to_dict":
-		pairs := p.vs(b.Values, "PAIRS", "(make-yail-list)")
+		pairs := p.vs(b.Values, "PAIRS", yailEmptyYailList)
 		return callPrimitive("yail-dictionary-alist-to-dict", []string{pairs}, []string{"list"}, "list of pairs to dictionary")
 	case "dictionaries_dict_to_alist":
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		return callPrimitive("yail-dictionary-dict-to-alist", []string{dict}, []string{"dictionary"}, "dictionary to list of pairs")
 	case "dictionaries_copy":
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		return callPrimitive("yail-dictionary-copy", []string{dict}, []string{"dictionary"}, "copy dictionary")
 	case "dictionaries_combine_dicts":
-		dict1 := p.vs(b.Values, "DICT1", "(make-yail-dictionary)")
-		dict2 := p.vs(b.Values, "DICT2", "(make-yail-dictionary)")
-		return callPrimitive("yail-dictionary-combine-dicts!",
-			[]string{dict1, dict2}, []string{"dictionary", "dictionary"}, "combine dictionaries")
+		dict1 := p.vs(b.Values, "DICT1", yailEmptyDict)
+		dict2 := p.vs(b.Values, "DICT2", yailEmptyDict)
+		return callPrimitive("yail-dictionary-combine-dicts",
+			[]string{dict1, dict2}, []string{"dictionary", "dictionary"}, "combine 2 dictionaries")
 	case "dictionaries_walk_tree":
-		path := p.vs(b.Values, "PATH", "(make-yail-list)")
-		dict := p.vs(b.Values, "DICT", "(make-yail-dictionary)")
+		path := p.vs(b.Values, "PATH", yailEmptyYailList)
+		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		return callPrimitive("yail-dictionary-walk",
-			[]string{path, dict}, []string{"list", "dictionary"}, "walk tree")
+			[]string{path, dict}, []string{"list", "any"}, "list by walking key path in dictionary")
 	case "dictionaries_walk_all":
-		return "*list-walk-all*"
+		return "(static-field com.google.appinventor.components.runtime.util.YailDictionary 'ALL)"
 	case "dictionaries_is_dict":
-		thing := p.vs(b.Values, "DICT", "#f")
+		thing := p.vs(b.Values, "THING", yailEmptyDict)
 		return callPrimitive("yail-dictionary?", []string{thing}, []string{"any"}, "is a dictionary?")
 
 	case "color_black", "color_white", "color_red", "color_pink", "color_orange",
@@ -709,7 +769,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		name := "g$" + fieldByName(b, "NAME")
 		val := p.vs(b.Values, "VALUE", "0")
 		return "(def " + name + " " + val + ")"
-	case "lexical_variable_get":
+	case "lexical_variable_get", "for_lexical_variable_get", "procedure_lexical_variable_get":
 		return genVarGet(b)
 	case "lexical_variable_set":
 		name := fieldByName(b, "VAR")
@@ -770,7 +830,7 @@ func (p *Parser) genControlsIf(b ast.Block) string {
 	var sb strings.Builder
 	for i := 0; i < numConds; i++ {
 		cond := p.vs(b.Values, "IF"+strconv.Itoa(i), "#f")
-		body := p.ss(b.Statements, "DO"+strconv.Itoa(i), "#f")
+		body := p.ss(b.Statements, "DO"+strconv.Itoa(i), yailNull)
 		if i < numConds-1 || hasElse {
 			sb.WriteString("(if " + cond + "\n  (begin " + body + ")\n")
 		} else {
@@ -778,7 +838,7 @@ func (p *Parser) genControlsIf(b ast.Block) string {
 		}
 	}
 	if hasElse {
-		sb.WriteString("  (begin " + p.ss(b.Statements, "ELSE", "#f") + ")")
+		sb.WriteString("  (begin " + p.ss(b.Statements, "ELSE", yailNull) + ")")
 	}
 	for i := 0; i < numConds; i++ {
 		sb.WriteByte(')')
@@ -803,7 +863,7 @@ func (p *Parser) genLocalDecl(b ast.Block, isExpr bool) string {
 	if isExpr {
 		return "(let (" + sb.String() + ") " + p.vs(b.Values, "RETURN", "0") + ")"
 	}
-	return "(let (" + sb.String() + ") (begin " + p.ss(b.Statements, "STACK", "#f") + "))"
+	return "(let (" + sb.String() + ") (begin " + p.ss(b.Statements, "STACK", yailNull) + "))"
 }
 
 func (p *Parser) genProcDef(b ast.Block, hasReturn bool) string {
@@ -816,9 +876,9 @@ func (p *Parser) genProcDef(b ast.Block, hasReturn bool) string {
 	}
 	sig := "(" + name + " " + strings.Join(params, " ") + ")"
 	if hasReturn {
-		return "(def " + sig + " " + p.vs(b.Values, "RETURN", "0") + ")"
+		return "(def " + sig + " " + p.vs(b.Values, "RETURN", "#f") + ")"
 	}
-	return "(def " + sig + " (begin " + p.ss(b.Statements, "STACK", "#f") + "))"
+	return "(def " + sig + " (begin " + p.ss(b.Statements, "STACK", yailNull) + "))"
 }
 
 func (p *Parser) genProcCall(b ast.Block) string {
@@ -847,7 +907,7 @@ func (p *Parser) genComponentEvent(b ast.Block) string {
 		params[i] = "$" + a.Name
 	}
 	paramStr := strings.Join(params, " ")
-	body := p.ss(b.Statements, "DO", "#f")
+	body := p.ss(b.Statements, "DO", yailNull)
 	if mut.IsGeneric {
 		return "(define-generic-event " + mut.ComponentType + " " + mut.EventName +
 			" (" + paramStr + ")\n  (set-this-form)\n  " + body + ")"
@@ -984,25 +1044,6 @@ func mutElseIfCount(b ast.Block) int {
 
 func mutHasElse(b ast.Block) bool {
 	return b.Mutation != nil && b.Mutation.ElseCount > 0
-}
-
-func (p *Parser) allValues(values []ast.Value, def string) []string {
-	result := make([]string, len(values))
-	for i, v := range values {
-		if s := p.genValue(v); s != "" {
-			result[i] = s
-		} else {
-			result[i] = def
-		}
-	}
-	return result
-}
-
-func allValuesMin(vals []string, min int) []string {
-	for len(vals) < min {
-		vals = append(vals, "0")
-	}
-	return vals
 }
 
 func field(b ast.Block) string {

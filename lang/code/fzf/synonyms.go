@@ -30,7 +30,7 @@ var synonymGraph = map[string][]string{
 	"downcase":  {"lower", "lowercase"},
 	"tolower":   {"lower", "lowercase"},
 
-	// ── starts / begins / prefix  (for startsWith) ───────────────────────────
+	// ── starts / begins / prefix  (for startsAt) ────────────────────────────
 	"starts": {"begins", "prefix"},
 	"begins": {"starts", "prefix"},
 	"prefix": {"starts", "begins"},

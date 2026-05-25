@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+falcon
+Falcon
 
 # Go build output
 /bin/
