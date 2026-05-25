@@ -112,25 +112,25 @@ func xmlToMist(this js.Value, p []js.Value) any {
 	})
 }
 
-func convertSchemaToXml(this js.Value, p []js.Value) any {
+func convertSchemaToAiml(this js.Value, p []js.Value) any {
 	return safeExec(func() js.Value {
 		if len(p) < 1 {
 			return js.ValueOf("No schema provided")
 		}
-		schemaString, err := design.NewSchemaParser(p[0].String()).ConvertSchemaToXml()
+		aimlString, err := design.NewSchemaParser(p[0].String()).ConvertSchemaToAiml()
 		if err != nil {
 			panic(err)
 		}
-		return js.ValueOf(schemaString)
+		return js.ValueOf(aimlString)
 	})
 }
 
-func convertXmlToSchema(this js.Value, p []js.Value) any {
+func convertAimlToSchema(this js.Value, p []js.Value) any {
 	return safeExec(func() js.Value {
 		if len(p) < 1 {
 			return js.ValueOf("No schema provided")
 		}
-		schemaString, err := design.NewXmlParser(p[0].String()).ConvertXmlToSchema()
+		schemaString, err := design.NewAimlParser(p[0].String()).ConvertAimlToSchema()
 		if err != nil {
 			panic(err)
 		}
@@ -182,8 +182,8 @@ func main() {
 	c := make(chan struct{}, 0)
 	js.Global().Set("mistToXml", js.FuncOf(mistToXml))
 	js.Global().Set("xmlToMist", js.FuncOf(xmlToMist))
-	js.Global().Set("schemaToXml", js.FuncOf(convertSchemaToXml))
-	js.Global().Set("xmlToSchema", js.FuncOf(convertXmlToSchema))
+	js.Global().Set("schemaToAiml", js.FuncOf(convertSchemaToAiml))
+	js.Global().Set("aimlToSchema", js.FuncOf(convertAimlToSchema))
 	js.Global().Set("runCode", js.FuncOf(runCode))
 	<-c
 }

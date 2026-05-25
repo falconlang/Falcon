@@ -14,6 +14,32 @@ func NewSchemaParser(schemaJson string) *SchemaParser {
 	return &SchemaParser{schemaJson: schemaJson}
 }
 
+func (p *SchemaParser) ConvertSchemaToAiml() (string, error) {
+	var jsonStruct map[string]interface{}
+	err := json.Unmarshal([]byte(p.schemaJson), &jsonStruct)
+	if err != nil {
+		return "", err
+	}
+	properties := jsonStruct["Properties"].(map[string]interface{})
+	screenId := properties["$Name"].(string)
+
+	schemaComponents := properties["$Components"].([]interface{})
+	var children []Component
+	for _, schemaComponent := range schemaComponents {
+		children = append(children, schemaComponentToXml(schemaComponent.(map[string]interface{})))
+	}
+
+	root := Component{
+		Id:         screenId,
+		Type:       "Screen",
+		Properties: filterDesignerProperties(properties),
+		Children:   children,
+	}
+	var buf bytes.Buffer
+	err = root.WriteAiml(&buf, 0)
+	return buf.String(), err
+}
+
 func (p *SchemaParser) ConvertSchemaToXml() (string, error) {
 	var jsonStruct map[string]interface{}
 	err := json.Unmarshal([]byte(p.schemaJson), &jsonStruct)
