@@ -64,11 +64,12 @@ func main() {
 	}
 	//repl()
 	//diffTest()
-	analyzeSyntax()
+	//analyzeSyntax()
 	//xmlTest()
 	//designTest()
+	annTest()
 	//runProgram()
-	//runFile("/home/kumaraswamy/Documents/falcon/testing/run.mist")
+	//runFile("/home/kumaraswamy/Documents/falcon/lang/testing/run.mist")
 }
 
 func reformatStdin() {
@@ -372,7 +373,7 @@ func repl() {
 
 func runProgram() {
 	fileName := "run.mist"
-	filePath := "/home/kumaraswamy/Documents/falcon/testing/" + fileName
+	filePath := "/home/kumaraswamy/Documents/falcon/lang/testing/" + fileName
 	codeBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)
@@ -396,7 +397,7 @@ func runProgram() {
 
 func designTest() {
 	xmlFile := "Screen1.aiml"
-	xmlPath := "/home/ekina/Documents/Falcon/testing/" + xmlFile
+	xmlPath := "/home/kumaraswamy/Documents/falcon/lang/testing/" + xmlFile
 	codeBytes, err := os.ReadFile(xmlPath)
 	if err != nil {
 		panic(err)
@@ -415,9 +416,24 @@ func designTest() {
 	println(xmlString)
 }
 
+func annTest() {
+	annFile := "Screen1.ann"
+	annPath := "/home/kumaraswamy/Documents/falcon/lang/testing/" + annFile
+	codeBytes, err := os.ReadFile(annPath)
+	if err != nil {
+		panic(err)
+	}
+	yailCode, err := designAnalysis.NewAnnYailConverter().ConvertAnnToYail(string(codeBytes))
+	if err != nil {
+		panic(err)
+	}
+	println("\n=== Companion REPL YAIL ===\n")
+	println(yailCode)
+}
+
 func xmlTest() {
 	xmlFile := "xml.txt"
-	xmlPath := "/home/kumaraswamy/Documents/falcon/testing/" + xmlFile
+	xmlPath := "/home/kumaraswamy/Documents/falcon/lang/testing/" + xmlFile
 	codeBytes, err := os.ReadFile(xmlPath)
 	if err != nil {
 		panic(err)
@@ -434,7 +450,7 @@ func xmlTest() {
 
 func analyzeSyntax() {
 	fileName := "hi.mist"
-	filePath := "/home/kumaraswamy/Documents/falcon/testing/" + fileName
+	filePath := "/home/kumaraswamy/Documents/falcon/lang/testing/" + fileName
 	codeBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)

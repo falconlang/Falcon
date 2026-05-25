@@ -119,6 +119,11 @@ func (p *AimlParser) parseComponent() (Component, error) {
 			}
 			comp.Children = append(comp.Children, child)
 			p.skipWhitespace()
+			if p.pos < len(p.source) && p.source[p.pos] == '/' {
+				p.pos++
+				p.readIdentifier()
+				p.skipWhitespace()
+			}
 			if p.pos < len(p.source) && p.source[p.pos] == ',' {
 				p.pos++
 			}
