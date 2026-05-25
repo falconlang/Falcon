@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"strconv"
 	"strings"
+	"unicode/utf16"
 )
 
 const (
@@ -46,7 +47,9 @@ func (p *Parser) genChain(block ast.Block) string {
 	var parts []string
 	curr := &block
 	for curr != nil {
-		parts = append(parts, p.genBlock(*curr))
+		if s := p.genBlock(*curr); s != "" {
+			parts = append(parts, s)
+		}
 		if curr.Next == nil || curr.Next.Block == nil {
 			break
 		}
@@ -98,6 +101,9 @@ func (p *Parser) ss(stmts []ast.Statement, name, def string) string {
 }
 
 func (p *Parser) genBlock(b ast.Block) string {
+	if b.Disabled {
+		return ""
+	}
 	switch b.Type {
 	case "controls_if":
 		return p.genControlsIf(b)
@@ -106,19 +112,19 @@ func (p *Parser) genBlock(b ast.Block) string {
 		start := p.vs(b.Values, "START", "0")
 		end := p.vs(b.Values, "END", "0")
 		step := p.vs(b.Values, "STEP", "0")
-		body := p.ss(b.Statements, "DO", yailNull)
+		body := p.ss(b.Statements, "DO", "#f")
 		return "(forrange " + loopVar + " (begin " + body + ") " + start + " " + end + " " + step + ")"
 	case "controls_forEach":
 		loopVar := "$" + fieldByName(b, "VAR")
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
-		body := p.ss(b.Statements, "DO", yailNull)
+		body := p.ss(b.Statements, "DO", "#f")
 		return "(foreach " + loopVar + " (begin " + body + ") " + list + ")"
 	case "controls_for_each_dict":
 		loopVar := "$item"
 		keyVar := "$" + fieldByName(b, "KEY")
 		valVar := "$" + fieldByName(b, "VALUE")
 		dict := p.vs(b.Values, "DICT", yailEmptyDict)
-		body := p.ss(b.Statements, "DO", yailNull)
+		body := p.ss(b.Statements, "DO", "#f")
 		getKey := callPrimitive("yail-list-get-item",
 			[]string{"(lexical-value " + loopVar + ")", "1"},
 			[]string{"list", "number"}, "select list item")
@@ -128,7 +134,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return "(foreach " + loopVar + " (let ((" + keyVar + " " + getKey + ")(" + valVar + " " + getVal + ")) (begin " + body + ")) " + dict + ")"
 	case "controls_while":
 		test := p.vs(b.Values, "TEST", "#f")
-		body := p.ss(b.Statements, "DO", yailNull)
+		body := p.ss(b.Statements, "DO", "#f")
 		return "(while " + test + " (begin " + body + "))"
 	case "controls_choose":
 		test := p.vs(b.Values, "TEST", "#f")
@@ -136,7 +142,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		elseRet := p.vs(b.Values, "ELSERETURN", "#f")
 		return "(if " + test + " " + thenRet + " " + elseRet + ")"
 	case "controls_do_then_return", "procedures_do_then_return":
-		stm := p.ss(b.Statements, "STM", yailNull)
+		stm := p.ss(b.Statements, "STM", "#f")
 		val := p.vs(b.Values, "VALUE", "#f")
 		return "(begin " + stm + " " + val + ")"
 	case "controls_eval_but_ignore":
@@ -145,7 +151,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "controls_break":
 		return "(*yail-break* #f)"
 	case "controls_nothing":
-		return yailNull
+		return "*the-null-value*"
 	case "controls_run_in_background":
 		proc := p.vs(b.Values, "PROCEDURE", yailNull)
 		cb := p.vs(b.Values, "CALLBACK", yailNull)
@@ -155,11 +161,11 @@ func (p *Parser) genBlock(b ast.Block) string {
 		proc := p.vs(b.Values, "PROCEDURE", yailNull)
 		return callPrimitive("run-after-period", []string{millis, proc}, []string{"any", "any"}, "run after period")
 	case "controls_openAnotherScreen":
-		name := p.vs(b.Values, "SCREEN", `""`)
+		name := p.vs(b.Values, "SCREEN", "null")
 		return callPrimitive("open-another-screen", []string{name}, []string{"text"}, "open another screen")
 	case "controls_openAnotherScreenWithStartValue":
-		screen := p.vs(b.Values, "SCREENNAME", `""`)
-		start := p.vs(b.Values, "STARTVALUE", "#f")
+		screen := p.vs(b.Values, "SCREENNAME", "null")
+		start := p.vs(b.Values, "STARTVALUE", "null")
 		return callPrimitive("open-another-screen-with-start-value",
 			[]string{screen, start}, []string{"text", "any"}, "open another screen with start value")
 	case "controls_getStartValue":
@@ -167,14 +173,14 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "controls_closeScreen":
 		return callPrimitive("close-screen", nil, nil, "close screen")
 	case "controls_closeScreenWithValue":
-		val := p.vs(b.Values, "SCREEN", "#f")
+		val := p.vs(b.Values, "SCREEN", "null")
 		return callPrimitive("close-screen-with-value", []string{val}, []string{"any"}, "close screen with value")
 	case "controls_closeApplication":
 		return callPrimitive("close-application", nil, nil, "close application")
 	case "controls_getPlainStartText":
 		return callPrimitive("get-plain-start-text", nil, nil, "get plain start text")
 	case "controls_closeScreenWithPlainText":
-		txt := p.vs(b.Values, "TEXT", `""`)
+		txt := p.vs(b.Values, "TEXT", "#f")
 		return callPrimitive("close-screen-with-plain-text", []string{txt}, []string{"text"}, "close screen with plain text")
 
 	case "logic_boolean":
@@ -185,6 +191,9 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "logic_true":
 		return "#t"
 	case "logic_false":
+		if fieldByName(b, "BOOL") == "TRUE" {
+			return "#t"
+		}
 		return "#f"
 	case "logic_negate":
 		val := p.vs(b.Values, "BOOL", "#f")
@@ -193,7 +202,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		a := p.vs(b.Values, "A", "#f")
 		bv := p.vs(b.Values, "B", "#f")
 		if fieldByName(b, "OP") == "NEQ" {
-			return callPrimitive("yail-not-equal?", []string{a, bv}, []string{"any", "any"}, "not =")
+			return callPrimitive("yail-not-equal?", []string{a, bv}, []string{"any", "any"}, "=")
 		}
 		return callPrimitive("yail-equal?", []string{a, bv}, []string{"any", "any"}, "=")
 	case "logic_operation", "logic_or":
@@ -292,7 +301,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("string=?", []string{t1, t2}, []string{"text", "text"}, "text=")
 	case "text_replace_mappings":
 		txt := p.vs(b.Values, "TEXT", `""`)
-		mappings := p.vs(b.Values, "MAPPINGS", yailEmptyDict)
+		mappings := p.vs(b.Values, "MAPPINGS", `""`)
 		if field(b) == "DICTIONARY_ORDER" {
 			return callPrimitive("string-replace-mappings-dictionary",
 				[]string{txt, mappings}, []string{"text", "dictionary"}, "replace with mappings")
@@ -309,22 +318,39 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return p.genObfuscatedText(b)
 
 	case "math_number":
-		return field(b)
+		s := field(b)
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			return strconv.FormatFloat(f, 'f', -1, 64)
+		}
+		return s
 	case "math_number_radix":
 		fm := fieldMap(b)
 		num := fm["NUM"]
-		var val int64
 		switch fm["OP"] {
 		case "HEX":
-			val, _ = strconv.ParseInt(num, 16, 64)
+			val, err := strconv.ParseUint(num, 16, 64)
+			if err != nil {
+				return "+inf.0"
+			}
+			return strconv.FormatUint(val, 10)
 		case "BIN":
-			val, _ = strconv.ParseInt(num, 2, 64)
+			val, err := strconv.ParseUint(num, 2, 64)
+			if err != nil {
+				return "+inf.0"
+			}
+			return strconv.FormatUint(val, 10)
 		case "OCT":
-			val, _ = strconv.ParseInt(num, 8, 64)
+			val, err := strconv.ParseUint(num, 8, 64)
+			if err != nil {
+				return "+inf.0"
+			}
+			return strconv.FormatUint(val, 10)
 		default:
-			val, _ = strconv.ParseInt(num, 10, 64)
+			if f, err := strconv.ParseFloat(num, 64); err == nil {
+				return strconv.FormatFloat(f, 'f', -1, 64)
+			}
+			return num
 		}
-		return strconv.FormatInt(val, 10)
 	case "math_compare":
 		a := p.vs(b.Values, "A", "0")
 		bv := p.vs(b.Values, "B", "0")
@@ -345,9 +371,6 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("=", []string{a, bv}, []string{"number", "number"}, "=")
 	case "math_add":
 		n := mutItemCount(b)
-		if n < 2 {
-			n = 2
-		}
 		args := make([]string, n)
 		for i := 0; i < n; i++ {
 			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
@@ -359,9 +382,6 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("-", []string{a, bv}, []string{"number", "number"}, "-")
 	case "math_multiply":
 		n := mutItemCount(b)
-		if n < 2 {
-			n = 2
-		}
 		args := make([]string, n)
 		for i := 0; i < n; i++ {
 			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
@@ -377,9 +397,6 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("expt", []string{a, bv}, []string{"number", "number"}, "expt")
 	case "math_bitwise":
 		n := mutItemCount(b)
-		if n < 2 {
-			n = 2
-		}
 		args := make([]string, n)
 		for i := 0; i < n; i++ {
 			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
@@ -391,7 +408,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 			return callPrimitive("bitwise-ior", args, repeatStr("number", n), "bitwise-ior")
 		}
 		return callPrimitive("bitwise-xor", args, repeatStr("number", n), "bitwise-xor")
-	case "math_single":
+	case "math_single", "math_abs", "math_neg", "math_round", "math_ceiling", "math_floor":
 		val := p.vs(b.Values, "NUM", "1")
 		switch field(b) {
 		case "ROOT":
@@ -429,22 +446,21 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("sin-degrees", []string{val}, []string{"number"}, "sin")
 	case "math_on_list":
 		n := mutItemCount(b)
-		op := strings.ToLower(field(b))
-		var identityDef string
-		switch op {
-		case "min":
-			identityDef = "+inf.0"
-		case "max":
-			identityDef = "-inf.0"
+		var op, identityDef string
+		switch fieldByName(b, "OP") {
+		case "MIN":
+			op, identityDef = "min", "+inf.0"
+		case "MAX":
+			op, identityDef = "max", "-inf.0"
 		default:
-			identityDef = "0"
+			panic("blocklytoyail: unsupported math_on_list OP: " + fieldByName(b, "OP"))
 		}
 		if n == 0 {
 			return callPrimitive(op, []string{identityDef}, []string{"number"}, op)
 		}
 		args := make([]string, n)
 		for i := 0; i < n; i++ {
-			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), identityDef)
+			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
 		}
 		return callPrimitive(op, args, repeatStr("number", n), op)
 	case "math_on_list2":
@@ -558,7 +574,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-pick-random", []string{list}, []string{"list"}, "pick a random item")
 	case "lists_position_in":
-		thing := p.vs(b.Values, "ITEM", "#f")
+		thing := p.vs(b.Values, "ITEM", "1")
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return callPrimitive("yail-list-index", []string{thing, list}, []string{"any", "list"}, "index in list")
 	case "lists_select_item":
@@ -629,52 +645,54 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("yail-list-append!", []string{list1, list2}, []string{"list", "list"}, "append to list")
 	case "lists_map":
 		loopVar := "$" + field(b)
-		list := p.vs(b.Values, "LIST", yailEmptyYailList)
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		to := p.vs(b.Values, "TO", "#f")
 		return "(map_nondest " + loopVar + " " + to + " " + list + ")"
 	case "lists_filter":
 		loopVar := "$" + field(b)
-		list := p.vs(b.Values, "LIST", yailEmptyYailList)
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		test := p.vs(b.Values, "TEST", "#f")
 		return "(filter_nondest " + loopVar + " " + test + " " + list + ")"
 	case "lists_reduce":
 		fm := fieldMap(b)
 		var1 := "$" + fm["VAR1"]
 		var2 := "$" + fm["VAR2"]
-		init := p.vs(b.Values, "INITANSWER", "#f")
+		init := p.genValueSlot(b.Values, "INITANSWER")
 		combine := p.vs(b.Values, "COMBINE", "#f")
-		list := p.vs(b.Values, "LIST", yailEmptyYailList)
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return "(reduceovereach " + init + " " + var2 + " " + var1 + " " + combine + " " + list + ")"
 	case "lists_sort_comparator":
 		fm := fieldMap(b)
 		var1 := "$" + fm["VAR1"]
 		var2 := "$" + fm["VAR2"]
-		list := p.vs(b.Values, "LIST", yailEmptyYailList)
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		cmp := p.vs(b.Values, "COMPARE", "#f")
 		return "(sortcomparator_nondest " + var1 + " " + var2 + " " + cmp + " " + list + ")"
 	case "lists_sort_key":
 		loopVar := "$" + field(b)
-		list := p.vs(b.Values, "LIST", yailEmptyYailList)
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		key := p.vs(b.Values, "KEY", "#f")
 		return "(sortkey_nondest " + loopVar + " " + key + " " + list + ")"
 	case "lists_minimum_value":
 		fm := fieldMap(b)
 		var1 := "$" + fm["VAR1"]
 		var2 := "$" + fm["VAR2"]
-		list := p.vs(b.Values, "LIST", yailEmptyYailList)
-		cmp := p.vs(b.Values, "COMPARE", "#f")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
+		defaultCmp := callPrimitive("<", []string{"(lexical-value " + var1 + ")", "(lexical-value " + var2 + ")"}, []string{"number", "number"}, "<")
+		cmp := p.vs(b.Values, "COMPARE", defaultCmp)
 		return "(mincomparator-nondest " + var1 + " " + var2 + " " + cmp + " " + list + ")"
 	case "lists_maximum_value":
 		fm := fieldMap(b)
 		var1 := "$" + fm["VAR1"]
 		var2 := "$" + fm["VAR2"]
-		list := p.vs(b.Values, "LIST", yailEmptyYailList)
-		cmp := p.vs(b.Values, "COMPARE", "#f")
+		list := p.vs(b.Values, "LIST", yailEmptyListCode)
+		defaultCmp := callPrimitive("<", []string{"(lexical-value " + var1 + ")", "(lexical-value " + var2 + ")"}, []string{"number", "number"}, "<")
+		cmp := p.vs(b.Values, "COMPARE", defaultCmp)
 		return "(maxcomparator-nondest " + var1 + " " + var2 + " " + cmp + " " + list + ")"
 
 	case "pair":
-		key := p.vs(b.Values, "KEY", "#f")
-		val := p.vs(b.Values, "VALUE", "#f")
+		key := p.vs(b.Values, "KEY", yailNull)
+		val := p.vs(b.Values, "VALUE", yailNull)
 		return callPrimitive("make-dictionary-pair", []string{key, val}, []string{"key", "any"}, "make a pair")
 	case "dictionaries_create_with":
 		n := mutItemCount(b)
@@ -692,24 +710,24 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("yail-dictionary-lookup",
 			[]string{key, dict, notFound}, []string{"key", "dictionary", "any"}, "get value for key")
 	case "dictionaries_set_pair":
-		key := p.vs(b.Values, "KEY", "#f")
+		key := p.vs(b.Values, "KEY", yailNull)
 		dict := p.vs(b.Values, "DICT", yailEmptyDict)
-		val := p.vs(b.Values, "VALUE", "#f")
+		val := p.vs(b.Values, "VALUE", yailNull)
 		return callPrimitive("yail-dictionary-set-pair",
 			[]string{key, dict, val}, []string{"key", "dictionary", "any"}, "set value for key")
 	case "dictionaries_delete_pair":
 		dict := p.vs(b.Values, "DICT", yailEmptyDict)
-		key := p.vs(b.Values, "KEY", "#f")
+		key := p.vs(b.Values, "KEY", yailNull)
 		return callPrimitive("yail-dictionary-delete-pair",
 			[]string{dict, key}, []string{"dictionary", "key"}, "delete entry for key")
 	case "dictionaries_recursive_lookup":
-		keys := p.vs(b.Values, "KEYS", yailEmptyYailList)
+		keys := p.vs(b.Values, "KEYS", "#f")
 		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		notFound := p.vs(b.Values, "NOTFOUND", yailNull)
 		return callPrimitive("yail-dictionary-recursive-lookup",
 			[]string{keys, dict, notFound}, []string{"list", "dictionary", "any"}, "get value at key path")
 	case "dictionaries_recursive_set":
-		keys := p.vs(b.Values, "KEYS", yailEmptyYailList)
+		keys := p.vs(b.Values, "KEYS", "'()")
 		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		val := p.vs(b.Values, "VALUE", "#f")
 		return callPrimitive("yail-dictionary-recursive-set",
@@ -729,7 +747,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		return callPrimitive("yail-dictionary-length", []string{dict}, []string{"dictionary"}, "number of pairs")
 	case "dictionaries_alist_to_dict":
-		pairs := p.vs(b.Values, "PAIRS", yailEmptyYailList)
+		pairs := p.vs(b.Values, "PAIRS", yailEmptyDict)
 		return callPrimitive("yail-dictionary-alist-to-dict", []string{pairs}, []string{"list"}, "list of pairs to dictionary")
 	case "dictionaries_dict_to_alist":
 		dict := p.vs(b.Values, "DICT", yailEmptyDict)
@@ -738,7 +756,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		return callPrimitive("yail-dictionary-copy", []string{dict}, []string{"dictionary"}, "copy dictionary")
 	case "dictionaries_combine_dicts":
-		dict1 := p.vs(b.Values, "DICT1", yailEmptyDict)
+		dict1 := p.vs(b.Values, "DICT1", "#f")
 		dict2 := p.vs(b.Values, "DICT2", yailEmptyDict)
 		return callPrimitive("yail-dictionary-combine-dicts",
 			[]string{dict1, dict2}, []string{"dictionary", "dictionary"}, "combine 2 dictionaries")
@@ -773,6 +791,9 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return genVarGet(b)
 	case "lexical_variable_set":
 		name := fieldByName(b, "VAR")
+		if b.Mutation != nil && len(b.Mutation.EventParams) > 0 {
+			name = b.Mutation.EventParams[0].Name
+		}
 		val := p.vs(b.Values, "VALUE", "0")
 		return genVarSet(name, val)
 	case "local_declaration_statement":
@@ -818,7 +839,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		if strings.HasPrefix(b.Type, "helpers_") {
 			return quoteStr(field(b))
 		}
-		return "; unsupported block: " + b.Type
+		panic("blocklytoyail: unsupported block type " + b.Type)
 	}
 }
 
@@ -827,23 +848,26 @@ func (p *Parser) genControlsIf(b ast.Block) string {
 	hasElse := mutHasElse(b)
 	numConds := 1 + elseIfCount
 
-	var sb strings.Builder
-	for i := 0; i < numConds; i++ {
-		cond := p.vs(b.Values, "IF"+strconv.Itoa(i), "#f")
-		body := p.ss(b.Statements, "DO"+strconv.Itoa(i), yailNull)
-		if i < numConds-1 || hasElse {
-			sb.WriteString("(if " + cond + "\n  (begin " + body + ")\n")
-		} else {
-			sb.WriteString("(if " + cond + "\n  (begin " + body + ")")
-		}
-	}
+	// Build from the innermost branch outward so each elseif is properly
+	// wrapped in (begin ...) as the else-clause of its parent (if ...).
+	lastIdx := numConds - 1
+	lastCond := p.vs(b.Values, "IF"+strconv.Itoa(lastIdx), "#f")
+	lastBody := p.ss(b.Statements, "DO"+strconv.Itoa(lastIdx), "#f")
+
+	var result string
 	if hasElse {
-		sb.WriteString("  (begin " + p.ss(b.Statements, "ELSE", yailNull) + ")")
+		elseBody := p.ss(b.Statements, "ELSE", "#f")
+		result = "(if " + lastCond + "\n  (begin " + lastBody + ")\n  (begin " + elseBody + "))"
+	} else {
+		result = "(if " + lastCond + "\n  (begin " + lastBody + "))"
 	}
-	for i := 0; i < numConds; i++ {
-		sb.WriteByte(')')
+
+	for i := numConds - 2; i >= 0; i-- {
+		cond := p.vs(b.Values, "IF"+strconv.Itoa(i), "#f")
+		body := p.ss(b.Statements, "DO"+strconv.Itoa(i), "#f")
+		result = "(if " + cond + "\n  (begin " + body + ")\n  (begin " + result + "))"
 	}
-	return sb.String()
+	return result
 }
 
 func (p *Parser) genLocalDecl(b ast.Block, isExpr bool) string {
@@ -863,7 +887,7 @@ func (p *Parser) genLocalDecl(b ast.Block, isExpr bool) string {
 	if isExpr {
 		return "(let (" + sb.String() + ") " + p.vs(b.Values, "RETURN", "0") + ")"
 	}
-	return "(let (" + sb.String() + ") (begin " + p.ss(b.Statements, "STACK", yailNull) + "))"
+	return "(let (" + sb.String() + ") " + p.ss(b.Statements, "STACK", "#f") + ")"
 }
 
 func (p *Parser) genProcDef(b ast.Block, hasReturn bool) string {
@@ -878,7 +902,7 @@ func (p *Parser) genProcDef(b ast.Block, hasReturn bool) string {
 	if hasReturn {
 		return "(def " + sig + " " + p.vs(b.Values, "RETURN", "#f") + ")"
 	}
-	return "(def " + sig + " (begin " + p.ss(b.Statements, "STACK", yailNull) + "))"
+	return "(def " + sig + " " + p.ss(b.Statements, "STACK", "#f") + ")"
 }
 
 func (p *Parser) genProcCall(b ast.Block) string {
@@ -925,44 +949,44 @@ func (p *Parser) genComponentMethod(b ast.Block) string {
 	if mut == nil {
 		return ""
 	}
-	var args []string
-	for i := 0; ; i++ {
-		slot := "ARG" + strconv.Itoa(i)
-		found := false
-		for _, v := range b.Values {
-			if v.Name == slot {
-				found = true
-				s := p.genValue(v)
-				if s == "" {
-					s = "#f"
-				}
-				args = append(args, s)
-				break
-			}
+	numArgs := len(mut.Args)
+	args := make([]string, numArgs)
+	typeList := make([]string, numArgs)
+	for i, a := range mut.Args {
+		args[i] = p.genValueSlot(b.Values, "ARG"+strconv.Itoa(i))
+		t := a.Type
+		if t == "" {
+			t = "any"
 		}
-		if !found {
-			break
-		}
+		typeList[i] = t
 	}
 	argList := ""
-	if len(args) > 0 {
+	if numArgs > 0 {
 		argList = " " + strings.Join(args, " ")
 	}
-	types := strings.Join(repeatStr("any", len(args)), " ")
+	types := strings.Join(typeList, " ")
+
+	methodName := mut.MethodName
+	if methodName == "Add" {
+		if tu := fieldByName(b, "TIME_UNIT"); tu != "" {
+			methodName = "Add" + tu
+		}
+	}
+
 	if mut.IsGeneric {
 		comp := p.genValueSlot(b.Values, "COMPONENT")
 		allTypes := "component"
-		if len(args) > 0 {
+		if numArgs > 0 {
 			allTypes += " " + types
 		}
 		return "(call-component-type-method " + comp + " '" + mut.ComponentType +
-			" '" + mut.MethodName + " (*list-for-runtime*" + argList + ") '(" + allTypes + "))"
+			" '" + methodName + " (*list-for-runtime*" + argList + ") '(" + allTypes + "))"
 	}
 	compName := fieldByName(b, "COMPONENT_SELECTOR")
 	if compName == "" {
 		compName = mut.InstanceName
 	}
-	return "(call-component-method '" + compName + " '" + mut.MethodName +
+	return "(call-component-method '" + compName + " '" + methodName +
 		" (*list-for-runtime*" + argList + ") '(" + types + "))"
 }
 
@@ -976,7 +1000,7 @@ func (p *Parser) genComponentProp(b ast.Block) string {
 	if mut.IsGeneric {
 		comp := p.genValueSlot(b.Values, "COMPONENT")
 		if isSet {
-			val := p.vs(b.Values, "VALUE", "#f")
+			val := p.genValueSlot(b.Values, "VALUE")
 			return "(set-and-coerce-property-and-check! " + comp +
 				" '" + mut.ComponentType + " '" + propName + " " + val + " 'any)"
 		}
@@ -987,7 +1011,7 @@ func (p *Parser) genComponentProp(b ast.Block) string {
 		compName = mut.InstanceName
 	}
 	if isSet {
-		val := p.vs(b.Values, "VALUE", "#f")
+		val := p.genValueSlot(b.Values, "VALUE")
 		return "(set-and-coerce-property! '" + compName + " '" + propName + " " + val + " 'any)"
 	}
 	return "(get-property '" + compName + " '" + propName + ")"
@@ -1015,6 +1039,9 @@ func genColor(b ast.Block) string {
 
 func genVarGet(b ast.Block) string {
 	name := field(b)
+	if b.Mutation != nil && len(b.Mutation.EventParams) > 0 {
+		name = b.Mutation.EventParams[0].Name
+	}
 	if strings.HasPrefix(name, "global ") {
 		return "(get-var g$" + name[7:] + ")"
 	}
@@ -1103,18 +1130,34 @@ func obfuscate(input, confounder string) string {
 func quoteStr(s string) string {
 	var sb strings.Builder
 	sb.WriteByte('"')
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		switch {
-		case c == '"':
+	for _, r := range s {
+		switch r {
+		case '"':
 			sb.WriteString(`\"`)
-		case c == '\\':
+		case '\\':
 			sb.WriteString(`\\`)
-		case c >= 32 && c <= 126:
-			sb.WriteByte(c)
+		case '\n':
+			sb.WriteString(`\n`)
+		case '\t':
+			sb.WriteString(`\t`)
+		case '\r':
+			sb.WriteString(`\r`)
 		default:
-			hex := "000" + strconv.FormatInt(int64(c), 16)
-			sb.WriteString(`\u` + hex[len(hex)-4:])
+			if r < 0x10000 {
+				if r >= 32 && r <= 126 {
+					sb.WriteRune(r)
+				} else {
+					hex := "000" + strconv.FormatInt(int64(r), 16)
+					sb.WriteString(`\u` + hex[len(hex)-4:])
+				}
+			} else {
+				// Encode as UTF-16 surrogate pair
+				r1, r2 := utf16.EncodeRune(r)
+				hi := "000" + strconv.FormatInt(int64(r1), 16)
+				lo := "000" + strconv.FormatInt(int64(r2), 16)
+				sb.WriteString(`\u` + hi[len(hi)-4:])
+				sb.WriteString(`\u` + lo[len(lo)-4:])
+			}
 		}
 	}
 	sb.WriteByte('"')

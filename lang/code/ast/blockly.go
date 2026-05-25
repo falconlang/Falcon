@@ -15,6 +15,7 @@ type XmlRoot struct {
 type Block struct {
 	XMLName    xml.Name    `xml:"block"`
 	Type       string      `xml:"type,attr"`
+	Disabled   bool        `xml:"disabled,attr,omitempty"`
 	Mutation   *Mutation   `xml:"mutation,omitempty"`
 	Fields     []Field     `xml:"field"`
 	Values     []Value     `xml:"value"`
@@ -105,6 +106,7 @@ type Next struct {
 
 type Arg struct {
 	Name string `xml:"name,attr"`
+	Type string `xml:"type,attr,omitempty"`
 }
 
 func FieldsFromMap(m map[string]string) []Field {
