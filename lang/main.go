@@ -7,6 +7,7 @@ import (
 	"Falcon/code/context"
 	"Falcon/code/lex"
 	blocklyParser "Falcon/code/parsers/blocklytomist"
+	yailParser "Falcon/code/parsers/blocklytoyail"
 	mistParser "Falcon/code/parsers/mistparser"
 	"Falcon/code/runtime"
 	designAnalysis "Falcon/design"
@@ -482,8 +483,8 @@ func analyzeSyntax() {
 	}
 	println(machineSourceCode.String())
 
-	//// Generate a merged syntax
-	//println("\n=== DIFF ===\n")
-	//syntaxDiff := diff.MakeSyntaxDiff(sourceCode, machineSourceCode.String())
-	//println(syntaxDiff.Merge())
+	println("\n=== YAIL ===\n")
+
+	yailCode := yailParser.NewParser(xmlContent).GenerateYAIL()
+	println(yailParser.Beautify(yailCode))
 }
