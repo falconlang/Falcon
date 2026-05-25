@@ -1,12 +1,7 @@
-func repro() = {
-  local i = 1
-  while (i <= 3) {
-    if (i == 2) {
-      yield i
-    }
-    i = i + 1
-  }
-  -1
+func isPalindrome(s) = {
+  local reversed = s.split("").reverse().join("")
+  s === reversed
 }
 
-println(repro())
+local testString = "malayalam"
+println("Is '" _ testString _ "' a palindrome? " _ isPalindrome(testString))

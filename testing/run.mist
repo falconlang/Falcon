@@ -1,12 +1,25 @@
-func repro() = {
-  local i = 1
-  while (i <= 3) {
-    if (i == 2) {
-      yield i
+func composeTextOps(ops, s) = {
+  local result = s
+  for (op in ops) {
+    if (op === "trim") {
+      result = result.trim()
+    } else if (op === "uppercase") {
+      result = result.uppercase()
+    } else if (op === "lowercase") {
+      result = result.lowercase()
+    } else if (op === "reverse") {
+      result = result.reverse()
     }
-    i = i + 1
   }
-  -1
+  result
 }
 
-println(repro())
+// Test cases
+println(composeTextOps(["trim", "uppercase"], "  hello world  "))
+// Expected: "HELLO WORLD"
+
+println(composeTextOps(["reverse", "lowercase"], "ABC"))
+// Expected: "cba"
+
+println(composeTextOps(["uppercase", "reverse", "trim"], "  Falcon  "))
+// Expected: "NOCALF"
