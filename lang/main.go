@@ -60,6 +60,13 @@ func main() {
 			}
 			correctFile(os.Args[2])
 			return
+		case "companion":
+			if len(os.Args) < 4 {
+				fmt.Fprintln(os.Stderr, "usage: Falcon companion <file.mist> <Screen.ann>")
+				os.Exit(1)
+			}
+			companionRun(os.Args[2], os.Args[3])
+			return
 		}
 	}
 	//repl()

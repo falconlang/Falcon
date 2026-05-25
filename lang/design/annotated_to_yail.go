@@ -15,28 +15,71 @@ func NewAnnYailConverter() *AnnYailConverter {
 	return &AnnYailConverter{autoIdCount: make(map[string]int)}
 }
 
-// ConvertAnnToYail parses an annotated .ann screen file and generates YAIL
-// for the App Inventor Companion REPL.
-//
-// The output follows the REPL wrapper format:
-//   (begin
-//     (clear-current-form)
-//     (do-after-form-creation <form-prop-setters>)
-//     (add-component parent type id <prop-setters>)
-//     ...
-//     (init-runtime)
-//     (call-Initialize-of-components 'Form 'Comp1 ...))
-func (c *AnnYailConverter) ConvertAnnToYail(source string) (string, error) {
+// ParseAnn parses an annotated .ann source and returns the root Component tree.
+func ParseAnn(source string) (Component, error) {
 	p := NewAimlParser(source)
 	p.skipWhitespace()
-	screen, err := p.parseComponent()
+	return p.parseComponent()
+}
+
+// ExtractComponents walks a Component tree and builds:
+//   - typeMap:    component type → list of instance names  (e.g. "Button" → ["AddButton", "SubtractButton"])
+//   - reverseMap: instance name → component type          (e.g. "AddButton" → "Button")
+//
+// Auto-IDs are generated with the same logic as AnnYailConverter.
+func ExtractComponents(root Component) (typeMap map[string][]string, reverseMap map[string]string) {
+	typeMap = make(map[string][]string)
+	reverseMap = make(map[string]string)
+	autoIds := make(map[string]int)
+	walkExtractComponents(root.Children, typeMap, reverseMap, autoIds)
+	return
+}
+
+func walkExtractComponents(children []Component, typeMap map[string][]string, reverseMap map[string]string, autoIds map[string]int) {
+	for _, child := range children {
+		id := child.Id
+		if id == "" {
+			count := autoIds[child.Type] + 1
+			autoIds[child.Type] = count
+			id = child.Type + strconv.Itoa(count)
+		}
+		typeMap[child.Type] = append(typeMap[child.Type], id)
+		reverseMap[id] = child.Type
+		walkExtractComponents(child.Children, typeMap, reverseMap, autoIds)
+	}
+}
+
+// ConvertAnnToYail parses an annotated .ann screen file and generates standalone
+// design YAIL for testing/inspection.
+func (c *AnnYailConverter) ConvertAnnToYail(source string) (string, error) {
+	screen, err := ParseAnn(source)
 	if err != nil {
 		return "", err
 	}
-	return c.generateYail(screen), nil
+	return c.generateYail(screen, ""), nil
 }
 
-func (c *AnnYailConverter) generateYail(screen Component) string {
+// ConvertAnnToReplYail generates combined YAIL for the App Inventor Companion REPL.
+// codeYail (procedures, globals, event handlers from a .mist file) is inserted
+// after (clear-current-form) and before the component declarations, matching
+// AppInventor's own code ordering so that event handlers are registered before
+// call-Initialize-of-components fires.
+//
+// The caller should wrap the result in:
+//
+//	(begin (require <com.google.youngandroid.runtime>) (process-repl-input -1 <result>))
+func (c *AnnYailConverter) ConvertAnnToReplYail(annSource, codeYail string) (string, error) {
+	screen, err := ParseAnn(annSource)
+	if err != nil {
+		return "", err
+	}
+	return c.generateYail(screen, codeYail), nil
+}
+
+func (c *AnnYailConverter) generateYail(screen Component, codeYail string) string {
+	// Reset auto-IDs so each conversion starts from the same state.
+	c.autoIdCount = make(map[string]int)
+
 	formName := screen.Id
 	if formName == "" {
 		formName = "Screen1"
@@ -52,6 +95,11 @@ func (c *AnnYailConverter) generateYail(screen Component) string {
 		sb.WriteString("(rename-component \"Screen1\" \"")
 		sb.WriteString(formName)
 		sb.WriteString("\")\n")
+	}
+
+	if codeYail != "" {
+		sb.WriteString(codeYail)
+		sb.WriteString("\n")
 	}
 
 	if len(screen.Properties) > 0 {
