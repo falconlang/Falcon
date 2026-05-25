@@ -166,7 +166,6 @@ outerLoop:
 			}
 			newExprs = append(newExprs, expr)
 		case *variables.Var:
-			println("yeahhhhhhhhhh")
 			e.Body = y.edits(e.Body)
 			newExprs = append(newExprs, e)
 			break outerLoop
