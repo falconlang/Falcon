@@ -1,0 +1,29 @@
+func firstAbove(scores, threshold) = {
+  for (i: 1..scores.listLen()) {
+    if (scores[i] >= threshold) {
+      yield scores[i]
+    }
+  }
+  println("meow")
+  -1
+}
+
+func chainedOpsOneLine() = {
+  local x = 2 * 3 + 1
+  x
+}
+
+func negatedCallResult() = {
+  local x = -listLen([1, 2, 3])
+  x
+}
+
+func twoNegativesOnSeparateLines() = {
+  -10
+  -20
+}
+
+println(firstAbove([5, 10, 15, 20], 12))
+println(chainedOpsOneLine())
+println(negatedCallResult())
+println(twoNegativesOnSeparateLines())

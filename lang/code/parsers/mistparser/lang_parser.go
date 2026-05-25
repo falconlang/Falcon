@@ -533,6 +533,9 @@ func (p *LangParser) expr(minPrecedence int) ast.Expr {
 		if !opToken.HasFlag(l.Operator) {
 			break
 		}
+		if p.isOnNewLine() {
+			break
+		}
 		precedence := l.PrecedenceOf(opToken.Flags[0])
 		if precedence == -1 || precedence < minPrecedence {
 			break

@@ -1,0 +1,27 @@
+func opAtEndOfLine() = {
+  local x = 5 +
+    3
+  x
+}
+
+func compoundAssignNewLine() = {
+  local x = 10
+  x += 5
+  x
+}
+
+func negAfterBoolExpr() = {
+  local flag = true
+  flag
+  -1
+}
+
+func chainOnSameLine() = {
+  local x = 1 + 2 + 3 + 4
+  x
+}
+
+println(opAtEndOfLine())
+println(compoundAssignNewLine())
+println(negAfterBoolExpr())
+println(chainOnSameLine())
