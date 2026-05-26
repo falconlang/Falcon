@@ -1,3 +1,13 @@
+// Package blocklytoyail translates AppInventor Blockly XML into YAIL
+// (the Kawa/Scheme dialect consumed by the App Inventor runtime).
+//
+// Each block type handled in genBlock has a 1-to-1 counterpart in the
+// AppInventor blocklyeditor YAIL generators located at:
+//
+//	appinventor/blocklyeditor/src/generators/yail/
+//
+// The files in that directory are the canonical reference for what YAIL
+// each block type is expected to produce.
 package blocklytoyail
 
 import (
@@ -105,6 +115,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return ""
 	}
 	switch b.Type {
+	// generators/yail/control.js
 	case "controls_if":
 		return p.genControlsIf(b)
 	case "controls_forRange":
@@ -183,6 +194,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		txt := p.vs(b.Values, "TEXT", "#f")
 		return callPrimitive("close-screen-with-plain-text", []string{txt}, []string{"text"}, "close screen with plain text")
 
+	// generators/yail/logic.js
 	case "logic_boolean":
 		if field(b) == "TRUE" {
 			return "#t"
@@ -219,6 +231,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		}
 		return "(" + yailOp + " " + strings.Join(args, " ") + ")"
 
+	// generators/yail/text.js
 	case "text":
 		return quoteStr(field(b))
 	case "text_join":
@@ -314,6 +327,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "obfuscated_text":
 		return p.genObfuscatedText(b)
 
+	// generators/yail/math.js
 	case "math_number":
 		s := field(b)
 		if s == "" {
@@ -538,6 +552,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		num := p.vs(b.Values, "NUM", "0")
 		return callPrimitive("random-set-seed", []string{num}, []string{"number"}, "random set seed")
 
+	// generators/yail/lists.js
 	case "lists_create_with":
 		n := mutItemCountOr(b, 2)
 		var args, types []string
@@ -691,6 +706,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		cmp := p.vs(b.Values, "COMPARE", defaultCmp)
 		return "(maxcomparator-nondest " + var1 + " " + var2 + " " + cmp + " " + list + ")"
 
+	// generators/yail/dictionaries.js
 	case "pair":
 		key := p.vs(b.Values, "KEY", yailNull)
 		val := p.vs(b.Values, "VALUE", yailNull)
@@ -772,6 +788,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		thing := p.vs(b.Values, "THING", yailEmptyDict)
 		return callPrimitive("yail-dictionary?", []string{thing}, []string{"any"}, "is a dictionary?")
 
+	// generators/yail/colors.js
 	case "color_black", "color_white", "color_red", "color_pink", "color_orange",
 		"color_yellow", "color_green", "color_cyan", "color_blue", "color_magenta",
 		"color_light_gray", "color_dark_gray", "color_gray", "color_light_green":
@@ -784,6 +801,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		color := p.vs(b.Values, "COLOR", "-1")
 		return callPrimitive("split-color", []string{color}, []string{"number"}, "split-color")
 
+	// generators/yail/variables.js
 	case "global_declaration":
 		name := "g$" + fieldByName(b, "NAME")
 		val := p.vs(b.Values, "VALUE", "0")
@@ -802,6 +820,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "local_declaration_expression":
 		return p.genLocalDecl(b, true)
 
+	// generators/yail/procedures.js
 	case "procedures_defnoreturn":
 		return p.genProcDef(b, false)
 	case "procedures_defreturn":
@@ -809,6 +828,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "procedures_callnoreturn", "procedures_callreturn":
 		return p.genProcCall(b)
 
+	// generators/yail/componentblock.js
 	case "component_event":
 		return p.genComponentEvent(b)
 	case "component_method":
@@ -824,6 +844,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		}
 		return "(get-all-components " + ct + ")"
 
+	// generators/yail/helpers.js
 	case "helpers_assets", "helpers_screen_names", "helpers_provider", "helpers_providermodel":
 		return quoteStr(field(b))
 	case "helpers_dropdown":
