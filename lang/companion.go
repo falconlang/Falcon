@@ -68,7 +68,8 @@ func compileFalconSnippet(code string, typeMap map[string][]string, reverseMap m
 // ── Shared types ────────────────────────────────────────────────────────────
 
 type evalReq struct {
-	Code string `json:"code"`
+	Code    string `json:"code,omitempty"`
+	Refresh bool   `json:"refresh,omitempty"`
 }
 
 type evalResp struct {
@@ -269,11 +270,11 @@ func companionServe(mistFile, annFile string) {
 		if err != nil {
 			break
 		}
-		go handleEvalConn(conn, ch, typeMap, reverseMap)
+		go handleEvalConn(conn, ch, mistFile, annFile, typeMap, reverseMap)
 	}
 }
 
-func handleEvalConn(conn net.Conn, ch *webrtc.DataChannel, typeMap map[string][]string, reverseMap map[string]string) {
+func handleEvalConn(conn net.Conn, ch *webrtc.DataChannel, mistFile, annFile string, typeMap map[string][]string, reverseMap map[string]string) {
 	defer conn.Close()
 
 	var req evalReq
@@ -289,6 +290,25 @@ func handleEvalConn(conn net.Conn, ch *webrtc.DataChannel, typeMap map[string][]
 	select {
 	case <-companionRespCh:
 	default:
+	}
+
+	if req.Refresh {
+		refreshYail, err := buildRefreshYail(mistFile, annFile, typeMap, reverseMap)
+		if err != nil {
+			json.NewEncoder(conn).Encode(evalResp{Error: err.Error()})
+			return
+		}
+		if err := ch.SendText(refreshYail); err != nil {
+			json.NewEncoder(conn).Encode(evalResp{Error: "send error: " + err.Error()})
+			return
+		}
+		select {
+		case raw := <-companionRespCh:
+			json.NewEncoder(conn).Encode(evalResp{Value: formatReplResponse([]byte(raw))})
+		case <-time.After(5 * time.Second):
+			json.NewEncoder(conn).Encode(evalResp{Value: "refreshed"})
+		}
+		return
 	}
 
 	yail, err := compileFalconSnippet(req.Code, typeMap, reverseMap)
@@ -309,6 +329,35 @@ func handleEvalConn(conn net.Conn, ch *webrtc.DataChannel, typeMap map[string][]
 	case <-time.After(5 * time.Second):
 		json.NewEncoder(conn).Encode(evalResp{Error: "timeout waiting for companion"})
 	}
+}
+
+func buildRefreshYail(mistFile, annFile string, typeMap map[string][]string, reverseMap map[string]string) (result string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+
+	annBytes, readErr := os.ReadFile(annFile)
+	if readErr != nil {
+		return "", fmt.Errorf("read ann: %w", readErr)
+	}
+	annSource := string(annBytes)
+
+	var codeYail string
+	if mistFile != "" {
+		mistBytes, readErr := os.ReadFile(mistFile)
+		if readErr != nil {
+			return "", fmt.Errorf("read mist: %w", readErr)
+		}
+		codeYail = compileMistToYail(string(mistBytes), filepath.Base(mistFile), typeMap, reverseMap)
+	}
+
+	fullYail, convErr := design.NewAnnYailConverter().ConvertAnnToReplYail(annSource, codeYail)
+	if convErr != nil {
+		return "", convErr
+	}
+	return wrapForRepl(fullYail), nil
 }
 
 func formatReplResponse(data []byte) string {

@@ -81,6 +81,9 @@ func main() {
 			}
 			evalSend(strings.Join(os.Args[2:], " "))
 			return
+		case "refresh":
+			refreshSend()
+			return
 		}
 	}
 	//repl()
