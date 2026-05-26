@@ -831,7 +831,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		if b.Mutation != nil {
 			key = b.Mutation.Key
 		}
-		return "(static-field " + key + " \"" + field(b) + "\")"
+		return getDropdownYAIL(key, field(b))
 
 	default:
 		if strings.HasPrefix(b.Type, "color_") && len(b.Fields) > 0 {
@@ -934,7 +934,7 @@ func (p *Parser) genComponentEvent(b ast.Block) string {
 	paramStr := strings.Join(params, " ")
 	body := p.ss(b.Statements, "DO", yailNull)
 	if mut.IsGeneric {
-		return "(define-generic-event " + mut.ComponentType + " " + mut.EventName +
+		return "(define-generic-event " + globalDB.GetFQCN(mut.ComponentType) + " " + mut.EventName +
 			" (" + paramStr + ")\n  (set-this-form)\n  " + body + ")"
 	}
 	compName := fieldByName(b, "COMPONENT_SELECTOR")
@@ -980,12 +980,21 @@ func (p *Parser) genComponentMethod(b ast.Block) string {
 		if numArgs > 0 {
 			allTypes += " " + types
 		}
-		return "(call-component-type-method " + comp + " '" + mut.ComponentType +
+		fqcn := globalDB.GetFQCN(mut.ComponentType)
+		if globalDB.IsContinuation(mut.ComponentType, methodName) {
+			return "(call-component-type-method-with-blocking-continuation " + comp + " '" + fqcn +
+				" '" + methodName + " (*list-for-runtime*" + argList + ") '(" + allTypes + "))"
+		}
+		return "(call-component-type-method " + comp + " '" + fqcn +
 			" '" + methodName + " (*list-for-runtime*" + argList + ") '(" + allTypes + "))"
 	}
 	compName := fieldByName(b, "COMPONENT_SELECTOR")
 	if compName == "" {
 		compName = mut.InstanceName
+	}
+	if globalDB.IsContinuation(mut.ComponentType, methodName) {
+		return "(call-component-method-with-blocking-continuation '" + compName + " '" + methodName +
+			" (*list-for-runtime*" + argList + ") '(" + types + "))"
 	}
 	return "(call-component-method '" + compName + " '" + methodName +
 		" (*list-for-runtime*" + argList + ") '(" + types + "))"
@@ -1000,12 +1009,14 @@ func (p *Parser) genComponentProp(b ast.Block) string {
 	isSet := mut.SetOrGet == "set"
 	if mut.IsGeneric {
 		comp := p.genValueSlot(b.Values, "COMPONENT")
+		fqcn := globalDB.GetFQCN(mut.ComponentType)
 		if isSet {
 			val := p.genValueSlot(b.Values, "VALUE")
+			propType := globalDB.GetPropType(mut.ComponentType, propName)
 			return "(set-and-coerce-property-and-check! " + comp +
-				" '" + mut.ComponentType + " '" + propName + " " + val + " 'any)"
+				" '" + fqcn + " '" + propName + " " + val + " '" + propType + ")"
 		}
-		return "(get-property-and-check " + comp + " '" + mut.ComponentType + " '" + propName + ")"
+		return "(get-property-and-check " + comp + " '" + fqcn + " '" + propName + ")"
 	}
 	compName := fieldByName(b, "COMPONENT_SELECTOR")
 	if compName == "" {
@@ -1013,7 +1024,8 @@ func (p *Parser) genComponentProp(b ast.Block) string {
 	}
 	if isSet {
 		val := p.genValueSlot(b.Values, "VALUE")
-		return "(set-and-coerce-property! '" + compName + " '" + propName + " " + val + " 'any)"
+		propType := globalDB.GetPropType(mut.ComponentType, propName)
+		return "(set-and-coerce-property! '" + compName + " '" + propName + " " + val + " '" + propType + ")"
 	}
 	return "(get-property '" + compName + " '" + propName + ")"
 }

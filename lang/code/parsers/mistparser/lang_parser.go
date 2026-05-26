@@ -17,6 +17,11 @@ import (
 	l "Falcon/code/lex"
 )
 
+// EventValidator is called during event parsing to validate the event against
+// the component database. Returning a non-nil error causes a compile error at
+// the event-name token.
+type EventValidator func(compType, eventName string, params []string) error
+
 type LangParser struct {
 	Tokens    []*l.Token
 	currIndex int
@@ -25,10 +30,11 @@ type LangParser struct {
 	strict      bool
 	autoCorrect bool
 
-	Resolver    *NameResolver
-	ScopeCursor *ScopeCursor
-	aggregator  *ErrorAggregator
-	patches     []SourcePatch
+	Resolver       *NameResolver
+	ScopeCursor    *ScopeCursor
+	aggregator     *ErrorAggregator
+	patches        []SourcePatch
+	eventValidator EventValidator
 }
 
 // EnableAutoCorrect turns on the auto-correction pass. Disabled by default.
@@ -58,6 +64,11 @@ func NewLangParser(strict bool, tokens []*l.Token) *LangParser {
 		aggregator:  &ErrorAggregator{Errors: map[*l.Token]ParseError{}},
 	}
 }
+
+// SetEventValidator installs a validator that is called for every event
+// declaration. Use compdb.GlobalDB.ValidateEvent to validate against
+// simple_components.json.
+func (p *LangParser) SetEventValidator(v EventValidator) { p.eventValidator = v }
 
 func (p *LangParser) SetComponentDefinitions(definitions map[string][]string, reverseDefinitions map[string]string) {
 	p.Resolver.ComponentNameMap = definitions
@@ -259,10 +270,16 @@ func (p *LangParser) yieldSmt() ast.Expr {
 func (p *LangParser) genericEvent() ast.Expr {
 	componentType := p.componentType()
 	p.expect(l.Dot)
+	eventTok := p.peek()
 	eventName := p.name()
 	var parameters []string
 	if p.isNext(l.OpenCurve) {
 		parameters = p.parameters()
+	}
+	if p.eventValidator != nil {
+		if err := p.eventValidator(componentType, eventName, parameters); err != nil {
+			eventTok.Error("%", err.Error())
+		}
 	}
 	body := p.parseEventBody(parameters)
 	return &components.GenericEvent{ComponentType: componentType, Event: eventName, Parameters: parameters, Body: body}
@@ -271,10 +288,16 @@ func (p *LangParser) genericEvent() ast.Expr {
 func (p *LangParser) event() ast.Expr {
 	component := p.component()
 	p.expect(l.Dot)
+	eventTok := p.peek()
 	eventName := p.name()
 	var parameters []string
 	if p.isNext(l.OpenCurve) {
 		parameters = p.parameters()
+	}
+	if p.eventValidator != nil {
+		if err := p.eventValidator(component.Type, eventName, parameters); err != nil {
+			eventTok.Error("%", err.Error())
+		}
 	}
 	body := p.parseEventBody(parameters)
 	return &components.Event{

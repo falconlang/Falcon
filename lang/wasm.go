@@ -7,6 +7,7 @@ package main
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/compdb"
 	"Falcon/code/context"
 	"Falcon/code/lex"
 	blocklyParser "Falcon/code/parsers/blocklytomist"
@@ -70,6 +71,7 @@ func mistToXml(this js.Value, p []js.Value) any {
 		tokens := lex.NewLexer(codeContext).Lex()
 		langParser := mistparser.NewLangParser(true, tokens)
 		langParser.SetComponentDefinitions(componentContextMap, reverseComponentMap)
+		langParser.SetEventValidator(compdb.GlobalDB.ValidateEvent)
 		expressions := langParser.ParseAll()
 
 		var xmlCode strings.Builder
