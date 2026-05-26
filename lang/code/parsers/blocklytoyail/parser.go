@@ -222,10 +222,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "text":
 		return quoteStr(field(b))
 	case "text_join":
-		n := mutItemCount(b)
-		if n < 1 {
-			n = len(b.Values)
-		}
+		n := mutItemCountOr(b, 2)
 		args := make([]string, n)
 		types := make([]string, n)
 		for i := 0; i < n; i++ {
@@ -319,37 +316,41 @@ func (p *Parser) genBlock(b ast.Block) string {
 
 	case "math_number":
 		s := field(b)
+		if s == "" {
+			return "0"
+		}
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
 			return strconv.FormatFloat(f, 'f', -1, 64)
 		}
-		return s
+		return "+nan.0"
 	case "math_number_radix":
 		fm := fieldMap(b)
 		num := fm["NUM"]
+		if num == "" {
+			return "0"
+		}
+		radixParse := func(base int) string {
+			val, err := strconv.ParseUint(num, base, 64)
+			if err != nil {
+				if numErr, ok := err.(*strconv.NumError); ok && numErr.Err == strconv.ErrRange {
+					return "+inf.0"
+				}
+				return "+nan.0"
+			}
+			return strconv.FormatUint(val, 10)
+		}
 		switch fm["OP"] {
 		case "HEX":
-			val, err := strconv.ParseUint(num, 16, 64)
-			if err != nil {
-				return "+inf.0"
-			}
-			return strconv.FormatUint(val, 10)
+			return radixParse(16)
 		case "BIN":
-			val, err := strconv.ParseUint(num, 2, 64)
-			if err != nil {
-				return "+inf.0"
-			}
-			return strconv.FormatUint(val, 10)
+			return radixParse(2)
 		case "OCT":
-			val, err := strconv.ParseUint(num, 8, 64)
-			if err != nil {
-				return "+inf.0"
-			}
-			return strconv.FormatUint(val, 10)
+			return radixParse(8)
 		default:
 			if f, err := strconv.ParseFloat(num, 64); err == nil {
 				return strconv.FormatFloat(f, 'f', -1, 64)
 			}
-			return num
+			return "+nan.0"
 		}
 	case "math_compare":
 		a := p.vs(b.Values, "A", "0")
@@ -370,7 +371,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		}
 		return callPrimitive("=", []string{a, bv}, []string{"number", "number"}, "=")
 	case "math_add":
-		n := mutItemCount(b)
+		n := mutItemCountOr(b, 2)
 		args := make([]string, n)
 		for i := 0; i < n; i++ {
 			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
@@ -381,7 +382,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		bv := p.vs(b.Values, "B", "0")
 		return callPrimitive("-", []string{a, bv}, []string{"number", "number"}, "-")
 	case "math_multiply":
-		n := mutItemCount(b)
+		n := mutItemCountOr(b, 2)
 		args := make([]string, n)
 		for i := 0; i < n; i++ {
 			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
@@ -396,7 +397,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		bv := p.vs(b.Values, "B", "0")
 		return callPrimitive("expt", []string{a, bv}, []string{"number", "number"}, "expt")
 	case "math_bitwise":
-		n := mutItemCount(b)
+		n := mutItemCountOr(b, 2)
 		args := make([]string, n)
 		for i := 0; i < n; i++ {
 			args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
@@ -445,7 +446,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		}
 		return callPrimitive("sin-degrees", []string{val}, []string{"number"}, "sin")
 	case "math_on_list":
-		n := mutItemCount(b)
+		n := mutItemCountOr(b, 2)
 		var op, identityDef string
 		switch fieldByName(b, "OP") {
 		case "MIN":
@@ -538,7 +539,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("random-set-seed", []string{num}, []string{"number"}, "random set seed")
 
 	case "lists_create_with":
-		n := mutItemCount(b)
+		n := mutItemCountOr(b, 2)
 		var args, types []string
 		for i := 0; i < n; i++ {
 			s := p.genValueSlot(b.Values, "ADD"+strconv.Itoa(i))
@@ -550,7 +551,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return callPrimitive("make-yail-list", args, types, "make a list")
 	case "lists_add_items":
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
-		n := mutItemCount(b)
+		n := mutItemCountOr(b, 1)
 		args := make([]string, 1+n)
 		types := make([]string, 1+n)
 		args[0] = list
@@ -695,7 +696,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 		val := p.vs(b.Values, "VALUE", yailNull)
 		return callPrimitive("make-dictionary-pair", []string{key, val}, []string{"key", "any"}, "make a pair")
 	case "dictionaries_create_with":
-		n := mutItemCount(b)
+		n := mutItemCountOr(b, 2)
 		args := make([]string, n)
 		types := make([]string, n)
 		for i := 0; i < n; i++ {
@@ -1062,6 +1063,13 @@ func mutItemCount(b ast.Block) int {
 	return 0
 }
 
+func mutItemCountOr(b ast.Block, def int) int {
+	if b.Mutation == nil {
+		return def
+	}
+	return b.Mutation.ItemCount
+}
+
 func mutElseIfCount(b ast.Block) int {
 	if b.Mutation != nil {
 		return b.Mutation.ElseIfCount
@@ -1115,49 +1123,56 @@ func callPrimitive(name string, args, types []string, display string) string {
 }
 
 func obfuscate(input, confounder string) string {
-	for len(confounder) < len(input) {
-		confounder += confounder
+	// Operate on UTF-16 code units to match JS charCodeAt/String.fromCharCode behavior.
+	inputUnits := utf16.Encode([]rune(input))
+	confUnits := utf16.Encode([]rune(confounder))
+	for len(confUnits) < len(inputUnits) {
+		confUnits = append(confUnits, confUnits...)
 	}
-	n := len(input)
-	result := make([]byte, n)
+	n := len(inputUnits)
+	var sb strings.Builder
 	for i := 0; i < n; i++ {
-		c := (int(input[i]) ^ int(confounder[i])) & 0xFF
-		result[i] = byte((c ^ (n - i)) & 0xFF)
+		c := (int(inputUnits[i]) ^ int(confUnits[i])) & 0xFF
+		b := (c ^ (n - i)) & 0xFF
+		sb.WriteRune(rune(b))
 	}
-	return string(result)
+	return sb.String()
 }
 
 func quoteStr(s string) string {
+	// Mirrors AI.Yail.quotifyForREPL:
+	//  - backslash followed by n/t/r: pass both chars through unchanged
+	//  - other backslash: double it
+	//  - code < 32 or > 126: emit \uXXXX (UTF-16 code unit)
+	//  - supplementary chars: emit two \uXXXX surrogate halves
+	runes := []rune(s)
+	n := len(runes)
 	var sb strings.Builder
 	sb.WriteByte('"')
-	for _, r := range s {
-		switch r {
-		case '"':
-			sb.WriteString(`\"`)
-		case '\\':
-			sb.WriteString(`\\`)
-		case '\n':
-			sb.WriteString(`\n`)
-		case '\t':
-			sb.WriteString(`\t`)
-		case '\r':
-			sb.WriteString(`\r`)
-		default:
-			if r < 0x10000 {
-				if r >= 32 && r <= 126 {
-					sb.WriteRune(r)
-				} else {
-					hex := "000" + strconv.FormatInt(int64(r), 16)
-					sb.WriteString(`\u` + hex[len(hex)-4:])
-				}
+	for i := 0; i < n; i++ {
+		r := runes[i]
+		switch {
+		case r == '\\':
+			if i+1 < n && (runes[i+1] == 'n' || runes[i+1] == 't' || runes[i+1] == 'r') {
+				sb.WriteRune('\\')
+				sb.WriteRune(runes[i+1])
+				i++
 			} else {
-				// Encode as UTF-16 surrogate pair
-				r1, r2 := utf16.EncodeRune(r)
-				hi := "000" + strconv.FormatInt(int64(r1), 16)
-				lo := "000" + strconv.FormatInt(int64(r2), 16)
-				sb.WriteString(`\u` + hi[len(hi)-4:])
-				sb.WriteString(`\u` + lo[len(lo)-4:])
+				sb.WriteString(`\\`)
 			}
+		case r == '"':
+			sb.WriteString(`\"`)
+		case r >= 32 && r <= 126:
+			sb.WriteRune(r)
+		case r < 0x10000:
+			hex := "000" + strconv.FormatInt(int64(r), 16)
+			sb.WriteString(`\u` + hex[len(hex)-4:])
+		default:
+			r1, r2 := utf16.EncodeRune(r)
+			hi := "000" + strconv.FormatInt(int64(r1), 16)
+			lo := "000" + strconv.FormatInt(int64(r2), 16)
+			sb.WriteString(`\u` + hi[len(hi)-4:])
+			sb.WriteString(`\u` + lo[len(lo)-4:])
 		}
 	}
 	sb.WriteByte('"')

@@ -38,6 +38,7 @@ type Value struct {
 type Shadow struct {
 	XMLName    xml.Name    `xml:"shadow"`
 	Type       string      `xml:"type,attr"`
+	Disabled   bool        `xml:"disabled,attr,omitempty"`
 	Mutation   *Mutation   `xml:"mutation,omitempty"`
 	Fields     []Field     `xml:"field"`
 	Values     []Value     `xml:"value"`
@@ -51,6 +52,7 @@ func (s *Shadow) BlockValue() Block {
 	}
 	return Block{
 		Type:       s.Type,
+		Disabled:   s.Disabled,
 		Mutation:   s.Mutation,
 		Fields:     s.Fields,
 		Values:     s.Values,
