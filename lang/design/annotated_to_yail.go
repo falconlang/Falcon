@@ -88,6 +88,17 @@ func dbCompType(annType string) string {
 	return annType
 }
 
+// ValidateAnnSource parses source and validates every property name against the
+// component DB. All errors are returned together so the caller can report them
+// all at once rather than one at a time.
+func ValidateAnnSource(source string) error {
+	screen, err := ParseAnn(source)
+	if err != nil {
+		return err
+	}
+	return validateAnn(screen)
+}
+
 // validateAnn walks the entire component tree and collects every property
 // validation error. All errors are returned together so the user can fix them
 // all in one pass rather than one at a time.

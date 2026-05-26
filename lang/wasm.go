@@ -11,6 +11,7 @@ import (
 	"Falcon/code/context"
 	"Falcon/code/lex"
 	blocklyParser "Falcon/code/parsers/blocklytomist"
+	blocklyYail "Falcon/code/parsers/blocklytoyail"
 	"Falcon/code/parsers/mistparser"
 	"Falcon/code/runtime"
 	"Falcon/design"
@@ -133,11 +134,46 @@ func convertAimlToSchema(this js.Value, p []js.Value) any {
 		if len(p) < 1 {
 			return js.ValueOf("No schema provided")
 		}
-		schemaString, err := design.NewAimlParser(p[0].String()).ConvertAimlToSchema()
+		src := p[0].String()
+		if err := design.ValidateAnnSource(src); err != nil {
+			panic(err)
+		}
+		schemaString, err := design.NewAimlParser(src).ConvertAimlToSchema()
 		if err != nil {
 			panic(err)
 		}
 		return js.ValueOf(schemaString)
+	})
+}
+
+// annToYail converts a .ann design source and pre-compiled code YAIL into the
+// combined design+code YAIL block ready for the REPL (without the outer require wrapper).
+func annToYail(this js.Value, p []js.Value) any {
+	return safeExec(func() js.Value {
+		if len(p) < 1 {
+			return js.ValueOf("annToYail(annSource [, codeYail]) not provided!")
+		}
+		annSource := p[0].String()
+		codeYail := ""
+		if len(p) >= 2 {
+			codeYail = p[1].String()
+		}
+		yail, err := design.NewAnnYailConverter().ConvertAnnToReplYail(annSource, codeYail)
+		if err != nil {
+			panic(err)
+		}
+		return js.ValueOf(yail)
+	})
+}
+
+// blocklyToYail compiles Blockly XML into YAIL for the App Inventor companion.
+func blocklyToYail(this js.Value, p []js.Value) any {
+	return safeExec(func() js.Value {
+		if len(p) < 1 {
+			return js.ValueOf("blocklyToYail(xmlContent) not provided!")
+		}
+		yail := blocklyYail.NewParser(p[0].String()).GenerateYAIL()
+		return js.ValueOf(yail)
 	})
 }
 
@@ -215,6 +251,8 @@ func main() {
 	js.Global().Set("xmlToMist", js.FuncOf(xmlToMist))
 	js.Global().Set("schemaToAiml", js.FuncOf(convertSchemaToAiml))
 	js.Global().Set("aimlToSchema", js.FuncOf(convertAimlToSchema))
+	js.Global().Set("annToYail", js.FuncOf(annToYail))
+	js.Global().Set("blocklyToYail", js.FuncOf(blocklyToYail))
 	js.Global().Set("runCode", js.FuncOf(runCode))
 	js.Global().Set("describeComponent", js.FuncOf(describeComponent))
 	js.Global().Set("listComponents", js.FuncOf(listComponents))
