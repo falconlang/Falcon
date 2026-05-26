@@ -15,33 +15,47 @@ var simpleComponentsJSON []byte
 type scComponent struct {
 	Name            string       `json:"name"`
 	Type            string       `json:"type"`
+	CategoryString  string       `json:"categoryString"`
+	NonVisible      string       `json:"nonVisible"`
+	HelpString      string       `json:"helpString"`
+	ShowOnPalette   string       `json:"showOnPalette"`
 	BlockProperties []scProperty `json:"blockProperties"`
 	Methods         []scMethod   `json:"methods"`
 	Events          []scEvent    `json:"events"`
 }
 
 type scProperty struct {
-	Name   string    `json:"name"`
-	Type   string    `json:"type"`
-	Helper *scHelper `json:"helper,omitempty"`
+	Name        string    `json:"name"`
+	Type        string    `json:"type"`
+	RW          string    `json:"rw"`
+	Deprecated  string    `json:"deprecated"`
+	Description string    `json:"description"`
+	Category    string    `json:"category"`
+	Helper      *scHelper `json:"helper,omitempty"`
 }
 
 type scMethod struct {
 	Name         string    `json:"name"`
+	Deprecated   string    `json:"deprecated"`
+	Description  string    `json:"description"`
 	Continuation bool      `json:"continuation,omitempty"`
+	ReturnType   string    `json:"returnType,omitempty"`
 	Params       []scParam `json:"params"`
 	Helper       *scHelper `json:"helper,omitempty"`
 }
 
 type scEvent struct {
-	Name   string    `json:"name"`
-	Params []scParam `json:"params"`
+	Name        string    `json:"name"`
+	Deprecated  string    `json:"deprecated"`
+	Description string    `json:"description"`
+	Params      []scParam `json:"params"`
 }
 
 type scParam struct {
-	Name   string    `json:"name"`
-	Type   string    `json:"type"`
-	Helper *scHelper `json:"helper,omitempty"`
+	Name        string    `json:"name"`
+	Type        string    `json:"type"`
+	Description string    `json:"description,omitempty"`
+	Helper      *scHelper `json:"helper,omitempty"`
 }
 
 type scHelper struct {
@@ -85,6 +99,7 @@ type CompDB struct {
 	methodContinuation map[string]bool              // "CompName.MethodName" → true
 	optionLists        map[string]*OptionList       // option list key → OptionList
 	events             map[string]EventDef          // "CompName.EventName" → EventDef
+	components         map[string]scComponent       // shortName → full component data
 }
 
 // GlobalDB is the singleton component database, initialized once at package load.
@@ -102,6 +117,7 @@ func initCompDB() *CompDB {
 		methodContinuation: make(map[string]bool),
 		optionLists:        make(map[string]*OptionList),
 		events:             make(map[string]EventDef),
+		components:         make(map[string]scComponent, len(components)),
 	}
 
 	for _, comp := range components {
@@ -137,6 +153,8 @@ func initCompDB() *CompDB {
 			}
 			db.events[comp.Name+"."+event.Name] = EventDef{Params: names}
 		}
+
+		db.components[comp.Name] = comp
 	}
 
 	return db
@@ -191,6 +209,49 @@ func (db *CompDB) IsContinuation(compType, methodName string) bool {
 // GetOptionList returns the OptionList for the given key, or nil if not found.
 func (db *CompDB) GetOptionList(key string) *OptionList {
 	return db.optionLists[key]
+}
+
+// ValidateProperty checks that propName exists on compType. Returns nil when the
+// component type is unknown (can't validate extensions). When the property is not
+// found, the error includes a "did you mean" hint if a case-insensitive match exists.
+func (db *CompDB) ValidateProperty(compType, propName string) error {
+	pm := db.propType[compType]
+	if pm == nil {
+		return nil // unknown component — extension or unmapped type
+	}
+	if pm[propName] != "" {
+		return nil
+	}
+	lower := strings.ToLower(propName)
+	for k := range pm {
+		if strings.ToLower(k) == lower {
+			return fmt.Errorf("%s: unknown property %q, did you mean %q?", compType, propName, k)
+		}
+	}
+	return fmt.Errorf("%s: unknown property %q", compType, propName)
+}
+
+// DescribeComponent returns the JSON-encoded description of a component
+// (properties, methods, events with full metadata), or ("", false) if unknown.
+func (db *CompDB) DescribeComponent(name string) (string, bool) {
+	comp, ok := db.components[name]
+	if !ok {
+		return "", false
+	}
+	data, err := json.Marshal(comp)
+	if err != nil {
+		return "", false
+	}
+	return string(data), true
+}
+
+// ListComponentNames returns the names of all known component types.
+func (db *CompDB) ListComponentNames() []string {
+	names := make([]string, 0, len(db.components))
+	for name := range db.components {
+		names = append(names, name)
+	}
+	return names
 }
 
 // ValidateEvent checks that the given event exists on the component type and

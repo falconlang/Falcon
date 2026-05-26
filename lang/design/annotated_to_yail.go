@@ -1,6 +1,9 @@
 package design
 
 import (
+	"Falcon/code/compdb"
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -56,7 +59,7 @@ func (c *AnnYailConverter) ConvertAnnToYail(source string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return c.generateYail(screen, ""), nil
+	return c.generateYail(screen, "")
 }
 
 // ConvertAnnToReplYail generates combined YAIL for the App Inventor Companion REPL.
@@ -73,10 +76,52 @@ func (c *AnnYailConverter) ConvertAnnToReplYail(annSource, codeYail string) (str
 	if err != nil {
 		return "", err
 	}
-	return c.generateYail(screen, codeYail), nil
+	return c.generateYail(screen, codeYail)
 }
 
-func (c *AnnYailConverter) generateYail(screen Component, codeYail string) string {
+// dbCompType maps the .ann component type to the DB component type.
+// The root screen is @Screen in .ann but registered as "Form" in the component DB.
+func dbCompType(annType string) string {
+	if annType == "Screen" {
+		return "Form"
+	}
+	return annType
+}
+
+// validateAnn walks the entire component tree and collects every property
+// validation error. All errors are returned together so the user can fix them
+// all in one pass rather than one at a time.
+func validateAnn(screen Component) error {
+	var errs []error
+	collectPropertyErrors(screen.Type, screen.Id, screen.Properties, &errs)
+	collectChildErrors(screen.Children, &errs)
+	return errors.Join(errs...)
+}
+
+func collectPropertyErrors(compType, compId string, props map[string]string, errs *[]error) {
+	for k := range props {
+		if err := compdb.GlobalDB.ValidateProperty(dbCompType(compType), k); err != nil {
+			*errs = append(*errs, fmt.Errorf("%s %q: %w", compType, compId, err))
+		}
+	}
+}
+
+func collectChildErrors(children []Component, errs *[]error) {
+	for _, child := range children {
+		id := child.Id
+		if id == "" {
+			id = child.Type
+		}
+		collectPropertyErrors(child.Type, id, child.Properties, errs)
+		collectChildErrors(child.Children, errs)
+	}
+}
+
+func (c *AnnYailConverter) generateYail(screen Component, codeYail string) (string, error) {
+	if err := validateAnn(screen); err != nil {
+		return "", err
+	}
+
 	// Reset auto-IDs so each conversion starts from the same state.
 	c.autoIdCount = make(map[string]int)
 
@@ -108,7 +153,7 @@ func (c *AnnYailConverter) generateYail(screen Component, codeYail string) strin
 			sb.WriteString("\n  (set-and-coerce-property! '")
 			sb.WriteString(formName)
 			sb.WriteString(" '")
-			sb.WriteString(annCapitalize(k))
+			sb.WriteString(k)
 			sb.WriteString(" ")
 			sb.WriteString(annFormatValue(v))
 			sb.WriteString(" ")
@@ -130,7 +175,7 @@ func (c *AnnYailConverter) generateYail(screen Component, codeYail string) strin
 	sb.WriteString(")\n")
 	sb.WriteString(")")
 
-	return sb.String()
+	return sb.String(), nil
 }
 
 func (c *AnnYailConverter) genComponents(parentName string, children []Component, sb *strings.Builder, componentNames *[]string) {
@@ -156,7 +201,7 @@ func (c *AnnYailConverter) genComponents(parentName string, children []Component
 			sb.WriteString("  (set-and-coerce-property! '")
 			sb.WriteString(compId)
 			sb.WriteString(" '")
-			sb.WriteString(annCapitalize(k))
+			sb.WriteString(k)
 			sb.WriteString(" ")
 			sb.WriteString(annFormatValue(v))
 			sb.WriteString(" ")
@@ -168,13 +213,6 @@ func (c *AnnYailConverter) genComponents(parentName string, children []Component
 
 		sb.WriteString(")\n")
 	}
-}
-
-func annCapitalize(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 func annYailType(v string) string {

@@ -10,7 +10,7 @@
     @Button { id: "SubtractButton", Text: "-" }
     @Button { id: "MultiplyButton", Text: "*" }
     @Button { id: "DivideButton", Text: "/" }
-  }/exi
+  }
 
   @Notifier { id: "Notifier1" }
 }

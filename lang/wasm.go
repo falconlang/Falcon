@@ -14,6 +14,7 @@ import (
 	"Falcon/code/parsers/mistparser"
 	"Falcon/code/runtime"
 	"Falcon/design"
+	"encoding/json"
 	"encoding/xml"
 	"strings"
 	"syscall/js"
@@ -140,6 +141,34 @@ func convertAimlToSchema(this js.Value, p []js.Value) any {
 	})
 }
 
+// describeComponent returns a JSON string with the full metadata for a component
+// type (properties, methods, events). Returns an error string if unknown.
+func describeComponent(this js.Value, p []js.Value) any {
+	return safeExec(func() js.Value {
+		if len(p) < 1 {
+			return js.ValueOf("describeComponent(componentName) not provided!")
+		}
+		name := p[0].String()
+		desc, ok := compdb.GlobalDB.DescribeComponent(name)
+		if !ok {
+			return js.ValueOf("")
+		}
+		return js.ValueOf(desc)
+	})
+}
+
+// listComponents returns a JSON array of all known component type names.
+func listComponents(this js.Value, p []js.Value) any {
+	return safeExec(func() js.Value {
+		names := compdb.GlobalDB.ListComponentNames()
+		data, err := json.Marshal(names)
+		if err != nil {
+			return js.ValueOf("[]")
+		}
+		return js.ValueOf(string(data))
+	})
+}
+
 // runCode executes Falcon source code and streams each printed line to JS via
 // the falconPrint(line) callback. Parse and runtime errors are sent to mistError(msg).
 func runCode(this js.Value, p []js.Value) any {
@@ -187,5 +216,7 @@ func main() {
 	js.Global().Set("schemaToAiml", js.FuncOf(convertSchemaToAiml))
 	js.Global().Set("aimlToSchema", js.FuncOf(convertAimlToSchema))
 	js.Global().Set("runCode", js.FuncOf(runCode))
+	js.Global().Set("describeComponent", js.FuncOf(describeComponent))
+	js.Global().Set("listComponents", js.FuncOf(listComponents))
 	<-c
 }
