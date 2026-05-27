@@ -1,16 +1,16 @@
-@Screen { id: "Screen1", Title: "Calculator",
-  @Label { Text: "First number: " }
-  @TextBox { id: "firstNumberTextBox", NumbersOnly: true, Hint: "Enter first number" }
+Screen.Screen1 { Title: "Calculator",
+  Label { Text: "First number: " }
+  TextBox.firstNumberTextBox { NumbersOnly: true, Hint: "Enter first number" }
 
-  @Label { Text: "Second number: " }
-  @TextBox { id: "secondNumberTextBox", NumbersOnly: true, Hint: "Enter second number" }
+  Label { Text: "Second number: " }
+  TextBox.secondNumberTextBox { NumbersOnly: true, Hint: "Enter second number" }
 
-  @HorizontalArrangement {
-    @Button { id: "AddButton", Text: "+" }
-    @Button { id: "SubtractButton", Text: "-" }
-    @Button { id: "MultiplyButton", Text: "*" }
-    @Button { id: "DivideButton", Text: "/" }
+  HorizontalArrangement {
+    Button.AddButton { Text: "+" }
+    Button.SubtractButton { Text: "-" }
+    Button.MultiplyButton { Text: "*" }
+    Button.DivideButton { Text: "/" }
   }
 
-  @Notifier { id: "Notifier1" }
+  Notifier.Notifier1
 }

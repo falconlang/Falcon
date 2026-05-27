@@ -59,16 +59,13 @@ func (c *Component) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-// WriteAiml converts a Component to the @Component { key: value } format.
+// WriteAiml converts a Component to the Component.Id { key: value } format.
 func (c *Component) WriteAiml(w io.Writer, indent int) error {
 	indentStr := strings.Repeat("  ", indent)
 	hasChildren := len(c.Children) > 0
 
 	type kv struct{ k, v string }
 	var props []kv
-	if c.Id != "" {
-		props = append(props, kv{"id", c.Id})
-	}
 	keys := make([]string, 0, len(c.Properties))
 	for k := range c.Properties {
 		keys = append(keys, k)
@@ -80,8 +77,18 @@ func (c *Component) WriteAiml(w io.Writer, indent int) error {
 
 	var sb strings.Builder
 	sb.WriteString(indentStr)
-	sb.WriteString("@")
 	sb.WriteString(c.Type)
+	if c.Id != "" {
+		sb.WriteString(".")
+		sb.WriteString(c.Id)
+	}
+
+	if c.Id != "" && !hasChildren && len(props) == 0 {
+		sb.WriteString("\n")
+		_, err := w.Write([]byte(sb.String()))
+		return err
+	}
+
 	sb.WriteString(" {")
 
 	for i, p := range props {

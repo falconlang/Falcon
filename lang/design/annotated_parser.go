@@ -8,7 +8,7 @@ import (
 	"unicode"
 )
 
-// AimlParser parses the @Component { key: value, @Child { } } design format.
+// AimlParser parses the Component.Id { key: value, Child { } } design format.
 type AimlParser struct {
 	source      []rune
 	pos         int
@@ -94,26 +94,37 @@ func (p *AimlParser) componentToJson(component Component) interface{} {
 }
 
 func (p *AimlParser) parseComponent() (Component, error) {
-	if p.pos >= len(p.source) || p.source[p.pos] != '@' {
-		return Component{}, fmt.Errorf("expected '@' at position %d", p.pos)
+	if p.pos < len(p.source) && p.source[p.pos] == '@' {
+		p.pos++
 	}
-	p.pos++
 
 	typeName := p.readIdentifier()
 	if typeName == "" {
 		return Component{}, fmt.Errorf("expected component type name at position %d", p.pos)
 	}
 
-	p.skipWhitespace()
-	if p.pos >= len(p.source) || p.source[p.pos] != '{' {
-		return Component{}, fmt.Errorf("expected '{' after @%s at position %d", typeName, p.pos)
-	}
-	p.pos++
-
 	comp := Component{
 		Type:       typeName,
 		Properties: make(map[string]string),
 	}
+
+	p.skipWhitespace()
+	if p.pos < len(p.source) && p.source[p.pos] == '.' {
+		p.pos++
+		comp.Id = p.readIdentifier()
+		if comp.Id == "" {
+			return Component{}, fmt.Errorf("expected component id after %s. at position %d", typeName, p.pos)
+		}
+		p.skipWhitespace()
+	}
+
+	if p.pos >= len(p.source) || p.source[p.pos] != '{' {
+		if comp.Id != "" {
+			return comp, nil
+		}
+		return Component{}, fmt.Errorf("expected '{' after %s at position %d", typeName, p.pos)
+	}
+	p.pos++
 
 	for {
 		p.skipWhitespace()
@@ -141,15 +152,32 @@ func (p *AimlParser) parseComponent() (Component, error) {
 			}
 			continue
 		}
-		// Parse property key: value
+
+		entryStart := p.pos
 		key := p.readIdentifier()
 		if key == "" {
 			return Component{}, fmt.Errorf("unexpected character %q at position %d", string(p.source[p.pos]), p.pos)
 		}
 		p.skipWhitespace()
 		if p.pos >= len(p.source) || p.source[p.pos] != ':' {
-			return Component{}, fmt.Errorf("expected ':' after key %q", key)
+			p.pos = entryStart
+			child, err := p.parseComponent()
+			if err != nil {
+				return Component{}, err
+			}
+			comp.Children = append(comp.Children, child)
+			p.skipWhitespace()
+			if p.pos < len(p.source) && p.source[p.pos] == '/' {
+				p.pos++
+				p.readIdentifier()
+				p.skipWhitespace()
+			}
+			if p.pos < len(p.source) && p.source[p.pos] == ',' {
+				p.pos++
+			}
+			continue
 		}
+
 		p.pos++
 		p.skipWhitespace()
 
@@ -159,6 +187,9 @@ func (p *AimlParser) parseComponent() (Component, error) {
 		}
 
 		if key == "id" {
+			if comp.Id != "" {
+				return Component{}, fmt.Errorf("duplicate id for %s at position %d", typeName, p.pos)
+			}
 			comp.Id = value
 		} else {
 			comp.Properties[key] = value
