@@ -2,13 +2,9 @@ import {
   Check,
   CircleNotch,
   Clock,
-  Lightbulb,
-  ListBullets,
-  MagnifyingGlass,
   Moon,
   QrCode,
   Sun,
-  TextAlignLeft,
   TextT,
   Warning,
 } from '@phosphor-icons/react'
@@ -39,24 +35,11 @@ const ARIA_LABEL = {
   idle:       'Connect Companion',
 }
 
-function ToolButton({ label, title, onClick, children }) {
-  return (
-    <button type="button" className="btn toolbar-tool" onClick={onClick} title={title} aria-label={title}>
-      {children}
-      <span>{label}</span>
-    </button>
-  )
-}
-
 export default function Toolbar({
   onCompanion,
   companionStatus,
   theme,
   onToggleTheme,
-  onFormat,
-  onSearch,
-  onSymbols,
-  onQuickFix,
 }) {
   const ariaLabel = ARIA_LABEL[companionStatus] ?? ARIA_LABEL.idle
 
@@ -72,25 +55,11 @@ export default function Toolbar({
       <div className="spacer" />
 
       <div className="actions">
-        <ToolButton label="Format" title="Format document or selection" onClick={onFormat}>
-          <TextAlignLeft size={13} aria-hidden="true" />
-        </ToolButton>
-        <ToolButton label="Find" title="Search project" onClick={onSearch}>
-          <MagnifyingGlass size={13} aria-hidden="true" />
-        </ToolButton>
-        <ToolButton label="Symbols" title="Open symbol list" onClick={onSymbols}>
-          <ListBullets size={13} aria-hidden="true" />
-        </ToolButton>
-        <ToolButton label="Fix" title="Show quick fixes" onClick={onQuickFix}>
-          <Lightbulb size={13} aria-hidden="true" />
-        </ToolButton>
-
         <label className="theme-switch-group" title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark'
             ? <Moon size={16} aria-hidden="true" />
             : <Sun size={16} aria-hidden="true" />
           }
-          <span className="theme-switch-label">{theme === 'dark' ? 'Dark' : 'Light'}</span>
           <button
             type="button"
             className="theme-switch"

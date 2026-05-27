@@ -1082,16 +1082,12 @@ export default function App() {
         companionStatus={companionOpen && companion.status === 'polling' ? 'idle' : companion.status}
         theme={theme}
         onToggleTheme={toggleTheme}
-        onFormat={handleFormat}
-        onSearch={handleProjectSearch}
-        onSymbols={handleSymbols}
-        onQuickFix={handleQuickFix}
       />
 
       <div className="notebook-workspace">
         <main className="notebook-pane">
           <div className={`pane-header notebook-header${activePane === 'falcon' ? ' active' : ''}`}>
-            <span>Screen1.falcon notebook</span>
+            <span>Screen1.falcon</span>
             <button type="button" className="notebook-add-top" onClick={() => addCellAfter(falconCells[falconCells.length - 1]?.id)}>
               <Plus size={13} weight="bold" aria-hidden="true" />
               Cell
@@ -1125,23 +1121,23 @@ export default function App() {
 
               return (
                 <section className={`notebook-cell${cell.id === activeCellId ? ' active' : ''}`} key={cell.id}>
-                  <div className="notebook-cell-main">
-                    <div className="notebook-cell-header">
-                      <div className="notebook-cell-actions">
-                        <button type="button" onClick={() => moveCell(cell.id, -1)} disabled={index === 0} aria-label="Move cell up" title="Move cell up">
-                          <CaretUp size={13} weight="bold" aria-hidden="true" />
-                        </button>
-                        <button type="button" onClick={() => moveCell(cell.id, 1)} disabled={index === falconCells.length - 1} aria-label="Move cell down" title="Move cell down">
-                          <CaretDown size={13} weight="bold" aria-hidden="true" />
-                        </button>
-                        <button type="button" onClick={() => addCellAfter(cell.id)} aria-label="Add cell below" title="Add cell below">
-                          <Plus size={13} weight="bold" aria-hidden="true" />
-                        </button>
-                        <button type="button" onClick={() => deleteCell(cell.id)} disabled={falconCells.length <= 1} aria-label="Delete cell" title="Delete cell">
-                          <Trash size={13} aria-hidden="true" />
-                        </button>
-                      </div>
+                  {cell.id === activeCellId ? (
+                    <div className="notebook-cell-actions" role="toolbar" aria-label="Selected cell actions">
+                      <button type="button" onClick={() => moveCell(cell.id, -1)} disabled={index === 0} aria-label="Move cell up" title="Move cell up">
+                        <CaretUp size={13} weight="bold" aria-hidden="true" />
+                      </button>
+                      <button type="button" onClick={() => moveCell(cell.id, 1)} disabled={index === falconCells.length - 1} aria-label="Move cell down" title="Move cell down">
+                        <CaretDown size={13} weight="bold" aria-hidden="true" />
+                      </button>
+                      <button type="button" onClick={() => addCellAfter(cell.id)} aria-label="Add cell below" title="Add cell below">
+                        <Plus size={13} weight="bold" aria-hidden="true" />
+                      </button>
+                      <button type="button" onClick={() => deleteCell(cell.id)} disabled={falconCells.length <= 1} aria-label="Delete cell" title="Delete cell">
+                        <Trash size={13} aria-hidden="true" />
+                      </button>
                     </div>
+                  ) : null}
+                  <div className="notebook-cell-main">
                     <div className="notebook-cell-editor" style={{ height: `${editorHeight}px` }}>
                       <Editor
                         ref={node => {

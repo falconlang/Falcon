@@ -203,22 +203,11 @@ export const editorTheme = EditorView.theme(
       padding: '0 16px 0 10px',
       minWidth: '40px',
     },
-    '.cm-activeLine': {
-      backgroundColor: 'var(--bg-activeline)',
-    },
-    '.cm-activeLineGutter': {
-      backgroundColor: 'var(--bg-activeline)',
-      color: 'var(--text-sec)',
-    },
     '.cm-sel': {
       background: 'var(--bg-selection)',
     },
     '& .cm-content ::selection': {
       background: 'transparent',
-    },
-    '.cm-matchingBracket': {
-      backgroundColor: 'var(--bg-match-bracket)',
-      outline: '1px solid var(--bg-match-bracket-outline)',
     },
     '.cm-cursor, .cm-dropCursor': {
       borderLeftColor: 'var(--caret)',

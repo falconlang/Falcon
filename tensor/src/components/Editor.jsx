@@ -773,7 +773,7 @@ const Editor = forwardRef(function Editor({
         onBlur={handleBlur}
         basicSetup={{
           lineNumbers: false,
-          highlightActiveLineGutter: true,
+          highlightActiveLineGutter: false,
           highlightSpecialChars: false,
           history: true,
           foldGutter: false,
@@ -782,12 +782,12 @@ const Editor = forwardRef(function Editor({
           allowMultipleSelections: false,
           indentOnInput: true,
           syntaxHighlighting: false,
-          bracketMatching: true,
+          bracketMatching: false,
           closeBrackets: false,
           autocompletion: false,
           rectangularSelection: false,
           crosshairCursor: false,
-          highlightActiveLine: true,
+          highlightActiveLine: false,
           highlightSelectionMatches: false,
           tabSize: 2,
         }}

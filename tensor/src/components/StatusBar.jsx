@@ -31,8 +31,6 @@ export default function StatusBar({
       </div>
       <div className="status-right">
         <span>Ln {line}, Col {col}</span>
-        <span>{charCount} chars</span>
-        {!error && <span className="status-meta">2 spaces</span>}
       </div>
     </footer>
   )
