@@ -64,6 +64,9 @@ func (s *Shadow) BlockValue() Block {
 type Mutation struct {
 	XMLName       xml.Name     `xml:"mutation"`
 	ItemCount     int          `xml:"items,attr"`
+	Rows          int          `xml:"rows,attr,omitempty"`
+	Cols          int          `xml:"cols,attr,omitempty"`
+	Matrix        string       `xml:"matrix,attr,omitempty"`
 	ElseIfCount   int          `xml:"elseif,attr"`
 	ElseCount     int          `xml:"else,attr"`
 	LocalNames    []LocalName  `xml:"localname"`

@@ -18,7 +18,7 @@ func NewXmlParser(xmlContent string) *XmlParser {
 func (p *XmlParser) ConvertXmlToSchema() (string, error) {
 	var screen Component
 	if err := xml.Unmarshal([]byte(p.xmlContent), &screen); err != nil {
-		panic(err)
+		return "", err
 	}
 	var components []interface{}
 	for _, child := range screen.Children {
@@ -42,7 +42,10 @@ func (p *XmlParser) ConvertXmlToSchema() (string, error) {
 		"Source":     "Form",
 		"Properties": props,
 	}
-	jsonBytes, _ := json.MarshalIndent(schema, "", "  ")
+	jsonBytes, err := json.MarshalIndent(schema, "", "  ")
+	if err != nil {
+		return "", err
+	}
 	return string(jsonBytes), nil
 }
 

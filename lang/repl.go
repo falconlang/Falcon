@@ -12,12 +12,16 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/pion/webrtc/v3"
 )
 
-const DefaultRendezvous = "https://rendezvous.appinventor.mit.edu/rendezvous/"
+const (
+	DefaultRendezvous  = "https://rendezvous.appinventor.mit.edu/rendezvous/"
+	DefaultRendezvous2 = "https://rendezvous.appinventor.mit.edu/rendezvous2/"
+)
 
 type Repl struct {
 	code         string
@@ -30,6 +34,8 @@ type Repl struct {
 
 	peer    *webrtc.PeerConnection
 	channel *webrtc.DataChannel
+
+	disconnectOnce sync.Once
 }
 
 func NewRepl(
@@ -84,8 +90,8 @@ func (r *Repl) SendText(text string) error {
 }
 
 type CommConfig struct {
-	IceServers  []IceServer `json:"iceServers"`
-	Rendezvous2 string      `json:"rendezvous2"`
+	IceServers  []IceServer
+	Rendezvous2 string
 }
 
 type IceServer struct {
@@ -94,9 +100,57 @@ type IceServer struct {
 	Password string `json:"password"`
 }
 
+func parseCommConfig(body []byte) (CommConfig, error) {
+	raw := struct {
+		IceServersCamel []IceServer `json:"iceServers"`
+		IceServersLower []IceServer `json:"iceservers"`
+		Rendezvous2     string      `json:"rendezvous2"`
+	}{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return CommConfig{}, err
+	}
+
+	cfg := CommConfig{
+		IceServers: []IceServer{{
+			Server:   "turn:turn.appinventor.mit.edu:3478",
+			Username: "oh",
+			Password: "boy",
+		}},
+		Rendezvous2: DefaultRendezvous2,
+	}
+	if raw.Rendezvous2 != "" {
+		cfg.Rendezvous2 = raw.Rendezvous2
+	}
+	if cfg.Rendezvous2[len(cfg.Rendezvous2)-1] != '/' {
+		cfg.Rendezvous2 += "/"
+	}
+	if len(raw.IceServersLower) > 0 {
+		cfg.IceServers = raw.IceServersLower
+	} else if len(raw.IceServersCamel) > 0 {
+		cfg.IceServers = raw.IceServersCamel
+	}
+	return cfg, nil
+}
+
+func (r *Repl) sendKey() string {
+	return r.code + "-s"
+}
+
+func (r *Repl) responseKey() string {
+	return r.code + "-r"
+}
+
+func (r *Repl) notifyDisconnect(graceful bool) {
+	r.disconnectOnce.Do(func() {
+		if r.onDisconnect != nil {
+			r.onDisconnect(graceful)
+		}
+	})
+}
+
 func (r *Repl) createComm(body []byte) error {
-	var commConfig CommConfig
-	if err := json.Unmarshal(body, &commConfig); err != nil {
+	commConfig, err := parseCommConfig(body)
+	if err != nil {
 		return err
 	}
 
@@ -119,12 +173,13 @@ func (r *Repl) createComm(body []byte) error {
 		switch s {
 		case webrtc.PeerConnectionStateFailed:
 			fmt.Println("Connection failed, closing.")
+			r.notifyDisconnect(false)
 			r.peer.Close()
 		case webrtc.PeerConnectionStateDisconnected:
 			fmt.Println("Connection disconnected.")
-			r.onDisconnect(false)
+			r.notifyDisconnect(false)
 		case webrtc.PeerConnectionStateClosed:
-			r.onDisconnect(true)
+			r.notifyDisconnect(true)
 		}
 	})
 
@@ -134,15 +189,19 @@ func (r *Repl) createComm(body []byte) error {
 		return err
 	}
 	r.channel = channel
-	channel.OnOpen(func() { r.onConnect(channel) })
-	channel.OnMessage(r.onMessage)
+	if r.onConnect != nil {
+		channel.OnOpen(func() { r.onConnect(channel) })
+	}
+	if r.onMessage != nil {
+		channel.OnMessage(r.onMessage)
+	}
 
 	peer.OnICECandidate(func(c *webrtc.ICECandidate) {
 		if c == nil {
 			return
 		}
 		content := map[string]interface{}{
-			"key":       r.sha1Digest + "-s",
+			"key":       r.sendKey(),
 			"webrtc":    true,
 			"nonce":     rand.Intn(10000) + 1,
 			"candidate": c.ToJSON(),
@@ -169,7 +228,7 @@ func (r *Repl) createComm(body []byte) error {
 	}
 
 	offerContent := map[string]interface{}{
-		"key":       r.code + "-s",
+		"key":       r.sendKey(),
 		"webrtc":    true,
 		"offer":     offer,
 		"nonce":     rand.Intn(10000) + 1,
@@ -186,11 +245,13 @@ func (r *Repl) createComm(body []byte) error {
 	if resp.StatusCode == 200 {
 		fmt.Println("WebRTC offer sent. Waiting for answer...")
 	} else {
-		fmt.Println("Offer post failed:", resp.Status)
+		status := resp.Status
+		resp.Body.Close()
+		return fmt.Errorf("offer post failed: %s", status)
 	}
 	resp.Body.Close()
 
-	return r.receiveOfferResponse(commConfig.Rendezvous2 + r.code + "-r")
+	return r.receiveOfferResponse(commConfig.Rendezvous2 + r.responseKey())
 }
 
 func (r *Repl) receiveOfferResponse(responseURL string) error {
@@ -200,7 +261,7 @@ func (r *Repl) receiveOfferResponse(responseURL string) error {
 	for i := 0; i < r.pollTimes; i++ {
 		if r.peer.ConnectionState() == webrtc.PeerConnectionStateConnected {
 			fmt.Println("Peer connected!")
-			break
+			return nil
 		}
 		fmt.Print("(" + strconv.Itoa(i+1) + "/" + strconv.Itoa(r.pollTimes) + ") Waiting for SDP answer\n")
 
@@ -263,5 +324,12 @@ func (r *Repl) receiveOfferResponse(responseURL string) error {
 		}
 		time.Sleep(time.Second)
 	}
-	return nil
+	if !answerSet {
+		return fmt.Errorf("WebRTC answer not received after %d attempts", r.pollTimes)
+	}
+	if r.peer.ConnectionState() == webrtc.PeerConnectionStateConnected {
+		fmt.Println("Peer connected!")
+		return nil
+	}
+	return fmt.Errorf("WebRTC negotiation did not connect after %d attempts", r.pollTimes)
 }

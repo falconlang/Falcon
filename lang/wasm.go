@@ -41,13 +41,40 @@ func safeExec(fn func() js.Value) (ret js.Value) {
 	return
 }
 
+func parseMistToXmlStrictArg(value js.Value) bool {
+	if value.IsUndefined() || value.IsNull() {
+		return true
+	}
+
+	switch value.Type() {
+	case js.TypeBoolean:
+		return value.Bool()
+	case js.TypeObject:
+		strict := value.Get("strict")
+		if strict.Type() == js.TypeBoolean {
+			return strict.Bool()
+		}
+
+		allowUnsafeParsing := value.Get("allowUnsafeParsing")
+		if allowUnsafeParsing.Type() == js.TypeBoolean {
+			return !allowUnsafeParsing.Bool()
+		}
+	}
+
+	return true
+}
+
 // Code -> Blocks
 func mistToXml(this js.Value, p []js.Value) any {
 	return safeExec(func() js.Value {
 		if len(p) < 2 {
-			return js.ValueOf("mistToXML(sourceCode string, componentDefinitions map[string][]string) not provided!")
+			return js.ValueOf("mistToXML(sourceCode string, componentDefinitions map[string][]string [, strict bool | { strict?: bool, allowUnsafeParsing?: bool }]) not provided!")
 		}
 		sourceCode := p[0].String()
+		strict := true
+		if len(p) >= 3 {
+			strict = parseMistToXmlStrictArg(p[2])
+		}
 
 		// Parse the Component Definition Context
 		componentContextMap := make(map[string][]string) // Button -> [Button1, Button2]
@@ -71,10 +98,10 @@ func mistToXml(this js.Value, p []js.Value) any {
 		codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "appinventor.live"}
 
 		tokens := lex.NewLexer(codeContext).Lex()
-		langParser := mistparser.NewLangParser(true, tokens)
+		langParser := mistparser.NewLangParser(strict, tokens)
 		langParser.SetComponentDefinitions(componentContextMap, reverseComponentMap)
 		langParser.SetEventValidator(compdb.GlobalDB.ValidateEvent)
-		expressions := langParser.ParseAll()
+		expressions, lineNumbers := langParser.ParseTopLevel()
 
 		var xmlCode strings.Builder
 
@@ -89,7 +116,28 @@ func mistToXml(this js.Value, p []js.Value) any {
 			xmlCode.WriteByte(0)
 		}
 
-		return js.ValueOf(xmlCode.String())
+		lineNumberValues := make([]any, len(lineNumbers))
+		for i, lineNumber := range lineNumbers {
+			lineNumberValues[i] = lineNumber
+		}
+		return js.ValueOf(map[string]any{
+			"xml":         xmlCode.String(),
+			"lineNumbers": lineNumberValues,
+		})
+	})
+}
+
+func getComponentDefinitionsCode(this js.Value, p []js.Value) any {
+	return safeExec(func() js.Value {
+		if len(p) < 1 {
+			return js.ValueOf("getComponentDefinitionsCode(sourceCode string) not provided!")
+		}
+		sourceCode := p[0].String()
+		codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "appinventor.live"}
+		tokens := lex.NewLexer(codeContext).Lex()
+		langParser := mistparser.NewLangParser(false, tokens)
+		langParser.ParseDefinitions()
+		return js.ValueOf(langParser.GetComponentDefinitionsCode())
 	})
 }
 
@@ -248,6 +296,7 @@ func main() {
 
 	c := make(chan struct{}, 0)
 	js.Global().Set("mistToXml", js.FuncOf(mistToXml))
+	js.Global().Set("getComponentDefinitionsCode", js.FuncOf(getComponentDefinitionsCode))
 	js.Global().Set("xmlToMist", js.FuncOf(xmlToMist))
 	js.Global().Set("schemaToAiml", js.FuncOf(convertSchemaToAiml))
 	js.Global().Set("aimlToSchema", js.FuncOf(convertAimlToSchema))

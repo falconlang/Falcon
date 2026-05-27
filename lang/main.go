@@ -21,80 +21,98 @@ import (
 )
 
 func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "repl":
-			repl()
-			return
-		case "run":
-			if len(os.Args) < 3 {
-				fmt.Fprintln(os.Stderr, "usage: Falcon run <file.mist>")
-				os.Exit(1)
-			}
-			runFile(os.Args[2])
-			return
-		case "format":
-			formatStdin()
-			return
-		case "reformat":
-			reformatStdin()
-			return
-		case "roundtrip":
-			if len(os.Args) < 3 {
-				fmt.Fprintln(os.Stderr, "usage: Falcon roundtrip <file.mist>")
-				os.Exit(1)
-			}
-			roundtripFile(os.Args[2])
-			return
-		case "exec":
-			if len(os.Args) < 3 {
-				fmt.Fprintln(os.Stderr, "usage: Falcon exec <file.mist>")
-				os.Exit(1)
-			}
-			execFile(os.Args[2])
-			return
-		case "correct":
-			if len(os.Args) < 3 {
-				fmt.Fprintln(os.Stderr, "usage: Falcon correct <file.mist>")
-				os.Exit(1)
-			}
-			correctFile(os.Args[2])
-			return
-		case "companion":
-			if len(os.Args) < 4 {
-				fmt.Fprintln(os.Stderr, "usage: Falcon companion <file.mist> <Screen.ann>")
-				os.Exit(1)
-			}
-			companionRun(os.Args[2], os.Args[3])
-			return
-		case "companion-serve":
-			if len(os.Args) < 4 {
-				fmt.Fprintln(os.Stderr, "usage: Falcon companion-serve <file.mist> <Screen.ann>")
-				os.Exit(1)
-			}
-			companionServe(os.Args[2], os.Args[3])
-			return
-		case "eval":
-			if len(os.Args) < 3 {
-				fmt.Fprintln(os.Stderr, "usage: Falcon eval \"<falcon code>\"")
-				os.Exit(1)
-			}
-			evalSend(strings.Join(os.Args[2:], " "))
-			return
-		case "refresh":
-			refreshSend()
-			return
-		}
+	if len(os.Args) == 1 {
+		printUsage(os.Stdout)
+		return
 	}
-	//repl()
-	//diffTest()
-	//analyzeSyntax()
-	//xmlTest()
-	//designTest()
-	//annTest()
-	companionTest()
-	//runProgram()
-	//runFile("/home/kumaraswamy/Documents/falcon/lang/testing/run.mist")
+
+	switch os.Args[1] {
+	case "help", "-h", "--help":
+		printUsage(os.Stdout)
+		return
+	case "repl":
+		repl()
+		return
+	case "run":
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: Falcon run <file.mist>")
+			os.Exit(1)
+		}
+		runFile(os.Args[2])
+		return
+	case "format":
+		formatStdin()
+		return
+	case "reformat":
+		reformatStdin()
+		return
+	case "roundtrip":
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: Falcon roundtrip <file.mist>")
+			os.Exit(1)
+		}
+		roundtripFile(os.Args[2])
+		return
+	case "exec":
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: Falcon exec <file.mist>")
+			os.Exit(1)
+		}
+		execFile(os.Args[2])
+		return
+	case "correct":
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: Falcon correct <file.mist>")
+			os.Exit(1)
+		}
+		correctFile(os.Args[2])
+		return
+	case "companion":
+		if len(os.Args) < 4 {
+			fmt.Fprintln(os.Stderr, "usage: Falcon companion <file.mist> <Screen.ann>")
+			os.Exit(1)
+		}
+		companionRun(os.Args[2], os.Args[3])
+		return
+	case "companion-serve":
+		if len(os.Args) < 4 {
+			fmt.Fprintln(os.Stderr, "usage: Falcon companion-serve <file.mist> <Screen.ann>")
+			os.Exit(1)
+		}
+		companionServe(os.Args[2], os.Args[3])
+		return
+	case "eval":
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: Falcon eval \"<falcon code>\"")
+			os.Exit(1)
+		}
+		evalSend(strings.Join(os.Args[2:], " "))
+		return
+	case "refresh":
+		refreshSend()
+		return
+	default:
+		fmt.Fprintf(os.Stderr, "unknown command %q\n", os.Args[1])
+		printUsage(os.Stderr)
+		os.Exit(1)
+	}
+}
+
+func printUsage(w io.Writer) {
+	fmt.Fprintln(w, "usage: Falcon <command> [args]")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "commands:")
+	fmt.Fprintln(w, "  repl")
+	fmt.Fprintln(w, "  run <file.mist>")
+	fmt.Fprintln(w, "  exec <file.mist>")
+	fmt.Fprintln(w, "  format")
+	fmt.Fprintln(w, "  reformat")
+	fmt.Fprintln(w, "  roundtrip <file.mist>")
+	fmt.Fprintln(w, "  correct <file.mist>")
+	fmt.Fprintln(w, "  companion <file.mist> <Screen.ann>")
+	fmt.Fprintln(w, "  companion-serve <file.mist> <Screen.ann>")
+	fmt.Fprintln(w, "  eval \"<falcon code>\"")
+	fmt.Fprintln(w, "  refresh")
 }
 
 func reformatStdin() {
@@ -454,11 +472,6 @@ func annTest() {
 	}
 	println("\n=== Companion REPL YAIL ===\n")
 	println(yailCode)
-}
-
-func companionTest() {
-	const testingDir = "/home/kumaraswamy/Documents/falcon/lang/testing/"
-	companionServe(testingDir+"hi.mist", testingDir+"Screen1.ann")
 }
 
 func xmlTest() {

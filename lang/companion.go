@@ -132,6 +132,7 @@ func companionRun(mistFile, annFile string) {
 	}
 
 	done := make(chan struct{})
+	var doneOnce sync.Once
 	repl := NewRepl(code, DefaultRendezvous, 60,
 		func(c *webrtc.DataChannel) {
 			fmt.Println("Companion connected! Sending YAIL...")
@@ -145,7 +146,7 @@ func companionRun(mistFile, annFile string) {
 			} else {
 				fmt.Println("Companion disconnected unexpectedly.")
 			}
-			close(done)
+			doneOnce.Do(func() { close(done) })
 		},
 		func(msg webrtc.DataChannelMessage) {
 			fmt.Printf("=> %s\n", formatReplResponse(msg.Data))
@@ -208,6 +209,7 @@ func companionServe(mistFile, annFile string) {
 
 	connected := make(chan *webrtc.DataChannel, 1)
 	disconnected := make(chan struct{})
+	var disconnectedOnce sync.Once
 	repl := NewRepl(code, DefaultRendezvous, 60,
 		func(c *webrtc.DataChannel) {
 			fmt.Println("Companion connected! Sending initial YAIL...")
@@ -218,7 +220,7 @@ func companionServe(mistFile, annFile string) {
 		},
 		func(graceful bool) {
 			fmt.Println("Companion disconnected.")
-			close(disconnected)
+			disconnectedOnce.Do(func() { close(disconnected) })
 		},
 		func(msg webrtc.DataChannelMessage) {
 			select {
@@ -234,7 +236,11 @@ func companionServe(mistFile, annFile string) {
 		os.Exit(1)
 	}
 
-	ch := <-connected
+	ch, err := waitForDataChannel(connected, 15*time.Second)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "connect error:", err)
+		os.Exit(1)
+	}
 
 	// Drain the initial setup response so it doesn't pollute the first eval
 	select {
@@ -244,8 +250,7 @@ func companionServe(mistFile, annFile string) {
 		fmt.Println("[setup] No response from companion (continuing)")
 	}
 
-	os.Remove(socketPath)
-	ln, err := net.Listen("unix", socketPath)
+	ln, err := listenUnixSocket(socketPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "socket listen error:", err)
 		os.Exit(1)
@@ -272,6 +277,37 @@ func companionServe(mistFile, annFile string) {
 		}
 		go handleEvalConn(conn, ch, mistFile, annFile, typeMap, reverseMap)
 	}
+}
+
+func waitForDataChannel(connected <-chan *webrtc.DataChannel, timeout time.Duration) (*webrtc.DataChannel, error) {
+	select {
+	case ch := <-connected:
+		return ch, nil
+	case <-time.After(timeout):
+		return nil, fmt.Errorf("timeout waiting for WebRTC data channel")
+	}
+}
+
+func listenUnixSocket(path string) (net.Listener, error) {
+	ln, err := net.Listen("unix", path)
+	if err == nil {
+		return ln, nil
+	}
+
+	conn, dialErr := net.DialTimeout("unix", path, 200*time.Millisecond)
+	if dialErr == nil {
+		conn.Close()
+		return nil, fmt.Errorf("%s is already in use", path)
+	}
+
+	if removeErr := os.Remove(path); removeErr != nil && !os.IsNotExist(removeErr) {
+		return nil, fmt.Errorf("remove stale socket: %w", removeErr)
+	}
+	ln, listenErr := net.Listen("unix", path)
+	if listenErr != nil {
+		return nil, listenErr
+	}
+	return ln, nil
 }
 
 func handleEvalConn(conn net.Conn, ch *webrtc.DataChannel, mistFile, annFile string, typeMap map[string][]string, reverseMap map[string]string) {

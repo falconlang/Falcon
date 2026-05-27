@@ -84,12 +84,25 @@ func (p *LangParser) GetComponentDefinitionsCode() string {
 	return definitions.String()
 }
 
+func (p *LangParser) ParseDefinitions() {
+	if p.notEOF() {
+		p.defineStatements()
+	}
+}
+
 func (p *LangParser) ParseAll() []ast.Expr {
+	expressions, _ := p.ParseTopLevel()
+	return expressions
+}
+
+func (p *LangParser) ParseTopLevel() ([]ast.Expr, []int) {
 	var expressions []ast.Expr
+	var lineNumbers []int
 	if p.notEOF() {
 		p.defineStatements()
 	}
 	for p.notEOF() {
+		lineNumbers = append(lineNumbers, p.peek().Column)
 		e := p.parse()
 		expressions = append(expressions, e)
 	}
@@ -100,7 +113,7 @@ func (p *LangParser) ParseAll() []ast.Expr {
 	for _, e := range expressions {
 		e.Signature()
 	}
-	return expressions
+	return expressions, lineNumbers
 }
 
 func (p *LangParser) checkPendingSymbols() {

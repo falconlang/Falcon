@@ -20,9 +20,7 @@ func NewAnnYailConverter() *AnnYailConverter {
 
 // ParseAnn parses an annotated .ann source and returns the root Component tree.
 func ParseAnn(source string) (Component, error) {
-	p := NewAimlParser(source)
-	p.skipWhitespace()
-	return p.parseComponent()
+	return NewAimlParser(source).parseDocument()
 }
 
 // ExtractComponents walks a Component tree and builds:

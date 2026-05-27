@@ -1,9 +1,9 @@
 @Screen { id: "Screen1", Title: "Calculator",
   @Label { Text: "First number: " }
-  @TextBox { id: "firstNumberTextBox", numbersOnly: true, hint: "Enter first number" }
+  @TextBox { id: "firstNumberTextBox", NumbersOnly: true, Hint: "Enter first number" }
 
   @Label { Text: "Second number: " }
-  @TextBox { id: "secondNumberTextBox", numbersOnly: true, hint: "Enter second number" }
+  @TextBox { id: "secondNumberTextBox", NumbersOnly: true, Hint: "Enter second number" }
 
   @HorizontalArrangement {
     @Button { id: "AddButton", Text: "+" }

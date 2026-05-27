@@ -552,6 +552,46 @@ func (p *Parser) genBlock(b ast.Block) string {
 		num := p.vs(b.Values, "NUM", "0")
 		return callPrimitive("random-set-seed", []string{num}, []string{"number"}, "random set seed")
 
+	// generators/yail/matrices.js
+	case "matrices_create":
+		return p.genMatrixCreate(b)
+	case "matrices_create_multidim":
+		dims := p.vs(b.Values, "DIM", yailNull)
+		initial := p.vs(b.Values, "INITIAL", "0")
+		return callPrimitive("make-yail-matrix-multidim", []string{dims, initial},
+			[]string{"list", "number"}, "create multidimensional matrix")
+	case "matrices_get_row":
+		matrix := p.vs(b.Values, "MATRIX", yailNull)
+		row := p.vs(b.Values, "ROW", "1")
+		return callPrimitive("yail-matrix-get-row", []string{matrix, row},
+			[]string{"matrix", "number"}, "get matrix row")
+	case "matrices_get_column":
+		matrix := p.vs(b.Values, "MATRIX", yailNull)
+		col := p.vs(b.Values, "COLUMN", "1")
+		return callPrimitive("yail-matrix-get-column", []string{matrix, col},
+			[]string{"matrix", "number"}, "get matrix column")
+	case "matrices_get_cell":
+		return p.genMatrixCell(b, false)
+	case "matrices_set_cell":
+		return p.genMatrixCell(b, true)
+	case "matrices_get_dims":
+		matrix := p.vs(b.Values, "MATRIX", yailNull)
+		return callPrimitive("yail-matrix-get-dims", []string{matrix},
+			[]string{"matrix"}, "get matrix dimensions")
+	case "matrices_operations", "matrices_transpose", "matrices_rotate_left", "matrices_rotate_right":
+		return p.genMatrixOperation(b)
+	case "matrices_subtract":
+		return p.genMatrixArithmetic(b, "MINUS")
+	case "matrices_power":
+		return p.genMatrixArithmetic(b, "POWER")
+	case "matrices_add":
+		return p.genMatrixArithmeticList(b, "ADD")
+	case "matrices_multiply":
+		return p.genMatrixArithmeticList(b, "MULTIPLY")
+	case "matrices_is_matrix":
+		val := p.vs(b.Values, "VALUE", yailNull)
+		return callPrimitive("yail-matrix?", []string{val}, []string{"any"}, "is matrix?")
+
 	// generators/yail/lists.js
 	case "lists_create_with":
 		n := mutItemCountOr(b, 2)
@@ -825,8 +865,29 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return p.genProcDef(b, false)
 	case "procedures_defreturn":
 		return p.genProcDef(b, true)
+	case "procedures_defanonnoreturn":
+		return p.genAnonProcDef(b, false)
+	case "procedures_defanonreturn":
+		return p.genAnonProcDef(b, true)
 	case "procedures_callnoreturn", "procedures_callreturn":
 		return p.genProcCall(b)
+	case "procedures_callanonnoreturn", "procedures_callanonreturn":
+		return p.genAnonProcCall(b)
+	case "procedures_callanonnoreturn_inputlist", "procedures_callanonreturn_inputlist":
+		return p.genAnonProcCallInputList(b)
+	case "procedures_numArgs":
+		proc := p.vs(b.Values, "PROCEDURE", "#f")
+		return callPrimitive("num-args-yail-procedure", []string{proc}, []string{"any"}, "get number of arguments")
+	case "procedures_getWithName":
+		name := p.vs(b.Values, "PROCEDURENAME", "#f")
+		return callPrimitive("create-yail-procedure-with-name", []string{name}, []string{"any"}, "get procedure")
+	case "procedures_getWithDropdown":
+		procName := fieldByName(b, "PROCNAME")
+		if procName == "" {
+			procName = field(b)
+		}
+		return callPrimitive("create-yail-procedure", []string{"(get-var p$" + procName + ")"},
+			[]string{"any"}, "get procedure")
 
 	// generators/yail/componentblock.js
 	case "component_event":
@@ -863,6 +924,99 @@ func (p *Parser) genBlock(b ast.Block) string {
 		}
 		panic("blocklytoyail: unsupported block type " + b.Type)
 	}
+}
+
+func (p *Parser) genMatrixCreate(b ast.Block) string {
+	rows := matrixDimension(b, "ROWS", 2)
+	cols := matrixDimension(b, "COLS", 2)
+	args := []string{strconv.Itoa(rows), strconv.Itoa(cols)}
+	for i := 0; i < rows; i++ {
+		for j := 0; j < cols; j++ {
+			value := fieldByName(b, "MATRIX_"+strconv.Itoa(i)+"_"+strconv.Itoa(j))
+			if value == "" {
+				value = "0"
+			}
+			args = append(args, value)
+		}
+	}
+	return callPrimitive("make-yail-matrix", args, repeatStr("number", len(args)), "create a matrix")
+}
+
+func (p *Parser) genMatrixCell(b ast.Block, set bool) string {
+	matrix := p.vs(b.Values, "MATRIX", yailNull)
+	dimCount := mutItemCountOrValues(b, "DIM", 2)
+
+	args := []string{matrix}
+	types := []string{"matrix"}
+	if set {
+		args = append(args, p.vs(b.Values, "VALUE", "1"))
+		types = append(types, "number")
+	}
+	for i := 0; i < dimCount; i++ {
+		args = append(args, p.vs(b.Values, "DIM"+strconv.Itoa(i), "1"))
+		types = append(types, "number")
+	}
+	if set {
+		return callPrimitive("yail-matrix-set-cell!", args, types, "set matrix cell")
+	}
+	return callPrimitive("yail-matrix-get-cell", args, types, "get matrix cell")
+}
+
+func (p *Parser) genMatrixOperation(b ast.Block) string {
+	mode := matrixOperationMode(b)
+	operator, display := matrixOperation(mode)
+	matrix := p.vs(b.Values, "MATRIX", yailNull)
+	return callPrimitive(operator, []string{matrix}, []string{"matrix"}, display)
+}
+
+func (p *Parser) genMatrixArithmetic(b ast.Block, mode string) string {
+	operator := matrixArithmeticOperator(mode)
+	a := p.vs(b.Values, "A", "0")
+	bv := p.vs(b.Values, "B", "0")
+	types := []string{"matrix", "matrix"}
+	if mode == "POWER" {
+		types = []string{"matrix", "number"}
+	} else if mode == "MULTIPLY" {
+		types = []string{"matrix", "any"}
+	}
+	return callPrimitive(operator, []string{a, bv}, types, operator)
+}
+
+func (p *Parser) genMatrixArithmeticList(b ast.Block, mode string) string {
+	operator := matrixArithmeticOperator(mode)
+	n := mutItemCountOrValues(b, "MAT", 2)
+	var args []string
+	for i := 0; i < n; i++ {
+		if arg := p.genValueSlot(b.Values, "MAT"+strconv.Itoa(i)); arg != "" {
+			args = append(args, arg)
+		}
+	}
+
+	if mode == "ADD" {
+		if len(args) == 0 {
+			return "0"
+		}
+		if len(args) == 1 {
+			return args[0]
+		}
+		return callPrimitive(operator, args, repeatStr("matrix", len(args)), operator)
+	}
+
+	if n == 0 {
+		return "1"
+	}
+	if len(args) == 0 {
+		return "0"
+	}
+	if len(args) == 1 {
+		return args[0]
+	}
+	types := make([]string, len(args))
+	types[0] = "matrix"
+	for i := 1; i < len(types); i++ {
+		types[i] = "any"
+	}
+	return callPrimitive(operator, args, types, operator)
 }
 
 func (p *Parser) genControlsIf(b ast.Block) string {
@@ -927,6 +1081,19 @@ func (p *Parser) genProcDef(b ast.Block, hasReturn bool) string {
 	return "(def " + sig + " " + p.ss(b.Statements, "STACK", "#f") + ")"
 }
 
+func (p *Parser) genAnonProcDef(b ast.Block, hasReturn bool) string {
+	params := anonProcParams(b)
+	for i, param := range params {
+		params[i] = "$" + param
+	}
+	body := p.ss(b.Statements, "STACK", "#f")
+	if hasReturn {
+		body = p.vs(b.Values, "RETURN", "#f")
+	}
+	lambda := "(lambda (" + strings.Join(params, " ") + ") " + body + ")"
+	return callPrimitive("create-yail-procedure", []string{lambda}, []string{"any"}, "create procedure")
+}
+
 func (p *Parser) genProcCall(b ast.Block) string {
 	name := "p$" + field(b)
 	numArgs := 0
@@ -941,6 +1108,24 @@ func (p *Parser) genProcCall(b ast.Block) string {
 		args[i] = p.vs(b.Values, "ARG"+strconv.Itoa(i), "#f")
 	}
 	return "((get-var " + name + ") " + strings.Join(args, " ") + ")"
+}
+
+func (p *Parser) genAnonProcCall(b ast.Block) string {
+	args := []string{p.vs(b.Values, "PROCEDURE", "#f")}
+	types := []string{"any"}
+	numArgs := mutItemCountOrValues(b, "ARG", 0)
+	for i := 0; i < numArgs; i++ {
+		args = append(args, p.vs(b.Values, "ARG"+strconv.Itoa(i), "#f"))
+		types = append(types, "any")
+	}
+	return callPrimitive("call-yail-procedure", args, types, "call procedure")
+}
+
+func (p *Parser) genAnonProcCallInputList(b ast.Block) string {
+	proc := p.vs(b.Values, "PROCEDURE", "#f")
+	inputList := p.vs(b.Values, "INPUTLIST", "#f")
+	return callPrimitive("call-yail-procedure-input-list", []string{proc, inputList},
+		[]string{"any", "any"}, "call procedure(with input list)")
 }
 
 func (p *Parser) genComponentEvent(b ast.Block) string {
@@ -1103,6 +1288,16 @@ func mutItemCountOr(b ast.Block, def int) int {
 	return b.Mutation.ItemCount
 }
 
+func mutItemCountOrValues(b ast.Block, prefix string, def int) int {
+	if b.Mutation != nil {
+		return b.Mutation.ItemCount
+	}
+	if n := valueSlotCount(b.Values, prefix); n > 0 {
+		return n
+	}
+	return def
+}
+
 func mutElseIfCount(b ast.Block) int {
 	if b.Mutation != nil {
 		return b.Mutation.ElseIfCount
@@ -1112,6 +1307,120 @@ func mutElseIfCount(b ast.Block) int {
 
 func mutHasElse(b ast.Block) bool {
 	return b.Mutation != nil && b.Mutation.ElseCount > 0
+}
+
+func matrixDimension(b ast.Block, name string, def int) int {
+	if n := positiveInt(fieldByName(b, name)); n > 0 {
+		return n
+	}
+	if b.Mutation != nil {
+		switch name {
+		case "ROWS":
+			if b.Mutation.Rows > 0 {
+				return b.Mutation.Rows
+			}
+		case "COLS":
+			if b.Mutation.Cols > 0 {
+				return b.Mutation.Cols
+			}
+		}
+	}
+	return def
+}
+
+func positiveInt(s string) int {
+	if s == "" {
+		return 0
+	}
+	if n, err := strconv.Atoi(s); err == nil && n > 0 {
+		return n
+	}
+	if f, err := strconv.ParseFloat(s, 64); err == nil && f > 0 {
+		return int(f)
+	}
+	return 0
+}
+
+func matrixOperationMode(b ast.Block) string {
+	if mode := fieldByName(b, "OP"); mode != "" {
+		return mode
+	}
+	switch b.Type {
+	case "matrices_transpose":
+		return "TRANSPOSE"
+	case "matrices_rotate_left":
+		return "ROTATE_LEFT"
+	case "matrices_rotate_right":
+		return "ROTATE_RIGHT"
+	default:
+		return "INVERSE"
+	}
+}
+
+func matrixOperation(mode string) (operator, display string) {
+	switch mode {
+	case "INVERSE":
+		return "yail-matrix-inverse", "inverse"
+	case "TRANSPOSE":
+		return "yail-matrix-transpose", "transpose"
+	case "ROTATE_LEFT":
+		return "yail-matrix-rotate-left", "rotate_left"
+	case "ROTATE_RIGHT":
+		return "yail-matrix-rotate-right", "rotate_right"
+	default:
+		panic("blocklytoyail: unsupported matrices_operations OP: " + mode)
+	}
+}
+
+func matrixArithmeticOperator(mode string) string {
+	switch mode {
+	case "ADD":
+		return "yail-matrix-add"
+	case "MINUS":
+		return "yail-matrix-subtract"
+	case "MULTIPLY":
+		return "yail-matrix-multiply"
+	case "POWER":
+		return "yail-matrix-power"
+	default:
+		panic("blocklytoyail: unsupported matrix arithmetic OP: " + mode)
+	}
+}
+
+func anonProcParams(b ast.Block) []string {
+	if b.Mutation != nil && len(b.Mutation.Args) > 0 {
+		params := make([]string, len(b.Mutation.Args))
+		for i, arg := range b.Mutation.Args {
+			params[i] = arg.Name
+		}
+		return params
+	}
+	var params []string
+	for i := 0; ; i++ {
+		param := fieldByName(b, "VAR"+strconv.Itoa(i))
+		if param == "" {
+			break
+		}
+		params = append(params, param)
+	}
+	return params
+}
+
+func valueSlotCount(values []ast.Value, prefix string) int {
+	maxIdx := -1
+	for _, v := range values {
+		if !strings.HasPrefix(v.Name, prefix) {
+			continue
+		}
+		idx, err := strconv.Atoi(strings.TrimPrefix(v.Name, prefix))
+		if err != nil {
+			continue
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+	}
+	return maxIdx + 1
 }
 
 func field(b ast.Block) string {

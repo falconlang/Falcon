@@ -23,8 +23,7 @@ func NewAimlParser(source string) *AimlParser {
 }
 
 func (p *AimlParser) ConvertAimlToSchema() (string, error) {
-	p.skipWhitespace()
-	screen, err := p.parseComponent()
+	screen, err := p.parseDocument()
 	if err != nil {
 		return "", err
 	}
@@ -55,6 +54,19 @@ func (p *AimlParser) ConvertAimlToSchema() (string, error) {
 		return "", err
 	}
 	return string(jsonBytes), nil
+}
+
+func (p *AimlParser) parseDocument() (Component, error) {
+	p.skipWhitespace()
+	component, err := p.parseComponent()
+	if err != nil {
+		return Component{}, err
+	}
+	p.skipWhitespace()
+	if p.pos < len(p.source) {
+		return Component{}, fmt.Errorf("unexpected trailing input at position %d", p.pos)
+	}
+	return component, nil
 }
 
 func (p *AimlParser) componentToJson(component Component) interface{} {
