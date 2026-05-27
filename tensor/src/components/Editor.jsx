@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
-import { Decoration, EditorView, GutterMarker, WidgetType, gutter, keymap, layer } from '@codemirror/view'
+import { Decoration, EditorView, WidgetType, keymap, layer } from '@codemirror/view'
 import { EditorSelection, Prec, RangeSetBuilder, StateField } from '@codemirror/state'
 import { copyLineDown, deleteLine, indentMore, indentLess, moveLineDown, moveLineUp } from '@codemirror/commands'
 import { indentUnit } from '@codemirror/language'
@@ -463,50 +463,10 @@ function definitionClickExtension(onGoToDefinition) {
   })
 }
 
-class BlockPreviewMarker extends GutterMarker {
-  constructor(active) {
-    super()
-    this.active = active
-  }
-
-  eq(other) {
-    return other.active === this.active
-  }
-
-  toDOM() {
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.tabIndex = -1
-    button.className = `cm-block-preview-button${this.active ? ' active' : ''}`
-    button.setAttribute('aria-label', 'Preview Blockly blocks')
-    button.title = 'Preview Blockly blocks'
-
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    svg.setAttribute('viewBox', '0 0 24 24')
-    svg.setAttribute('width', '16')
-    svg.setAttribute('height', '16')
-    svg.setAttribute('fill', this.active ? 'currentColor' : 'none')
-    svg.setAttribute('stroke', this.active ? 'none' : 'currentColor')
-    svg.setAttribute('stroke-width', '1.9')
-    svg.setAttribute('stroke-linecap', 'round')
-    svg.setAttribute('stroke-linejoin', 'round')
-    svg.setAttribute('aria-hidden', 'true')
-    svg.style.display = 'block'
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-    path.setAttribute('d', 'M4 7h3a1 1 0 0 0 1-1V5a2 2 0 0 1 4 0v1a1 1 0 0 0 1 1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1a2 2 0 0 0 0 4h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1a2 2 0 0 0-4 0v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a2 2 0 0 0 0-4H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z')
-    svg.appendChild(path)
-    button.appendChild(svg)
-
-    return button
-  }
-}
-
 class BlocklyHoverPreviewMarker {
-  constructor(preview, rect, onHover, hoverTimerRef) {
+  constructor(preview, rect) {
     this.preview = preview
     this.rect = rect
-    this.onHover = onHover
-    this.hoverTimerRef = hoverTimerRef
   }
 
   eq(other) {
@@ -531,21 +491,6 @@ class BlocklyHoverPreviewMarker {
     const host = document.createElement('div')
     host.className = 'cm-blockly-hover-preview'
     this.adjust(host)
-
-    // Hover-mode only: keep preview alive while pointer is over it
-    if (this.onHover && this.hoverTimerRef) {
-      host.style.pointerEvents = 'auto'
-      host.addEventListener('mouseenter', () => {
-        clearTimeout(this.hoverTimerRef.current)
-        this.hoverTimerRef.current = null
-      })
-      host.addEventListener('mouseleave', () => {
-        this.hoverTimerRef.current = setTimeout(() => {
-          this.hoverTimerRef.current = null
-          this.onHover?.(null)
-        }, 120)
-      })
-    }
 
     const workspaceDiv = document.createElement('div')
     workspaceDiv.className = 'cm-blockly-hover-workspace'
@@ -616,71 +561,6 @@ class BlocklyHoverPreviewMarker {
   }
 }
 
-function getPreviewTopBlocks(view) {
-  const previewEl = view.dom.querySelector('.cm-blockly-hover-preview')
-  if (!previewEl) return null
-  const workspace = previewEl.__blocklyPreviewWorkspace
-  if (!workspace) return null
-  const blocks = workspace.getTopBlocks(true)
-  return blocks.length ? blocks : null
-}
-
-function blockPreviewGutter(lines, activeLine, onHover, hoverTimerRef) {
-  const lineSet = new Set(lines.filter(Number.isFinite))
-
-  const getLineNumber = (view, line) => view.state.doc.lineAt(line.from).number
-  const hasMarker = (view, line) => lineSet.has(getLineNumber(view, line))
-
-  return gutter({
-    class: 'cm-block-preview-gutter',
-    initialSpacer: () => new BlockPreviewMarker(false),
-    lineMarker(view, line) {
-      const lineNumber = getLineNumber(view, line)
-      return lineSet.has(lineNumber) ? new BlockPreviewMarker(lineNumber === activeLine) : null
-    },
-    lineMarkerChange: update => update.docChanged || update.viewportChanged,
-    domEventHandlers: {
-      mousedown(view, line, event) {
-        if (!hasMarker(view, line)) return false
-        event.preventDefault()
-        return true
-      },
-      click(view, line) {
-        if (!hasMarker(view, line)) return false
-        const blocks = getPreviewTopBlocks(view)
-        if (blocks) blocks.forEach(block => window.Blockly?.exportBlockAsPng(block))
-        return true
-      },
-      contextmenu(view, line, event) {
-        if (!hasMarker(view, line)) return false
-        event.preventDefault()
-        const blocks = getPreviewTopBlocks(view)
-        if (blocks?.[0]) {
-          window.Blockly?.blockToPngBlob(blocks[0])
-            .then(blob => navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]))
-            .catch(() => {})
-        }
-        return true
-      },
-      mousemove(view, line) {
-        if (!hasMarker(view, line)) return false
-        clearTimeout(hoverTimerRef.current)
-        hoverTimerRef.current = null
-        const lineNumber = getLineNumber(view, line)
-        if (lineNumber !== activeLine) onHover?.(lineNumber)
-        return true
-      },
-      mouseleave() {
-        hoverTimerRef.current = setTimeout(() => {
-          hoverTimerRef.current = null
-          onHover?.(null)
-        }, 120)
-        return false
-      },
-    },
-  })
-}
-
 function expressionPreviewRange(state, preview) {
   if (!preview || !Number.isFinite(preview.line)) return null
   if (preview.line < 1 || preview.line > state.doc.lines) return null
@@ -727,41 +607,6 @@ function blockPreviewViewportRect(view) {
     left: view.scrollDOM.scrollLeft + Math.ceil(gutterWidth),
     width: Math.max(1, Math.floor(view.scrollDOM.clientWidth - gutterWidth)),
   }
-}
-
-function blockPreviewHoverLayer(preview, onHover, hoverTimerRef) {
-  if (!preview) return []
-
-  return layer({
-    above: true,
-    class: 'cm-blockly-hover-layer',
-    update(update) {
-      return update.docChanged || update.viewportChanged || update.geometryChanged
-    },
-    markers(view) {
-      const range = expressionPreviewRange(view.state, preview)
-      if (!range) return []
-      const startLine = view.state.doc.line(range.fromLine)
-      const endLine = view.state.doc.line(range.toLine)
-      const startBlock = view.lineBlockAt(startLine.from)
-      const endBlock = view.lineBlockAt(endLine.to)
-      const height = Math.max(range.height, endBlock.bottom - startBlock.top)
-      const viewportRect = blockPreviewViewportRect(view)
-      return [
-        new BlocklyHoverPreviewMarker(preview, {
-          left: viewportRect.left,
-          top: startBlock.top,
-          width: viewportRect.width,
-          height,
-        }, onHover, hoverTimerRef),
-      ]
-    },
-    destroy(layerDom) {
-      for (const node of layerDom.querySelectorAll('.cm-blockly-hover-preview')) {
-        node.__disposeBlocklyPreview?.()
-      }
-    },
-  })
 }
 
 function blockPreviewAllLayer(entries) {
@@ -824,11 +669,6 @@ const Editor = forwardRef(function Editor({
   onCursorChange,
   onFocusChange,
   extensions = falconExtensions,
-  blockPreviewLines = [],
-  activeBlockPreviewLine = null,
-  activeBlockPreview = null,
-  onBlockPreviewLineHover,
-  showBlockPreviewGutter = false,
   blocklyMode = false,
   allBlockPreviews = [],
   diagnostics = [],
@@ -838,10 +678,9 @@ const Editor = forwardRef(function Editor({
 }, ref) {
   const cmRef = useRef(null)
   const viewRef = useRef(null)
-  const hoverTimerRef = useRef(null)
   const hiddenBlockPreviews = useMemo(
-    () => blocklyMode ? allBlockPreviews : activeBlockPreview ? [activeBlockPreview] : [],
-    [blocklyMode, allBlockPreviews, activeBlockPreview],
+    () => blocklyMode ? allBlockPreviews : [],
+    [blocklyMode, allBlockPreviews],
   )
 
   useImperativeHandle(ref, () => ({
@@ -883,13 +722,10 @@ const Editor = forwardRef(function Editor({
   const editorExtensions = useMemo(
     () => [
       ...extensions,
-      showBlockPreviewGutter
-        ? blockPreviewGutter(blockPreviewLines, activeBlockPreviewLine, onBlockPreviewLineHover, hoverTimerRef)
-        : [],
       blockPreviewHiddenLines(hiddenBlockPreviews),
       blocklyMode
         ? blockPreviewAllLayer(allBlockPreviews)
-        : blockPreviewHoverLayer(activeBlockPreview, onBlockPreviewLineHover, hoverTimerRef),
+        : [],
       completionSource
         ? autocompletion({
           override: [completionSource],
@@ -902,7 +738,7 @@ const Editor = forwardRef(function Editor({
       diagnosticDecorations(diagnostics),
       ...extraExtensions,
     ],
-    [extensions, blockPreviewLines, activeBlockPreviewLine, activeBlockPreview, onBlockPreviewLineHover, showBlockPreviewGutter, blocklyMode, allBlockPreviews, hiddenBlockPreviews, completionSource, onGoToDefinition, diagnostics, extraExtensions],
+    [extensions, blocklyMode, allBlockPreviews, hiddenBlockPreviews, completionSource, onGoToDefinition, diagnostics, extraExtensions],
   )
 
   const handleUpdate = useCallback(
@@ -936,7 +772,7 @@ const Editor = forwardRef(function Editor({
         onFocus={handleFocus}
         onBlur={handleBlur}
         basicSetup={{
-          lineNumbers: true,
+          lineNumbers: false,
           highlightActiveLineGutter: true,
           highlightSpecialChars: false,
           history: true,

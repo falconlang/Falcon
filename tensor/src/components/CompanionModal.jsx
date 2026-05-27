@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Check, X } from '@phosphor-icons/react'
 import { QRCodeSVG } from 'qrcode.react'
 
 function statusText(status, error, count) {
@@ -74,18 +75,14 @@ export default function CompanionModal({ open, status, code, error, messageCount
             <h2 id="companion-title" className="companion-title">{title}</h2>
           </div>
           <button ref={closeRef} type="button" className="companion-close" onClick={onClose} aria-label="Close">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
+            <X size={14} aria-hidden="true" />
           </button>
         </div>
 
         {isConnected ? (
           <div className="companion-connected">
             <div className="companion-connected-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12l5 5L20 7" />
-              </svg>
+              <Check size={34} weight="bold" />
             </div>
             <div className="companion-connected-title">Live link active</div>
             <div className="companion-connected-meta">{statusText(status, error, messageCount)}</div>

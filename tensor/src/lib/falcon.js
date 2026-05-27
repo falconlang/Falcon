@@ -183,7 +183,7 @@ export const editorTheme = EditorView.theme(
       color: 'var(--text)',
     },
     '.cm-scroller': {
-      fontFamily: "'Droid Sans Mono', 'JetBrains Mono', monospace",
+      fontFamily: "'Adwaita Mono', monospace",
       fontSize: '13.5px',
       lineHeight: '1.18',
       fontVariantLigatures: 'none',

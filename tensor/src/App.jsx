@@ -1,4 +1,12 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import {
+  CaretDown,
+  CaretUp,
+  Code,
+  Plus,
+  PuzzlePiece,
+  Trash,
+} from '@phosphor-icons/react'
 
 import Toolbar from './components/Toolbar.jsx'
 import Editor, { falconExtensions, designExtensions } from './components/Editor.jsx'
@@ -100,7 +108,6 @@ function buildBlocklyPreviewEntries(result) {
 const SAMPLE_FALCON_CELLS = [
   {
     id: 'cell-check-text-boxes',
-    title: 'Validate inputs',
     code: `func checkTextBoxes() = {
   if (!(firstNumberTextBox.Text ? number) || !(secondNumberTextBox.Text ? number)) {
     Notifier1.ShowAlert("Please enter numeric values in the textbox!")
@@ -111,7 +118,6 @@ const SAMPLE_FALCON_CELLS = [
   },
   {
     id: 'cell-add-button',
-    title: 'Add button',
     code: `when AddButton.Click {
   if (checkTextBoxes()) {
     firstNumberTextBox.Text = firstNumberTextBox.Text + secondNumberTextBox.Text
@@ -121,7 +127,6 @@ const SAMPLE_FALCON_CELLS = [
   },
   {
     id: 'cell-subtract-button',
-    title: 'Subtract button',
     code: `when SubtractButton.Click {
   if (checkTextBoxes()) {
     firstNumberTextBox.Text = firstNumberTextBox.Text - secondNumberTextBox.Text
@@ -131,7 +136,6 @@ const SAMPLE_FALCON_CELLS = [
   },
   {
     id: 'cell-multiply-button',
-    title: 'Multiply button',
     code: `when MultiplyButton.Click {
   if (checkTextBoxes()) {
     firstNumberTextBox.Text = firstNumberTextBox.Text * secondNumberTextBox.Text
@@ -141,7 +145,6 @@ const SAMPLE_FALCON_CELLS = [
   },
   {
     id: 'cell-divide-button',
-    title: 'Divide button',
     code: `when DivideButton.Click {
   if (checkTextBoxes()) {
     firstNumberTextBox.Text = firstNumberTextBox.Text / secondNumberTextBox.Text
@@ -171,11 +174,10 @@ const SAMPLE_DESIGN = `Screen.Screen1 { Title: "Calculator",
 
 const VALIDATION_DELAY_MS = 1000
 
-function createNotebookCell(afterTitle = 'New cell') {
+function createNotebookCell() {
   const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
   return {
     id: `cell-${suffix}`,
-    title: afterTitle,
     code: '',
   }
 }
@@ -328,7 +330,6 @@ export default function App() {
   const [focusedPane, setFocusedPane] = useState(null)
   const [selectionEmpty, setSelectionEmpty] = useState(true)
   const [blocklyPreviewEntries, setBlocklyPreviewEntries] = useState([])
-  const [selectedBlocklyPreview, setSelectedBlocklyPreview] = useState(null)
   const [theme, setTheme] = useState(getInitialTheme)
   const [blocklyMode, setBlocklyMode]     = useState(false)
   const [falconError, setFalconError]     = useState(null)
@@ -363,12 +364,6 @@ export default function App() {
   const setCellCode = useCallback((cellId, code) => {
     setFalconCells(cells => cells.map(cell => (
       cell.id === cellId ? { ...cell, code } : cell
-    )))
-  }, [])
-
-  const setCellTitle = useCallback((cellId, title) => {
-    setFalconCells(cells => cells.map(cell => (
-      cell.id === cellId ? { ...cell, title } : cell
     )))
   }, [])
 
@@ -417,14 +412,6 @@ export default function App() {
     })
     focusCell(cellId)
   }, [focusCell])
-
-  const renameCell = useCallback((cellId) => {
-    const cell = falconCells.find(candidate => candidate.id === cellId)
-    if (!cell) return
-    const title = window.prompt('Cell title:', cell.title)
-    if (title == null) return
-    setCellTitle(cellId, title.trim() || cell.title)
-  }, [falconCells, setCellTitle])
 
   const setFalconCodeFromCombined = useCallback((nextCode) => {
     setFalconCells(cells => splitCombinedAcrossCells(nextCode, cells))
@@ -544,16 +531,9 @@ export default function App() {
         if (cancelled) return
         const entries = buildBlocklyPreviewEntries(result)
         setBlocklyPreviewEntries(entries)
-        setSelectedBlocklyPreview(prev => {
-          if (!prev) return null
-          return entries.find(entry => entry.index === prev.index && entry.line === prev.line)
-            ?? entries.find(entry => entry.line === prev.line)
-            ?? null
-        })
       } catch {
         if (!cancelled) {
           setBlocklyPreviewEntries([])
-          setSelectedBlocklyPreview(null)
         }
       }
     }, 500)
@@ -742,7 +722,7 @@ export default function App() {
       const cell = falconCells.find(candidate => candidate.id === activeCellId)
       if (!position || !cell) return 'Notebook'
       const localOffset = lineColToOffset(cell.code, cursor.line, cursor.col)
-      return `${cell.title} > ${breadcrumbsForPosition(falconCode, 'falcon', position.charStart + localOffset)}`
+      return breadcrumbsForPosition(falconCode, 'falcon', position.charStart + localOffset)
     }
     const pos = lineColToOffset(designCode, cursor.line, cursor.col)
     return breadcrumbsForPosition(designCode, activePane, pos)
@@ -1095,19 +1075,6 @@ export default function App() {
     handleSymbols,
   ])
 
-  const handleBlocklyPreviewLineHover = useCallback((cellId, line) => {
-    if (line == null) {
-      setSelectedBlocklyPreview(null)
-      return
-    }
-    const position = cellPositions.find(candidate => candidate.id === cellId)
-    if (!position) return
-    const combinedLine = position.lineStart + line - 1
-    const entry = blocklyPreviewEntries.find(candidate => candidate.line === combinedLine)
-    if (!entry) return
-    setSelectedBlocklyPreview(entry)
-  }, [blocklyPreviewEntries, cellPositions])
-
   return (
     <div className="app">
       <Toolbar
@@ -1125,23 +1092,15 @@ export default function App() {
         <main className="notebook-pane">
           <div className={`pane-header notebook-header${activePane === 'falcon' ? ' active' : ''}`}>
             <span>Screen1.falcon notebook</span>
-            <span className="notebook-count">{falconCells.length} cells</span>
             <button type="button" className="notebook-add-top" onClick={() => addCellAfter(falconCells[falconCells.length - 1]?.id)}>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
+              <Plus size={13} weight="bold" aria-hidden="true" />
               Cell
             </button>
             <label className="blockly-switch-group" title={blocklyMode ? 'Switch to code view' : 'Switch to blocks view'}>
               {blocklyMode ? (
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 7h3a1 1 0 0 0 1-1V5a2 2 0 0 1 4 0v1a1 1 0 0 0 1 1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1a2 2 0 0 0 0 4h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1a2 2 0 0 0-4 0v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a2 2 0 0 0 0-4H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/>
-                </svg>
+                <PuzzlePiece size={16} aria-hidden="true" />
               ) : (
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polyline points="16 18 22 12 16 6"/>
-                  <polyline points="8 6 2 12 8 18"/>
-                </svg>
+                <Code size={16} aria-hidden="true" />
               )}
               <span className="blockly-switch-label">{blocklyMode ? 'Blocks' : 'Code'}</span>
               <button
@@ -1158,53 +1117,28 @@ export default function App() {
           <div className="notebook-scroll">
             {falconCells.map((cell, index) => {
               const entries = blocklyPreviewEntriesByCell.get(cell.id) ?? []
-              const selectedPosition = selectedBlocklyPreview
-                ? mapCombinedLineToCell(cellPositions, selectedBlocklyPreview.line)
-                : null
-              const activePreview = selectedPosition?.id === cell.id
-                ? {
-                    ...selectedBlocklyPreview,
-                    combinedLine: selectedBlocklyPreview.line,
-                    line: selectedBlocklyPreview.line - selectedPosition.lineStart + 1,
-                    nextLine: Number.isFinite(selectedBlocklyPreview.nextLine) && selectedBlocklyPreview.nextLine <= selectedPosition.lineEnd
-                      ? selectedBlocklyPreview.nextLine - selectedPosition.lineStart + 1
-                      : null,
-                  }
-                : null
-              const editorHeight = Math.max(118, Math.min(360, (cellLineCount(cell.code) + 2) * 22))
+              const cellDiagnostics = falconDiagnosticsByCell.get(cell.id) ?? []
+              const editorHeight = Math.max(
+                30,
+                Math.min(420, cellLineCount(cell.code) * 16 + 10 + cellDiagnostics.length * 24),
+              )
 
               return (
                 <section className={`notebook-cell${cell.id === activeCellId ? ' active' : ''}`} key={cell.id}>
-                  <div className="notebook-cell-rail">
-                    <span className="notebook-cell-number">{index + 1}</span>
-                  </div>
                   <div className="notebook-cell-main">
                     <div className="notebook-cell-header">
-                      <button type="button" className="notebook-cell-title" onClick={() => renameCell(cell.id)}>
-                        {cell.title}
-                      </button>
                       <div className="notebook-cell-actions">
                         <button type="button" onClick={() => moveCell(cell.id, -1)} disabled={index === 0} aria-label="Move cell up" title="Move cell up">
-                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="m18 15-6-6-6 6" />
-                          </svg>
+                          <CaretUp size={13} weight="bold" aria-hidden="true" />
                         </button>
                         <button type="button" onClick={() => moveCell(cell.id, 1)} disabled={index === falconCells.length - 1} aria-label="Move cell down" title="Move cell down">
-                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="m6 9 6 6 6-6" />
-                          </svg>
+                          <CaretDown size={13} weight="bold" aria-hidden="true" />
                         </button>
                         <button type="button" onClick={() => addCellAfter(cell.id)} aria-label="Add cell below" title="Add cell below">
-                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M12 5v14M5 12h14" />
-                          </svg>
+                          <Plus size={13} weight="bold" aria-hidden="true" />
                         </button>
                         <button type="button" onClick={() => deleteCell(cell.id)} disabled={falconCells.length <= 1} aria-label="Delete cell" title="Delete cell">
-                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M3 6h18" />
-                            <path d="M8 6V4h8v2" />
-                            <path d="M19 6 18 20H6L5 6" />
-                          </svg>
+                          <Trash size={13} aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -1219,14 +1153,9 @@ export default function App() {
                         onCursorChange={(line, col, length, empty) => handleFalconCursor(cell.id, line, col, length, empty)}
                         onFocusChange={handleFalconFocus}
                         extensions={falconExtensions}
-                        blockPreviewLines={entries.map(entry => entry.line)}
-                        activeBlockPreviewLine={activePreview?.line ?? null}
-                        activeBlockPreview={activePreview}
-                        onBlockPreviewLineHover={line => handleBlocklyPreviewLineHover(cell.id, line)}
-                        showBlockPreviewGutter
                         blocklyMode={blocklyMode}
                         allBlockPreviews={entries}
-                        diagnostics={falconDiagnosticsByCell.get(cell.id) ?? []}
+                        diagnostics={cellDiagnostics}
                         completionSource={falconCompletionSource}
                         extraExtensions={falconIntelligenceExtensions}
                         onGoToDefinition={pos => handleGoToDefinition('falcon', pos, cell.id)}
@@ -1269,7 +1198,6 @@ export default function App() {
         charCount={charCount}
         lang={activePane === 'falcon' ? 'Falcon' : 'Design'}
         error={activePane === 'falcon' ? falconError : designError}
-        blockCount={activePane === 'falcon' ? blocklyPreviewEntries.length : 0}
         diagnosticsCount={diagnosticsCount}
         breadcrumb={activeBreadcrumb}
       />
