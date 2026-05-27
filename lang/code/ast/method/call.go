@@ -5,6 +5,7 @@ import (
 	"Falcon/code/fzf"
 	"Falcon/code/lex"
 	"Falcon/code/sugar"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -25,6 +26,15 @@ type CallSignature struct {
 	Consumable  bool
 	Signature   ast.Signature
 	ParamSigs   []ast.Signature // nil = accept any; non-nil = required type per positional param
+}
+
+type MethodCompletionSignature struct {
+	Name       string `json:"name"`
+	Module     string `json:"module"`
+	ParamCount int    `json:"paramCount"`
+	Params     string `json:"params"`
+	Result     string `json:"result"`
+	Consumable bool   `json:"consumable"`
 }
 
 func makeSignature(
@@ -117,6 +127,33 @@ var signatures = map[string]*CallSignature{
 // sigString returns a display string like ".get(key, notFound)" for error messages.
 func sigString(name string, sig *CallSignature) string {
 	return "." + name + "(" + sig.Params + ")"
+}
+
+func IsKnownMethod(name string) bool {
+	_, ok := signatures[name]
+	return ok
+}
+
+func ListMethodCompletions() []MethodCompletionSignature {
+	names := make([]string, 0, len(signatures))
+	for name := range signatures {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	completions := make([]MethodCompletionSignature, 0, len(names))
+	for _, name := range names {
+		signature := signatures[name]
+		completions = append(completions, MethodCompletionSignature{
+			Name:       name,
+			Module:     signature.Module,
+			ParamCount: signature.ParamCount,
+			Params:     signature.Params,
+			Result:     signature.Signature.String(),
+			Consumable: signature.Consumable,
+		})
+	}
+	return completions
 }
 
 // HintOutput returns the lookahead output constraint stored by CorrectChain,

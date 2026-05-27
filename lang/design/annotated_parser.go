@@ -15,6 +15,31 @@ type AimlParser struct {
 	autoIdCount map[string]int
 }
 
+type AnnParseError struct {
+	Message  string
+	Position int
+}
+
+func (e *AnnParseError) Error() string {
+	return fmt.Sprintf("%s at position %d", e.Message, e.Position)
+}
+
+type AnnDiagnostic struct {
+	Message  string
+	Position int
+	Length   int
+}
+
+type AnnDiagnosticListError struct {
+	Message     string
+	Raw         string
+	Diagnostics []AnnDiagnostic
+}
+
+func (e *AnnDiagnosticListError) Error() string {
+	return e.Raw
+}
+
 func NewAimlParser(source string) *AimlParser {
 	return &AimlParser{
 		source:      []rune(source),
@@ -64,7 +89,7 @@ func (p *AimlParser) parseDocument() (Component, error) {
 	}
 	p.skipWhitespace()
 	if p.pos < len(p.source) {
-		return Component{}, fmt.Errorf("unexpected trailing input at position %d", p.pos)
+		return Component{}, p.parseError("unexpected trailing input")
 	}
 	return component, nil
 }
@@ -98,23 +123,29 @@ func (p *AimlParser) parseComponent() (Component, error) {
 		p.pos++
 	}
 
+	typeStart := p.pos
 	typeName := p.readIdentifier()
 	if typeName == "" {
-		return Component{}, fmt.Errorf("expected component type name at position %d", p.pos)
+		return Component{}, p.parseError("expected component type name")
 	}
 
 	comp := Component{
-		Type:       typeName,
-		Properties: make(map[string]string),
+		Type:              typeName,
+		Properties:        make(map[string]string),
+		typePosition:      typeStart,
+		propertyPositions: make(map[string]int),
+		propertyLengths:   make(map[string]int),
 	}
 
 	p.skipWhitespace()
 	if p.pos < len(p.source) && p.source[p.pos] == '.' {
 		p.pos++
+		idStart := p.pos
 		comp.Id = p.readIdentifier()
 		if comp.Id == "" {
-			return Component{}, fmt.Errorf("expected component id after %s. at position %d", typeName, p.pos)
+			return Component{}, p.parseError("expected component id after %s.", typeName)
 		}
+		comp.idPosition = idStart
 		p.skipWhitespace()
 	}
 
@@ -122,14 +153,14 @@ func (p *AimlParser) parseComponent() (Component, error) {
 		if comp.Id != "" {
 			return comp, nil
 		}
-		return Component{}, fmt.Errorf("expected '{' after %s at position %d", typeName, p.pos)
+		return Component{}, p.parseError("expected '{' after %s", typeName)
 	}
 	p.pos++
 
 	for {
 		p.skipWhitespace()
 		if p.pos >= len(p.source) {
-			return Component{}, fmt.Errorf("unexpected end of input, expected '}'")
+			return Component{}, p.parseError("unexpected end of input, expected '}'")
 		}
 		if p.source[p.pos] == '}' {
 			p.pos++
@@ -154,9 +185,10 @@ func (p *AimlParser) parseComponent() (Component, error) {
 		}
 
 		entryStart := p.pos
+		keyStart := p.pos
 		key := p.readIdentifier()
 		if key == "" {
-			return Component{}, fmt.Errorf("unexpected character %q at position %d", string(p.source[p.pos]), p.pos)
+			return Component{}, p.parseError("unexpected character %q", string(p.source[p.pos]))
 		}
 		p.skipWhitespace()
 		if p.pos >= len(p.source) || p.source[p.pos] != ':' {
@@ -188,11 +220,14 @@ func (p *AimlParser) parseComponent() (Component, error) {
 
 		if key == "id" {
 			if comp.Id != "" {
-				return Component{}, fmt.Errorf("duplicate id for %s at position %d", typeName, p.pos)
+				return Component{}, p.parseError("duplicate id for %s", typeName)
 			}
 			comp.Id = value
+			comp.idPosition = keyStart
 		} else {
 			comp.Properties[key] = value
+			comp.propertyPositions[key] = keyStart
+			comp.propertyLengths[key] = len([]rune(key))
 		}
 
 		p.skipWhitespace()
@@ -202,6 +237,10 @@ func (p *AimlParser) parseComponent() (Component, error) {
 	}
 
 	return comp, nil
+}
+
+func (p *AimlParser) parseError(message string, args ...any) error {
+	return &AnnParseError{Message: fmt.Sprintf(message, args...), Position: p.pos}
 }
 
 func (p *AimlParser) readIdentifier() string {
@@ -219,7 +258,7 @@ func (p *AimlParser) readIdentifier() string {
 
 func (p *AimlParser) readValue() (string, error) {
 	if p.pos >= len(p.source) {
-		return "", fmt.Errorf("unexpected end of input reading value")
+		return "", p.parseError("unexpected end of input reading value")
 	}
 	if p.source[p.pos] == '"' {
 		return p.readString()
@@ -244,7 +283,7 @@ func (p *AimlParser) readString() (string, error) {
 		if c == '\\' {
 			p.pos++
 			if p.pos >= len(p.source) {
-				return "", fmt.Errorf("unexpected end of input after escape")
+				return "", p.parseError("unexpected end of input after escape")
 			}
 			switch p.source[p.pos] {
 			case '"':
@@ -268,7 +307,7 @@ func (p *AimlParser) readString() (string, error) {
 			p.pos++
 		}
 	}
-	return "", fmt.Errorf("unterminated string literal")
+	return "", p.parseError("unterminated string literal")
 }
 
 func (p *AimlParser) skipWhitespace() {

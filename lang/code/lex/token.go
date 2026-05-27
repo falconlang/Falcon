@@ -57,6 +57,27 @@ func (t *Token) BuildError(decorate bool, message string, args ...string) string
 	}
 }
 
+func (t *Token) Diagnostic(message string, args ...string) context.Diagnostic {
+	length := 1
+	if t.Content != nil {
+		length = len(*t.Content)
+	}
+	if t.Context != nil {
+		return (*t.Context).BuildDiagnostic(t.Column, t.Row, length, message, args...)
+	}
+	startColumn := t.Row - length + 1
+	if startColumn < 1 {
+		startColumn = 1
+	}
+	return context.Diagnostic{
+		Message:  sugar.Format(message, args...),
+		Severity: "error",
+		Line:     t.Column,
+		Column:   startColumn,
+		Length:   length,
+	}
+}
+
 func (t *Token) BuildErrorHighlight(decorate bool, highlightSize int, message string) string {
 	if t.Context != nil {
 		// row marks the end of the token (1-indexed). Shift it right so the caret

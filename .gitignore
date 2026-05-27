@@ -13,6 +13,13 @@ Falcon
 /dist/
 *.test
 
+# Tensor web app
+tensor/node_modules/
+tensor/dist/
+tensor/.vite/
+tensor/.idea/
+tensor/.git/
+
 # Dependency directories (if using older vendoring)
 /vendor/
 

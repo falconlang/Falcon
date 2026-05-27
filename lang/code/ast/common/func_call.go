@@ -7,6 +7,7 @@ import (
 	"Falcon/code/fzf"
 	"Falcon/code/lex"
 	"Falcon/code/sugar"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -21,6 +22,12 @@ type FuncCallSignature struct {
 	Name       string
 	ParamCount int
 	Signature  ast.Signature
+}
+
+type FuncCompletionSignature struct {
+	Name       string `json:"name"`
+	ParamCount int    `json:"paramCount"`
+	Result     string `json:"result"`
 }
 
 func makeSignature(name string, paramCount int, signature ast.Signature) *FuncCallSignature {
@@ -67,11 +74,11 @@ var signatures = map[string]*FuncCallSignature{
 	"stdErrOf":  makeSignature("stdErrOf", 1, ast.SignNumb),
 	"modeOf":    makeSignature("modeOf", 1, ast.SignList),
 
-	"mod":            makeSignature("mod", 2, ast.SignNumb),
-	"rem":            makeSignature("rem", 2, ast.SignNumb),
-	"quot":           makeSignature("quot", 2, ast.SignNumb),
-	"atan2":          makeSignature("atan2", 2, ast.SignNumb),
-	"formatDecimal":  makeSignature("formatDecimal", 2, ast.SignText),
+	"mod":           makeSignature("mod", 2, ast.SignNumb),
+	"rem":           makeSignature("rem", 2, ast.SignNumb),
+	"quot":          makeSignature("quot", 2, ast.SignNumb),
+	"atan2":         makeSignature("atan2", 2, ast.SignNumb),
+	"formatDecimal": makeSignature("formatDecimal", 2, ast.SignText),
 
 	"println":              makeSignature("println", 1, ast.SignVoid),
 	"openScreen":           makeSignature("openScreen", 1, ast.SignVoid),
@@ -118,6 +125,25 @@ func MakeFuncCall(name string, args ...ast.Expr) ast.Expr {
 func IsKnownFunction(name string) bool {
 	_, ok := signatures[name]
 	return ok
+}
+
+func ListFunctionCompletions() []FuncCompletionSignature {
+	names := make([]string, 0, len(signatures))
+	for name := range signatures {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	completions := make([]FuncCompletionSignature, 0, len(names))
+	for _, name := range names {
+		signature := signatures[name]
+		completions = append(completions, FuncCompletionSignature{
+			Name:       signature.Name,
+			ParamCount: signature.ParamCount,
+			Result:     signature.Signature.String(),
+		})
+	}
+	return completions
 }
 
 // FindBestSuggestion returns the single highest-scoring built-in function name

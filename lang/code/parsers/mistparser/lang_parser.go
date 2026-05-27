@@ -10,6 +10,7 @@ import (
 	"Falcon/code/ast/method"
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
+	codecontext "Falcon/code/context"
 	"Falcon/code/sugar"
 	"strconv"
 	"strings"
@@ -118,6 +119,7 @@ func (p *LangParser) ParseTopLevel() ([]ast.Expr, []int) {
 
 func (p *LangParser) checkPendingSymbols() {
 	var errorMessages []string
+	var diagnostics []codecontext.Diagnostic
 	methodErrors := make(map[int][]pendingCallError) // keyed by line number
 	funcErrors := make(map[int][]pendingCallError)
 	questionErrors := make(map[int][]pendingCallError)
@@ -126,6 +128,11 @@ func (p *LangParser) checkPendingSymbols() {
 	questionErrorCount := 0
 
 	for token, parseError := range p.aggregator.Errors {
+		if !parseError.Deferred {
+			errorMessages = append(errorMessages, token.BuildError(false, parseError.ErrorMessage))
+			diagnostics = append(diagnostics, token.Diagnostic(parseError.ErrorMessage))
+			continue
+		}
 		// try resolve global variables again
 		if get, ok := parseError.Owner.(*variables.Get); ok && get.Global {
 			signatures, resolved := p.ScopeCursor.ReferGlobalVariable(get.Name)
@@ -174,28 +181,58 @@ func (p *LangParser) checkPendingSymbols() {
 			parseError.ErrorMessage = procedureErrorMessage
 		}
 		errorMessages = append(errorMessages, token.BuildError(false, parseError.ErrorMessage))
+		diagnostics = append(diagnostics, token.Diagnostic(parseError.ErrorMessage))
 	}
 
-	p.reportCompileErrors(errorMessages, methodErrors, funcErrors, questionErrors, methodErrorCount, funcErrorCount, questionErrorCount)
+	p.reportCompileErrors(errorMessages, diagnostics, methodErrors, funcErrors, questionErrors, methodErrorCount, funcErrorCount, questionErrorCount)
 }
 
-func (p *LangParser) reportCompileErrors(errorMessages []string, methodErrors, funcErrors, questionErrors map[int][]pendingCallError, methodErrorCount, funcErrorCount, questionErrorCount int) {
+func (p *LangParser) reportCompileErrors(errorMessages []string, diagnostics []codecontext.Diagnostic, methodErrors, funcErrors, questionErrors map[int][]pendingCallError, methodErrorCount, funcErrorCount, questionErrorCount int) {
 	methodBlocks := renderCallErrorGroups(methodErrors)
 	funcBlocks := renderCallErrorGroups(funcErrors)
 	questionBlocks := renderCallErrorGroups(questionErrors)
 	errorMessages = append(errorMessages, methodBlocks...)
 	errorMessages = append(errorMessages, funcBlocks...)
 	errorMessages = append(errorMessages, questionBlocks...)
+	diagnostics = append(diagnostics, callDiagnostics(methodErrors, "method")...)
+	diagnostics = append(diagnostics, callDiagnostics(funcErrors, "function")...)
+	diagnostics = append(diagnostics, callDiagnostics(questionErrors, "question")...)
 
 	// Count each individual bad call, not each group block.
 	groupBlocks := len(methodBlocks) + len(funcBlocks) + len(questionBlocks)
 	totalErrors := len(errorMessages) - groupBlocks + methodErrorCount + funcErrorCount + questionErrorCount
 	if p.strict && totalErrors > 0 {
 		var errorWriter strings.Builder
-		errorWriter.WriteString(sugar.Format("compile failed with % syntax errors", strconv.Itoa(totalErrors)))
+		message := sugar.Format("compile failed with % syntax errors", strconv.Itoa(totalErrors))
+		errorWriter.WriteString(message)
 		errorWriter.WriteString(strings.Join(errorMessages, ""))
-		panic(errorWriter.String())
+		panic(&codecontext.DiagnosticListError{
+			Message:     message,
+			Raw:         errorWriter.String(),
+			Diagnostics: diagnostics,
+		})
 	}
+}
+
+func callDiagnostics(byLine map[int][]pendingCallError, kind string) []codecontext.Diagnostic {
+	var diagnostics []codecontext.Diagnostic
+	for _, items := range byLine {
+		for _, item := range items {
+			message := "No " + kind + " named " + item.name
+			if kind == "method" {
+				message = "No method named ." + item.name + "()"
+			} else if kind == "function" {
+				message = "No function named " + item.name + "()"
+			} else if kind == "question" {
+				message = "No question named ? " + item.name
+			}
+			if item.suggestion != "" && item.suggestion != "?" {
+				message += ", did you mean " + item.suggestion + "?"
+			}
+			diagnostics = append(diagnostics, item.token.Diagnostic(message))
+		}
+	}
+	return diagnostics
 }
 
 func (p *LangParser) defineStatements() {
@@ -749,7 +786,11 @@ func (p *LangParser) parseMethodCall(object ast.Expr, where *l.Token, name strin
 				return q
 			}
 		}
-		p.aggregator.EnqueueSymbol(where, call, errorMessage)
+		if method.IsKnownMethod(name) {
+			p.aggregator.EnqueueError(where, call, errorMessage)
+		} else {
+			p.aggregator.EnqueueSymbol(where, call, errorMessage)
+		}
 	} else {
 		p.aggregator.MarkResolved(where)
 	}
@@ -776,7 +817,7 @@ func (p *LangParser) parseTransformer(object ast.Expr, where *l.Token, name stri
 	p.expect(l.CloseCurly)
 	errorMessage, signature := list.TestSignature(name, len(args), len(namesUsed))
 	if signature == nil {
-		p.aggregator.EnqueueSymbol(where, object, errorMessage)
+		p.aggregator.EnqueueError(where, object, errorMessage)
 	} else {
 		p.aggregator.MarkResolved(where)
 	}
@@ -856,14 +897,14 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 	if nameExpr, ok := value.(*variables.Get); ok && !nameExpr.Global && p.isNext(l.OpenCurve) && !p.isOnNewLine() {
 		arguments := p.arguments()
 		// check for in-built function call
-		_, funcCallSignature := common.TestSignature(nameExpr.Name, len(arguments))
+		errorMessage, funcCallSignature := common.TestSignature(nameExpr.Name, len(arguments))
 		if funcCallSignature != nil {
 			p.aggregator.MarkResolved(nameExpr.Where)
 			return &common.FuncCall{Where: nameExpr.Where, Name: nameExpr.Name, Args: arguments}
 		}
 		if common.IsKnownFunction(nameExpr.Name) {
 			fc := &common.FuncCall{Where: nameExpr.Where, Name: nameExpr.Name, Args: arguments}
-			p.aggregator.EnqueueSymbol(nameExpr.Where, fc, "Bad call to function "+nameExpr.Name+"()")
+			p.aggregator.EnqueueError(nameExpr.Where, fc, errorMessage)
 			return fc
 		}
 		// check for a user defined procedure

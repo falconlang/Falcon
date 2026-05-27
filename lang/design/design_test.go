@@ -1,6 +1,7 @@
 package design
 
 import (
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -41,6 +42,34 @@ func TestParseAnnReadsDotIds(t *testing.T) {
 	}
 	if got := screen.Children[1].Id; got != "Notifier1" {
 		t.Fatalf("notifier id = %q, want Notifier1", got)
+	}
+}
+
+func TestAnnValidationReportsPropertyPosition(t *testing.T) {
+	source := "Screen.Screen1 {\n  Button.AddButton { Texxt: \"+\" }\n}"
+	_, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err == nil {
+		t.Fatal("ConvertAnnToYail() error = nil, want property diagnostic")
+	}
+
+	var diagnosticErr *AnnDiagnosticListError
+	if !errors.As(err, &diagnosticErr) {
+		t.Fatalf("ConvertAnnToYail() error = %T %v, want *AnnDiagnosticListError", err, err)
+	}
+	if len(diagnosticErr.Diagnostics) != 1 {
+		t.Fatalf("diagnostics = %#v, want one diagnostic", diagnosticErr.Diagnostics)
+	}
+
+	diagnostic := diagnosticErr.Diagnostics[0]
+	wantPosition := strings.Index(source, "Texxt")
+	if diagnostic.Position != wantPosition {
+		t.Fatalf("diagnostic.Position = %d, want %d", diagnostic.Position, wantPosition)
+	}
+	if diagnostic.Length != len("Texxt") {
+		t.Fatalf("diagnostic.Length = %d, want %d", diagnostic.Length, len("Texxt"))
+	}
+	if !strings.Contains(diagnostic.Message, `unknown property "Texxt"`) {
+		t.Fatalf("diagnostic.Message = %q, want unknown property message", diagnostic.Message)
 	}
 }
 

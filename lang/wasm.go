@@ -7,6 +7,8 @@ package main
 
 import (
 	"Falcon/code/ast"
+	astcommon "Falcon/code/ast/common"
+	astmethod "Falcon/code/ast/method"
 	"Falcon/code/compdb"
 	"Falcon/code/context"
 	"Falcon/code/lex"
@@ -17,6 +19,7 @@ import (
 	"Falcon/design"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"strings"
 	"syscall/js"
 )
@@ -39,6 +42,60 @@ func safeExec(fn func() js.Value) (ret js.Value) {
 
 	ret = fn()
 	return
+}
+
+func panicMessage(r any) string {
+	switch v := r.(type) {
+	case string:
+		return v
+	case error:
+		return v.Error()
+	default:
+		return "unknown error"
+	}
+}
+
+func diagnosticsForRecover(r any, phase, fileName string) (string, []wasmDiagnostic) {
+	raw := panicMessage(r)
+	switch v := r.(type) {
+	case *context.DiagnosticError:
+		return raw, wasmDiagnosticsFromContext([]context.Diagnostic{v.Diagnostic}, phase, raw, fileName)
+	case *context.DiagnosticListError:
+		return raw, wasmDiagnosticsFromContext(v.Diagnostics, phase, raw, fileName)
+	}
+	return raw, fallbackDiagnostic(raw, phase, fileName)
+}
+
+func jsDiagnostics(diagnostics []wasmDiagnostic) []any {
+	values := make([]any, len(diagnostics))
+	for i, diagnostic := range diagnostics {
+		values[i] = map[string]any{
+			"message":  diagnostic.Message,
+			"severity": diagnostic.Severity,
+			"phase":    diagnostic.Phase,
+			"file":     diagnostic.File,
+			"line":     diagnostic.Line,
+			"column":   diagnostic.Column,
+			"length":   diagnostic.Length,
+			"raw":      diagnostic.Raw,
+		}
+	}
+	return values
+}
+
+func diagnosticResult(ok bool, phase, fileName, raw string, diagnostics []wasmDiagnostic, fields map[string]any) js.Value {
+	if diagnostics == nil && raw != "" {
+		diagnostics = fallbackDiagnostic(raw, phase, fileName)
+	}
+	result := map[string]any{
+		"ok":          ok,
+		"error":       raw,
+		"diagnostics": jsDiagnostics(diagnostics),
+	}
+	for k, v := range fields {
+		result[k] = v
+	}
+	return js.ValueOf(result)
 }
 
 func parseMistToXmlStrictArg(value js.Value) bool {
@@ -64,6 +121,60 @@ func parseMistToXmlStrictArg(value js.Value) bool {
 	return true
 }
 
+func componentDefinitionsFromJS(obj js.Value) (map[string][]string, map[string]string) {
+	componentContextMap := make(map[string][]string) // Button -> [Button1, Button2]
+	reverseComponentMap := make(map[string]string)   // Button1 -> Button, Button2 -> Button
+	keys := js.Global().Get("Object").Call("keys", obj)
+	length := keys.Length()
+	for i := 0; i < length; i++ {
+		compType := keys.Index(i).String()
+		jsArr := obj.Get(compType)
+		var compNames []string
+		for j := 0; j < jsArr.Length(); j++ {
+			instanceName := jsArr.Index(j).String()
+			compNames = append(compNames, instanceName)
+			reverseComponentMap[instanceName] = compType
+		}
+		componentContextMap[compType] = compNames
+	}
+	return componentContextMap, reverseComponentMap
+}
+
+func compileMistToXml(sourceCode string, componentDefinitions js.Value, strict bool) (string, []int) {
+	componentContextMap, reverseComponentMap := componentDefinitionsFromJS(componentDefinitions)
+
+	codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "appinventor.live"}
+
+	tokens := lex.NewLexer(codeContext).Lex()
+	langParser := mistparser.NewLangParser(strict, tokens)
+	langParser.SetComponentDefinitions(componentContextMap, reverseComponentMap)
+	langParser.SetEventValidator(compdb.GlobalDB.ValidateEvent)
+	expressions, lineNumbers := langParser.ParseTopLevel()
+
+	var xmlCode strings.Builder
+
+	for _, expression := range expressions {
+		xmlBlock := ast.XmlRoot{
+			Blocks: []ast.Block{expression.Blockly(true)},
+			XMLNS:  "https://developers.google.com/blockly/xml",
+		}
+		bytes, _ := xml.MarshalIndent(xmlBlock, "", "  ")
+
+		xmlCode.WriteString(string(bytes))
+		xmlCode.WriteByte(0)
+	}
+
+	return xmlCode.String(), lineNumbers
+}
+
+func jsLineNumbers(lineNumbers []int) []any {
+	values := make([]any, len(lineNumbers))
+	for i, lineNumber := range lineNumbers {
+		values[i] = lineNumber
+	}
+	return values
+}
+
 // Code -> Blocks
 func mistToXml(this js.Value, p []js.Value) any {
 	return safeExec(func() js.Value {
@@ -76,54 +187,50 @@ func mistToXml(this js.Value, p []js.Value) any {
 			strict = parseMistToXmlStrictArg(p[2])
 		}
 
-		// Parse the Component Definition Context
-		componentContextMap := make(map[string][]string) // Button -> [Button1, Button2]
-		reverseComponentMap := make(map[string]string)   // Button1 -> Button, Button2 -> Button
-		obj := p[1]
-		keys := js.Global().Get("Object").Call("keys", obj)
-		length := keys.Length()
-		for i := 0; i < length; i++ {
-			compType := keys.Index(i).String()
-			jsArr := obj.Get(compType)
-			var compNames []string
-			for j := 0; j < jsArr.Length(); j++ {
-				instanceName := jsArr.Index(j).String()
-				compNames = append(compNames, instanceName)
-				reverseComponentMap[instanceName] = compType
-			}
-			componentContextMap[compType] = compNames
-		}
-
-		// Parse Mist To XML Blockly
-		codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "appinventor.live"}
-
-		tokens := lex.NewLexer(codeContext).Lex()
-		langParser := mistparser.NewLangParser(strict, tokens)
-		langParser.SetComponentDefinitions(componentContextMap, reverseComponentMap)
-		langParser.SetEventValidator(compdb.GlobalDB.ValidateEvent)
-		expressions, lineNumbers := langParser.ParseTopLevel()
-
-		var xmlCode strings.Builder
-
-		for _, expression := range expressions {
-			xmlBlock := ast.XmlRoot{
-				Blocks: []ast.Block{expression.Blockly(true)},
-				XMLNS:  "https://developers.google.com/blockly/xml",
-			}
-			bytes, _ := xml.MarshalIndent(xmlBlock, "", "  ")
-
-			xmlCode.WriteString(string(bytes))
-			xmlCode.WriteByte(0)
-		}
-
-		lineNumberValues := make([]any, len(lineNumbers))
-		for i, lineNumber := range lineNumbers {
-			lineNumberValues[i] = lineNumber
-		}
+		xmlCode, lineNumbers := compileMistToXml(sourceCode, p[1], strict)
 		return js.ValueOf(map[string]any{
-			"xml":         xmlCode.String(),
-			"lineNumbers": lineNumberValues,
+			"xml":         xmlCode,
+			"lineNumbers": jsLineNumbers(lineNumbers),
 		})
+	})
+}
+
+func mistToXmlWithDiagnostics(this js.Value, p []js.Value) any {
+	sourceCode := ""
+	if len(p) >= 1 {
+		sourceCode = p[0].String()
+	}
+	if len(p) < 2 {
+		msg := "mistToXML(sourceCode string, componentDefinitions map[string][]string [, strict bool | { strict?: bool, allowUnsafeParsing?: bool }]) not provided!"
+		return diagnosticResult(false, "compile", "appinventor.live", msg, nil, map[string]any{
+			"xml":         "",
+			"lineNumbers": []any{},
+		})
+	}
+
+	strict := true
+	if len(p) >= 3 {
+		strict = parseMistToXmlStrictArg(p[2])
+	}
+
+	var xmlCode string
+	var lineNumbers []int
+	var raw string
+	var diagnostics []wasmDiagnostic
+	ok := true
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				raw, diagnostics = diagnosticsForRecover(r, "compile", "appinventor.live")
+				ok = false
+			}
+		}()
+		xmlCode, lineNumbers = compileMistToXml(sourceCode, p[1], strict)
+	}()
+
+	return diagnosticResult(ok, "compile", "appinventor.live", raw, diagnostics, map[string]any{
+		"xml":         xmlCode,
+		"lineNumbers": jsLineNumbers(lineNumbers),
 	})
 }
 
@@ -214,6 +321,59 @@ func annToYail(this js.Value, p []js.Value) any {
 	})
 }
 
+func annToYailWithDiagnostics(this js.Value, p []js.Value) any {
+	annSource := ""
+	if len(p) >= 1 {
+		annSource = p[0].String()
+	}
+	if len(p) < 1 {
+		msg := "annToYail(annSource [, codeYail]) not provided!"
+		return diagnosticResult(false, "design", "Screen1.design", msg, nil, map[string]any{"yail": ""})
+	}
+	codeYail := ""
+	if len(p) >= 2 {
+		codeYail = p[1].String()
+	}
+
+	var yail string
+	var raw string
+	var diagnostics []wasmDiagnostic
+	ok := true
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				raw, diagnostics = diagnosticsForRecover(r, "design", "Screen1.design")
+				ok = false
+			}
+		}()
+		var err error
+		yail, err = design.NewAnnYailConverter().ConvertAnnToReplYail(annSource, codeYail)
+		if err != nil {
+			raw = err.Error()
+			var diagnosticListErr *design.AnnDiagnosticListError
+			var parseErr *design.AnnParseError
+			if errors.As(err, &diagnosticListErr) {
+				diagnostics = wasmDiagnosticsFromAnn(annSource, diagnosticListErr.Diagnostics, "design", raw, "Screen1.design")
+			} else if errors.As(err, &parseErr) {
+				line, column := lineColumnForRuneIndex(annSource, parseErr.Position)
+				diagnostics = []wasmDiagnostic{{
+					Message:  parseErr.Message,
+					Severity: "error",
+					Phase:    "design",
+					File:     "Screen1.design",
+					Line:     line,
+					Column:   column,
+					Length:   1,
+					Raw:      raw,
+				}}
+			}
+			ok = false
+		}
+	}()
+
+	return diagnosticResult(ok, "design", "Screen1.design", raw, diagnostics, map[string]any{"yail": yail})
+}
+
 // blocklyToYail compiles Blockly XML into YAIL for the App Inventor companion.
 func blocklyToYail(this js.Value, p []js.Value) any {
 	return safeExec(func() js.Value {
@@ -248,6 +408,19 @@ func listComponents(this js.Value, p []js.Value) any {
 		data, err := json.Marshal(names)
 		if err != nil {
 			return js.ValueOf("[]")
+		}
+		return js.ValueOf(string(data))
+	})
+}
+
+func falconCompletionCatalog(this js.Value, p []js.Value) any {
+	return safeExec(func() js.Value {
+		data, err := json.Marshal(map[string]any{
+			"functions": astcommon.ListFunctionCompletions(),
+			"methods":   astmethod.ListMethodCompletions(),
+		})
+		if err != nil {
+			return js.ValueOf(`{"functions":[],"methods":[]}`)
 		}
 		return js.ValueOf(string(data))
 	})
@@ -291,19 +464,61 @@ func runCode(this js.Value, p []js.Value) any {
 	return js.Undefined()
 }
 
+func runCodeWithDiagnostics(this js.Value, p []js.Value) any {
+	if len(p) < 1 {
+		msg := "runCode(sourceCode) not provided!"
+		return diagnosticResult(false, "runtime", "wasm", msg, nil, map[string]any{})
+	}
+	sourceCode := p[0].String()
+
+	var interp *runtime.Interpreter
+	var raw string
+	var diagnostics []wasmDiagnostic
+	ok := true
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if interp != nil {
+					raw = interp.FormatRuntimeError(r)
+					diagnostics = wasmDiagnosticsFromContext(interp.DiagnosticFromRuntimeError(r), "runtime", raw, "wasm")
+				} else {
+					raw, diagnostics = diagnosticsForRecover(r, "compile", "wasm")
+				}
+				ok = false
+			}
+		}()
+
+		codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "wasm"}
+		tokens := lex.NewLexer(codeContext).Lex()
+		langParser := mistparser.NewLangParser(false, tokens)
+		expressions := langParser.ParseAll()
+
+		interp = runtime.NewInterpreterWithOutput(func(line string) {
+			js.Global().Call("falconPrint", line)
+		})
+		interp.Run(expressions)
+	}()
+
+	return diagnosticResult(ok, "runtime", "wasm", raw, diagnostics, map[string]any{})
+}
+
 func main() {
 	println("Hello from wasm.go!")
 
 	c := make(chan struct{}, 0)
 	js.Global().Set("mistToXml", js.FuncOf(mistToXml))
+	js.Global().Set("mistToXmlWithDiagnostics", js.FuncOf(mistToXmlWithDiagnostics))
 	js.Global().Set("getComponentDefinitionsCode", js.FuncOf(getComponentDefinitionsCode))
 	js.Global().Set("xmlToMist", js.FuncOf(xmlToMist))
 	js.Global().Set("schemaToAiml", js.FuncOf(convertSchemaToAiml))
 	js.Global().Set("aimlToSchema", js.FuncOf(convertAimlToSchema))
 	js.Global().Set("annToYail", js.FuncOf(annToYail))
+	js.Global().Set("annToYailWithDiagnostics", js.FuncOf(annToYailWithDiagnostics))
 	js.Global().Set("blocklyToYail", js.FuncOf(blocklyToYail))
 	js.Global().Set("runCode", js.FuncOf(runCode))
+	js.Global().Set("runCodeWithDiagnostics", js.FuncOf(runCodeWithDiagnostics))
 	js.Global().Set("describeComponent", js.FuncOf(describeComponent))
 	js.Global().Set("listComponents", js.FuncOf(listComponents))
+	js.Global().Set("falconCompletionCatalog", js.FuncOf(falconCompletionCatalog))
 	<-c
 }

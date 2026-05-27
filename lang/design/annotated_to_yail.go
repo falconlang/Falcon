@@ -2,8 +2,8 @@ package design
 
 import (
 	"Falcon/code/compdb"
-	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -101,28 +101,54 @@ func ValidateAnnSource(source string) error {
 // validation error. All errors are returned together so the user can fix them
 // all in one pass rather than one at a time.
 func validateAnn(screen Component) error {
-	var errs []error
-	collectPropertyErrors(screen.Type, screen.Id, screen.Properties, &errs)
-	collectChildErrors(screen.Children, &errs)
-	return errors.Join(errs...)
-}
+	var diagnostics []AnnDiagnostic
+	collectComponentPropertyErrors(screen, &diagnostics)
+	if len(diagnostics) == 0 {
+		return nil
+	}
 
-func collectPropertyErrors(compType, compId string, props map[string]string, errs *[]error) {
-	for k := range props {
-		if err := compdb.GlobalDB.ValidateProperty(dbCompType(compType), k); err != nil {
-			*errs = append(*errs, fmt.Errorf("%s %q: %w", compType, compId, err))
-		}
+	sort.SliceStable(diagnostics, func(i, j int) bool {
+		return diagnostics[i].Position < diagnostics[j].Position
+	})
+
+	messages := make([]string, len(diagnostics))
+	for i, diagnostic := range diagnostics {
+		messages[i] = diagnostic.Message
+	}
+	return &AnnDiagnosticListError{
+		Message:     "design validation failed",
+		Raw:         strings.Join(messages, "\n"),
+		Diagnostics: diagnostics,
 	}
 }
 
-func collectChildErrors(children []Component, errs *[]error) {
-	for _, child := range children {
-		id := child.Id
-		if id == "" {
-			id = child.Type
+func collectComponentPropertyErrors(component Component, diagnostics *[]AnnDiagnostic) {
+	compId := component.Id
+	if compId == "" {
+		compId = component.Type
+	}
+
+	for propName := range component.Properties {
+		if err := compdb.GlobalDB.ValidateProperty(dbCompType(component.Type), propName); err != nil {
+			message := fmt.Sprintf("%s %q: %v", component.Type, compId, err)
+			position := component.typePosition
+			if propPosition, ok := component.propertyPositions[propName]; ok {
+				position = propPosition
+			}
+			length := len([]rune(propName))
+			if propLength, ok := component.propertyLengths[propName]; ok && propLength > 0 {
+				length = propLength
+			}
+			*diagnostics = append(*diagnostics, AnnDiagnostic{
+				Message:  message,
+				Position: position,
+				Length:   length,
+			})
 		}
-		collectPropertyErrors(child.Type, id, child.Properties, errs)
-		collectChildErrors(child.Children, errs)
+	}
+
+	for _, child := range component.Children {
+		collectComponentPropertyErrors(child, diagnostics)
 	}
 }
 

@@ -11,6 +11,35 @@ type CodeContext struct {
 	FileName   string
 }
 
+type Diagnostic struct {
+	Message  string
+	Severity string
+	File     string
+	Line     int
+	Column   int
+	Length   int
+}
+
+type DiagnosticError struct {
+	Diagnostic Diagnostic
+	Title      string
+	Raw        string
+}
+
+func (e *DiagnosticError) Error() string {
+	return e.Raw
+}
+
+type DiagnosticListError struct {
+	Message     string
+	Raw         string
+	Diagnostics []Diagnostic
+}
+
+func (e *DiagnosticListError) Error() string {
+	return e.Raw
+}
+
 func (c *CodeContext) ReportError(
 	column int,
 	row int,
@@ -18,7 +47,7 @@ func (c *CodeContext) ReportError(
 	message string,
 	args ...string,
 ) {
-	panic(c.BuildTracebackError(column, row, highlightWordSize, "CompileError", message, args...))
+	panic(c.BuildDiagnosticError(column, row, highlightWordSize, "CompileError", message, args...))
 }
 
 func (c *CodeContext) ReportTypeError(
@@ -28,7 +57,7 @@ func (c *CodeContext) ReportTypeError(
 	message string,
 	args ...string,
 ) {
-	panic(c.BuildTracebackError(column, row, highlightWordSize, "TypeError", message, args...))
+	panic(c.BuildDiagnosticError(column, row, highlightWordSize, "TypeError", message, args...))
 }
 
 func (c *CodeContext) GetLine(lineNum int) string {
@@ -84,6 +113,46 @@ func (c *CodeContext) BuildTracebackError(
 	sb.WriteString(c.FormatTracebackFrame(c.FileName, column, row, highlightWordSize, "<module>"))
 	sb.WriteString(title + ": " + sugar.Format(message, args...) + "\n")
 	return sb.String()
+}
+
+func (c *CodeContext) BuildDiagnostic(
+	column int,
+	row int,
+	highlightWordSize int,
+	message string,
+	args ...string,
+) Diagnostic {
+	if highlightWordSize <= 0 {
+		highlightWordSize = 1
+	}
+	startColumn := row - highlightWordSize + 1
+	if startColumn < 1 {
+		startColumn = 1
+	}
+	return Diagnostic{
+		Message:  sugar.Format(message, args...),
+		Severity: "error",
+		File:     c.FileName,
+		Line:     column,
+		Column:   startColumn,
+		Length:   highlightWordSize,
+	}
+}
+
+func (c *CodeContext) BuildDiagnosticError(
+	column int,
+	row int,
+	highlightWordSize int,
+	title string,
+	message string,
+	args ...string,
+) *DiagnosticError {
+	formatted := sugar.Format(message, args...)
+	return &DiagnosticError{
+		Diagnostic: c.BuildDiagnostic(column, row, highlightWordSize, formatted),
+		Title:      title,
+		Raw:        c.BuildTracebackError(column, row, highlightWordSize, title, formatted),
+	}
 }
 
 func (c *CodeContext) BuildError(

@@ -12,9 +12,14 @@ type ErrorAggregator struct {
 type ParseError struct {
 	Owner        ast.Expr
 	ErrorMessage string
+	Deferred     bool
 }
 
 func (e *ErrorAggregator) EnqueueSymbol(where *l.Token, owner ast.Expr, message string) {
+	e.Errors[where] = ParseError{Owner: owner, ErrorMessage: message, Deferred: true}
+}
+
+func (e *ErrorAggregator) EnqueueError(where *l.Token, owner ast.Expr, message string) {
 	e.Errors[where] = ParseError{Owner: owner, ErrorMessage: message}
 }
 

@@ -10,6 +10,7 @@ import (
 	astmethod "Falcon/code/ast/method"
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
+	codecontext "Falcon/code/context"
 	"Falcon/code/lex"
 	"math"
 	"strconv"
@@ -706,6 +707,9 @@ func (i *Interpreter) FormatRuntimeError(r any) string {
 		}
 		msg = v
 	case error:
+		if strings.HasPrefix(v.Error(), "Traceback (most recent call last):") {
+			return v.Error()
+		}
 		msg = v.Error()
 	}
 
@@ -738,6 +742,58 @@ func (i *Interpreter) FormatRuntimeError(r any) string {
 	sb.WriteString("RuntimeError: " + msg + "\n")
 	return sb.String()
 }
+
+func (i *Interpreter) DiagnosticFromRuntimeError(r any) []codecontext.Diagnostic {
+	switch v := r.(type) {
+	case *codecontext.DiagnosticError:
+		return []codecontext.Diagnostic{v.Diagnostic}
+	case *codecontext.DiagnosticListError:
+		return v.Diagnostics
+	}
+
+	msg := "runtime error"
+	switch v := r.(type) {
+	case string:
+		msg = v
+	case error:
+		msg = v.Error()
+	}
+
+	if i.lastToken != nil && i.lastToken.Column >= 0 {
+		hlSize := 1
+		if i.lastToken.Content != nil {
+			hlSize = len(*i.lastToken.Content)
+		}
+		if i.lastHighlight > 0 {
+			hlSize = i.lastHighlight
+		}
+		if i.lastToken.Context != nil {
+			return []codecontext.Diagnostic{
+				(*i.lastToken.Context).BuildDiagnostic(i.lastToken.Column, i.lastToken.Row, hlSize, msg),
+			}
+		}
+		startColumn := i.lastToken.Row - hlSize + 1
+		if startColumn < 1 {
+			startColumn = 1
+		}
+		return []codecontext.Diagnostic{{
+			Message:  msg,
+			Severity: "error",
+			Line:     i.lastToken.Column,
+			Column:   startColumn,
+			Length:   hlSize,
+		}}
+	}
+
+	return []codecontext.Diagnostic{{
+		Message:  msg,
+		Severity: "error",
+		Line:     1,
+		Column:   1,
+		Length:   1,
+	}}
+}
+
 func (i *Interpreter) formatTraceFrame(token *lex.Token, funcName string, isLast ...bool) string {
 	last := len(isLast) > 0 && isLast[0]
 	fileName := "<unknown>"

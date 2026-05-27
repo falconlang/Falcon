@@ -379,6 +379,9 @@ func (l *Lexer) eat(expect uint8) {
 }
 
 func (l *Lexer) error(message string, args ...string) {
+	if l.ctx != nil {
+		panic(l.ctx.BuildDiagnosticError(l.currColumn, l.currRow, 1, "CompileError", message, args...))
+	}
 	panic("[line " + strconv.Itoa(l.currColumn) + "] " + sugar.Format(message, args...))
 }
 

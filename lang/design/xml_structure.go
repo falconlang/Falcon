@@ -21,6 +21,11 @@ type Component struct {
 	Type       string            `xml:"-"`
 	Properties map[string]string `xml:"-"`
 	Children   []Component       `xml:",any"`
+
+	typePosition      int
+	idPosition        int
+	propertyPositions map[string]int
+	propertyLengths   map[string]int
 }
 
 func (c *Component) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
