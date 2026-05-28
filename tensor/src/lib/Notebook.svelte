@@ -1,5 +1,5 @@
 <script>
-  import { cells, activeCellId } from './stores.js';
+  import { cells, activeCellId, addCodeCell } from './stores.js';
   import CodeCell from './CodeCell.svelte';
   import MarkdownCell from './MarkdownCell.svelte';
 </script>
@@ -13,5 +13,14 @@
         <MarkdownCell {cell} active={$activeCellId === cell.id} />
       {/if}
     {/each}
+    {#if $cells.length === 0}
+      <div class="notebook-empty">
+        <p class="notebook-empty-label">Empty screen</p>
+        <button class="notebook-empty-btn" on:click={addCodeCell}>
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 1v12M1 7h12"/></svg>
+          Add code cell
+        </button>
+      </div>
+    {/if}
   </div>
 </div>

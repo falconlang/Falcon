@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { addCodeCell, sidebarVisible, debugCollapsed, screenList, activeScreen, switchScreen, addScreen, removeScreen, liveTestOpen, liveTestState } from './stores.js';
 
-  const LIVE_TEST_LABELS = { idle: 'Live Test', polling: 'Waiting...', connecting: 'Connecting...', connected: 'Connected', error: 'Error' };
+  const LIVE_TEST_LABELS = { idle: 'Live test', polling: 'Waiting...', connecting: 'Connecting...', connected: 'Connected', error: 'Error' };
   const LIVE_TEST_TITLES = { idle: 'Connect Companion', polling: 'Waiting for Companion', connecting: 'Negotiating connection', connected: 'Companion connected', error: 'Companion error' };
 
   $: liveTestStatus = $liveTestState.status || 'idle';
@@ -38,6 +38,16 @@
   function selectScreen(name) {
     closeSpinner();
     switchScreen(name);
+  }
+
+  function spinnerAddScreen() {
+    closeSpinner();
+    openAddDialog();
+  }
+
+  function spinnerRemoveScreen() {
+    closeSpinner();
+    openRemoveDialog();
   }
 
   onMount(() => {
@@ -169,16 +179,6 @@
       <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" class="screen-spinner-chevron" class:rotated={spinnerOpen}><path d="M2 3.5l3 3 3-3"/></svg>
     </button>
 
-    <button class="tl-btn screen-btn" title="Add screen" on:click={openAddDialog}>
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg>
-      Add Screen
-    </button>
-
-    <button class="tl-btn screen-btn" title="Remove screen" disabled={!canRemove} on:click={openRemoveDialog}>
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7h10"/></svg>
-      Remove Screen
-    </button>
-
   </div>
 
   <div class="tb-spacer"></div>
@@ -211,6 +211,15 @@
         {name}
       </div>
     {/each}
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" on:click={spinnerAddScreen}>
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg>
+      Add Screen
+    </div>
+    <div class="ctx-item" class:ctx-item-disabled={!canRemove} on:click={canRemove ? spinnerRemoveScreen : null}>
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7h10"/></svg>
+      Remove Screen
+    </div>
   </div>
 {/if}
 
@@ -230,7 +239,7 @@
         </button>
       </div>
       <div class="sd-body">
-        <p class="sd-desc">Choose a name for the new screen. Each screen has its own workspace.</p>
+        <p class="sd-desc">Choose a name for the new screen.</p>
         <input
           class="sd-input"
           type="text"

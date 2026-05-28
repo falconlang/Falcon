@@ -145,8 +145,6 @@ html, body {
 .tb-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
 .live-test-chip {
   border: 1px solid transparent;
-  min-width: 106px;
-  justify-content: center;
 }
 .live-test-chip--idle:hover {
   border-color: var(--border);
@@ -244,7 +242,7 @@ html, body {
 }
 .screen-spinner-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .screen-spinner-icon { width: 12px; height: 12px; flex-shrink: 0; color: var(--text-faint); }
-.screen-spinner-label { flex: 1; text-align: left; }
+.screen-spinner-label { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
 .screen-spinner-chevron {
   width: 9px; height: 9px; flex-shrink: 0; color: var(--text-faint);
   transition: transform 0.15s;
@@ -252,15 +250,14 @@ html, body {
 .screen-spinner-chevron.rotated { transform: rotate(180deg); }
 .screen-spinner-menu { transform-origin: top left; }
 .screen-spinner-active { color: var(--accent) !important; font-weight: 500; }
+.ctx-item-disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 
-/* Screen action buttons */
-.screen-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 
 /* ── Screen dialogs ── */
 .sd-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(26,25,22,0.22);
+  background: rgba(26,25,22,0.38);
   z-index: 200;
   display: flex;
   align-items: center;
@@ -268,10 +265,10 @@ html, body {
 }
 .sd-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 3px solid color-mix(in srgb, var(--accent) 38%, var(--border));
   border-radius: var(--radius-md);
   width: min(320px, calc(100vw - 32px));
-  box-shadow: var(--shadow-md);
+  overflow: hidden;
   animation: sdIn 0.14s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes sdIn {
@@ -448,6 +445,36 @@ html, body {
   margin: 0 auto;
   padding: 32px 24px 80px 32px;
 }
+
+/* ── Notebook empty state ── */
+.notebook-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0 48px;
+}
+.notebook-empty-label {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  letter-spacing: 0.01em;
+}
+.notebook-empty-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 99px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.notebook-empty-btn:hover { background: var(--cell-active); color: var(--text); border-color: var(--text-faint); }
+.notebook-empty-btn svg { width: 12px; height: 12px; }
 
 /* ── Cell ── */
 .cell {
@@ -648,15 +675,15 @@ html, body {
 }
 
 /* Syntax highlight tokens — light */
-.k  { color: #7C3AED; }
+.k  { color: #6830CC; }
 .s  { color: #1A6B3A; }
-.n  { color: #C2410C; }
-.c  { color: #9CA3AF; font-style: italic; }
-.f  { color: #1D4ED8; }
-.b  { color: #374151; font-weight: 500; }
-.t  { color: #5B21B6; }
-.o  { color: #6B7280; }
-.p  { color: #374151; }
+.n  { color: #B83B0A; }
+.c  { color: #A09B93; font-style: italic; }
+.f  { color: #1A4EC4; }
+.b  { color: #3A3730; font-weight: 500; }
+.t  { color: #521FB0; }
+.o  { color: #6E6960; }
+.p  { color: #3A3730; }
 
 /* Syntax highlight tokens — dark */
 [data-theme="dark"] .k { color: #A78BFA; }
@@ -773,7 +800,7 @@ html, body {
 .dsgn-filename {
   font-family: var(--font);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -995,7 +1022,6 @@ input:focus-visible {
   flex-shrink: 0;
   user-select: none;
   background: var(--surface);
-  border-top: 1px solid var(--border-soft);
 }
 #debug-handle:hover { background: var(--cell-active); }
 .dbg-handle-label {
@@ -1090,6 +1116,7 @@ input:focus-visible {
   color: var(--text-faint);
   font-size: 10.5px;
   white-space: nowrap;
+  align-self: center;
 }
 .dbg-level {
   color: var(--text-faint);
@@ -1100,6 +1127,7 @@ input:focus-visible {
   white-space: nowrap;
   justify-self: center;
   text-align: center;
+  align-self: center;
 }
 .dbg-line--info .dbg-level { color: var(--accent); }
 .dbg-line--warn .dbg-level { color: var(--warn); }
@@ -1117,7 +1145,7 @@ input:focus-visible {
 #live-test-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(26,25,22,0.22);
+  background: rgba(26,25,22,0.38);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -1131,7 +1159,7 @@ input:focus-visible {
 .lt-card {
   background: var(--surface);
   border: 3px solid color-mix(in srgb, var(--accent) 38%, var(--border));
-  border-radius: 18px;
+  border-radius: var(--radius-md);
   width: min(280px, calc(100vw - 32px));
   transform: scale(0.96) translateY(5px);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
