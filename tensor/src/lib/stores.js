@@ -80,10 +80,21 @@ export const liveTestState = writable({
   messageCount: 0,
 });
 export const doItCellId = writable(null);
+export const blocklyPreviewRequest = writable(null);
 export const sidebarVisible = writable(true);
 export const debugCollapsed = writable(true);
 export const debugOpenHeight = writable(200);
 export const debugLogs = writable([]);
+
+let blocklyPreviewRequestId = 0;
+
+export function requestBlocklyPreview(cellId, payload = {}) {
+  blocklyPreviewRequest.set({
+    id: ++blocklyPreviewRequestId,
+    cellId,
+    ...payload,
+  });
+}
 
 // ── Screen management ──
 export const screenList = writable(['Screen1']);

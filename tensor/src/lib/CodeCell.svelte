@@ -1,26 +1,38 @@
 <script>
-  import { onMount, tick } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { get } from 'svelte/store';
   import {
     setActive, moveCellById, deleteCellById, showCtx,
-    updateCellExecCount, updateCellCode, cells, doItCellId,
+    updateCellExecCount, updateCellCode, cells, doItCellId, blocklyPreviewRequest,
   } from './stores.js';
   import { falconTokenize, tokensToHtml } from './tokenizer.js';
+  import { falconCellToBlocklyPng, warmBlocklyPreviewRuntime } from './blockly-preview.js';
 
   export let cell;
   export let active = false;
 
+  let editorEl;
   let codeEl;
   let highlightEl;
   let running = false;
   let flashing = false;
   let blocklyActive = false;
+  let blocklyStatus = 'idle';
+  let blocklyError = '';
+  let blocklyPreviewUrl = '';
+  let blocklyPreviewBlob = null;
+  let blocklySourceSnapshot = '';
+  let blocklyPreviewRun = 0;
+  let blocklyPreviewHeight = 0;
+  let blocklyHeightReleaseTimer = null;
+  let handledBlocklyRequestId = null;
   let codeValue = cell.code || '';
   let history = [];
   let historyIndex = -1;
   let applyingHistory = false;
 
   const HISTORY_LIMIT = 100;
+  const BLOCKLY_HEIGHT_TRANSITION_MS = 180;
   const AUTO_PAIRS = {
     '{': '}',
     '(': ')',
@@ -29,9 +41,25 @@
   };
 
   $: isDoItVisible = $doItCellId === cell.id;
-  $: lineCount = Math.max(codeValue.split('\n').length, 1);
+  $: if (!blocklyActive && cell.code !== codeValue) {
+    codeValue = cell.code || '';
+  }
+  $: sourceLineCount = Math.max(codeValue.split('\n').length, 1);
+  $: previewLineCount = Math.max((blocklySourceSnapshot || codeValue).split('\n').length, 1);
+  $: lineCount = blocklyActive ? previewLineCount : sourceLineCount;
   $: lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
   $: highlightedCode = tokensToHtml(falconTokenize(codeValue));
+  $: blocklyEditorStyle = blocklyPreviewHeight
+    ? `height: ${blocklyPreviewHeight}px;`
+    : '';
+  $: if (
+    $blocklyPreviewRequest
+    && $blocklyPreviewRequest.cellId === cell.id
+    && $blocklyPreviewRequest.id !== handledBlocklyRequestId
+  ) {
+    handledBlocklyRequestId = $blocklyPreviewRequest.id;
+    previewPastedBlocks($blocklyPreviewRequest.blob);
+  }
 
   function codeText() {
     return codeValue;
@@ -361,6 +389,143 @@
     highlightEl.scrollTop = codeEl.scrollTop;
   }
 
+  function clearBlocklyPreviewAsset() {
+    if (blocklyPreviewUrl) URL.revokeObjectURL(blocklyPreviewUrl);
+    blocklyPreviewUrl = '';
+    blocklyPreviewBlob = null;
+  }
+
+  function clearBlocklyHeightReleaseTimer() {
+    if (!blocklyHeightReleaseTimer) return;
+    clearTimeout(blocklyHeightReleaseTimer);
+    blocklyHeightReleaseTimer = null;
+  }
+
+  function captureBlocklyPreviewHeight() {
+    clearBlocklyHeightReleaseTimer();
+    const rect = editorEl?.getBoundingClientRect?.();
+    blocklyPreviewHeight = rect?.height ? Math.max(1, Math.ceil(rect.height)) : 0;
+  }
+
+  function previewImageTargetHeight(img) {
+    const naturalWidth = img?.naturalWidth || 0;
+    const naturalHeight = img?.naturalHeight || 0;
+    if (!editorEl || !naturalWidth || !naturalHeight) return 0;
+
+    const pane = editorEl.querySelector('.blockly-preview-pane');
+    const styles = pane ? getComputedStyle(pane) : null;
+    const paddingLeft = Number.parseFloat(styles?.paddingLeft || '0') || 0;
+    const paddingRight = Number.parseFloat(styles?.paddingRight || '0') || 0;
+    const paddingTop = Number.parseFloat(styles?.paddingTop || '0') || 0;
+    const paddingBottom = Number.parseFloat(styles?.paddingBottom || '0') || 0;
+    const availableWidth = Math.max(1, editorEl.clientWidth - paddingLeft - paddingRight);
+    const widthScale = Math.min(1, availableWidth / naturalWidth);
+    const viewportLimit = Math.min(360, Math.max(96, Math.floor(window.innerHeight * 0.56)));
+    const imageHeight = Math.min(Math.ceil(naturalHeight * widthScale), viewportLimit);
+
+    return Math.max(1, Math.ceil(imageHeight + paddingTop + paddingBottom));
+  }
+
+  function onBlocklyPreviewImageLoad(e) {
+    if (!blocklyActive) return;
+    const nextHeight = previewImageTargetHeight(e.currentTarget);
+    if (!nextHeight || Math.abs(nextHeight - blocklyPreviewHeight) < 1) return;
+    blocklyPreviewHeight = nextHeight;
+  }
+
+  function codeEditorTargetHeight() {
+    const codeHeight = codeEl?.scrollHeight || 0;
+    const lineNumbersHeight = editorEl?.querySelector('.line-nums')?.scrollHeight || 0;
+    return Math.max(1, Math.ceil(codeHeight), Math.ceil(lineNumbersHeight));
+  }
+
+  function releaseBlocklyHeightAfterTransition(runId) {
+    clearBlocklyHeightReleaseTimer();
+    blocklyHeightReleaseTimer = setTimeout(() => {
+      if (runId === blocklyPreviewRun && !blocklyActive) blocklyPreviewHeight = 0;
+      blocklyHeightReleaseTimer = null;
+    }, BLOCKLY_HEIGHT_TRANSITION_MS + 40);
+  }
+
+  function restoreCodeAfterBlocklyPreview() {
+    const restored = blocklySourceSnapshot;
+    const runId = ++blocklyPreviewRun;
+    blocklyActive = false;
+    blocklyStatus = 'idle';
+    blocklyError = '';
+    clearBlocklyPreviewAsset();
+    codeValue = restored;
+    blocklySourceSnapshot = '';
+    updateCellCode(cell.id, restored);
+    tick().then(() => {
+      syncEditorScroll();
+      if (!blocklyPreviewHeight) return;
+      blocklyPreviewHeight = codeEditorTargetHeight();
+      releaseBlocklyHeightAfterTransition(runId);
+    });
+  }
+
+  async function startBlocklyPreview() {
+    if (blocklyActive || blocklyStatus === 'loading') return;
+    const source = codeValue || cell.code || '';
+    if (!source.trim()) return;
+
+    setActive(cell.id);
+    const runId = ++blocklyPreviewRun;
+    blocklySourceSnapshot = source;
+    captureBlocklyPreviewHeight();
+    blocklyActive = true;
+    blocklyStatus = 'loading';
+    blocklyError = '';
+    clearBlocklyPreviewAsset();
+    codeValue = '';
+    doItCellId.set(null);
+    await tick();
+    syncEditorScroll();
+
+    try {
+      const result = await falconCellToBlocklyPng(cell.id, source);
+      if (runId !== blocklyPreviewRun || !blocklyActive) return;
+      blocklyPreviewBlob = result.blob;
+      blocklyPreviewUrl = URL.createObjectURL(result.blob);
+      blocklyStatus = 'ready';
+    } catch (e) {
+      if (runId !== blocklyPreviewRun) return;
+      blocklyError = e?.message || String(e);
+      restoreCodeAfterBlocklyPreview();
+      console.error('[blockly-preview]', e);
+    }
+  }
+
+  function stopBlocklyPreview() {
+    if (!blocklyActive && blocklyStatus !== 'loading') return;
+    restoreCodeAfterBlocklyPreview();
+  }
+
+  function toggleBlocklyPreview() {
+    if (blocklyActive || blocklyStatus === 'loading') stopBlocklyPreview();
+    else startBlocklyPreview();
+  }
+
+  function previewPastedBlocks(blob) {
+    if (!blob) return;
+    setActive(cell.id);
+    blocklyPreviewRun += 1;
+    clearBlocklyPreviewAsset();
+    if (!blocklyActive || !blocklyPreviewHeight) captureBlocklyPreviewHeight();
+    blocklySourceSnapshot = blocklyActive
+      ? blocklySourceSnapshot
+      : (codeValue || cell.code || '');
+    blocklyPreviewBlob = blob;
+    blocklyPreviewUrl = URL.createObjectURL(blob);
+    blocklyStatus = 'ready';
+    blocklyError = '';
+    blocklyActive = true;
+    codeValue = '';
+    doItCellId.set(null);
+    tick().then(syncEditorScroll);
+  }
+
   function runCell() {
     if (running) return;
     running = true;
@@ -451,6 +616,11 @@
     document.addEventListener('keydown', handleDocumentKey, true);
     return () => document.removeEventListener('keydown', handleDocumentKey, true);
   });
+
+  onDestroy(() => {
+    clearBlocklyHeightReleaseTimer();
+    clearBlocklyPreviewAsset();
+  });
 </script>
 
 <div
@@ -495,7 +665,8 @@
       class="cell-menu-btn blockly-btn"
       class:active={blocklyActive}
       title="Toggle Blockly view"
-      on:click|stopPropagation={() => { blocklyActive = !blocklyActive; }}
+      on:click|stopPropagation={toggleBlocklyPreview}
+      on:pointerenter={warmBlocklyPreviewRuntime}
     >
       <svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
         <path stroke="currentColor" stroke-width="4" stroke-linejoin="round" d="M 50 9 C 43.936593 9 39 13.936593 39 20 C 39 22.259221 39.844873 24.249457 41.017578 26 L 26 26 C 22.698375 26 20 28.698375 20 32 L 20 47 L 20 48.859375 A 1.0001 1.0001 0 0 0 21.699219 49.572266 C 23.324036 47.978972 25.540569 47 28 47 C 32.982593 47 37 51.017407 37 56 C 37 60.982593 32.982593 65 28 65 C 25.540569 65 23.324036 64.021028 21.699219 62.427734 A 1.0001 1.0001 0 0 0 20 63.140625 L 20 64 L 20 80 C 20 83.301625 22.698375 86 26 86 L 74 86 C 77.301625 86 80 83.301625 80 80 L 80 32 C 80 28.698375 77.301625 26 74 26 L 58.982422 26 C 60.154932 24.249881 61 22.259603 61 20 C 61 13.936593 56.063407 9 50 9 z M 50 11 C 54.982593 11 59 15.017407 59 20 C 59 22.459431 58.02067 24.675276 56.427734 26.298828 A 1.0001 1.0001 0 0 0 57.140625 28 L 74 28 C 76.220375 28 78 29.779625 78 32 L 78 80 C 78 82.220375 76.220375 84 74 84 L 26 84 C 23.779625 84 22 82.220375 22 80 L 22 64.982422 C 23.750312 66.155107 25.740098 67 28 67 C 34.063407 67 39 62.063407 39 56 C 39 49.936593 34.063407 45 28 45 C 25.740098 45 23.750312 45.844893 22 47.017578 L 22 32 C 22 29.779625 23.779625 28 26 28 L 42.859375 28 A 1.0001 1.0001 0 0 0 43.572266 26.300781 C 41.979101 24.676095 41 22.458333 41 20 C 41 15.017407 45.017407 11 50 11 z"/>
@@ -507,13 +678,29 @@
     </button>
   </div>
 
-  <div class="code-editor">
+  <div
+    class="code-editor"
+    bind:this={editorEl}
+    class:blockly-previewing={blocklyActive}
+    style={blocklyEditorStyle}
+  >
     <div class="line-nums" aria-hidden="true">
       {#each lineNumbers as n}
         <div>{n}</div>
       {/each}
     </div>
     <div class="code-stack">
+      {#if blocklyActive}
+        <div class="blockly-preview-pane">
+          {#if blocklyStatus === 'loading'}
+            <div class="blockly-preview-state">Converting blocks...</div>
+          {:else if blocklyPreviewUrl}
+            <img class="blockly-preview-img" src={blocklyPreviewUrl} alt="" on:load={onBlocklyPreviewImageLoad} />
+          {:else if blocklyError}
+            <div class="blockly-preview-state blockly-preview-error">{blocklyError}</div>
+          {/if}
+        </div>
+      {/if}
       <pre class="code-highlight" aria-hidden="true" bind:this={highlightEl}>{@html highlightedCode}</pre>
       <textarea
         class="code-area"

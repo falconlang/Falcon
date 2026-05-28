@@ -479,7 +479,7 @@ html, body {
 /* ── Cell ── */
 .cell {
   position: relative;
-  margin-bottom: 6px;
+  margin-bottom: 12px;
   border-radius: var(--radius-md);
   border: 1.5px solid transparent;
   transition: border-color 0.15s;
@@ -611,6 +611,7 @@ html, body {
   background: var(--bg);
   overflow: hidden;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
+  transition: height 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .line-nums {
@@ -672,6 +673,77 @@ html, body {
   background: color-mix(in srgb, var(--accent) 24%, transparent);
   color: transparent;
   -webkit-text-fill-color: transparent;
+}
+
+.code-editor.blockly-previewing .line-nums {
+  display: none;
+}
+
+.code-editor.blockly-previewing {
+  min-height: 0;
+  will-change: height;
+}
+
+.code-editor.blockly-previewing .code-stack {
+  height: 100%;
+  min-height: 0;
+}
+
+.code-editor.blockly-previewing .code-highlight,
+.code-editor.blockly-previewing .code-area {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.blockly-preview-pane {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  min-height: 0;
+  padding: 4px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.blockly-preview-img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.blockly-preview-state {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.blockly-preview-error {
+  color: var(--error);
+  background: var(--error-soft);
+  border-color: color-mix(in srgb, var(--error) 28%, var(--border));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code-editor {
+    transition: none;
+  }
 }
 
 /* Syntax highlight tokens — light */

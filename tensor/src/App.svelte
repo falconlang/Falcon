@@ -10,8 +10,16 @@
   import StatusBar from './lib/StatusBar.svelte';
   import ContextMenu from './lib/ContextMenu.svelte';
   import LiveTestOverlay from './lib/LiveTestOverlay.svelte';
+  import { warmBlocklyPreviewRuntime } from './lib/blockly-preview.js';
 
   onMount(() => {
+    const warmBlockly = () => warmBlocklyPreviewRuntime();
+    if (window.requestIdleCallback) {
+      window.requestIdleCallback(warmBlockly, { timeout: 2500 });
+    } else {
+      window.setTimeout(warmBlockly, 800);
+    }
+
     document.addEventListener('click', hideCtx);
 
     document.addEventListener('keydown', e => {
