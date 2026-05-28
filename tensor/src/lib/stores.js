@@ -83,6 +83,7 @@ export const doItCellId = writable(null);
 export const blocklyPreviewRequest = writable(null);
 export const sidebarVisible = writable(true);
 export const debugCollapsed = writable(true);
+export const notebookMode = writable('cells'); // 'cells' | 'unified'
 export const debugOpenHeight = writable(200);
 export const debugLogs = writable([]);
 
