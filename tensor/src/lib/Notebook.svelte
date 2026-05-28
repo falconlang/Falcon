@@ -4,6 +4,10 @@
   import MarkdownCell from './MarkdownCell.svelte';
 </script>
 
+<div class="dsgn-header">
+  <span class="dsgn-filename">Functionality</span>
+</div>
+
 <div id="notebook-wrap">
   <div id="notebook">
     {#each $cells as cell (cell.id)}
