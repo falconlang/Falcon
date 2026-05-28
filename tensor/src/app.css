@@ -615,6 +615,45 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.dsgn-mode-toggle {
+  display: flex;
+  gap: 1px;
+  background: var(--border-soft);
+  border-radius: 5px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.dsgn-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-family: var(--font);
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.12s;
+}
+.dsgn-mode-btn:hover { color: var(--text-muted); }
+.dsgn-mode-btn svg { width: 12px; height: 12px; }
+.dsgn-mode-btn--active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.07);
+}
+
+.dsgn-visual-wrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  min-height: 0;
+}
 .dsgn-editor {
   flex: 1;
   overflow: hidden;

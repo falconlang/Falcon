@@ -9,6 +9,9 @@
     updateDesignCode,
   } from './stores.js';
   import { schemaTokenize, tokensToHtml } from './tokenizer.js';
+  import DesignerVisual from './DesignerVisual.svelte';
+
+  let visualMode = false;
 
   let dsgnCodeEl;
   let dsgnHighlightEl;
@@ -474,8 +477,40 @@
 <div id="designer-panel" bind:this={panelEl}>
   <div class="dsgn-header">
     <span class="dsgn-filename">Designer</span>
+    <div class="dsgn-mode-toggle">
+      <button
+        class="dsgn-mode-btn"
+        class:dsgn-mode-btn--active={!visualMode}
+        on:click={() => (visualMode = false)}
+        title="Text editor"
+      >
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+          <path d="M1 3h10M1 6h7M1 9h9"/>
+        </svg>
+        Text
+      </button>
+      <button
+        class="dsgn-mode-btn"
+        class:dsgn-mode-btn--active={visualMode}
+        on:click={() => (visualMode = true)}
+        title="Visual editor"
+      >
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 2h2v2H1zM5 3h6M1 6h2v2H1zM5 7h4M1 10h2v2H1zM5 11h3"/>
+        </svg>
+        Visual
+      </button>
+    </div>
   </div>
 
+  {#if visualMode}
+    <div class="dsgn-visual-wrap">
+      <DesignerVisual
+        schemaValue={schemaValue}
+        on:change={e => { schemaValue = e.detail.schema; updateDesignCode(schemaValue); }}
+      />
+    </div>
+  {:else}
   <div class="dsgn-editor">
     <div class="dsgn-scroll">
       <div class="dsgn-row">
@@ -502,6 +537,7 @@
       </div>
     </div>
   </div>
+  {/if}
 
   <div
     id="debug-handle"
