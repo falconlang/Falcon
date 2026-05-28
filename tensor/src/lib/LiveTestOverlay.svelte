@@ -3,6 +3,7 @@
   import {
     cells,
     designCode,
+    appendDebugLogsFromCompanionResponse,
     getDesignSource,
     getFalconSource,
     liveTestOpen,
@@ -112,11 +113,18 @@
         addConnectionLog('Companion response: non-OK status', 'warn');
         return;
       }
+      appendDebugLogsFromCompanionResponse(resp);
       for (const value of resp.values ?? []) {
+        if (value.type === 'log') continue;
+        if (value.type === 'error') {
+          console.error('[companion] runtime error:', value.value);
+          addConnectionLog(`Runtime error: ${value.value}`, 'error');
+          continue;
+        }
         if (value.status === 'OK') {
           if (value.value && value.value !== '*nothing*') {
             console.log('[companion] ->', value.value);
-            addConnectionLog(`Companion value: ${value.value}`, 'success');
+            addConnectionLog(`Companion value: ${value.value}`, 'info');
           }
         } else {
           console.error('[companion] eval error:', value.value);
@@ -288,7 +296,7 @@
       lastSentSourceKey = sourceKey;
       status = 'connected';
       error = null;
-      addConnectionLog('REPL payload accepted by data channel', 'success');
+      addConnectionLog('REPL payload accepted by data channel', 'info');
       liveTestOpen.set(false);
       scheduleRefresh();
     } catch (e) {

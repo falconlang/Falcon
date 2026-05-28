@@ -1156,29 +1156,26 @@ func (p *Parser) genComponentMethod(b ast.Block) string {
 	if mut == nil {
 		return ""
 	}
-	numArgs := len(mut.Args)
-	args := make([]string, numArgs)
-	typeList := make([]string, numArgs)
-	for i, a := range mut.Args {
-		args[i] = p.genValueSlot(b.Values, "ARG"+strconv.Itoa(i))
-		t := a.Type
-		if t == "" {
-			t = "any"
-		}
-		typeList[i] = t
-	}
-	argList := ""
-	if numArgs > 0 {
-		argList = " " + strings.Join(args, " ")
-	}
-	types := strings.Join(typeList, " ")
-
 	methodName := mut.MethodName
 	if methodName == "Add" {
 		if tu := fieldByName(b, "TIME_UNIT"); tu != "" {
 			methodName = "Add" + tu
 		}
 	}
+
+	argMeta := p.componentMethodArgs(b, methodName)
+	numArgs := len(argMeta)
+	args := make([]string, numArgs)
+	typeList := make([]string, numArgs)
+	for i, a := range argMeta {
+		args[i] = p.genValueSlot(b.Values, "ARG"+strconv.Itoa(i))
+		typeList[i] = a.Type
+	}
+	argList := ""
+	if numArgs > 0 {
+		argList = " " + strings.Join(args, " ")
+	}
+	types := strings.Join(typeList, " ")
 
 	if mut.IsGeneric {
 		comp := p.genValueSlot(b.Values, "COMPONENT")
@@ -1204,6 +1201,40 @@ func (p *Parser) genComponentMethod(b ast.Block) string {
 	}
 	return "(call-component-method '" + compName + " '" + methodName +
 		" (*list-for-runtime*" + argList + ") '(" + types + "))"
+}
+
+func (p *Parser) componentMethodArgs(b ast.Block, methodName string) []ast.Arg {
+	mut := b.Mutation
+	if mut == nil {
+		return nil
+	}
+
+	numArgs := len(mut.Args)
+	if valueArgs := valueSlotCount(b.Values, "ARG"); valueArgs > numArgs {
+		numArgs = valueArgs
+	}
+	if numArgs == 0 {
+		return nil
+	}
+
+	args := make([]ast.Arg, numArgs)
+	copy(args, mut.Args)
+	dbParams := globalDB.GetMethodParams(mut.ComponentType, methodName)
+	for i := range args {
+		if args[i].Name == "" {
+			args[i].Name = "ARG" + strconv.Itoa(i)
+			if i < len(dbParams) && dbParams[i].Name != "" {
+				args[i].Name = dbParams[i].Name
+			}
+		}
+		if args[i].Type == "" {
+			args[i].Type = "any"
+			if i < len(dbParams) && dbParams[i].Type != "" {
+				args[i].Type = dbParams[i].Type
+			}
+		}
+	}
+	return args
 }
 
 func (p *Parser) genComponentProp(b ast.Block) string {

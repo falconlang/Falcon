@@ -91,6 +91,13 @@ type EventDef struct {
 	Params []string
 }
 
+// MethodParam holds the canonical name and YAIL type for a component method
+// parameter.
+type MethodParam struct {
+	Name string
+	Type string
+}
+
 // ── CompDB ────────────────────────────────────────────────────────────────────
 
 type CompDB struct {
@@ -204,6 +211,30 @@ func (db *CompDB) GetPropType(compType, propName string) string {
 // IsContinuation reports whether a component method uses blocking-continuation.
 func (db *CompDB) IsContinuation(compType, methodName string) bool {
 	return db.methodContinuation[compType+"."+methodName]
+}
+
+// GetMethodParams returns the parameters for a component method, or nil if the
+// component or method is unknown.
+func (db *CompDB) GetMethodParams(compType, methodName string) []MethodParam {
+	comp, ok := db.components[compType]
+	if !ok {
+		return nil
+	}
+	for _, method := range comp.Methods {
+		if method.Name != methodName {
+			continue
+		}
+		params := make([]MethodParam, len(method.Params))
+		for i, param := range method.Params {
+			paramType := param.Type
+			if paramType == "" {
+				paramType = "any"
+			}
+			params[i] = MethodParam{Name: param.Name, Type: paramType}
+		}
+		return params
+	}
+	return nil
 }
 
 // GetOptionList returns the OptionList for the given key, or nil if not found.

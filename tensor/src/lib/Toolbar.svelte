@@ -1,7 +1,5 @@
 <script>
-  import { addCodeCell, sidebarVisible, debugCollapsed, debugOpenHeight } from './stores.js';
-
-  export let debugActive = true;
+  import { addCodeCell, sidebarVisible, debugCollapsed } from './stores.js';
 
   function toggleSidebar() {
     sidebarVisible.update(v => !v);
@@ -9,11 +7,9 @@
 
   function toggleDebugPanel() {
     debugCollapsed.update(v => !v);
-    debugActive = !$debugCollapsed;
   }
 
-  import { debugCollapsed as dc } from './stores.js';
-  $: debugActive = !$dc;
+  $: debugActive = !$debugCollapsed;
 </script>
 
 <div id="toolbar">

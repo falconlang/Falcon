@@ -82,6 +82,92 @@ export const doItCellId = writable(null);
 export const sidebarVisible = writable(true);
 export const debugCollapsed = writable(false);
 export const debugOpenHeight = writable(200);
+export const debugLogs = writable([]);
+
+let debugLogId = 0;
+
+function debugTimestamp(date = new Date()) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${String(date.getMilliseconds()).padStart(3, '0')}`;
+}
+
+export function normalizeDebugLevel(level) {
+  const normalized = String(level || 'info').toLowerCase();
+  if (normalized === 'high' || normalized === 'critical' || normalized === 'fatal') return 'high';
+  if (normalized === 'error') return 'error';
+  if (normalized === 'warning' || normalized === 'warn') return 'warn';
+  return 'info';
+}
+
+function stringifyDebugValue(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+export function extractDebugLogsFromCompanionResponse(data) {
+  const payload = typeof data === 'string' ? JSON.parse(data) : data;
+  const values = Array.isArray(payload?.values)
+    ? payload.values
+    : Array.isArray(payload) ? payload : [];
+
+  return values
+    .map(value => {
+      if (value?.type === 'log') {
+        return {
+          level: normalizeDebugLevel(value.level),
+          message: stringifyDebugValue(value.item ?? value.value),
+          source: stringifyDebugValue(value.blockid || 'Notifier'),
+          status: value.status || null,
+        };
+      }
+
+      if (value?.type === 'error') {
+        return {
+          level: 'high',
+          message: stringifyDebugValue(value.value ?? value.item),
+          source: stringifyDebugValue(value.blockid || 'Runtime'),
+          status: value.status || null,
+        };
+      }
+
+      return null;
+    })
+    .filter(Boolean);
+}
+
+export function appendDebugLogs(entries) {
+  const nextEntries = entries
+    .map(entry => ({
+      id: ++debugLogId,
+      time: debugTimestamp(),
+      level: normalizeDebugLevel(entry.level),
+      source: entry.source || 'Notifier',
+      message: stringifyDebugValue(entry.message),
+      status: entry.status || null,
+    }))
+    .filter(entry => entry.message.length > 0);
+
+  if (!nextEntries.length) return [];
+  debugLogs.update(logs => [...logs, ...nextEntries].slice(-500));
+  return nextEntries;
+}
+
+export function appendDebugLogsFromCompanionResponse(data) {
+  try {
+    return appendDebugLogs(extractDebugLogsFromCompanionResponse(data));
+  } catch {
+    return [];
+  }
+}
+
+export function clearDebugLogs() {
+  debugLogs.set([]);
+}
 
 export function setActive(id) {
   activeCellId.set(id);

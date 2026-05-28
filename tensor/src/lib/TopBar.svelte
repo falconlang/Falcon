@@ -58,10 +58,6 @@
   <input class="file-name" value="falcon_tour.fc" spellcheck="false" />
   <div class="tb-spacer"></div>
   <div class="topbar-actions">
-    <button class="tb-btn" title="Share">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3l3 3-3 3M13 6H6a3 3 0 000 6h1"/></svg>
-      Share
-    </button>
     <button
       class="tb-btn live-test-chip live-test-chip--{liveTestStatus}"
       title={liveTestTitle}
@@ -80,6 +76,10 @@
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="8" height="12" rx="1.5"/><path d="M5 10.5h4"/><path d="M7 1V0M4 0h6"/></svg>
       {/if}
       {liveTestLabel}
+    </button>
+    <button class="tb-btn" title="Share">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3l3 3-3 3M13 6H6a3 3 0 000 6h1"/></svg>
+      Share
     </button>
     <button class="tb-btn" title={isDark ? 'Switch to light mode' : 'Switch to dark mode'} on:click={toggleTheme}>
       {#if isDark}
