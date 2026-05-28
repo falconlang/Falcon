@@ -1,11 +1,13 @@
 <script>
   import { createEventDispatcher, tick } from 'svelte';
+  import simpleComponents from '../../../lang/code/compdb/simple_components.json';
+  import { addDesignAsset, deleteDesignAsset, designAssets, renameDesignAsset } from './stores.js';
 
   export let schemaValue = '';
   const dispatch = createEventDispatcher();
 
   // ── Component property database ────────────────────────────────────
-  const COMP_PROPS = {
+  const LEGACY_COMP_PROPS = {
     Screen: [
       { name: 'Title',             editorType: 'string',             category: 'General'    },
       { name: 'BackgroundColor',   editorType: 'color',              category: 'Appearance' },
@@ -99,6 +101,168 @@
     ],
   };
 
+  const ENUM_OPTIONS = {
+    typeface: [
+      { value: '0', label: 'Default' },
+      { value: '1', label: 'Serif' },
+      { value: '2', label: 'Sans serif' },
+      { value: '3', label: 'Monospace' },
+      { value: '4', label: 'Custom' },
+    ],
+    visibility: [
+      { value: 'true', label: 'Show' },
+      { value: 'false', label: 'Hide' },
+      { value: 'responsive', label: 'Responsive' },
+    ],
+    textalignment: [
+      { value: '0', label: 'Left' },
+      { value: '1', label: 'Center' },
+      { value: '2', label: 'Right' },
+    ],
+    button_shape: [
+      { value: '0', label: 'Default' },
+      { value: '1', label: 'Rounded' },
+      { value: '2', label: 'Rectangular' },
+      { value: '3', label: 'Oval' },
+    ],
+    horizontal_alignment: [
+      { value: '1', label: 'Left' },
+      { value: '3', label: 'Center' },
+      { value: '2', label: 'Right' },
+    ],
+    vertical_alignment: [
+      { value: '1', label: 'Top' },
+      { value: '2', label: 'Center' },
+      { value: '3', label: 'Bottom' },
+    ],
+    screen_orientation: [
+      { value: 'unspecified', label: 'Unspecified' },
+      { value: 'portrait', label: 'Portrait' },
+      { value: 'landscape', label: 'Landscape' },
+      { value: 'sensor', label: 'Sensor' },
+    ],
+    toast_length: [
+      { value: '0', label: 'Short' },
+      { value: '1', label: 'Long' },
+    ],
+    theme: [
+      { value: 'Classic', label: 'Classic' },
+      { value: 'Device Default', label: 'Device Default' },
+      { value: 'Dark', label: 'Dark' },
+      { value: 'Black', label: 'Black' },
+      { value: 'AppTheme.Light.DarkActionBar', label: 'Light with action bar' },
+    ],
+    screen_animation: [
+      { value: 'default', label: 'Default' },
+      { value: 'fade', label: 'Fade' },
+      { value: 'zoom', label: 'Zoom' },
+      { value: 'slidehorizontal', label: 'Slide horizontal' },
+      { value: 'slidevertical', label: 'Slide vertical' },
+      { value: 'none', label: 'None' },
+    ],
+    sizing: [
+      { value: 'Responsive', label: 'Responsive' },
+      { value: 'Fixed', label: 'Fixed' },
+    ],
+    file_scope: [
+      { value: 'App', label: 'App' },
+      { value: 'Asset', label: 'Asset' },
+      { value: 'Cache', label: 'Cache' },
+      { value: 'Legacy', label: 'Legacy' },
+      { value: 'Private', label: 'Private' },
+      { value: 'Shared', label: 'Shared' },
+    ],
+  };
+
+  const COMPONENT_ALIASES = {
+    Screen: 'Form',
+  };
+
+  function optionsFromHelper(blockProp) {
+    const opts = blockProp?.helper?.data?.options;
+    if (!Array.isArray(opts)) return [];
+    return opts
+      .filter(opt => opt?.deprecated !== 'true')
+      .map(opt => ({ value: String(opt.value), label: opt.name }));
+  }
+
+  function inferEditorType(propName, blockProp, designerProp) {
+    if (propName === 'Height' || propName === 'Width') return 'layout_size';
+    if (designerProp?.editorType) return designerProp.editorType;
+    if (/(Color|Colour)$/.test(propName) || propName === 'PaintColor') return 'color';
+    if (/Image|Icon|Picture|Sound|Source|FileName|ResponseFileName/.test(propName)) return 'asset';
+    if (blockProp?.type === 'boolean') return 'boolean';
+    if (blockProp?.type === 'number') return 'integer';
+    if (blockProp?.type === 'list') return 'textArea';
+    return 'string';
+  }
+
+  function normalizePropertyCategory(category) {
+    if (!category || category === 'Unspecified') return 'General';
+    return category;
+  }
+
+  function buildPropsForComponent(component) {
+    const designerByName = new Map((component.properties || []).map(prop => [prop.name, prop]));
+    const blockByName = new Map((component.blockProperties || []).map(prop => [prop.name, prop]));
+    const orderedNames = [];
+
+    for (const prop of component.blockProperties || []) {
+      if (prop.rw === 'invisible') continue;
+      orderedNames.push(prop.name);
+    }
+
+    for (const prop of component.properties || []) {
+      const blockProp = blockByName.get(prop.name);
+      if (blockProp?.rw === 'invisible') continue;
+      if (!orderedNames.includes(prop.name)) orderedNames.push(prop.name);
+    }
+
+    return orderedNames.map(name => {
+      const designerProp = designerByName.get(name);
+      const blockProp = blockByName.get(name);
+      const options = optionsFromHelper(blockProp);
+      const editorType = inferEditorType(name, blockProp, designerProp);
+      const editorArgs = designerProp?.editorArgs || [];
+
+      return {
+        name,
+        editorType,
+        category: normalizePropertyCategory(blockProp?.category),
+        defaultValue: designerProp?.defaultValue ?? '',
+        options: options.length
+          ? options
+          : editorType === 'choices'
+            ? editorArgs.map(arg => ({ value: arg, label: arg }))
+            : ENUM_OPTIONS[editorType] || [],
+      };
+    });
+  }
+
+  function buildComponentProps(components) {
+    const props = {};
+    for (const component of components) {
+      props[component.name] = buildPropsForComponent(component);
+    }
+    for (const [alias, target] of Object.entries(COMPONENT_ALIASES)) {
+      props[alias] = props[target] || [];
+    }
+    return props;
+  }
+
+  const COMP_PROPS = buildComponentProps(simpleComponents);
+  const KNOWN_COMPONENT_TYPES = new Set(Object.keys(COMP_PROPS));
+  const COMPONENT_META = new Map(simpleComponents.map(component => [component.name, component]));
+
+  function componentTypeName(ident) {
+    const dotIdx = ident.indexOf('.');
+    return dotIdx === -1 ? ident : ident.slice(0, dotIdx);
+  }
+
+  function isKnownComponentIdent(ident) {
+    return KNOWN_COMPONENT_TYPES.has(componentTypeName(ident));
+  }
+
   const FALLBACK_PROPS = [
     { name: 'Visible', editorType: 'visibility',  category: 'Appearance' },
     { name: 'Height',  editorType: 'layout_size', category: 'Appearance' },
@@ -107,18 +271,40 @@
 
 
   const CONTAINER_TYPES = new Set([
-    'Screen', 'HorizontalArrangement', 'VerticalArrangement',
-    'TableArrangement', 'ScrollHorizontal', 'ScrollVertical',
+    'Screen',
+    'Form',
+    'Canvas',
+    'Map',
+    'FeatureCollection',
+    'ScrollHorizontal',
+    'ScrollVertical',
+    ...simpleComponents
+      .filter(component => component.categoryString === 'LAYOUT')
+      .map(component => component.name),
   ]);
+
+  function isNonVisibleComponentType(type) {
+    if (type === 'Screen' || type === 'Form') return false;
+    return COMPONENT_META.get(type)?.nonVisible === 'true';
+  }
 
   // ── Schema parser ──────────────────────────────────────────────────
   function parseSchema(text) {
-    if (!text?.trim()) return null;
+    if (!text?.trim()) return { root: null, error: 'The design schema is empty.' };
     text = text.replace(/\/\/[^\n]*/g, '');
     let pos = 0;
     const typeCounts = {};
 
     function skipWs() { while (pos < text.length && /\s/.test(text[pos])) pos++; }
+    function describePos() {
+      const before = text.slice(0, pos);
+      const line = before.split('\n').length;
+      const col = before.length - before.lastIndexOf('\n');
+      return `line ${line}, column ${col}`;
+    }
+    function fail(message) {
+      throw new Error(`${message} (${describePos()})`);
+    }
     function readIdent() {
       skipWs();
       let s = '';
@@ -129,10 +315,14 @@
       pos++;
       let s = '';
       while (pos < text.length && text[pos] !== '"') {
-        if (text[pos] === '\\') pos++;
+        if (text[pos] === '\\') {
+          pos++;
+          if (pos >= text.length) fail('Unterminated string literal');
+        }
         s += text[pos++];
       }
-      if (pos < text.length) pos++;
+      if (pos >= text.length) fail('Unterminated string literal');
+      pos++;
       return s;
     }
     function readValue() {
@@ -140,33 +330,39 @@
       if (text[pos] === '"') return readStr();
       let s = '';
       while (pos < text.length && !/[,\n{}]/.test(text[pos])) s += text[pos++];
-      return s.trim();
+      const value = s.trim();
+      if (!value) fail('Expected a property value');
+      return value;
     }
-
-    function parseComp(pathId) {
-      skipWs();
-      if (pos >= text.length) return null;
-      const ident = readIdent();
-      if (!ident) return null;
+    function makeComponent(ident, pathId) {
       const dotIdx = ident.indexOf('.');
-      const type = dotIdx === -1 ? ident : ident.slice(0, dotIdx);
+      const type = componentTypeName(ident);
       let name = dotIdx === -1 ? null : ident.slice(dotIdx + 1);
+      if (!type) fail('Expected a component type');
       if (!name) {
         typeCounts[type] = (typeCounts[type] || 0) + 1;
         name = `${type}${typeCounts[type]}`;
       }
-      const comp = { type, name, props: {}, children: [], pathId };
+      return { type, name, props: {}, children: [], pathId };
+    }
+
+    function parseComp(pathId) {
+      skipWs();
+      if (pos >= text.length) fail('Expected a component');
+      const ident = readIdent();
+      if (!ident) fail('Expected a component or property name');
+      const comp = makeComponent(ident, pathId);
       skipWs();
       if (text[pos] !== '{') return comp;
       pos++;
       let ci = 0;
-      while (pos < text.length) {
+      while (true) {
         skipWs();
         if (text[pos] === '}') { pos++; break; }
-        if (pos >= text.length) break;
+        if (pos >= text.length) fail(`Expected "}" to close ${comp.type}.${comp.name}`);
         const save = pos;
         const tok = readIdent();
-        if (!tok) { pos++; continue; }
+        if (!tok) fail('Expected a property or child component');
         skipWs();
         if (pos < text.length && text[pos] === ':') {
           pos++;
@@ -175,21 +371,37 @@
           skipWs();
           if (pos < text.length && text[pos] === ',') pos++;
         } else if (pos < text.length && text[pos] === '{') {
+          if (!isKnownComponentIdent(tok)) fail(`Expected ":" after property "${tok}"`);
           pos = save;
           const child = parseComp(`${pathId}-${ci++}`);
           if (child) comp.children.push(child);
+          skipWs();
+          if (pos < text.length && text[pos] === ',') pos++;
         } else {
-          pos = save + 1;
+          if (!isKnownComponentIdent(tok)) fail(`Expected ":" after property "${tok}"`);
+          pos = save;
+          const child = parseComp(`${pathId}-${ci++}`);
+          if (child) comp.children.push(child);
+          skipWs();
+          if (pos < text.length && text[pos] === ',') pos++;
         }
       }
       return comp;
     }
-    return parseComp('0');
+
+    try {
+      const root = parseComp('0');
+      skipWs();
+      if (pos < text.length) fail(`Unexpected token "${text[pos]}"`);
+      return { root, error: null };
+    } catch (err) {
+      return { root: null, error: err.message || 'Unable to parse design schema.' };
+    }
   }
 
   // ── Serializer ─────────────────────────────────────────────────────
   function needsQuotes(val) {
-    return !/^(true|false|True|False|-?\d+\.?\d*)$/.test(String(val).trim());
+    return !/^(true|false|True|False|-?\d+\.?\d*|&H[0-9A-Fa-f]{8})$/.test(String(val).trim());
   }
 
   function serializeComp(node, depth = 0) {
@@ -255,6 +467,12 @@
     return [root.name, ...root.children.flatMap(collectNames)];
   }
 
+  function nameExists(name, root, exceptPathId = null) {
+    if (!root) return false;
+    if (root.pathId !== exceptPathId && root.name === name) return true;
+    return root.children.some(child => nameExists(name, child, exceptPathId));
+  }
+
   function uniqueName(type, root) {
     const existing = new Set(collectNames(root));
     let n = 1;
@@ -265,13 +483,15 @@
   // ── Mutable tree state ─────────────────────────────────────────────
   let prevSchema = '';
   let mutableTree = null;
+  let parseError = '';
 
   $: {
     if (schemaValue !== prevSchema) {
       prevSchema = schemaValue;
       const parsed = parseSchema(schemaValue);
-      mutableTree = parsed;
-      if (parsed && !findNode(parsed, selectedPathId)) selectedPathId = '0';
+      parseError = parsed.error || '';
+      mutableTree = parsed.root;
+      if (parsed.root && !findNode(parsed.root, selectedPathId)) selectedPathId = '0';
     }
   }
 
@@ -279,6 +499,7 @@
     mutableTree = newTree;
     const schema = serializeTree(newTree);
     prevSchema = schema;
+    parseError = '';
     dispatch('change', { schema });
   }
 
@@ -286,23 +507,56 @@
   let collapsed = new Set();
   let selectedPathId = '0';
   let collapsedCategories = new Set();
+  let componentFilter = 'all';
   let showPicker = false;
   let addCompValue = '';
+  let addCompError = '';
   let addCompInputEl;
   let ctxMenu = null; // { x, y, pathId, isContainer, isRoot }
+  let assetCtxMenu = null; // { x, y, assetId }
+  let renamingAssetId = null;
+  let assetRenameValue = '';
+  let assetRenameError = '';
+  let assetRenameInputEl;
   let renamingPathId = null;
   let renameValue = '';
+  let renameError = '';
   let renameInputEl;
 
   let dragPathId = null;
   let dropTarget = null; // { pathId, position: 'before' | 'after' | 'into' }
 
   $: flatList = mutableTree ? flattenTree(mutableTree, 0, collapsed) : [];
-  $: selectedNode = flatList.find(n => n.pathId === selectedPathId) ?? flatList[0] ?? null;
+  $: visibleFlatList = flatList.filter(componentFilterMatches);
+  $: mediaAssets = $designAssets.map(normalizeAssetRecord);
+  $: activeAsset = assetCtxMenu ? mediaAssets.find(asset => asset.id === assetCtxMenu.assetId) : null;
+  $: if (mutableTree && visibleFlatList.length && !visibleFlatList.some(n => n.pathId === selectedPathId)) {
+    selectedPathId = visibleFlatList[0].pathId;
+  }
+  $: selectedNode = flatList.find(n => n.pathId === selectedPathId) ?? visibleFlatList[0] ?? flatList[0] ?? null;
   $: propGroups = selectedNode
     ? groupByCategory(COMP_PROPS[selectedNode.type] ?? FALLBACK_PROPS)
     : [];
   $: isRoot = selectedNode?.pathId === '0';
+
+  function componentFilterMatches(node) {
+    if (componentFilter === 'all') return true;
+    const isNonVisible = isNonVisibleComponentType(node.type);
+    return componentFilter === 'nonVisible' ? isNonVisible : !isNonVisible;
+  }
+
+  function normalizeAssetRecord(asset, index) {
+    if (typeof asset === 'string') {
+      return { id: asset || `asset-${index}`, name: asset, size: 0, type: '', url: '' };
+    }
+    return {
+      id: asset?.id || asset?.name || `asset-${index}`,
+      name: asset?.name || '',
+      size: asset?.size || 0,
+      type: asset?.type || '',
+      url: asset?.url || '',
+    };
+  }
 
   function toggleCollapse(pathId) {
     const next = new Set(collapsed);
@@ -442,6 +696,7 @@
     e.stopPropagation();
     selectedPathId = node.pathId;
     showPicker = false;
+    assetCtxMenu = null;
     ctxMenu = {
       x: Math.min(e.clientX, window.innerWidth - 172),
       y: Math.min(e.clientY, window.innerHeight - 150),
@@ -451,27 +706,42 @@
     };
   }
 
-  function closeCtxMenu() { ctxMenu = null; }
+  function closeCtxMenu() {
+    ctxMenu = null;
+    assetCtxMenu = null;
+  }
 
   function ctxRename()  { closeCtxMenu(); startRename(); }
   function ctxDelete()  { closeCtxMenu(); deleteSelected(); }
   function ctxAddComp() {
     closeCtxMenu();
     addCompValue = '';
+    addCompError = '';
     showPicker = true;
     tick().then(() => addCompInputEl?.focus());
   }
 
   function commitAddComp() {
     const type = addCompValue.trim();
-    if (type) addComponent(type);
+    if (!type) {
+      addCompError = 'Enter a component name.';
+      tick().then(() => addCompInputEl?.focus());
+      return;
+    }
+    if (!KNOWN_COMPONENT_TYPES.has(type)) {
+      addCompError = 'Unknown component type.';
+      tick().then(() => addCompInputEl?.focus());
+      return;
+    }
+    addComponent(type);
     showPicker = false;
     addCompValue = '';
+    addCompError = '';
   }
 
   function handleAddCompKey(e) {
     if (e.key === 'Enter') commitAddComp();
-    if (e.key === 'Escape') { showPicker = false; addCompValue = ''; }
+    if (e.key === 'Escape') { showPicker = false; addCompValue = ''; addCompError = ''; }
   }
 
   function deleteSelected() {
@@ -490,41 +760,86 @@
     if (!selectedNode || isRoot) return;
     renamingPathId = selectedNode.pathId;
     renameValue = selectedNode.name;
+    renameError = '';
     tick().then(() => { renameInputEl?.focus(); renameInputEl?.select(); });
   }
 
   function commitRename() {
-    if (!renamingPathId || !mutableTree) { renamingPathId = null; return; }
+    if (!renamingPathId || !mutableTree) { renamingPathId = null; renameError = ''; return; }
+    const targetPathId = renamingPathId;
     const clean = renameValue.replace(/\s+/g, '_').replace(/[^\w]/g, '');
     const current = findNode(mutableTree, renamingPathId)?.name;
+    if (!clean) {
+      renameError = 'Name is required.';
+      tick().then(() => renameInputEl?.focus());
+      return;
+    }
+    if (clean !== current && nameExists(clean, mutableTree, targetPathId)) {
+      renameError = 'Name already exists.';
+      tick().then(() => renameInputEl?.focus());
+      return;
+    }
     renamingPathId = null;
-    if (!clean || clean === current) return;
+    renameError = '';
+    if (clean === current) return;
     const newTree = cloneTree(mutableTree);
-    const target = findNode(newTree, renamingPathId ?? selectedPathId);
+    const target = findNode(newTree, targetPathId);
     if (target) target.name = clean;
     applyChange(newTree);
   }
 
   function handleRenameKey(e) {
     if (e.key === 'Enter') commitRename();
-    if (e.key === 'Escape') renamingPathId = null;
+    if (e.key === 'Escape') { renamingPathId = null; renameError = ''; }
   }
 
   // ── Property value helpers ─────────────────────────────────────────
   function propVal(node, name) { return node?.props?.[name] ?? null; }
 
+  function propDisplayVal(prop, val) {
+    return val ?? prop.defaultValue ?? '';
+  }
+
+  function updateProp(pathId, propName, value) {
+    if (!mutableTree || !pathId) return;
+    const newTree = cloneTree(mutableTree);
+    const target = findNode(newTree, pathId);
+    if (!target) return;
+    target.props = target.props || {};
+    target.props[propName] = String(value);
+    applyChange(newTree);
+    selectedPathId = pathId;
+  }
+
+  function aiColorToHex(val) {
+    const m = String(val || '').match(/^&H([0-9A-Fa-f]{8})$/);
+    if (!m || parseInt(m[1].slice(0, 2), 16) === 0) return '#1a1916';
+    const h = m[1];
+    const r = h.slice(6, 8);
+    const g = h.slice(4, 6);
+    const b = h.slice(2, 4);
+    return `#${r}${g}${b}`.toLowerCase();
+  }
+
+  function hexToAiColor(hex) {
+    const m = String(hex || '').match(/^#?([0-9A-Fa-f]{6})$/);
+    if (!m) return '&H00000000';
+    const h = m[1].toUpperCase();
+    const r = h.slice(0, 2);
+    const g = h.slice(2, 4);
+    const b = h.slice(4, 6);
+    return `&HFF${b}${g}${r}`;
+  }
+
   function colorDisplay(val) {
-    if (!val || val === '&H00000000') return { hex: '#1A1916', label: 'Default' };
-    const m = val.match(/^&H([0-9A-Fa-f]{8})$/);
+    if (!val || val === '&H00000000') return { hex: '#1a1916', label: 'Default' };
+    const m = String(val).match(/^&H([0-9A-Fa-f]{8})$/);
     if (m) {
       const h = m[1];
-      if (parseInt(h.slice(0, 2), 16) === 0) return { hex: '#1A1916', label: 'Default' };
-      const r = parseInt(h.slice(6, 8), 16);
-      const g = parseInt(h.slice(4, 6), 16);
-      const b = parseInt(h.slice(2, 4), 16);
-      return { hex: `rgb(${r},${g},${b})`, label: val };
+      if (parseInt(h.slice(0, 2), 16) === 0) return { hex: '#1a1916', label: 'Default' };
+      return { hex: aiColorToHex(val), label: val };
     }
-    return { hex: '#1A1916', label: val || 'Default' };
+    return { hex: '#1a1916', label: val || 'Default' };
   }
 
   function boolVal(val, def = false) {
@@ -532,10 +847,173 @@
     return val === 'true' || val === 'True';
   }
 
-  function layoutSizeVal(val) {
-    if (!val || val === '-2') return 'Automatic...';
-    if (val === '-1') return 'Fill parent...';
-    return val;
+  function boolDefault(prop) {
+    return prop?.defaultValue === true
+      || prop?.defaultValue === 'true'
+      || prop?.defaultValue === 'True';
+  }
+
+  function layoutMode(val) {
+    if (!val || val === '-2') return 'automatic';
+    if (val === '-1') return 'fill';
+    return 'custom';
+  }
+
+  function layoutPixels(val) {
+    const n = Number(val);
+    return Number.isFinite(n) && n > 0 ? String(Math.round(n)) : '100';
+  }
+
+  function updateLayoutMode(pathId, propName, mode, currentVal) {
+    if (mode === 'automatic') updateProp(pathId, propName, '-2');
+    else if (mode === 'fill') updateProp(pathId, propName, '-1');
+    else updateProp(pathId, propName, layoutPixels(currentVal));
+  }
+
+  function updateLayoutPixels(pathId, propName, value) {
+    const n = Math.max(1, Math.round(Number(value) || 1));
+    updateProp(pathId, propName, String(n));
+  }
+
+  function selectOptions(prop) {
+    return prop.options || [];
+  }
+
+  function selectValue(prop, val) {
+    if (val !== null && val !== undefined && val !== '') return String(val);
+    if (prop.editorType === 'visibility') return 'true';
+    if (prop.defaultValue !== undefined && prop.defaultValue !== '') return String(prop.defaultValue);
+    return String(selectOptions(prop)[0]?.value ?? '');
+  }
+
+  function assetOptions(currentValue) {
+    const names = new Set(mediaAssets.map(asset => asset.name).filter(Boolean));
+    if (currentValue) names.add(currentValue);
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }
+
+  function handleAssetPicked(e, pathId, propName) {
+    const file = e.currentTarget.files?.[0];
+    if (!file) return;
+    const added = addDesignAsset(file);
+    updateProp(pathId, propName, added?.name || cleanAssetName(file.name));
+    e.currentTarget.value = '';
+  }
+
+  function cleanAssetName(name) {
+    return String(name || '').trim().replace(/[\\/]+/g, '-');
+  }
+
+  function assetNameExists(name, exceptId = null) {
+    return mediaAssets.some(asset => asset.id !== exceptId && asset.name === name);
+  }
+
+  function handleMediaUpload(e) {
+    const files = Array.from(e.currentTarget.files || []);
+    for (const file of files) addDesignAsset(file);
+    e.currentTarget.value = '';
+  }
+
+  function handleAssetCtxMenu(e, asset) {
+    e.preventDefault();
+    e.stopPropagation();
+    ctxMenu = null;
+    assetCtxMenu = {
+      x: Math.min(e.clientX, window.innerWidth - 172),
+      y: Math.min(e.clientY, window.innerHeight - 150),
+      assetId: asset.id,
+    };
+  }
+
+  function startAssetRename(asset) {
+    assetCtxMenu = null;
+    renamingAssetId = asset.id;
+    assetRenameValue = asset.name;
+    assetRenameError = '';
+    tick().then(() => { assetRenameInputEl?.focus(); assetRenameInputEl?.select(); });
+  }
+
+  function updateAssetReferences(oldName, nextName) {
+    if (!mutableTree || !oldName) return;
+    const newTree = cloneTree(mutableTree);
+    let changed = false;
+
+    function walk(node) {
+      for (const propName of Object.keys(node.props || {})) {
+        if (node.props[propName] === oldName) {
+          node.props[propName] = nextName;
+          changed = true;
+        }
+      }
+      for (const child of node.children || []) walk(child);
+    }
+
+    walk(newTree);
+    if (changed) applyChange(newTree);
+  }
+
+  function commitAssetRename() {
+    if (!renamingAssetId) return;
+    const current = mediaAssets.find(asset => asset.id === renamingAssetId);
+    if (!current) {
+      renamingAssetId = null;
+      assetRenameError = '';
+      return;
+    }
+
+    const clean = cleanAssetName(assetRenameValue);
+    if (!clean) {
+      assetRenameError = 'Name is required.';
+      tick().then(() => assetRenameInputEl?.focus());
+      return;
+    }
+    if (clean !== current.name && assetNameExists(clean, current.id)) {
+      assetRenameError = 'Asset already exists.';
+      tick().then(() => assetRenameInputEl?.focus());
+      return;
+    }
+
+    renamingAssetId = null;
+    assetRenameError = '';
+    if (clean === current.name) return;
+    const renamed = renameDesignAsset(current.id, clean);
+    if (renamed?.name) updateAssetReferences(current.name, renamed.name);
+  }
+
+  function handleAssetRenameKey(e) {
+    if (e.key === 'Enter') commitAssetRename();
+    if (e.key === 'Escape') {
+      renamingAssetId = null;
+      assetRenameError = '';
+    }
+  }
+
+  function removeAsset(asset) {
+    const removed = deleteDesignAsset(asset.id);
+    if (removed?.name) updateAssetReferences(removed.name, '');
+    if (renamingAssetId === asset.id) {
+      renamingAssetId = null;
+      assetRenameError = '';
+    }
+    closeCtxMenu();
+  }
+
+  function downloadAsset(asset) {
+    if (!asset?.url || typeof document === 'undefined') return;
+    const link = document.createElement('a');
+    link.href = asset.url;
+    link.download = asset.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    closeCtxMenu();
+  }
+
+  function formatAssetSize(size) {
+    if (!size) return '';
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${Math.round(size / 102.4) / 10} KB`;
+    return `${Math.round(size / 104857.6) / 10} MB`;
   }
 
   // ── Component icons (12×12 viewBox inner markup) ───────────────────
@@ -560,72 +1038,123 @@
 </script>
 
 <div class="vis-body">
+  {#if parseError}
+    <div class="vis-parse-error">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M12 3l9 16H3L12 3z" stroke-linejoin="round"/>
+        <path d="M12 9v4M12 17h.01" stroke-linecap="round"/>
+      </svg>
+      <div class="vis-parse-copy">
+        <h3>Schema needs a text edit</h3>
+        <p>{parseError}</p>
+      </div>
+      <button class="vis-parse-btn" on:click={() => dispatch('switchText')}>
+        Switch to Text
+      </button>
+    </div>
+  {:else}
   <!-- ── Component tree ──────────────────────────────────────────────── -->
   <div class="vis-tree">
+    <div class="vis-tree-filter" aria-label="Component list filter">
+      <button
+        type="button"
+        class:active={componentFilter === 'all'}
+        on:click={() => { componentFilter = 'all'; closeCtxMenu(); }}
+      >
+        All
+      </button>
+      <button
+        type="button"
+        class:active={componentFilter === 'visible'}
+        on:click={() => { componentFilter = 'visible'; closeCtxMenu(); }}
+      >
+        Visible
+      </button>
+      <button
+        type="button"
+        class:active={componentFilter === 'nonVisible'}
+        on:click={() => { componentFilter = 'nonVisible'; closeCtxMenu(); }}
+      >
+        Non-visible
+      </button>
+    </div>
+
     <div
       class="vis-tree-scroll"
+      role="tree"
+      aria-label="Components"
+      tabindex="-1"
       on:dragleave={handleScrollDragLeave}
     >
-      {#each flatList as node (node.pathId)}
-        {@const hasKids  = node.children.length > 0}
-        {@const isOpen   = !collapsed.has(node.pathId)}
-        {@const isSel    = selectedNode?.pathId === node.pathId}
-        {@const renaming = renamingPathId === node.pathId}
-        {@const dropPos  = dropTarget?.pathId === node.pathId ? dropTarget.position : null}
+      {#if visibleFlatList.length}
+        {#each visibleFlatList as node (node.pathId)}
+          {@const hasKids  = node.children.length > 0}
+          {@const isOpen   = !collapsed.has(node.pathId)}
+          {@const isSel    = selectedNode?.pathId === node.pathId}
+          {@const renaming = renamingPathId === node.pathId}
+          {@const dropPos  = dropTarget?.pathId === node.pathId ? dropTarget.position : null}
 
-        <div
-          class="vis-item"
-          class:selected={isSel}
-          class:drag-source={dragPathId === node.pathId}
-          class:drop-before={dropPos === 'before'}
-          class:drop-after={dropPos === 'after'}
-          class:drop-into={dropPos === 'into'}
-          draggable={node.pathId !== '0' ? 'true' : 'false'}
-          style="padding-left: {6 + node.depth * 14}px"
-          role="treeitem"
-          aria-selected={isSel}
-          tabindex="0"
-          on:click={() => { selectedPathId = node.pathId; showPicker = false; closeCtxMenu(); }}
-          on:keydown={e => e.key === 'Enter' && (selectedPathId = node.pathId)}
-          on:contextmenu={e => handleItemCtxMenu(e, node)}
-          on:dragstart={e => node.pathId !== '0' && handleDragStart(e, node.pathId)}
-          on:dragover={e => handleDragOver(e, node.pathId)}
-          on:drop={e => handleDrop(e, node.pathId)}
-          on:dragend={handleDragEnd}
-        >
-          <button
-            class="vis-arrow"
-            class:vis-arrow--active={hasKids}
-            class:vis-arrow--open={hasKids && isOpen}
-            tabindex={hasKids ? 0 : -1}
-            on:click|stopPropagation={() => hasKids && toggleCollapse(node.pathId)}
+          <div
+            class="vis-item"
+            class:selected={isSel}
+            class:drag-source={dragPathId === node.pathId}
+            class:drop-before={dropPos === 'before'}
+            class:drop-after={dropPos === 'after'}
+            class:drop-into={dropPos === 'into'}
+            draggable={node.pathId !== '0' ? 'true' : 'false'}
+            style="padding-left: {6 + node.depth * 14}px"
+            role="treeitem"
+            aria-selected={isSel}
+            tabindex="0"
+            on:click={() => { selectedPathId = node.pathId; showPicker = false; closeCtxMenu(); }}
+            on:keydown={e => e.key === 'Enter' && (selectedPathId = node.pathId)}
+            on:contextmenu={e => handleItemCtxMenu(e, node)}
+            on:dragstart={e => node.pathId !== '0' && handleDragStart(e, node.pathId)}
+            on:dragover={e => handleDragOver(e, node.pathId)}
+            on:drop={e => handleDrop(e, node.pathId)}
+            on:dragend={handleDragEnd}
           >
-            {#if hasKids}
-              <svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 3l2 2 2-2"/>
-              </svg>
+            <button
+              class="vis-arrow"
+              class:vis-arrow--active={hasKids}
+              class:vis-arrow--open={hasKids && isOpen}
+              tabindex={hasKids ? 0 : -1}
+              on:click|stopPropagation={() => hasKids && toggleCollapse(node.pathId)}
+            >
+              {#if hasKids}
+                <svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 3l2 2 2-2"/>
+                </svg>
+              {/if}
+            </button>
+
+            <svg class="vis-type-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor">
+              {@html compIcon(node.type)}
+            </svg>
+
+            {#if renaming}
+              <input
+                class="vis-rename-input"
+                class:error={!!renameError}
+                bind:this={renameInputEl}
+                bind:value={renameValue}
+                on:input={() => { renameError = ''; }}
+                on:blur={commitRename}
+                on:keydown={handleRenameKey}
+                on:click|stopPropagation
+              />
+              {#if renameError}
+                <span class="vis-rename-error">{renameError}</span>
+              {/if}
+            {:else}
+              <span class="vis-item-name" title={node.name}>{node.name}</span>
             {/if}
-          </button>
 
-          <svg class="vis-type-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor">
-            {@html compIcon(node.type)}
-          </svg>
-
-          {#if renaming}
-            <input
-              class="vis-rename-input"
-              bind:this={renameInputEl}
-              bind:value={renameValue}
-              on:blur={commitRename}
-              on:keydown={handleRenameKey}
-              on:click|stopPropagation
-            />
-          {:else}
-            <span class="vis-item-name" title={node.name}>{node.name}</span>
-          {/if}
-
-        </div>
-      {/each}
+          </div>
+        {/each}
+      {:else}
+        <div class="vis-tree-empty">No components match this filter.</div>
+      {/if}
     </div>
 
     <!-- Add component input -->
@@ -636,12 +1165,71 @@
           bind:this={addCompInputEl}
           bind:value={addCompValue}
           placeholder="Component name, e.g. Button"
+          class:error={!!addCompError}
+          on:input={() => { addCompError = ''; }}
           on:keydown={handleAddCompKey}
-          on:blur={() => { showPicker = false; addCompValue = ''; }}
+          on:blur={() => { showPicker = false; addCompValue = ''; addCompError = ''; }}
           spellcheck="false"
         />
+        {#if addCompError}
+          <div class="vis-add-error">{addCompError}</div>
+        {/if}
       </div>
     {/if}
+
+    <div class="vis-media">
+      <div class="vis-media-header">
+        <span>Media</span>
+        <label class="vis-media-upload">
+          Upload File ...
+          <input
+            class="vis-file-native"
+            type="file"
+            multiple
+            on:change={handleMediaUpload}
+          />
+        </label>
+      </div>
+      <div class="vis-media-list" role="list" aria-label="Media assets">
+        {#if mediaAssets.length}
+          {#each mediaAssets as asset (asset.id)}
+            {@const assetSize = formatAssetSize(asset.size)}
+            <div
+              class="vis-media-item"
+              role="listitem"
+              title={assetSize ? `${asset.name} - ${assetSize}` : asset.name}
+              on:contextmenu={e => handleAssetCtxMenu(e, asset)}
+            >
+              <svg class="vis-media-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round">
+                <path d="M2.5 1.5h4L9.5 4v6.5h-7z"/>
+                <path d="M6.5 1.5V4h3"/>
+              </svg>
+              {#if renamingAssetId === asset.id}
+                <div class="vis-media-rename">
+                  <input
+                    class="vis-media-rename-input"
+                    class:error={!!assetRenameError}
+                    bind:this={assetRenameInputEl}
+                    bind:value={assetRenameValue}
+                    on:input={() => { assetRenameError = ''; }}
+                    on:blur={commitAssetRename}
+                    on:keydown={handleAssetRenameKey}
+                    on:click|stopPropagation
+                  />
+                  {#if assetRenameError}
+                    <span class="vis-media-rename-error">{assetRenameError}</span>
+                  {/if}
+                </div>
+              {:else}
+                <span class="vis-media-name">{asset.name}</span>
+              {/if}
+            </div>
+          {/each}
+        {:else}
+          <div class="vis-media-empty">No media files</div>
+        {/if}
+      </div>
+    </div>
 
   </div>
 
@@ -652,7 +1240,9 @@
       class="vis-ctx-menu"
       style="left:{ctxMenu.x}px; top:{ctxMenu.y}px"
       role="menu"
+      tabindex="-1"
       on:click|stopPropagation
+      on:keydown|stopPropagation
     >
       {#if ctxMenu.isContainer}
         <button class="vis-ctx-item" role="menuitem" on:click={ctxAddComp}>
@@ -671,6 +1261,38 @@
       </button>
       <div class="vis-ctx-sep"></div>
       <button class="vis-ctx-item vis-ctx-item--danger" role="menuitem" disabled={ctxMenu.isRoot} on:click={ctxDelete}>
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h8M5 3V2h2v1M10 3l-.6 7H2.6L2 3"/>
+        </svg>
+        Delete
+      </button>
+    </div>
+  {/if}
+
+  {#if assetCtxMenu && activeAsset}
+    <div class="vis-ctx-backdrop" role="presentation" on:click={closeCtxMenu} on:keydown></div>
+    <div
+      class="vis-ctx-menu"
+      style="left:{assetCtxMenu.x}px; top:{assetCtxMenu.y}px"
+      role="menu"
+      tabindex="-1"
+      on:click|stopPropagation
+      on:keydown|stopPropagation
+    >
+      <button class="vis-ctx-item" role="menuitem" on:click={() => startAssetRename(activeAsset)}>
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8.5 1.5a1.414 1.414 0 012 2L4 10l-3 1 1-3 6.5-6.5z"/>
+        </svg>
+        Rename
+      </button>
+      <button class="vis-ctx-item" role="menuitem" disabled={!activeAsset.url} on:click={() => downloadAsset(activeAsset)}>
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 1v6M3.5 4.5L6 7l2.5-2.5M2 10h8"/>
+        </svg>
+        Download
+      </button>
+      <div class="vis-ctx-sep"></div>
+      <button class="vis-ctx-item vis-ctx-item--danger" role="menuitem" on:click={() => removeAsset(activeAsset)}>
         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 3h8M5 3V2h2v1M10 3l-.6 7H2.6L2 3"/>
         </svg>
@@ -710,6 +1332,8 @@
               <div class="vis-section-body">
                 {#each group.items as prop}
                   {@const val = propVal(selectedNode, prop.name)}
+                  {@const editorVal = propDisplayVal(prop, val)}
+                  {@const options = selectOptions(prop)}
                   <div class="vis-row">
                     <div class="vis-row-label">
                       <span class="vis-prop-name">{prop.name}</span>
@@ -723,81 +1347,131 @@
                     </div>
                     <div class="vis-row-editor">
                       {#if prop.editorType === 'color'}
-                        {@const cd = colorDisplay(val)}
-                        <div class="vis-color-pill" role="button" tabindex="0">
-                          <span class="vis-color-dot" style="background:{cd.hex}"></span>
-                          <span class="vis-color-text">{cd.label}</span>
-                          <svg class="vis-pill-caret" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 3l2.5 2.5 2.5-2.5"/></svg>
+                        {@const cd = colorDisplay(editorVal)}
+                        <div class="vis-color-control">
+                          <label class="vis-color-pill">
+                            <input
+                              class="vis-color-native"
+                              type="color"
+                              value={aiColorToHex(editorVal)}
+                              on:input={e => updateProp(selectedNode.pathId, prop.name, hexToAiColor(e.currentTarget.value))}
+                            />
+                            <span class="vis-color-dot" style="background:{cd.hex}"></span>
+                            <span class="vis-color-text">{cd.label}</span>
+                            <svg class="vis-pill-caret" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 3l2.5 2.5 2.5-2.5"/></svg>
+                          </label>
+                          <button
+                            class="vis-color-none"
+                            title="Use default color"
+                            on:click={() => updateProp(selectedNode.pathId, prop.name, '&H00000000')}
+                          >
+                            None
+                          </button>
                         </div>
                       {:else if prop.editorType === 'boolean'}
                         <label class="vis-check-wrap">
-                          <input type="checkbox" class="vis-check-native" checked={boolVal(val)} />
+                          <input
+                            type="checkbox"
+                            class="vis-check-native"
+                            checked={boolVal(val, boolDefault(prop))}
+                            on:change={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.checked ? 'true' : 'false')}
+                          />
                           <span class="vis-check-box"></span>
                         </label>
                       {:else if prop.editorType === 'non_negative_float' || prop.editorType === 'float'}
-                        <input type="number" class="vis-input" value={val ?? '14.0'} step="0.1" min="0" />
+                        <input
+                          type="number"
+                          class="vis-input"
+                          value={editorVal || '0'}
+                          step="0.1"
+                          min={prop.editorType === 'non_negative_float' ? '0' : null}
+                          on:input={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                        />
                       {:else if prop.editorType === 'integer' || prop.editorType === 'non_negative_integer'}
-                        <input type="number" class="vis-input" value={val ?? '0'} step="1" />
+                        <input
+                          type="number"
+                          class="vis-input"
+                          value={editorVal || '0'}
+                          step="1"
+                          min={prop.editorType === 'non_negative_integer' ? '0' : null}
+                          on:input={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                        />
                       {:else if prop.editorType === 'layout_size'}
-                        <input type="text" class="vis-input" value={layoutSizeVal(val)} />
+                        {@const mode = layoutMode(val)}
+                        <div class="vis-layout-edit">
+                          <select
+                            class="vis-select"
+                            on:change={e => updateLayoutMode(selectedNode.pathId, prop.name, e.currentTarget.value, val)}
+                          >
+                            <option value="automatic" selected={mode === 'automatic'}>Automatic</option>
+                            <option value="fill" selected={mode === 'fill'}>Fill parent</option>
+                            <option value="custom" selected={mode === 'custom'}>Pixels</option>
+                          </select>
+                          {#if mode === 'custom'}
+                            <input
+                              type="number"
+                              class="vis-input vis-layout-pixels"
+                              value={layoutPixels(val)}
+                              min="1"
+                              step="1"
+                              aria-label="{prop.name} pixels"
+                              on:input={e => updateLayoutPixels(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                            />
+                          {/if}
+                        </div>
                       {:else if prop.editorType === 'string' || prop.editorType === 'text'}
-                        <input type="text" class="vis-input" value={val ?? ''} />
+                        <input
+                          type="text"
+                          class="vis-input"
+                          value={editorVal}
+                          on:input={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                        />
                       {:else if prop.editorType === 'textArea'}
-                        <textarea class="vis-textarea">{val ?? ''}</textarea>
+                        <textarea
+                          class="vis-textarea"
+                          value={editorVal}
+                          on:input={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                        ></textarea>
                       {:else if prop.editorType === 'asset'}
-                        <button class="vis-asset-btn">
-                          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="1" width="10" height="10" rx="1.5"/><path d="M1 8.5l2.5-3 2 2 2.5-3.5 3 4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                          {val || 'None...'}
-                        </button>
-                      {:else if prop.editorType === 'typeface'}
-                        <select class="vis-select">
-                          <option value="0" selected={!val || val === '0'}>default...</option>
-                          <option value="1" selected={val === '1'}>serif...</option>
-                          <option value="2" selected={val === '2'}>sansserif...</option>
-                          <option value="3" selected={val === '3'}>monospace...</option>
-                          <option value="4" selected={val === '4'}>custom...</option>
-                        </select>
-                      {:else if prop.editorType === 'visibility'}
-                        <select class="vis-select">
-                          <option value="true"  selected={val !== 'false'}>Show</option>
-                          <option value="false" selected={val === 'false'}>Hide</option>
-                          <option value="responsive">Responsive</option>
-                        </select>
-                      {:else if prop.editorType === 'textalignment'}
-                        <select class="vis-select">
-                          <option value="0" selected={!val || val === '0'}>Left</option>
-                          <option value="1" selected={val === '1'}>Center</option>
-                          <option value="2" selected={val === '2'}>Right</option>
-                        </select>
-                      {:else if prop.editorType === 'button_shape'}
-                        <select class="vis-select">
-                          <option value="0">Default</option><option value="1">Rounded</option>
-                          <option value="2">Rectangular</option><option value="3">Oval</option>
-                        </select>
-                      {:else if prop.editorType === 'horizontal_alignment'}
-                        <select class="vis-select">
-                          <option value="1">Left</option><option value="3">Center</option><option value="2">Right</option>
-                        </select>
-                      {:else if prop.editorType === 'vertical_alignment'}
-                        <select class="vis-select">
-                          <option value="1">Top</option><option value="2">Center</option><option value="3">Bottom</option>
-                        </select>
-                      {:else if prop.editorType === 'screen_orientation'}
-                        <select class="vis-select">
-                          <option value="unspecified">Unspecified</option><option value="portrait">Portrait</option>
-                          <option value="landscape">Landscape</option><option value="sensor">Sensor</option>
-                        </select>
-                      {:else if prop.editorType === 'toast_length'}
-                        <select class="vis-select">
-                          <option value="0">Short</option><option value="1">Long</option>
-                        </select>
-                      {:else if prop.editorType === 'theme'}
-                        <select class="vis-select">
-                          <option value="Classic">Classic</option><option value="Device Default">Device Default</option>
-                          <option value="Dark">Dark</option><option value="Black">Black</option>
+                        <div class="vis-asset-control">
+                          <select
+                            class="vis-select"
+                            on:change={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                          >
+                            <option value="" selected={!editorVal}>None...</option>
+                            {#each assetOptions(editorVal) as asset}
+                              <option value={asset} selected={editorVal === asset}>{asset}</option>
+                            {/each}
+                          </select>
+                          <label class="vis-asset-upload" title="Choose asset file">
+                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M6 1v7M3.5 3.5L6 1l2.5 2.5M2 10h8"/>
+                            </svg>
+                            <input
+                              class="vis-file-native"
+                              type="file"
+                              on:change={e => handleAssetPicked(e, selectedNode.pathId, prop.name)}
+                            />
+                          </label>
+                        </div>
+                      {:else if options.length > 0}
+                        <select
+                          class="vis-select"
+                          on:change={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                        >
+                          {#each options as option}
+                            <option value={option.value} selected={selectValue(prop, val) === String(option.value)}>
+                              {option.label}
+                            </option>
+                          {/each}
                         </select>
                       {:else}
-                        <input type="text" class="vis-input" value={val ?? ''} />
+                        <input
+                          type="text"
+                          class="vis-input"
+                          value={editorVal}
+                          on:input={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                        />
                       {/if}
                     </div>
                   </div>
@@ -817,6 +1491,7 @@
       </div>
     {/if}
   </div>
+  {/if}
 </div>
 
 <style>
@@ -828,6 +1503,62 @@
     height: 100%;
   }
 
+  .vis-parse-error {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px;
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .vis-parse-error > svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    color: var(--error);
+  }
+
+  .vis-parse-copy {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .vis-parse-copy h3 {
+    margin: 0 0 4px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .vis-parse-copy p {
+    margin: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+
+  .vis-parse-btn {
+    flex-shrink: 0;
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .vis-parse-btn:hover {
+    border-color: var(--text-faint);
+    background: var(--cell-active);
+  }
+
   /* ── Tree panel ─────────────────────────────────────────────────────── */
   .vis-tree {
     flex: 1;
@@ -837,6 +1568,44 @@
     background: var(--bg);
     overflow: hidden;
     position: relative;
+  }
+
+  .vis-tree-filter {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--surface);
+  }
+
+  .vis-tree-filter button {
+    height: 24px;
+    padding: 0 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+  }
+
+  .vis-tree-filter button:hover {
+    border-color: var(--text-faint);
+    background: var(--cell-active);
+    color: var(--text);
+  }
+
+  .vis-tree-filter button.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
   }
 
   .vis-tree-scroll {
@@ -851,6 +1620,14 @@
   .vis-tree-scroll::-webkit-scrollbar { width: 4px; }
   .vis-tree-scroll::-webkit-scrollbar-track { background: transparent; }
   .vis-tree-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  .vis-tree-empty {
+    padding: 10px 12px;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 12px;
+    line-height: 1.35;
+  }
 
   /* Tree items */
   .vis-item {
@@ -928,6 +1705,20 @@
     font-size: 12px;
     outline: none;
   }
+  .vis-rename-input.error {
+    border-color: var(--error);
+  }
+
+  .vis-rename-error {
+    flex-shrink: 0;
+    max-width: 84px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--error);
+    font-family: var(--font);
+    font-size: 10.5px;
+  }
 
   /* Drag-and-drop states */
   .vis-item[draggable="true"] { cursor: grab; }
@@ -978,6 +1769,166 @@
     box-sizing: border-box;
   }
   .vis-add-input::placeholder { color: var(--text-faint); }
+  .vis-add-input.error {
+    border-color: var(--error);
+  }
+  .vis-add-error {
+    margin-top: 4px;
+    color: var(--error);
+    font-family: var(--font);
+    font-size: 11px;
+  }
+
+  /* ── Media panel ─────────────────────────────────────────────────── */
+  .vis-media {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 96px;
+    max-height: 176px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .vis-media-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 32px;
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--bg);
+    box-sizing: border-box;
+  }
+
+  .vis-media-header span {
+    min-width: 0;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .vis-media-upload {
+    position: relative;
+    flex-shrink: 0;
+    height: 24px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11.5px;
+    cursor: pointer;
+    overflow: hidden;
+    box-sizing: border-box;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+  }
+
+  .vis-media-upload:hover {
+    border-color: var(--text-faint);
+    background: var(--cell-active);
+    color: var(--text);
+  }
+
+  .vis-media-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .vis-media-list::-webkit-scrollbar { width: 4px; }
+  .vis-media-list::-webkit-scrollbar-track { background: transparent; }
+  .vis-media-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  .vis-media-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 26px;
+    padding: 3px 8px;
+    color: var(--text-muted);
+    cursor: default;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .vis-media-item:hover,
+  .vis-media-item:focus-visible {
+    background: var(--cell-active);
+    color: var(--text);
+  }
+
+  .vis-media-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    color: var(--text-faint);
+  }
+
+  .vis-media-name {
+    min-width: 0;
+    flex: 1;
+    color: inherit;
+    font-family: var(--font);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vis-media-empty {
+    padding: 7px 8px;
+    color: var(--text-faint);
+    font-family: var(--font);
+    font-size: 11.5px;
+  }
+
+  .vis-media-rename {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .vis-media-rename-input {
+    min-width: 0;
+    width: 100%;
+    height: 22px;
+    padding: 0 5px;
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .vis-media-rename-input.error {
+    border-color: var(--error);
+  }
+
+  .vis-media-rename-error {
+    min-width: 0;
+    color: var(--error);
+    font-family: var(--font);
+    font-size: 10.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   /* ── Context menu ─────────────────────────────────────────────────── */
   .vis-ctx-backdrop {
@@ -1133,7 +2084,15 @@
   .vis-row-editor { min-width: 0; }
 
   /* Color */
+  .vis-color-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px;
+    align-items: center;
+  }
+
   .vis-color-pill {
+    position: relative;
     display: flex; align-items: center; gap: 6px;
     height: 24px; padding: 0 7px;
     border: 1px solid var(--border); border-radius: var(--radius);
@@ -1141,15 +2100,40 @@
     transition: border-color 0.1s, background 0.1s; overflow: hidden;
   }
   .vis-color-pill:hover { border-color: var(--text-faint); background: var(--cell-active); }
+  .vis-color-native {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
   .vis-color-dot {
     width: 11px; height: 11px; flex-shrink: 0;
-    border-radius: 50%; border: 1px solid rgba(0,0,0,0.14);
+    border-radius: 50%; border: 1px solid var(--border);
   }
   .vis-color-text {
     flex: 1; font-family: var(--font); font-size: 11.5px; color: var(--text-muted);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
   }
   .vis-pill-caret { width: 8px; height: 8px; flex-shrink: 0; color: var(--text-faint); }
+
+  .vis-color-none {
+    height: 24px;
+    padding: 0 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .vis-color-none:hover {
+    border-color: var(--text-faint);
+    background: var(--cell-active);
+    color: var(--text);
+  }
 
   /* Checkbox */
   .vis-check-wrap { display: flex; align-items: center; cursor: pointer; }
@@ -1181,6 +2165,21 @@
   input[type='number'].vis-input::-webkit-inner-spin-button,
   input[type='number'].vis-input::-webkit-outer-spin-button { -webkit-appearance: none; }
 
+  .vis-layout-edit {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 54px;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .vis-layout-edit .vis-select:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .vis-layout-pixels {
+    text-align: right;
+  }
+
   .vis-textarea {
     width: 100%; min-height: 52px; padding: 5px 7px;
     border: 1px solid var(--border); border-radius: var(--radius);
@@ -1190,19 +2189,47 @@
   }
   .vis-textarea:focus { border-color: var(--accent); }
 
-  /* Asset button */
-  .vis-asset-btn {
-    display: flex; align-items: center; gap: 5px;
-    width: 100%; height: 24px; padding: 0 7px;
-    border: 1px solid var(--border); border-radius: var(--radius);
-    background: var(--bg); color: var(--text-muted);
-    font-family: var(--font); font-size: 11.5px;
-    cursor: pointer; text-align: left; overflow: hidden;
-    white-space: nowrap; text-overflow: ellipsis;
-    box-sizing: border-box; transition: border-color 0.1s, background 0.1s;
+  /* Assets */
+  .vis-asset-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 26px;
+    gap: 5px;
+    align-items: center;
   }
-  .vis-asset-btn:hover { border-color: var(--text-faint); background: var(--cell-active); color: var(--text); }
-  .vis-asset-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+  .vis-asset-upload {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.1s, background 0.1s, color 0.1s;
+  }
+
+  .vis-asset-upload:hover {
+    border-color: var(--text-faint);
+    background: var(--cell-active);
+    color: var(--text);
+  }
+
+  .vis-asset-upload svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .vis-file-native {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
 
   /* Select */
   .vis-select {

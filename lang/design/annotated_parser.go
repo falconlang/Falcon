@@ -217,6 +217,10 @@ func (p *AimlParser) parseComponent() (Component, error) {
 		if err != nil {
 			return Component{}, err
 		}
+		value, err = normalizeAnnPropertyValue(key, value)
+		if err != nil {
+			return Component{}, p.parseError("%s", err.Error())
+		}
 
 		if key == "id" {
 			if comp.Id != "" {
@@ -273,6 +277,104 @@ func (p *AimlParser) readValue() (string, error) {
 		p.pos++
 	}
 	return strings.TrimSpace(string(p.source[start:p.pos])), nil
+}
+
+func normalizeAnnPropertyValue(propName, value string) (string, error) {
+	if !isAnnColorProperty(propName) {
+		return value, nil
+	}
+	colorInt, ok, err := annColorLiteralToIntString(value)
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return colorInt, nil
+	}
+	return value, nil
+}
+
+func isAnnColorProperty(propName string) bool {
+	return strings.Contains(strings.ToLower(propName), "color")
+}
+
+func annColorLiteralToIntString(value string) (string, bool, error) {
+	argbHex, ok, err := annColorLiteralToARGBHex(value)
+	if err != nil || !ok {
+		return "", ok, err
+	}
+	color, err := strconv.ParseUint(argbHex, 16, 32)
+	if err != nil {
+		return "", true, fmt.Errorf("invalid color literal %q", value)
+	}
+	return strconv.FormatInt(int64(int32(color)), 10), true, nil
+}
+
+func annColorLiteralToARGBHex(value string) (string, bool, error) {
+	raw := strings.TrimSpace(value)
+	if raw == "" {
+		return "", false, nil
+	}
+	lower := strings.ToLower(raw)
+
+	if strings.HasPrefix(lower, "&h") || strings.HasPrefix(lower, "#x") {
+		hex := raw[2:]
+		if len(hex) == 0 || len(hex) > 8 || !isHexDigits(hex) {
+			return "", true, fmt.Errorf("invalid color literal %q", value)
+		}
+		return strings.ToUpper(leftPadHex(hex, 8)), true, nil
+	}
+
+	if !strings.HasPrefix(raw, "#") {
+		return "", false, nil
+	}
+
+	hex := raw[1:]
+	if len(hex) == 0 || !isHexDigits(hex) {
+		return "", true, fmt.Errorf("invalid color literal %q", value)
+	}
+
+	switch len(hex) {
+	case 3:
+		// CSS #RGB shorthand, with an implicit opaque alpha channel.
+		r := strings.Repeat(hex[0:1], 2)
+		g := strings.Repeat(hex[1:2], 2)
+		b := strings.Repeat(hex[2:3], 2)
+		return strings.ToUpper("FF" + r + g + b), true, nil
+	case 4:
+		// CSS #RGBA shorthand. App Inventor persists colors as AARRGGBB.
+		r := strings.Repeat(hex[0:1], 2)
+		g := strings.Repeat(hex[1:2], 2)
+		b := strings.Repeat(hex[2:3], 2)
+		a := strings.Repeat(hex[3:4], 2)
+		return strings.ToUpper(a + r + g + b), true, nil
+	case 6:
+		// CSS #RRGGBB, with an implicit opaque alpha channel.
+		return strings.ToUpper("FF" + hex), true, nil
+	case 8:
+		// App Inventor's picker works with #RRGGBBAA, then serializes AARRGGBB.
+		return strings.ToUpper(hex[6:8] + hex[0:6]), true, nil
+	case 1, 2, 5:
+		// Be forgiving for hand-written short RGB values such as #FFFFF.
+		return strings.ToUpper("FF" + leftPadHex(hex, 6)), true, nil
+	default:
+		return "", true, fmt.Errorf("invalid color literal %q", value)
+	}
+}
+
+func isHexDigits(value string) bool {
+	for _, c := range value {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+func leftPadHex(value string, digits int) string {
+	if len(value) >= digits {
+		return value
+	}
+	return strings.Repeat("0", digits-len(value)) + value
 }
 
 func (p *AimlParser) readString() (string, error) {

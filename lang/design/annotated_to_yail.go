@@ -190,9 +190,9 @@ func (c *AnnYailConverter) generateYail(screen Component, codeYail string) (stri
 			sb.WriteString(" '")
 			sb.WriteString(k)
 			sb.WriteString(" ")
-			sb.WriteString(annFormatValue(v))
+			sb.WriteString(annFormatValue(k, v))
 			sb.WriteString(" ")
-			sb.WriteString(annYailType(v))
+			sb.WriteString(annYailType(k, v))
 			sb.WriteString(")")
 		}
 		sb.WriteString(")\n")
@@ -238,9 +238,9 @@ func (c *AnnYailConverter) genComponents(parentName string, children []Component
 			sb.WriteString(" '")
 			sb.WriteString(k)
 			sb.WriteString(" ")
-			sb.WriteString(annFormatValue(v))
+			sb.WriteString(annFormatValue(k, v))
 			sb.WriteString(" ")
-			sb.WriteString(annYailType(v))
+			sb.WriteString(annYailType(k, v))
 			sb.WriteString(")\n")
 		}
 
@@ -250,9 +250,14 @@ func (c *AnnYailConverter) genComponents(parentName string, children []Component
 	}
 }
 
-func annYailType(v string) string {
+func annYailType(propName, v string) string {
 	if v == "true" || v == "false" {
 		return "'boolean"
+	}
+	if isAnnColorProperty(propName) {
+		if _, ok, err := annColorLiteralToIntString(v); ok && err == nil {
+			return "'number"
+		}
 	}
 	if _, err := strconv.ParseFloat(v, 64); err == nil {
 		return "'number"
@@ -260,12 +265,17 @@ func annYailType(v string) string {
 	return "'text"
 }
 
-func annFormatValue(v string) string {
+func annFormatValue(propName, v string) string {
 	if v == "true" {
 		return "#t"
 	}
 	if v == "false" {
 		return "#f"
+	}
+	if isAnnColorProperty(propName) {
+		if colorInt, ok, err := annColorLiteralToIntString(v); ok && err == nil {
+			return colorInt
+		}
 	}
 	if _, err := strconv.ParseFloat(v, 64); err == nil {
 		return v

@@ -114,6 +114,12 @@
     syncDesignerScroll();
   }
 
+  function onVisualDesignerChange(e) {
+    schemaValue = e.detail.schema;
+    updateDesignCode(schemaValue);
+    pushDesignerHistory(schemaValue.length);
+  }
+
   function syncDesignerScroll() {
     if (!dsgnCodeEl || !dsgnHighlightEl) return;
     dsgnHighlightEl.scrollLeft = dsgnCodeEl.scrollLeft;
@@ -377,6 +383,21 @@
     }
   }
 
+  function handleVisualDesignerKey(e) {
+    if (!visualMode || !panelEl?.contains(document.activeElement)) return;
+    if (isUndoShortcut(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      undoDesigner();
+      return;
+    }
+    if (isRedoShortcut(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      redoDesigner();
+    }
+  }
+
   export function toggleDebugPanel() {
     if (debugDidDrag) { debugDidDrag = false; return; }
     debugCollapsed.update(v => !v);
@@ -472,6 +493,8 @@
   }
 </script>
 
+<svelte:window on:keydown={handleVisualDesignerKey} />
+
 <div id="resize-handle" bind:this={resizeHandleEl}></div>
 
 <div id="designer-panel" bind:this={panelEl}>
@@ -507,7 +530,8 @@
     <div class="dsgn-visual-wrap">
       <DesignerVisual
         schemaValue={schemaValue}
-        on:change={e => { schemaValue = e.detail.schema; updateDesignCode(schemaValue); }}
+        on:change={onVisualDesignerChange}
+        on:switchText={() => (visualMode = false)}
       />
     </div>
   {:else}

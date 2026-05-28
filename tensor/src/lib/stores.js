@@ -68,6 +68,7 @@ const initialCells = [
 
 export const cells = writable(initialCells);
 export const designCode = writable(initialDesignCode);
+export const designAssets = writable([]);
 export const activeCellId = writable('c1');
 export const execCounter = writable(6);
 export const ctxMenu = writable({ show: false, x: 0, y: 0, cellId: null });
@@ -235,6 +236,122 @@ export function updateCellCode(id, code) {
 
 export function updateDesignCode(code) {
   designCode.set(code);
+}
+
+function assetNameFrom(input) {
+  return typeof input === 'string' ? input : input?.name;
+}
+
+function normalizeAssetName(name) {
+  return String(name || '').trim().replace(/[\\/]+/g, '-');
+}
+
+function splitAssetName(name) {
+  const dot = name.lastIndexOf('.');
+  if (dot <= 0) return { base: name, ext: '' };
+  return { base: name.slice(0, dot), ext: name.slice(dot) };
+}
+
+function uniqueAssetName(name, assets, exceptId = null) {
+  const clean = normalizeAssetName(name);
+  if (!clean) return '';
+  const existing = new Set(
+    assets
+      .filter(asset => (typeof asset === 'string' ? asset : asset.id) !== exceptId)
+      .map(assetNameFrom)
+  );
+  if (!existing.has(clean)) return clean;
+
+  const { base, ext } = splitAssetName(clean);
+  let n = 2;
+  let next = `${base} ${n}${ext}`;
+  while (existing.has(next)) {
+    n += 1;
+    next = `${base} ${n}${ext}`;
+  }
+  return next;
+}
+
+function createAssetRecord(fileOrName, name, existingAssets) {
+  const isFile = typeof File !== 'undefined' && fileOrName instanceof File;
+  const cleanName = uniqueAssetName(name, existingAssets);
+  if (!cleanName) return null;
+  const id = `asset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const record = {
+    id,
+    name: cleanName,
+    size: isFile ? fileOrName.size : 0,
+    type: isFile ? fileOrName.type : '',
+    url: '',
+  };
+  if (isFile && typeof URL !== 'undefined') {
+    record.url = URL.createObjectURL(fileOrName);
+  }
+  return record;
+}
+
+export function addDesignAsset(fileOrName) {
+  let added = null;
+  designAssets.update(assets => {
+    const name = normalizeAssetName(assetNameFrom(fileOrName));
+    if (!name) return assets;
+    const isFile = typeof File !== 'undefined' && fileOrName instanceof File;
+    const existingIndex = assets.findIndex(asset => assetNameFrom(asset) === name);
+    const existing = existingIndex === -1 ? null : assets[existingIndex];
+    if (existing) {
+      if (typeof existing === 'string' && isFile) {
+        added = createAssetRecord(fileOrName, name, assets.filter((_, index) => index !== existingIndex));
+        if (!added) return assets;
+        return assets.map((asset, index) => index === existingIndex ? added : asset);
+      }
+      added = typeof existing === 'string'
+        ? { id: existing, name: existing, size: 0, type: '', url: '' }
+        : existing;
+      return assets;
+    }
+    added = createAssetRecord(fileOrName, name, assets);
+    return added ? [...assets, added] : assets;
+  });
+  return added;
+}
+
+export function renameDesignAsset(assetId, nextName) {
+  let renamed = null;
+  designAssets.update(assets => {
+    const clean = uniqueAssetName(nextName, assets, assetId);
+    if (!clean) return assets;
+    return assets.map(asset => {
+      const id = typeof asset === 'string' ? asset : asset.id;
+      if (id !== assetId && assetNameFrom(asset) !== assetId) return asset;
+      renamed = typeof asset === 'string'
+        ? { id: clean, name: clean, size: 0, type: '', url: '' }
+        : { ...asset, name: clean };
+      return renamed;
+    });
+  });
+  return renamed;
+}
+
+export function deleteDesignAsset(assetId) {
+  let removed = null;
+  designAssets.update(assets => {
+    const next = [];
+    for (const asset of assets) {
+      const id = typeof asset === 'string' ? asset : asset.id;
+      if (id === assetId || assetNameFrom(asset) === assetId) {
+        removed = asset;
+        if (typeof asset !== 'string' && asset.url && typeof URL !== 'undefined') {
+          URL.revokeObjectURL(asset.url);
+        }
+      } else {
+        next.push(asset);
+      }
+    }
+    return next;
+  });
+  return typeof removed === 'string'
+    ? { id: removed, name: removed, size: 0, type: '', url: '' }
+    : removed;
 }
 
 export function getFalconSource() {

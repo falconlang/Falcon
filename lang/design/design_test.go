@@ -45,6 +45,61 @@ func TestParseAnnReadsDotIds(t *testing.T) {
 	}
 }
 
+func TestParseAnnNormalizesColorLiterals(t *testing.T) {
+	source := `Screen.Screen1 {
+  BackgroundColor: &HFF446A98,
+  Button.AddButton {
+    BackgroundColor: #FFFFF,
+    TextColor: #336699CC
+  }
+}`
+
+	screen, err := ParseAnn(source)
+	if err != nil {
+		t.Fatalf("ParseAnn() error = %v", err)
+	}
+	if got := screen.Properties["BackgroundColor"]; got != "-12293480" {
+		t.Fatalf("screen BackgroundColor = %q, want -12293480", got)
+	}
+	if len(screen.Children) != 1 {
+		t.Fatalf("len(screen.Children) = %d, want 1", len(screen.Children))
+	}
+	button := screen.Children[0]
+	if got := button.Properties["BackgroundColor"]; got != "-15728641" {
+		t.Fatalf("button BackgroundColor = %q, want -15728641", got)
+	}
+	if got := button.Properties["TextColor"]; got != "-869046631" {
+		t.Fatalf("button TextColor = %q, want -869046631", got)
+	}
+}
+
+func TestAnnYailConvertsColorLiteralsToNumbers(t *testing.T) {
+	source := `Screen.Screen1 {
+  BackgroundColor: &HFF446A98,
+  Button.AddButton {
+    BackgroundColor: #FFFFFF,
+    TextColor: "#336699CC"
+  }
+}`
+
+	yail, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err != nil {
+		t.Fatalf("ConvertAnnToYail() error = %v", err)
+	}
+	for _, want := range []string{
+		"(set-and-coerce-property! 'Screen1 'BackgroundColor -12293480 'number)",
+		"(set-and-coerce-property! 'AddButton 'BackgroundColor -1 'number)",
+		"(set-and-coerce-property! 'AddButton 'TextColor -869046631 'number)",
+	} {
+		if !strings.Contains(yail, want) {
+			t.Fatalf("generated YAIL does not contain %q:\n%s", want, yail)
+		}
+	}
+	if strings.Contains(yail, `"&H`) || strings.Contains(yail, `"#`) {
+		t.Fatalf("generated YAIL quoted a color literal:\n%s", yail)
+	}
+}
+
 func TestAnnValidationReportsPropertyPosition(t *testing.T) {
 	source := "Screen.Screen1 {\n  Button.AddButton { Texxt: \"+\" }\n}"
 	_, err := NewAnnYailConverter().ConvertAnnToYail(source)
