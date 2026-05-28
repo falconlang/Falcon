@@ -190,6 +190,7 @@ html, body {
   border-bottom: 1px solid var(--border-soft);
   padding: 0 16px;
   flex-shrink: 0;
+  position: relative;
 }
 
 .tl-btn {
@@ -207,6 +208,169 @@ html, body {
 .tl-btn svg { width: 13px; height: 13px; }
 
 .tl-sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
+
+/* ── Screen selector (toolbar) ── */
+.screen-selector {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Custom spinner */
+.screen-spinner-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px 3px 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  min-width: 86px;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+  white-space: nowrap;
+}
+.screen-spinner-btn:hover,
+.screen-spinner-btn.open {
+  border-color: var(--text-faint);
+  color: var(--text);
+  background: var(--cell-active);
+}
+.screen-spinner-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.screen-spinner-icon { width: 12px; height: 12px; flex-shrink: 0; color: var(--text-faint); }
+.screen-spinner-label { flex: 1; text-align: left; }
+.screen-spinner-chevron {
+  width: 9px; height: 9px; flex-shrink: 0; color: var(--text-faint);
+  transition: transform 0.15s;
+}
+.screen-spinner-chevron.rotated { transform: rotate(180deg); }
+.screen-spinner-menu { transform-origin: top left; }
+.screen-spinner-active { color: var(--accent) !important; font-weight: 500; }
+
+/* Screen action buttons */
+.screen-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
+/* ── Screen dialogs ── */
+.sd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,25,22,0.22);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sd-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  width: min(320px, calc(100vw - 32px));
+  box-shadow: var(--shadow-md);
+  animation: sdIn 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes sdIn {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.sd-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.sd-header-icon {
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.sd-header-icon--danger { color: var(--error); border-color: color-mix(in srgb, var(--error) 20%, var(--border)); background: var(--error-soft); }
+.sd-header-icon svg { width: 12px; height: 12px; }
+.sd-title { font-size: 12.5px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; flex: 1; }
+.sd-close {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 50%;
+  color: var(--text-faint);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.sd-close svg { width: 9px; height: 9px; }
+.sd-close:hover { background: var(--cell-active); color: var(--text); border-color: var(--text-faint); }
+.sd-close:active { transform: scale(0.9); transition: transform 0.05s; }
+.sd-body { padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 10px; }
+.sd-desc { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
+.sd-desc strong { color: var(--text); font-weight: 500; }
+.sd-input {
+  width: 100%;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  transition: border-color 0.12s;
+}
+.sd-input:focus { outline: none; border-color: var(--accent); }
+.sd-input.valid { border-color: var(--run); }
+.sd-error { font-size: 11px; color: var(--error); margin-top: -4px; }
+.sd-footer {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px 14px;
+}
+.sd-btn {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 7px 0;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.sd-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
+.sd-btn:hover { background: var(--cell-active); color: var(--text); }
+.sd-btn:active { transform: scale(0.97); transition: transform 0.05s; }
+.sd-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+.sd-btn--ghost { flex: 0 0 auto; padding: 7px 14px; }
+.sd-btn--accent {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 25%, var(--border));
+  color: var(--accent);
+}
+.sd-btn--accent:hover {
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent-mid));
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  color: var(--accent);
+}
+.sd-btn--danger {
+  background: var(--error-soft);
+  border-color: color-mix(in srgb, var(--error) 25%, var(--border));
+  color: var(--error);
+}
+.sd-btn--danger:hover {
+  background: color-mix(in srgb, var(--error-soft) 70%, var(--error));
+  border-color: color-mix(in srgb, var(--error) 40%, var(--border));
+}
 
 .add-btns { display: flex; align-items: center; gap: 4px; }
 .add-btn {
@@ -277,7 +441,7 @@ html, body {
 .toc-item.h2 { padding-left: 30px; font-size: 11.5px; }
 
 /* ── Notebook ── */
-#notebook-col { flex: 3 1 0; display: flex; flex-direction: column; overflow: hidden; min-width: 300px; }
+#notebook-col { flex: 11 1 0; display: flex; flex-direction: column; overflow: hidden; min-width: 300px; }
 #notebook-wrap { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 #notebook {
   max-width: 780px;
@@ -575,7 +739,7 @@ html, body {
 }
 
 #designer-panel {
-  flex: 2 1 0;
+  flex: 9 1 0;
   min-width: 200px;
   display: flex;
   flex-direction: column;

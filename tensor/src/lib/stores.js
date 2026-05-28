@@ -85,6 +85,70 @@ export const debugCollapsed = writable(true);
 export const debugOpenHeight = writable(200);
 export const debugLogs = writable([]);
 
+// ── Screen management ──
+export const screenList = writable(['Screen1']);
+export const activeScreen = writable('Screen1');
+// Saved state for non-active screens: { [screenName]: { cells, designCode } }
+const screenSavedStates = writable({});
+
+export function switchScreen(name) {
+  const curr = get(activeScreen);
+  if (name === curr) return;
+  screenSavedStates.update(s => ({
+    ...s,
+    [curr]: { cells: get(cells), designCode: get(designCode) },
+  }));
+  const saved = get(screenSavedStates)[name];
+  const nextCells = saved ? saved.cells : [];
+  cells.set(nextCells);
+  designCode.set(saved ? saved.designCode : '');
+  activeCellId.set(nextCells.length > 0 ? nextCells[0].id : null);
+  activeScreen.set(name);
+}
+
+export function addScreen(name) {
+  const curr = get(activeScreen);
+  const list = get(screenList);
+  // Save current state
+  screenSavedStates.update(s => ({
+    ...s,
+    [curr]: { cells: get(cells), designCode: get(designCode) },
+  }));
+  // Use provided name or find unique default
+  let newName = name;
+  if (!newName) {
+    let n = list.length + 1;
+    const existing = new Set(list);
+    while (existing.has(`Screen${n}`)) n++;
+    newName = `Screen${n}`;
+  }
+  screenList.update(l => [...l, newName]);
+  // Switch to empty new screen
+  cells.set([]);
+  designCode.set('');
+  activeCellId.set(null);
+  activeScreen.set(newName);
+}
+
+export function removeScreen(name) {
+  if (name === 'Screen1') return;
+  const curr = get(activeScreen);
+  screenList.update(l => l.filter(s => s !== name));
+  screenSavedStates.update(s => {
+    const next = { ...s };
+    delete next[name];
+    return next;
+  });
+  if (curr === name) {
+    const saved = get(screenSavedStates)['Screen1'];
+    const nextCells = saved ? saved.cells : get(cells);
+    cells.set(nextCells);
+    designCode.set(saved ? saved.designCode : get(designCode));
+    activeCellId.set(nextCells.length > 0 ? nextCells[0].id : null);
+    activeScreen.set('Screen1');
+  }
+}
+
 let debugLogId = 0;
 
 function debugTimestamp(date = new Date()) {

@@ -22,16 +22,5 @@
       <span style="font-size:10px; color:var(--text-faint); margin-left:auto">func</span>
     </div>
   </div>
-  <div class="sidebar-sep"></div>
-  <div class="sidebar-section">
-    <div class="sidebar-label">Files</div>
-    <div class="sidebar-item">
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1H3a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V5L8 1z"/><path d="M8 1v4h4"/></svg>
-      falcon_tour.fc
-    </div>
-    <div class="sidebar-item">
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1H3a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V5L8 1z"/><path d="M8 1v4h4"/></svg>
-      components.fc
-    </div>
-  </div>
+
 </div>
