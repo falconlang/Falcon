@@ -91,7 +91,7 @@
     qrSvg = createQrSvg(code, {
       size: 148,
       fgColor: '#1A1916',
-      bgColor: '#ffffff',
+      bgColor: '#FAFAF8',
     });
   }
 
@@ -339,41 +339,81 @@
   on:click={backdropClick}
 >
   <div class="lt-card">
-    <div class="lt-title">{status === 'connected' ? 'Companion Connected' : 'Live Test'}</div>
+
+    <!-- Shared header -->
+    <div class="lt-header">
+      <div class="lt-header-icon" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3.5" y="1" width="9" height="14" rx="2"/>
+          <circle cx="8" cy="12.5" r="0.9" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <span class="lt-title">Live Test</span>
+      <button class="lt-close-btn" on:click={status === 'connected' ? disconnectCompanion : close} title={status === 'connected' ? 'Disconnect' : 'Cancel'}>
+        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M2 2l6 6M8 2l-6 6"/>
+        </svg>
+      </button>
+    </div>
+
     {#if status === 'connected'}
-      <div class="lt-connected-icon" aria-hidden="true">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg>
+
+      <!-- Connected body -->
+      <div class="lt-success-area">
+        <div class="lt-success-ring" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 10l4.5 4.5 8-8"/>
+          </svg>
+        </div>
+        <div class="lt-success-text">
+          <div class="lt-connected-label">Connected</div>
+          <div class="lt-connected-desc">Code changes reflect on your device in real time.</div>
+          {#if messageCount > 0}
+            <div class="lt-msg-count">{messageCount} update{messageCount === 1 ? '' : 's'} sent</div>
+          {/if}
+        </div>
       </div>
-      <p class="lt-sub lt-centered">Live link active. Source edits will refresh on the device.</p>
-      <div class="lt-status status-connected" aria-live="polite">
-        <span class="lt-dot"></span>
-        {statusText}
-      </div>
-      <button class="lt-cancel lt-disconnect" on:click={disconnectCompanion}>
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h8M4 6h4M5 9h2"/></svg>
-        Disconnect
-      </button>
-    {:else}
-      <p class="lt-sub">Scan with MIT AI2 Companion or enter the code manually.</p>
-      <div class="lt-qr-wrap">
-        <div class="lt-qr-box">{@html qrSvg}</div>
-      </div>
-      <div class="lt-code-label">or enter code</div>
-      <div class="lt-code-display" bind:this={digitsEl}></div>
-      <div class="lt-status status-{status}" aria-live="polite">
-        <span class="lt-dot"></span>
-        <div class="lt-status-primary">{statusText}</div>
-      </div>
-      {#if status === 'error'}
-        <button class="lt-cancel lt-retry" on:click={retry}>
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 4a4 4 0 10.6 2M10 1v3H7"/></svg>
-          Try Again
+
+      <div class="lt-footer">
+        <button class="lt-btn lt-btn--danger" on:click={disconnectCompanion}>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4.5 6h5M7 3.5L4 6l3 2.5"/>
+            <path d="M2 2v8"/>
+          </svg>
+          Disconnect
         </button>
+      </div>
+
+    {:else}
+
+      <!-- QR + digits body -->
+      <div class="lt-qr-section">
+        <div class="lt-qr-box">{@html qrSvg}</div>
+        <div class="lt-scan-hint">Scan with MIT AI2 Companion</div>
+      </div>
+
+      <div class="lt-or-row">
+        <span class="lt-or-line"></span>
+        <span class="lt-or-text">or enter code</span>
+        <span class="lt-or-line"></span>
+      </div>
+
+      <div class="lt-code-display" bind:this={digitsEl}></div>
+
+      <div class="lt-status lt-status--{status}" aria-live="polite">
+        <span class="lt-dot"></span>
+        <span>{statusText}</span>
+      </div>
+
+      {#if status === 'error'}
+        <div class="lt-footer">
+          <button class="lt-btn lt-btn--accent" on:click={retry}>
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 4a4 4 0 10.6 2M10 1v3H7"/></svg>
+            Try Again
+          </button>
+        </div>
       {/if}
-      <button class="lt-cancel" on:click={close}>
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 2l8 8M10 2l-8 8"/></svg>
-        Cancel
-      </button>
+
     {/if}
   </div>
 </div>
