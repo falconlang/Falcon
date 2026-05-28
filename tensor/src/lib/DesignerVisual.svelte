@@ -202,6 +202,21 @@
     return category;
   }
 
+  function cleanDescription(description) {
+    return String(description || '')
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<\/p>/gi, ' ')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function buildPropsForComponent(component) {
     const designerByName = new Map((component.properties || []).map(prop => [prop.name, prop]));
     const blockByName = new Map((component.blockProperties || []).map(prop => [prop.name, prop]));
@@ -229,6 +244,7 @@
         name,
         editorType,
         category: normalizePropertyCategory(blockProp?.category),
+        description: cleanDescription(blockProp?.description || designerProp?.description),
         defaultValue: designerProp?.defaultValue ?? '',
         options: options.length
           ? options
@@ -512,8 +528,18 @@
   let addCompValue = '';
   let addCompError = '';
   let addCompInputEl;
+  let addCompHighlight = 0;
+  let addCompSelecting = false; // true while clicking a suggestion, suppresses blur
+
+  const ALL_COMPONENT_NAMES = ["AbsoluteArrangement","AccelerometerSensor","ActivityStarter","AnomalyDetection","Ball","BarcodeScanner","Barometer","BluetoothClient","BluetoothServer","Button","Camcorder","Camera","Canvas","Chart","ChartData2D","ChatBot","CheckBox","Circle","CircularProgress","Clock","CloudDB","ContactPicker","DataFile","DatePicker","EmailPicker","Ev3ColorSensor","Ev3Commands","Ev3GyroSensor","Ev3Motors","Ev3Sound","Ev3TouchSensor","Ev3UI","Ev3UltrasonicSensor","FeatureCollection","File","FilePicker","FirebaseDB","FusiontablesControl","GameClient","GyroscopeSensor","HorizontalArrangement","HorizontalScrollArrangement","Hygrometer","Image","ImageBot","ImagePicker","ImageSprite","Label","LightSensor","LineString","LinearProgress","ListPicker","ListView","LocationSensor","MagneticFieldSensor","Map","Marker","MediaStore","Navigation","NearField","Notifier","NxtColorSensor","NxtDirectCommands","NxtDrive","NxtLightSensor","NxtSoundSensor","NxtTouchSensor","NxtUltrasonicSensor","OrientationSensor","PasswordTextBox","Pedometer","PhoneCall","PhoneNumberPicker","PhoneStatus","Player","Polygon","ProximitySensor","Rectangle","Regression","Serial","Sharing","Slider","Sound","SoundRecorder","SpeechRecognizer","Spinner","Spreadsheet","Switch","TableArrangement","TextBox","TextToSpeech","Texting","Thermometer","TimePicker","TinyDB","TinyWebDB","Translator","Trendline","Twitter","VerticalArrangement","VerticalScrollArrangement","VideoPlayer","Voting","Web","WebViewer","YandexTranslate"];
+
+  $: addCompSuggestions = addCompValue.trim()
+    ? ALL_COMPONENT_NAMES.filter(n => n.toLowerCase().startsWith(addCompValue.trim().toLowerCase())).slice(0, 7)
+    : [];
+  $: { addCompSuggestions; addCompHighlight = 0; }
   let ctxMenu = null; // { x, y, pathId, isContainer, isRoot }
   let assetCtxMenu = null; // { x, y, assetId }
+  let helpPopup = null; // { x, y, description }
   let renamingAssetId = null;
   let assetRenameValue = '';
   let assetRenameError = '';
@@ -570,6 +596,18 @@
     collapsedCategories = next;
   }
 
+  function openHelp(e, description) {
+    e.stopPropagation();
+    if (helpPopup) { helpPopup = null; return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    const popupW = 220;
+    const x = Math.min(r.right + 6, window.innerWidth - popupW - 8);
+    const y = r.top;
+    helpPopup = { x, y, description: description || 'No description available.' };
+  }
+
+  function closeHelp() { helpPopup = null; }
+
   // ── Tree operations ────────────────────────────────────────────────
   function addComponent(type) {
     if (!mutableTree) return;
@@ -592,7 +630,15 @@
     applyChange(newTree);
 
     const added = flattenTree(newTree, 0, new Set()).find(n => n.name === newName);
-    if (added) selectedPathId = added.pathId;
+    if (added) {
+      // Expand any collapsed ancestor so the new node is visible
+      if (added.parentPathId) {
+        const next = new Set(collapsed);
+        next.delete(added.parentPathId);
+        collapsed = next;
+      }
+      selectedPathId = added.pathId;
+    }
     showPicker = false;
   }
 
@@ -721,27 +767,46 @@
     tick().then(() => addCompInputEl?.focus());
   }
 
-  function commitAddComp() {
-    const type = addCompValue.trim();
-    if (!type) {
-      addCompError = 'Enter a component name.';
-      tick().then(() => addCompInputEl?.focus());
-      return;
-    }
-    if (!KNOWN_COMPONENT_TYPES.has(type)) {
-      addCompError = 'Unknown component type.';
-      tick().then(() => addCompInputEl?.focus());
-      return;
-    }
-    addComponent(type);
+  function pickSuggestion(name) {
+    addCompSelecting = false;
+    addComponent(name);
     showPicker = false;
     addCompValue = '';
     addCompError = '';
   }
 
+  function commitAddComp() {
+    const resolved = addCompSuggestions[addCompHighlight] ?? addCompValue.trim();
+    if (!resolved) {
+      addCompError = 'Enter a component name.';
+      tick().then(() => addCompInputEl?.focus());
+      return;
+    }
+    if (!KNOWN_COMPONENT_TYPES.has(resolved)) {
+      addCompError = 'Unknown component type.';
+      tick().then(() => addCompInputEl?.focus());
+      return;
+    }
+    pickSuggestion(resolved);
+  }
+
   function handleAddCompKey(e) {
-    if (e.key === 'Enter') commitAddComp();
-    if (e.key === 'Escape') { showPicker = false; addCompValue = ''; addCompError = ''; }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      addCompHighlight = Math.min(addCompHighlight + 1, addCompSuggestions.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      addCompHighlight = Math.max(addCompHighlight - 1, 0);
+    } else if (e.key === 'Tab' && addCompSuggestions.length) {
+      e.preventDefault();
+      pickSuggestion(addCompSuggestions[addCompHighlight]);
+    } else if (e.key === 'Enter') {
+      commitAddComp();
+    } else if (e.key === 'Escape') {
+      showPicker = false;
+      addCompValue = '';
+      addCompError = '';
+    }
   }
 
   function deleteSelected() {
@@ -1159,6 +1224,19 @@
 
     <!-- Add component input -->
     {#if showPicker}
+      {#if addCompSuggestions.length}
+        <div class="vis-add-suggestions">
+          {#each addCompSuggestions as name, i}
+            <button
+              class="vis-add-suggestion"
+              class:highlighted={i === addCompHighlight}
+              on:mousedown={() => { addCompSelecting = true; }}
+              on:click={() => pickSuggestion(name)}
+              tabindex="-1"
+            >{name}</button>
+          {/each}
+        </div>
+      {/if}
       <div class="vis-add-bar">
         <input
           class="vis-add-input"
@@ -1168,8 +1246,9 @@
           class:error={!!addCompError}
           on:input={() => { addCompError = ''; }}
           on:keydown={handleAddCompKey}
-          on:blur={() => { showPicker = false; addCompValue = ''; addCompError = ''; }}
+          on:blur={() => { if (addCompSelecting) return; showPicker = false; addCompValue = ''; addCompError = ''; }}
           spellcheck="false"
+          autocomplete="off"
         />
         {#if addCompError}
           <div class="vis-add-error">{addCompError}</div>
@@ -1181,7 +1260,7 @@
       <div class="vis-media-header">
         <span>Media</span>
         <label class="vis-media-upload">
-          Upload File ...
+          Upload file
           <input
             class="vis-file-native"
             type="file"
@@ -1222,6 +1301,9 @@
                 </div>
               {:else}
                 <span class="vis-media-name">{asset.name}</span>
+                {#if assetSize}
+                  <span class="vis-media-size">{assetSize}</span>
+                {/if}
               {/if}
             </div>
           {/each}
@@ -1337,7 +1419,11 @@
                   <div class="vis-row">
                     <div class="vis-row-label">
                       <span class="vis-prop-name">{prop.name}</span>
-                      <button class="vis-help-btn" title="{prop.name} ({prop.editorType})" aria-label="Help">
+                      <button
+                        class="vis-help-btn"
+                        aria-label="Show property description"
+                        on:click={e => openHelp(e, prop.description)}
+                      >
                         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4">
                           <circle cx="6" cy="6" r="5"/>
                           <path d="M5 4.5C5 4 5.4 3.5 6 3.5c.7 0 1 .5 1 1 0 .8-1 1-1 2" stroke-linecap="round"/>
@@ -1491,6 +1577,16 @@
       </div>
     {/if}
   </div>
+  {/if}
+
+  <!-- ── Help popup ──────────────────────────────────────────────────── -->
+  {#if helpPopup}
+    <div class="vis-ctx-backdrop" role="presentation" on:click={closeHelp} on:keydown></div>
+    <div
+      class="vis-help-popup"
+      style="left:{helpPopup.x}px; top:{helpPopup.y}px"
+      role="tooltip"
+    >{helpPopup.description}</div>
   {/if}
 </div>
 
@@ -1747,6 +1843,40 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
   }
 
+  /* ── Add component suggestions ──────────────────────────────────── */
+  .vis-add-suggestions {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border-soft);
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .vis-add-suggestion {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 26px;
+    padding: 0 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.08s, color 0.08s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .vis-add-suggestion:hover,
+  .vis-add-suggestion.highlighted {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
   /* ── Add component input ─────────────────────────────────────────── */
   .vis-add-bar {
     flex-shrink: 0;
@@ -1843,6 +1973,8 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     padding: 4px 0;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
@@ -1888,10 +2020,22 @@
   }
 
   .vis-media-empty {
-    padding: 7px 8px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--text-faint);
     font-family: var(--font);
     font-size: 11.5px;
+  }
+
+  .vis-media-size {
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-left: auto;
+    padding-left: 6px;
   }
 
   .vis-media-rename {
@@ -2082,6 +2226,23 @@
   .vis-help-btn svg { width: 13px; height: 13px; }
 
   .vis-row-editor { min-width: 0; }
+
+  .vis-help-popup {
+    position: fixed;
+    z-index: 60;
+    width: 220px;
+    padding: 8px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 12px;
+    line-height: 1.5;
+    pointer-events: none;
+    animation: visCtxIn 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
 
   /* Color */
   .vis-color-control {

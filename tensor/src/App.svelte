@@ -6,6 +6,7 @@
   import Sidebar from './lib/Sidebar.svelte';
   import Notebook from './lib/Notebook.svelte';
   import DesignerPanel from './lib/DesignerPanel.svelte';
+  import DebugPanel from './lib/DebugPanel.svelte';
   import StatusBar from './lib/StatusBar.svelte';
   import ContextMenu from './lib/ContextMenu.svelte';
   import LiveTestOverlay from './lib/LiveTestOverlay.svelte';
@@ -58,6 +59,7 @@
     <LiveTestOverlay />
   </div>
 
+  <DebugPanel />
   <StatusBar />
 </div>
 

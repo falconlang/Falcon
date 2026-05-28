@@ -1,10 +1,6 @@
 <script>
   import { onMount, tick } from 'svelte';
   import {
-    clearDebugLogs,
-    debugCollapsed,
-    debugLogs,
-    debugOpenHeight,
     initialDesignCode,
     updateDesignCode,
   } from './stores.js';
@@ -15,19 +11,12 @@
 
   let dsgnCodeEl;
   let dsgnHighlightEl;
-  let dbgScrollEl;
   let panelEl;
   let resizeHandleEl;
   let schemaValue = initialDesignCode;
   let designerHistory = [];
   let designerHistoryIndex = -1;
   let applyingDesignerHistory = false;
-
-  let debugDidDrag = false;
-  let debugResizing = false;
-  let debugResizeStartY = 0;
-  let debugResizeStartH = 0;
-  let lastDebugLogId = 0;
 
   const DESIGNER_HISTORY_LIMIT = 100;
   const AUTO_PAIRS = {
@@ -398,47 +387,6 @@
     }
   }
 
-  export function toggleDebugPanel() {
-    if (debugDidDrag) { debugDidDrag = false; return; }
-    debugCollapsed.update(v => !v);
-  }
-
-  function debugLevelLabel(level) {
-    if (level === 'high') return 'High';
-    if (level === 'warn') return 'Warning';
-    return level ? level[0].toUpperCase() + level.slice(1) : 'Info';
-  }
-
-  function handleDebugKey(e) {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    e.preventDefault();
-    toggleDebugPanel();
-  }
-
-  function initDebugResize(e) {
-    if ($debugCollapsed) return;
-    debugResizing = true;
-    debugDidDrag = false;
-    debugResizeStartY = e.clientY;
-    debugResizeStartH = $debugOpenHeight;
-    document.addEventListener('mousemove', onDebugResizeMove);
-    document.addEventListener('mouseup', onDebugResizeUp);
-    e.preventDefault();
-  }
-
-  function onDebugResizeMove(e) {
-    if (!debugResizing) return;
-    debugDidDrag = true;
-    const delta = debugResizeStartY - e.clientY;
-    debugOpenHeight.set(Math.max(60, Math.min(500, debugResizeStartH + delta)));
-  }
-
-  function onDebugResizeUp() {
-    debugResizing = false;
-    document.removeEventListener('mousemove', onDebugResizeMove);
-    document.removeEventListener('mouseup', onDebugResizeUp);
-  }
-
   function initResizeHandle() {
     const main = document.getElementById('main');
     let dragging = false, startX = 0, startWidth = 0;
@@ -476,21 +424,6 @@
     initResizeHandle();
   });
 
-  $: debugPanelHeight = $debugCollapsed ? 0 : $debugOpenHeight;
-  $: toggleIconPath = $debugCollapsed ? 'M2 4l3 3 3-3' : 'M2 6l3-3 3 3';
-  $: debugLogCount = $debugLogs.length;
-  $: debugLogStatus = debugLogCount === 0
-    ? 'No logs'
-    : `${debugLogCount} log${debugLogCount === 1 ? '' : 's'}`;
-  $: {
-    const newestId = $debugLogs[$debugLogs.length - 1]?.id ?? 0;
-    if (dbgScrollEl && newestId !== lastDebugLogId) {
-      lastDebugLogId = newestId;
-      tick().then(() => {
-        if (dbgScrollEl) dbgScrollEl.scrollTop = dbgScrollEl.scrollHeight;
-      });
-    }
-  }
 </script>
 
 <svelte:window on:keydown={handleVisualDesignerKey} />
@@ -563,64 +496,4 @@
   </div>
   {/if}
 
-  <div
-    id="debug-handle"
-    on:mousedown={initDebugResize}
-    on:click={toggleDebugPanel}
-    role="button"
-    tabindex="0"
-    on:keydown={handleDebugKey}
-  >
-    <span class="dbg-handle-label">
-      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6" cy="4" r="2"/><path d="M3 11c0-1.657 1.343-3 3-3s3 1.343 3 3"/><path d="M1 4h1M10 4h1M6 1v1"/></svg>
-      <span class="dbg-handle-title">Debug</span>
-      <span class="dbg-count">{debugLogStatus}</span>
-    </span>
-    <div class="dbg-actions">
-      <button
-        class="dbg-clear-btn"
-        on:mousedown|stopPropagation
-        on:click|stopPropagation={clearDebugLogs}
-        title="Clear debug logs"
-        aria-label="Clear debug logs"
-        disabled={debugLogCount === 0}
-      >
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 3h8M4.5 3V2h3v1M9 3l-.5 7h-5L3 3"/>
-        </svg>
-      </button>
-      <button
-        class="dbg-toggle-btn"
-        on:mousedown|stopPropagation
-        on:click|stopPropagation={toggleDebugPanel}
-        title="Toggle debugger"
-      >
-        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d={toggleIconPath}/>
-        </svg>
-      </button>
-    </div>
-  </div>
-
-  <div id="debug-panel" style="height: {debugPanelHeight}px">
-    <div
-      class="dbg-scroll"
-      bind:this={dbgScrollEl}
-      role="log"
-      aria-live="polite"
-      aria-label="Notifier debug logs"
-    >
-      {#if debugLogCount === 0}
-        <div class="dbg-empty">No Notifier logs yet</div>
-      {:else}
-        {#each $debugLogs as log (log.id)}
-          <div class="dbg-line dbg-line--{log.level}" title={log.source}>
-            <span class="dbg-ts">{log.time}</span>
-            <span class="dbg-level">{debugLevelLabel(log.level)}</span>
-            <span class="dbg-msg">{log.message}</span>
-          </div>
-        {/each}
-      {/if}
-    </div>
-  </div>
 </div>

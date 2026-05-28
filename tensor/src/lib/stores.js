@@ -81,7 +81,7 @@ export const liveTestState = writable({
 });
 export const doItCellId = writable(null);
 export const sidebarVisible = writable(true);
-export const debugCollapsed = writable(false);
+export const debugCollapsed = writable(true);
 export const debugOpenHeight = writable(200);
 export const debugLogs = writable([]);
 
