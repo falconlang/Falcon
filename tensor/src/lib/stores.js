@@ -365,15 +365,21 @@ export function getDesignSource() {
   return get(designCode);
 }
 
-export function showCtx(e, id) {
+export function showCtx(e, id, toggle = false) {
   e.preventDefault();
   e.stopPropagation();
   setActive(id);
-  ctxMenu.set({
-    show: true,
-    x: Math.min(e.clientX, window.innerWidth - 180),
-    y: Math.min(e.clientY, window.innerHeight - 260),
-    cellId: id,
+  ctxMenu.update(current => {
+    if (toggle && current.show && current.cellId === id) {
+      return { ...current, show: false, cellId: null };
+    }
+
+    return {
+      show: true,
+      x: Math.min(e.clientX, window.innerWidth - 180),
+      y: Math.min(e.clientY, window.innerHeight - 260),
+      cellId: id,
+    };
   });
 }
 

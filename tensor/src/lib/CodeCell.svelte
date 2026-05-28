@@ -502,7 +502,7 @@
       </svg>
       Blocks
     </button>
-    <button class="cell-menu-btn" on:click|stopPropagation={(e) => showCtx(e, cell.id)}>
+    <button class="cell-menu-btn" on:click|stopPropagation={(e) => showCtx(e, cell.id, true)}>
       <svg viewBox="0 0 14 14" fill="currentColor"><circle cx="3" cy="7" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="11" cy="7" r="1.2"/></svg>
     </button>
   </div>

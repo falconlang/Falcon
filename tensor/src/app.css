@@ -25,7 +25,7 @@
   --radius-lg: 14px;
   --font: 'DM Sans', system-ui, sans-serif;
   --mono: 'DM Mono', 'Fira Code', monospace;
-  --sidebar-w: 220px;
+  --sidebar-w: 260px;
 }
 
 [data-theme="dark"] {
@@ -277,7 +277,7 @@ html, body {
 .toc-item.h2 { padding-left: 30px; font-size: 11.5px; }
 
 /* ── Notebook ── */
-#notebook-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 300px; }
+#notebook-col { flex: 3 1 0; display: flex; flex-direction: column; overflow: hidden; min-width: 300px; }
 #notebook-wrap { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 #notebook {
   max-width: 780px;
@@ -575,9 +575,8 @@ html, body {
 }
 
 #designer-panel {
-  flex: 1;
+  flex: 2 1 0;
   min-width: 200px;
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;

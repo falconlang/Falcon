@@ -406,7 +406,7 @@
       const delta = startX - e.clientX;
       const maxW = main.offsetWidth - 300;
       const newW = Math.max(200, Math.min(startWidth + delta, maxW));
-      panelEl.style.width = newW + 'px';
+      panelEl.style.flex = `0 0 ${newW}px`;
     });
 
     document.addEventListener('mouseup', () => {

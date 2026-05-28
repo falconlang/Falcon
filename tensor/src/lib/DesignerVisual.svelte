@@ -217,13 +217,17 @@
       .trim();
   }
 
+  function isSettableBlockProperty(prop) {
+    return prop?.rw !== 'invisible' && prop?.rw !== 'read-only';
+  }
+
   function buildPropsForComponent(component) {
     const designerByName = new Map((component.properties || []).map(prop => [prop.name, prop]));
     const blockByName = new Map((component.blockProperties || []).map(prop => [prop.name, prop]));
     const orderedNames = [];
 
     for (const prop of component.blockProperties || []) {
-      if (prop.rw === 'invisible') continue;
+      if (!isSettableBlockProperty(prop)) continue;
       orderedNames.push(prop.name);
     }
 
@@ -305,9 +309,48 @@
   }
 
   // ── Schema parser ──────────────────────────────────────────────────
+  function stripLineComments(text) {
+    let out = '';
+    let inString = false;
+    let escaped = false;
+
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      const next = text[i + 1];
+
+      if (inString) {
+        out += ch;
+        if (escaped) {
+          escaped = false;
+        } else if (ch === '\\') {
+          escaped = true;
+        } else if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = true;
+        out += ch;
+        continue;
+      }
+
+      if (ch === '/' && next === '/') {
+        while (i < text.length && text[i] !== '\n') i += 1;
+        if (i < text.length) out += text[i];
+        continue;
+      }
+
+      out += ch;
+    }
+
+    return out;
+  }
+
   function parseSchema(text) {
     if (!text?.trim()) return { root: null, error: 'The design schema is empty.' };
-    text = text.replace(/\/\/[^\n]*/g, '');
+    text = stripLineComments(text);
     let pos = 0;
     const typeCounts = {};
 
@@ -416,15 +459,27 @@
   }
 
   // ── Serializer ─────────────────────────────────────────────────────
-  function needsQuotes(val) {
-    return !/^(true|false|True|False|-?\d+\.?\d*|&H[0-9A-Fa-f]{8})$/.test(String(val).trim());
+  function isColorProp(node, propName) {
+    const prop = (COMP_PROPS[node?.type] ?? FALLBACK_PROPS).find(p => p.name === propName);
+    return prop?.editorType === 'color' || /(Color|Colour)$/.test(propName) || propName === 'PaintColor';
+  }
+
+  function needsQuotes(val, node, propName) {
+    const text = String(val).trim();
+    if (/^(true|false|True|False|-?\d+\.?\d*|&H[0-9A-Fa-f]{8})$/.test(text)) return false;
+    if (isColorProp(node, propName) && /^#[0-9A-Fa-f]{3,8}$/.test(text)) return false;
+    return true;
+  }
+
+  function quoteSchemaString(val) {
+    return `"${String(val).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
   }
 
   function serializeComp(node, depth = 0) {
     const ind = '  '.repeat(depth);
     const ident = `${node.type}.${node.name}`;
     const propLines = Object.entries(node.props || {}).map(
-      ([k, v]) => `${ind}  ${k}: ${needsQuotes(v) ? `"${v}"` : v}`
+      ([k, v]) => `${ind}  ${k}: ${needsQuotes(v, node, k) ? quoteSchemaString(v) : v}`
     );
     const childLines = (node.children || []).map(c => serializeComp(c, depth + 1));
     const body = [...propLines, ...childLines];
@@ -523,7 +578,7 @@
   let collapsed = new Set();
   let selectedPathId = '0';
   let collapsedCategories = new Set();
-  let componentFilter = 'all';
+  let treeTab = 'components';
   let showPicker = false;
   let addCompValue = '';
   let addCompError = '';
@@ -553,23 +608,16 @@
   let dropTarget = null; // { pathId, position: 'before' | 'after' | 'into' }
 
   $: flatList = mutableTree ? flattenTree(mutableTree, 0, collapsed) : [];
-  $: visibleFlatList = flatList.filter(componentFilterMatches);
   $: mediaAssets = $designAssets.map(normalizeAssetRecord);
   $: activeAsset = assetCtxMenu ? mediaAssets.find(asset => asset.id === assetCtxMenu.assetId) : null;
-  $: if (mutableTree && visibleFlatList.length && !visibleFlatList.some(n => n.pathId === selectedPathId)) {
-    selectedPathId = visibleFlatList[0].pathId;
+  $: if (mutableTree && flatList.length && !flatList.some(n => n.pathId === selectedPathId)) {
+    selectedPathId = flatList[0].pathId;
   }
-  $: selectedNode = flatList.find(n => n.pathId === selectedPathId) ?? visibleFlatList[0] ?? flatList[0] ?? null;
+  $: selectedNode = flatList.find(n => n.pathId === selectedPathId) ?? flatList[0] ?? null;
   $: propGroups = selectedNode
     ? groupByCategory(COMP_PROPS[selectedNode.type] ?? FALLBACK_PROPS)
     : [];
   $: isRoot = selectedNode?.pathId === '0';
-
-  function componentFilterMatches(node) {
-    if (componentFilter === 'all') return true;
-    const isNonVisible = isNonVisibleComponentType(node.type);
-    return componentFilter === 'nonVisible' ? isNonVisible : !isNonVisible;
-  }
 
   function normalizeAssetRecord(asset, index) {
     if (typeof asset === 'string') {
@@ -880,9 +928,9 @@
     const m = String(val || '').match(/^&H([0-9A-Fa-f]{8})$/);
     if (!m || parseInt(m[1].slice(0, 2), 16) === 0) return '#1a1916';
     const h = m[1];
-    const r = h.slice(6, 8);
+    const r = h.slice(2, 4);
     const g = h.slice(4, 6);
-    const b = h.slice(2, 4);
+    const b = h.slice(6, 8);
     return `#${r}${g}${b}`.toLowerCase();
   }
 
@@ -893,7 +941,7 @@
     const r = h.slice(0, 2);
     const g = h.slice(2, 4);
     const b = h.slice(4, 6);
-    return `&HFF${b}${g}${r}`;
+    return `&HFF${r}${g}${b}`;
   }
 
   function colorDisplay(val) {
@@ -1120,30 +1168,32 @@
   {:else}
   <!-- ── Component tree ──────────────────────────────────────────────── -->
   <div class="vis-tree">
-    <div class="vis-tree-filter" aria-label="Component list filter">
+    <div class="vis-tree-tabs">
       <button
-        type="button"
-        class:active={componentFilter === 'all'}
-        on:click={() => { componentFilter = 'all'; closeCtxMenu(); }}
-      >
-        All
-      </button>
+        class="vis-tab-btn"
+        class:active={treeTab === 'components'}
+        on:click={() => { treeTab = 'components'; closeCtxMenu(); }}
+      >Components</button>
       <button
-        type="button"
-        class:active={componentFilter === 'visible'}
-        on:click={() => { componentFilter = 'visible'; closeCtxMenu(); }}
-      >
-        Visible
-      </button>
-      <button
-        type="button"
-        class:active={componentFilter === 'nonVisible'}
-        on:click={() => { componentFilter = 'nonVisible'; closeCtxMenu(); }}
-      >
-        Non-visible
-      </button>
+        class="vis-tab-btn"
+        class:active={treeTab === 'media'}
+        on:click={() => { treeTab = 'media'; closeCtxMenu(); }}
+      >Media</button>
+      <div class="vis-tab-spacer"></div>
+      {#if treeTab === 'components'}
+        <button
+          class="vis-tab-add-btn"
+          title="Add component"
+          on:click={ctxAddComp}
+        >
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M5 1v8M1 5h8"/>
+          </svg>
+        </button>
+      {/if}
     </div>
 
+  {#if treeTab === 'components'}
     <div
       class="vis-tree-scroll"
       role="tree"
@@ -1151,8 +1201,8 @@
       tabindex="-1"
       on:dragleave={handleScrollDragLeave}
     >
-      {#if visibleFlatList.length}
-        {#each visibleFlatList as node (node.pathId)}
+      {#if flatList.length}
+        {#each flatList as node (node.pathId)}
           {@const hasKids  = node.children.length > 0}
           {@const isOpen   = !collapsed.has(node.pathId)}
           {@const isSel    = selectedNode?.pathId === node.pathId}
@@ -1215,10 +1265,23 @@
               <span class="vis-item-name" title={node.name}>{node.name}</span>
             {/if}
 
+            <button
+              class="vis-item-menu-btn"
+              tabindex="-1"
+              title="More options"
+              aria-label="More options for {node.name}"
+              on:click|stopPropagation={e => handleItemCtxMenu(e, node)}
+            >
+              <svg viewBox="0 0 12 12" fill="currentColor">
+                <circle cx="2.5" cy="6" r="1"/>
+                <circle cx="6" cy="6" r="1"/>
+                <circle cx="9.5" cy="6" r="1"/>
+              </svg>
+            </button>
           </div>
         {/each}
       {:else}
-        <div class="vis-tree-empty">No components match this filter.</div>
+        <div class="vis-tree-empty">No components yet.</div>
       {/if}
     </div>
 
@@ -1256,7 +1319,9 @@
       </div>
     {/if}
 
-    <div class="vis-media">
+  {:else}
+    <!-- Media tab -->
+    <div class="vis-media-tab">
       <div class="vis-media-header">
         <span>Media</span>
         <label class="vis-media-upload">
@@ -1304,6 +1369,19 @@
                 {#if assetSize}
                   <span class="vis-media-size">{assetSize}</span>
                 {/if}
+                <button
+                  class="vis-item-menu-btn"
+                  tabindex="-1"
+                  title="More options"
+                  aria-label="More options for {asset.name}"
+                  on:click|stopPropagation={e => handleAssetCtxMenu(e, asset)}
+                >
+                  <svg viewBox="0 0 12 12" fill="currentColor">
+                    <circle cx="2.5" cy="6" r="1"/>
+                    <circle cx="6" cy="6" r="1"/>
+                    <circle cx="9.5" cy="6" r="1"/>
+                  </svg>
+                </button>
               {/if}
             </div>
           {/each}
@@ -1312,6 +1390,7 @@
         {/if}
       </div>
     </div>
+  {/if}
 
   </div>
 
@@ -1390,6 +1469,8 @@
         <svg class="vis-props-type-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor">
           {@html compIcon(selectedNode.type)}
         </svg>
+        <span class="vis-props-type">{selectedNode.type}</span>
+        <span class="vis-props-dot">·</span>
         <span class="vis-props-title">{selectedNode.name}</span>
       </div>
 
@@ -1664,44 +1745,50 @@
     position: relative;
   }
 
-  .vis-tree-filter {
+  /* ── Tab bar ─────────────────────────────────────────────────────── */
+  .vis-tree-tabs {
     flex-shrink: 0;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    padding: 6px;
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    padding: 4px 6px;
     border-bottom: 1px solid var(--border-soft);
     background: var(--surface);
   }
 
-  .vis-tree-filter button {
-    height: 24px;
-    padding: 0 6px;
-    border: 1px solid var(--border);
+  .vis-tab-btn {
+    height: 22px;
+    padding: 0 8px;
+    border: none;
     border-radius: var(--radius);
-    background: var(--bg);
-    color: var(--text-muted);
+    background: transparent;
+    color: var(--text-faint);
     font-family: var(--font);
-    font-size: 11px;
+    font-size: 11.5px;
     cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: background 0.1s, border-color 0.1s, color 0.1s;
+    transition: background 0.1s, color 0.1s;
   }
+  .vis-tab-btn:hover { background: var(--cell-active); color: var(--text-muted); }
+  .vis-tab-btn.active { background: var(--cell-active); color: var(--text); font-weight: 500; }
 
-  .vis-tree-filter button:hover {
-    border-color: var(--text-faint);
-    background: var(--cell-active);
-    color: var(--text);
-  }
-  .vis-tree-filter button:active:not(.active) { opacity: 0.65; transition: opacity 0.05s; }
+  .vis-tab-spacer { flex: 1; }
 
-  .vis-tree-filter button.active {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    color: var(--accent);
+  .vis-tab-add-btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    flex-shrink: 0;
   }
+  .vis-tab-add-btn:hover { background: var(--cell-active); color: var(--accent); }
+  .vis-tab-add-btn svg { width: 10px; height: 10px; }
 
   .vis-tree-scroll {
     flex: 1;
@@ -1816,6 +1903,30 @@
     font-size: 10.5px;
   }
 
+  /* Tree item more-options button */
+  .vis-item-menu-btn {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-faint);
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.1s, background 0.1s, color 0.1s;
+  }
+  .vis-item:hover .vis-item-menu-btn,
+  .vis-item.selected .vis-item-menu-btn,
+  .vis-media-item:hover .vis-item-menu-btn { opacity: 1; }
+  .vis-item-menu-btn:hover { background: var(--border-soft); color: var(--text-muted); }
+  .vis-item.selected .vis-item-menu-btn:hover { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+  .vis-item-menu-btn svg { width: 12px; height: 12px; }
+
   /* Drag-and-drop states */
   .vis-item[draggable="true"] { cursor: grab; }
   .vis-item[draggable="true"]:active { cursor: grabbing; }
@@ -1908,15 +2019,14 @@
     font-size: 11px;
   }
 
-  /* ── Media panel ─────────────────────────────────────────────────── */
-  .vis-media {
-    flex-shrink: 0;
+  /* ── Media tab ────────────────────────────────────────────────────── */
+  .vis-media-tab {
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    min-height: 96px;
-    max-height: 176px;
-    border-top: 1px solid var(--border);
     background: var(--surface);
+    overflow: hidden;
   }
 
   .vis-media-header {
@@ -2149,12 +2259,30 @@
 
   .vis-props-type-icon { width: 13px; height: 13px; color: var(--text-faint); flex-shrink: 0; }
 
+  .vis-props-type {
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--text-faint);
+    white-space: nowrap;
+  }
+
+  .vis-props-dot {
+    font-size: 12px;
+    color: var(--text-faint);
+    padding: 0 3px;
+    flex-shrink: 0;
+  }
+
   .vis-props-title {
     font-family: var(--font);
     font-size: 12.5px;
     font-weight: 500;
     color: var(--text);
     letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .vis-props-scroll {
