@@ -1,43 +1,80 @@
 <script>
-  import { onMount, tick } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { cells, updateCellCode } from './stores.js';
   import { falconTokenize, tokensToHtml } from './tokenizer.js';
-
-  const SEP_RE_G = /\/\/ ─── \[cell:([^\]]+)\] ───\n?/g;
-  const SEP_LINE = id => `// ─── [cell:${id}] ───`;
+  import { mistToXmlResult } from './falcon-wasm.js';
+  import { blocklyXmlToPng, componentDefinitionsFromDesigner, ensureBlocklyRuntime, copyPngBlobToClipboard, downloadPngBlob } from './blockly-preview.js';
 
   const AUTO_PAIRS = { '{': '}', '(': ')', '[': ']', '"': '"' };
   const HISTORY_LIMIT = 100;
 
-  let codeEl, highlightEl, wrapEl;
+  let codeEl, highlightEl, wrapEl, editorContainerEl;
   let editorValue = '';
   let history = [];
   let historyIndex = -1;
   let applyingHistory = false;
+
+  // ── Blockly callout ──
+  // null when hidden, or { x, y, status: 'loading'|'ready'|'error', imgUrl }
+  let callout = null;
+  let calloutRunId = 0;
+  let calloutDebounceTimer = null;
+
+  const CALLOUT_DEBOUNCE_MS = 280;
+  const LINE_HEIGHT = 13 * 1.65; // must match .code-area font-size × line-height
+  const CODE_PAD_TOP = 12;        // must match .code-area padding-top
+
+  // Parallel arrays: one entry per code cell in order.
+  // cellIds[i]    — the cell's id
+  // cellStarts[i] — character offset in editorValue where cell i's code begins
+  // Cell i's code occupies editorValue.slice(cellStarts[i], cellStarts[i+1] - 2)
+  // The last cell's code occupies editorValue.slice(cellStarts[last])
+  // The 2-char gap between cells is the '\n\n' separator.
+  let cellIds = [];
+  let cellStarts = [];
 
   $: lineCount = Math.max(editorValue.split('\n').length, 1);
   $: lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
   $: highlightedCode = tokensToHtml(falconTokenize(editorValue));
 
   function buildContent(cellList) {
-    const code = cellList.filter(c => c.type === 'code');
-    if (!code.length) return '';
-    return code.map(c => `${SEP_LINE(c.id)}\n${c.code || ''}`).join('\n\n');
+    const codeCells = cellList.filter(c => c.type === 'code');
+    cellIds = codeCells.map(c => c.id);
+    cellStarts = [];
+    let offset = 0;
+    const parts = codeCells.map(c => {
+      cellStarts.push(offset);
+      const code = c.code || '';
+      offset += code.length + 2; // +2 for the '\n\n' separator that join() inserts
+      return code;
+    });
+    return parts.join('\n\n');
   }
 
-  function parseAndSync(content) {
-    const re = new RegExp(SEP_RE_G.source, 'g');
-    let lastIndex = 0, lastId = null, match;
-    while ((match = re.exec(content)) !== null) {
-      if (lastId !== null) {
-        updateCellCode(lastId, content.slice(lastIndex, match.index).replace(/\n+$/, ''));
+  function adjustCellStarts(prevContent, nextContent) {
+    const delta = nextContent.length - prevContent.length;
+    if (delta === 0 || cellStarts.length <= 1) return;
+    // Find first differing position
+    let changeAt = 0;
+    const minLen = Math.min(prevContent.length, nextContent.length);
+    while (changeAt < minLen && prevContent[changeAt] === nextContent[changeAt]) changeAt++;
+    // Shift every cell start that lies strictly after the edit point (skip index 0 — always 0)
+    for (let i = 1; i < cellStarts.length; i++) {
+      if (cellStarts[i] > changeAt) {
+        cellStarts[i] = Math.max(cellStarts[i - 1] + 1, cellStarts[i] + delta);
       }
-      lastId = match[1];
-      lastIndex = match.index + match[0].length;
     }
-    if (lastId !== null) {
-      updateCellCode(lastId, content.slice(lastIndex).replace(/\n+$/, ''));
-    }
+  }
+
+  function syncToStore() {
+    const content = editorValue;
+    cellIds.forEach((id, i) => {
+      const start = cellStarts[i] ?? 0;
+      const end = i < cellIds.length - 1
+        ? Math.max(start, (cellStarts[i + 1] ?? content.length) - 2)
+        : content.length;
+      updateCellCode(id, content.slice(start, end));
+    });
   }
 
   function selectionRange() {
@@ -59,8 +96,10 @@
   }
 
   function render(text, caret = null) {
+    const prev = editorValue;
     editorValue = text;
-    parseAndSync(text);
+    adjustCellStarts(prev, text);
+    syncToStore();
     if (caret !== null) setSelection(caret);
   }
 
@@ -262,23 +301,120 @@
     if (!codeEl || !highlightEl) return;
     highlightEl.scrollLeft = codeEl.scrollLeft;
     highlightEl.scrollTop = codeEl.scrollTop;
+    updateCalloutY();
   }
 
   function onInput(e) {
+    const prev = editorValue;
     editorValue = e.currentTarget.value;
-    parseAndSync(editorValue);
+    adjustCellStarts(prev, editorValue);
+    syncToStore();
+    dismissCallout();
     pushHistory();
     syncScroll();
+  }
+
+  // ── Callout helpers ──
+
+  function lineOfOffset(offset) {
+    return (editorValue.slice(0, offset).match(/\n/g) || []).length + 1;
+  }
+
+  function calloutY(startLine, endLine) {
+    if (!codeEl || !editorContainerEl) return 0;
+    const rect = codeEl.getBoundingClientRect();
+    const centerLine = (startLine + endLine) / 2;
+    return rect.top + CODE_PAD_TOP + (centerLine - 1) * LINE_HEIGHT - codeEl.scrollTop;
+  }
+
+  function calloutX(startLine, endLine) {
+    if (!codeEl) return 0;
+    const lines = editorValue.split('\n');
+    const selLines = lines.slice(startLine - 1, endLine);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = getComputedStyle(codeEl).font;
+    const maxWidth = Math.max(0, ...selLines.map(l => ctx.measureText(l).width));
+    const rect = codeEl.getBoundingClientRect();
+    const textLeft = rect.left + 4; // 4px matches .code-area padding-left
+    return textLeft + maxWidth;
+  }
+
+  function updateCalloutY() {
+    if (!callout || !codeEl || !editorContainerEl) return;
+    callout = { ...callout, y: calloutY(callout.startLine, callout.endLine), x: calloutX(callout.startLine, callout.endLine) };
+  }
+
+  function dismissCallout() {
+    ++calloutRunId;
+    clearTimeout(calloutDebounceTimer);
+    if (callout?.imgUrl) URL.revokeObjectURL(callout.imgUrl);
+    callout = null;
+  }
+
+  function scheduleCalloutCheck() {
+    clearTimeout(calloutDebounceTimer);
+    calloutDebounceTimer = setTimeout(runCalloutCheck, CALLOUT_DEBOUNCE_MS);
+  }
+
+  async function runCalloutCheck() {
+    if (!codeEl) return;
+    const selStart = codeEl.selectionStart;
+    const selEnd   = codeEl.selectionEnd;
+    if (selStart === selEnd) { dismissCallout(); return; }
+
+    const runId = ++calloutRunId;
+    const startLine = lineOfOffset(selStart);
+    const endLine   = lineOfOffset(selEnd);
+
+    let xmlResult;
+    try {
+      const defs = await componentDefinitionsFromDesigner();
+      if (runId !== calloutRunId) return;
+      await ensureBlocklyRuntime();
+      if (runId !== calloutRunId) return;
+      xmlResult = await mistToXmlResult(editorValue, defs);
+      if (runId !== calloutRunId) return;
+    } catch { return; }
+
+    const { xml, lineNumbers } = xmlResult;
+    const idx = lineNumbers.findIndex(ln => ln === startLine);
+    if (idx === -1) { if (runId === calloutRunId) callout = null; return; }
+
+    const chunks = String(xml || '').split('\0').map(s => s.trim()).filter(Boolean);
+    const xmlChunk = chunks[idx];
+    if (!xmlChunk) { callout = null; return; }
+
+    const imgHeight = Math.round((endLine - startLine + 1) * LINE_HEIGHT);
+    const cx = calloutX(startLine, endLine);
+    const CALLOUT_PADDING = 12; // 6px × 2
+    const CALLOUT_GAP = 8;
+    const maxWidth = Math.max(80, window.innerWidth - cx - CALLOUT_GAP - CALLOUT_PADDING);
+    if (callout?.imgUrl) URL.revokeObjectURL(callout.imgUrl);
+    callout = { x: cx, y: calloutY(startLine, endLine), startLine, endLine, imgHeight, maxWidth, status: 'loading', imgUrl: null };
+
+    try {
+      const result = await blocklyXmlToPng(xmlChunk);
+      if (runId !== calloutRunId) return;
+      callout = { ...callout, status: 'ready', blob: result.blob, imgUrl: URL.createObjectURL(result.blob) };
+    } catch {
+      if (runId !== calloutRunId) return;
+      callout = null;
+    }
   }
 
   onMount(() => {
     editorValue = buildContent($cells);
     pushHistory(0);
   });
+
+  onDestroy(() => {
+    dismissCallout();
+  });
 </script>
 
 <div class="unified-wrap" bind:this={wrapEl}>
-  <div class="unified-editor">
+  <div class="unified-editor" bind:this={editorContainerEl}>
     <div class="line-nums" aria-hidden="true">
       {#each lineNumbers as n}
         <div>{n}</div>
@@ -297,10 +433,40 @@
         on:keydown={handleKey}
         on:input={onInput}
         on:scroll={syncScroll}
+        on:select={scheduleCalloutCheck}
+        on:mouseup={scheduleCalloutCheck}
+        on:keyup={scheduleCalloutCheck}
       ></textarea>
     </div>
   </div>
 </div>
+
+{#if callout}
+  <div
+    class="blocks-callout"
+    class:blocks-callout--loading={callout.status === 'loading'}
+    style="top:{callout.y}px; left:{callout.x + 8}px; max-width:{callout.maxWidth}px;"
+  >
+    {#if callout.status === 'loading'}
+      <svg class="callout-spinner" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="7" cy="7" r="4.5" stroke-opacity="0.2"/>
+        <path d="M11.5 7A4.5 4.5 0 007 2.5"/>
+      </svg>
+    {:else if callout.status === 'ready' && callout.imgUrl}
+      <img class="callout-img" src={callout.imgUrl} alt="Blockly preview" style="max-height:{callout.imgHeight}px;" />
+      <div class="callout-actions">
+        <button class="callout-action-btn" on:click={() => copyPngBlobToClipboard(callout.blob)} title="Copy blocks as PNG">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="4" width="8" height="8" rx="1.2"/><path d="M2 10V2h8"/></svg>
+          Copy blocks
+        </button>
+        <button class="callout-action-btn" on:click={() => downloadPngBlob(callout.blob)} title="Download blocks as PNG">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5"/><path d="M2 11h10"/></svg>
+          Download
+        </button>
+      </div>
+    {/if}
+  </div>
+{/if}
 
 <style>
   .unified-wrap {
@@ -314,5 +480,92 @@
     display: flex;
     background: var(--surface);
     overflow: hidden;
+  }
+
+  /* ── Blockly callout ── */
+  .blocks-callout {
+    position: fixed;
+    z-index: 80;
+    transform: translateY(-50%);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    pointer-events: auto;
+  }
+
+  /* Arrow pointing left — rotated square on left edge */
+  .blocks-callout::after {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    background: var(--surface);
+    border-bottom: 1.5px solid var(--border);
+    border-left: 1.5px solid var(--border);
+    transform: translateY(-50%) rotate(45deg);
+    border-radius: 0 0 0 2px;
+  }
+
+  .blocks-callout--loading {
+    padding: 10px 12px;
+  }
+
+  .callout-spinner {
+    display: block;
+    width: 20px;
+    height: 20px;
+    animation: callout-spin 0.9s linear infinite;
+    color: var(--text-faint);
+  }
+
+  @keyframes callout-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .callout-img {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+  }
+
+  .callout-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .callout-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+    white-space: nowrap;
+  }
+
+  .callout-action-btn:hover {
+    background: var(--cell-active);
+    color: var(--text);
+    border-color: var(--text-faint);
+  }
+
+  .callout-action-btn svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
   }
 </style>
