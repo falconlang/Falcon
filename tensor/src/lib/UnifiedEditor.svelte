@@ -23,6 +23,8 @@
   const CALLOUT_DEBOUNCE_MS = 280;
   const LINE_HEIGHT = 13 * 1.65; // must match .code-area font-size × line-height
   const CODE_PAD_TOP = 12;        // must match .code-area padding-top
+  const CALLOUT_GAP = 8;
+  const CALLOUT_PADDING = 12; // 6px × 2
 
   // Parallel arrays: one entry per code cell in order.
   // cellIds[i]    — the cell's id
@@ -328,21 +330,24 @@
   }
 
   function calloutX(startLine, endLine) {
-    if (!codeEl) return 0;
+    if (!codeEl) return { x: 0, overflowed: false };
     const lines = editorValue.split('\n');
     const selLines = lines.slice(startLine - 1, endLine);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     ctx.font = getComputedStyle(codeEl).font;
-    const maxWidth = Math.max(0, ...selLines.map(l => ctx.measureText(l).width));
+    const maxPx = Math.max(0, ...selLines.map(l => ctx.measureText(l).width));
     const rect = codeEl.getBoundingClientRect();
-    const textLeft = rect.left + 4; // 4px matches .code-area padding-left
-    return textLeft + maxWidth;
+    const rawX = rect.left + 4 + maxPx; // 4px matches .code-area padding-left
+    const frameRight = wrapEl ? wrapEl.getBoundingClientRect().right : window.innerWidth;
+    const overflowed = rawX + CALLOUT_GAP > frameRight;
+    return { x: overflowed ? frameRight : rawX, overflowed };
   }
 
   function updateCalloutY() {
     if (!callout || !codeEl || !editorContainerEl) return;
-    callout = { ...callout, y: calloutY(callout.startLine, callout.endLine), x: calloutX(callout.startLine, callout.endLine) };
+    const { x, overflowed } = calloutX(callout.startLine, callout.endLine);
+    callout = { ...callout, y: calloutY(callout.startLine, callout.endLine), x, overflowed };
   }
 
   function dismissCallout() {
@@ -388,12 +393,10 @@
     const contextXml = chunks.slice(0, idx).join('\0');
 
     const imgHeight = Math.round((endLine - startLine + 1) * LINE_HEIGHT);
-    const cx = calloutX(startLine, endLine);
-    const CALLOUT_PADDING = 12; // 6px × 2
-    const CALLOUT_GAP = 8;
+    const { x: cx, overflowed } = calloutX(startLine, endLine);
     const maxWidth = Math.max(80, window.innerWidth - cx - CALLOUT_GAP - CALLOUT_PADDING);
     if (callout?.imgUrl) URL.revokeObjectURL(callout.imgUrl);
-    callout = { x: cx, y: calloutY(startLine, endLine), startLine, endLine, imgHeight, maxWidth, status: 'loading', imgUrl: null };
+    callout = { x: cx, y: calloutY(startLine, endLine), startLine, endLine, imgHeight, maxWidth, overflowed, status: 'loading', imgUrl: null };
 
     try {
       const result = await blocklyXmlToPng(xmlChunk, componentDefinitions, { contextXml });
