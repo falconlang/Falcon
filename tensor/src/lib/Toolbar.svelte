@@ -61,9 +61,11 @@
     setTimeout(() => { addInput?.focus(); addInput?.select(); }, 50);
   }
 
+  const SCREEN_NAME_RE = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
   function confirmAdd() {
     const trimmed = addName.trim();
-    if (!trimmed || $screenList.includes(trimmed)) return;
+    if (!trimmed || !SCREEN_NAME_RE.test(trimmed) || $screenList.includes(trimmed)) return;
     addScreen(trimmed);
     addDialogOpen = false;
   }
@@ -239,7 +241,9 @@
           spellcheck="false"
           maxlength="64"
         />
-        {#if addName.trim() && $screenList.includes(addName.trim())}
+        {#if addName.trim() && !SCREEN_NAME_RE.test(addName.trim())}
+          <p class="sd-error">Must start with a letter and contain only letters, numbers, or underscores.</p>
+        {:else if addName.trim() && $screenList.includes(addName.trim())}
           <p class="sd-error">A screen named "{addName.trim()}" already exists.</p>
         {/if}
       </div>
@@ -248,7 +252,7 @@
         <button
           class="sd-btn sd-btn--accent"
           on:click={confirmAdd}
-          disabled={!addName.trim() || $screenList.includes(addName.trim())}
+          disabled={!addName.trim() || !SCREEN_NAME_RE.test(addName.trim()) || $screenList.includes(addName.trim())}
         >
           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 1v10M1 6h10"/></svg>
           Add Screen

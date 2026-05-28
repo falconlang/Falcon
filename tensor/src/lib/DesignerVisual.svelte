@@ -877,27 +877,34 @@
     tick().then(() => { renameInputEl?.focus(); renameInputEl?.select(); });
   }
 
+  const COMPONENT_NAME_RE = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
   function commitRename() {
     if (!renamingPathId || !mutableTree) { renamingPathId = null; renameError = ''; return; }
     const targetPathId = renamingPathId;
-    const clean = renameValue.replace(/\s+/g, '_').replace(/[^\w]/g, '');
+    const value = renameValue.trim();
     const current = findNode(mutableTree, renamingPathId)?.name;
-    if (!clean) {
+    if (!value) {
       renameError = 'Name is required.';
       tick().then(() => renameInputEl?.focus());
       return;
     }
-    if (clean !== current && nameExists(clean, mutableTree, targetPathId)) {
+    if (!COMPONENT_NAME_RE.test(value)) {
+      renameError = 'Letters, numbers, underscores only; must start with a letter.';
+      tick().then(() => renameInputEl?.focus());
+      return;
+    }
+    if (value !== current && nameExists(value, mutableTree, targetPathId)) {
       renameError = 'Name already exists.';
       tick().then(() => renameInputEl?.focus());
       return;
     }
     renamingPathId = null;
     renameError = '';
-    if (clean === current) return;
+    if (value === current) return;
     const newTree = cloneTree(mutableTree);
     const target = findNode(newTree, targetPathId);
-    if (target) target.name = clean;
+    if (target) target.name = value;
     applyChange(newTree);
   }
 
