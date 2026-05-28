@@ -1,7 +1,3 @@
-@TextBox { firstNumberTextBox, secondNumberTextBox }
-@Button { AddButton, SubtractButton, MultiplyButton, DivideButton }
-@Notifier { Notifier1 }
-
 func checkTextBoxes() = {
   if (!(firstNumberTextBox.Text ? number) || !(secondNumberTextBox.Text ? number)) {
     Notifier1.ShowAlert("Please enter numeric values in the textbox!")

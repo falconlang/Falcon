@@ -1,56 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tensor Editor</title>
-    <script src="/compiled_blockly/messages.js"></script>
-    <script src="/compiled_blockly/blockly-all.js"></script>
-    <script src="/compiled_blockly/extensions/scroll-options-5.0.11.min.js"></script>
-    <script src="/compiled_blockly/extensions/workspace-multiselect-0.1.14-beta2.min.js"></script>
-    <script src="/compiled_blockly/extensions/workspace-search.min.js"></script>
-    <meta name="description" content="Tensor editor for Falcon code and App Inventor design files." />
-    <meta name="theme-color" content="#F6F7F2" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#2B2D30" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <script>
-      try {
-        const storedTheme = localStorage.getItem('tensor-theme');
-        const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light';
-        document.documentElement.dataset.theme = (storedTheme === 'light' || storedTheme === 'dark') ? storedTheme : systemTheme;
-      } catch {}
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script>
-      window.falconPrint = (line) => console.log('[falcon]', line);
-      window.mistError   = (msg)  => console.error('[falcon error]', msg);
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tensor</title>
+  <script>
+    (function(){
+      var t = localStorage.getItem('tensor-theme');
+      if (t === 'dark' || (t == null && window.matchMedia('(prefers-color-scheme: dark)').matches))
+        document.documentElement.dataset.theme = 'dark';
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <script>
+    window.falconPrint = line => console.log('[falcon]', line);
+    window.mistError = msg => console.error('[falcon error]', msg);
 
-      function loadFalconWasm() {
-        if (!WebAssembly.instantiateStreaming) {
-          WebAssembly.instantiateStreaming = async (resp, importObject) => {
-            const source = await (await resp).arrayBuffer();
-            return await WebAssembly.instantiate(source, importObject);
-          };
-        }
+    async function loadFalconWasm() {
+      try {
         const go = new Go();
-        let mod, inst;
-        WebAssembly.instantiateStreaming(fetch('/falcon.wasm'), go.importObject).then((result) => {
-          mod = result.module;
-          inst = result.instance;
-          go.run(inst);
-          inst = WebAssembly.instantiate(mod, go.importObject);
-        }).catch((err) => {
-          console.error('[falcon-wasm] load error:', err);
-        });
+        let result;
+        if (WebAssembly.instantiateStreaming) {
+          try {
+            result = await WebAssembly.instantiateStreaming(fetch('/falcon.wasm'), go.importObject);
+          } catch {}
+        }
+        if (!result) {
+          const source = await (await fetch('/falcon.wasm')).arrayBuffer();
+          result = await WebAssembly.instantiate(source, go.importObject);
+        }
+        go.run(result.instance);
+      } catch (err) {
+        console.error('[falcon-wasm] load error:', err);
       }
-      const wasmScript = document.createElement('script');
-      wasmScript.src = '/wasm_exec.js';
-      wasmScript.async = true;
-      wasmScript.onload = loadFalconWasm;
-      document.head.appendChild(wasmScript);
-    </script>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    }
+
+    const wasmScript = document.createElement('script');
+    wasmScript.src = '/wasm_exec.js';
+    wasmScript.async = true;
+    wasmScript.onload = loadFalconWasm;
+    document.head.appendChild(wasmScript);
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
 </html>

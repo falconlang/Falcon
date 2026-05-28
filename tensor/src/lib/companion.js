@@ -8,6 +8,18 @@ import {
 
 const RENDEZVOUS = 'https://rendezvous.appinventor.mit.edu/rendezvous/'
 
+function emitLog(onLog, message, level = 'info') {
+  if (typeof onLog === 'function') onLog({ message, level })
+}
+
+function describeIceCandidate(candidate) {
+  if (!candidate) return 'complete'
+  const text = candidate.candidate || ''
+  const type = text.match(/\btyp\s+(\w+)/)?.[1] || 'unknown'
+  const protocol = text.match(/\b(udp|tcp)\b/i)?.[1]?.toUpperCase() || 'transport'
+  return `${type} ${protocol} candidate`
+}
+
 function maskIgnoredSpans(text) {
   const chars = text.split('')
   let inString = false
@@ -190,29 +202,39 @@ function sleep(ms, signal) {
   })
 }
 
-export async function pollRendezvous(code, signal) {
+export async function pollRendezvous(code, signal, onLog) {
+  emitLog(onLog, 'Rendezvous: computing connection key')
   const digest = await sha1Hex(code)
+  emitLog(onLog, `Rendezvous: contacting ${RENDEZVOUS}`)
   for (let i = 0; i < 60; i++) {
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
+    emitLog(onLog, `Rendezvous: poll ${i + 1}/60`)
     const resp = await fetch(RENDEZVOUS + digest, { signal })
+    emitLog(onLog, `Rendezvous: HTTP ${resp.status}`)
     if (!resp.ok) throw new Error(`rendezvous: HTTP ${resp.status}`)
     const body = await resp.arrayBuffer()
     if (body.byteLength > 0) {
+      emitLog(onLog, `Rendezvous: companion response received (${body.byteLength} bytes)`)
       const config = JSON.parse(new TextDecoder().decode(body))
+      const iceCount = (config.iceServers ?? config.iceservers ?? []).length
+      emitLog(onLog, `Rendezvous: WebRTC config includes ${iceCount} ICE server${iceCount === 1 ? '' : 's'}`)
       return { digest, config }
     }
+    emitLog(onLog, 'Rendezvous: no companion yet, retrying in 1s', 'muted')
     await sleep(1000, signal)
   }
   throw new Error('Companion not found (timeout)')
 }
 
-async function postSignal(url, body, signal) {
+async function postSignal(url, body, signal, onLog, label = 'signal') {
+  emitLog(onLog, `Rendezvous2: POST ${label}`)
   const resp = await fetch(url, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body),
     signal,
   })
+  emitLog(onLog, `Rendezvous2: ${label} HTTP ${resp.status}`)
   if (!resp.ok) throw new Error(`rendezvous signal: HTTP ${resp.status}`)
 }
 
@@ -223,19 +245,23 @@ function extractSessionDescription(hunk) {
   return null
 }
 
-async function receiveOfferResponse(peer, responseUrl, signal) {
+async function receiveOfferResponse(peer, responseUrl, signal, onLog) {
   let answerSet = false
   const pending = []
   const seen = new Set()
 
+  emitLog(onLog, 'WebRTC: waiting for SDP answer from companion')
   for (let i = 0; i < 60 && peer.connectionState !== 'connected' && peer.connectionState !== 'failed'; i++) {
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
     try {
+      emitLog(onLog, `Rendezvous2: answer poll ${i + 1}/60`)
       const resp = await fetch(responseUrl, { signal })
+      emitLog(onLog, `Rendezvous2: answer poll HTTP ${resp.status}`)
       if (resp.ok) {
         const text = await resp.text()
         if (text) {
           const hunks = JSON.parse(text)
+          emitLog(onLog, `Rendezvous2: received ${hunks.length} signaling hunk${hunks.length === 1 ? '' : 's'}`)
           for (const hunk of hunks) {
             if (hunk.nonce !== undefined && seen.has(hunk.nonce)) continue
             if (hunk.nonce !== undefined) seen.add(hunk.nonce)
@@ -244,12 +270,20 @@ async function receiveOfferResponse(peer, responseUrl, signal) {
             if (desc && !answerSet) {
               await peer.setRemoteDescription(new RTCSessionDescription(desc))
               answerSet = true
+              emitLog(onLog, `WebRTC: remote ${desc.type || 'answer'} applied`)
               for (const c of pending) await peer.addIceCandidate(new RTCIceCandidate(c))
+              if (pending.length) emitLog(onLog, `ICE: added ${pending.length} queued remote candidate${pending.length === 1 ? '' : 's'}`)
               pending.length = 0
             }
             if (hunk.candidate) {
-              if (answerSet) await peer.addIceCandidate(new RTCIceCandidate(hunk.candidate))
-              else           pending.push(hunk.candidate)
+              const candidateLabel = describeIceCandidate(hunk.candidate)
+              if (answerSet) {
+                await peer.addIceCandidate(new RTCIceCandidate(hunk.candidate))
+                emitLog(onLog, `ICE: added remote ${candidateLabel}`)
+              } else {
+                pending.push(hunk.candidate)
+                emitLog(onLog, `ICE: queued remote ${candidateLabel}`)
+              }
             }
           }
         }
@@ -265,7 +299,7 @@ async function receiveOfferResponse(peer, responseUrl, signal) {
   }
 }
 
-export async function connectCompanion(code, digest, config, signal) {
+export async function connectCompanion(code, digest, config, signal, onLog) {
   const rawServers = config.iceServers ?? config.iceservers
   if (!Array.isArray(rawServers)) {
     throw new Error('Rendezvous response is missing iceServers — companion may be in legacy (non-WebRTC) mode')
@@ -287,36 +321,52 @@ export async function connectCompanion(code, digest, config, signal) {
     .filter(s => s.urls.length > 0)
   if (!iceServers.length) throw new Error('Rendezvous response did not include usable ICE server URLs')
 
+  const iceUrlCount = iceServers.reduce((count, server) => count + server.urls.length, 0)
+  emitLog(onLog, `ICE: using ${iceServers.length} server entr${iceServers.length === 1 ? 'y' : 'ies'} (${iceUrlCount} URL${iceUrlCount === 1 ? '' : 's'})`)
+
   const peer    = new RTCPeerConnection({ iceServers })
   const channel = peer.createDataChannel('data', { ordered: true })
+  emitLog(onLog, 'WebRTC: peer created, data channel requested')
+
+  peer.onicegatheringstatechange = () => emitLog(onLog, `ICE: gathering state ${peer.iceGatheringState}`)
+  peer.oniceconnectionstatechange = () => emitLog(onLog, `ICE: connection state ${peer.iceConnectionState}`)
+  peer.onconnectionstatechange = () => emitLog(onLog, `WebRTC: peer connection state ${peer.connectionState}`)
+  peer.onsignalingstatechange = () => emitLog(onLog, `WebRTC: signaling state ${peer.signalingState}`)
 
   peer.onicecandidate = ({ candidate }) => {
-    if (!candidate) return
+    if (!candidate) {
+      emitLog(onLog, 'ICE: local candidate gathering complete')
+      return
+    }
+    emitLog(onLog, `ICE: local ${describeIceCandidate(candidate)} discovered`)
     postSignal(config.rendezvous2, {
       key:       digest + '-s',
       webrtc:    true,
       nonce:     Math.floor(Math.random() * 10000) + 1,
       candidate: candidate.toJSON(),
-    }, signal).catch(() => {})
+    }, signal, onLog, 'local ICE candidate').catch(() => {})
   }
 
+  emitLog(onLog, 'WebRTC: creating SDP offer')
   const offer = await peer.createOffer()
   await peer.setLocalDescription(offer)
+  emitLog(onLog, 'WebRTC: local offer set')
   await postSignal(config.rendezvous2, {
     key:       code + '-s',
     webrtc:    true,
     nonce:     Math.floor(Math.random() * 10000) + 1,
     offer,
     candidate: null,
-  }, signal)
+  }, signal, onLog, 'SDP offer')
 
-  await receiveOfferResponse(peer, config.rendezvous2 + code + '-r', signal)
-  await waitForChannelOpen(channel, signal)
+  await receiveOfferResponse(peer, config.rendezvous2 + code + '-r', signal, onLog)
+  await waitForChannelOpen(channel, signal, onLog)
   return { peer, channel }
 }
 
-function waitForChannelOpen(channel, signal, timeoutMs = 5000) {
+function waitForChannelOpen(channel, signal, onLog, timeoutMs = 5000) {
   if (channel.readyState === 'open') return Promise.resolve()
+  emitLog(onLog, 'WebRTC: waiting for data channel open')
   return new Promise((resolve, reject) => {
     const cleanup = () => {
       channel.removeEventListener('open',  onOpen)
@@ -325,10 +375,10 @@ function waitForChannelOpen(channel, signal, timeoutMs = 5000) {
       signal?.removeEventListener('abort', onAbort)
       clearTimeout(timer)
     }
-    const onOpen  = () => { cleanup(); resolve() }
-    const onErr   = () => { cleanup(); reject(new Error('Data channel closed before opening')) }
+    const onOpen  = () => { emitLog(onLog, 'WebRTC: data channel open'); cleanup(); resolve() }
+    const onErr   = () => { emitLog(onLog, `WebRTC: data channel ${channel.readyState}`, 'error'); cleanup(); reject(new Error('Data channel closed before opening')) }
     const onAbort = () => { cleanup(); reject(new DOMException('aborted', 'AbortError')) }
-    const timer = setTimeout(() => { cleanup(); reject(new Error('Data channel open timeout')) }, timeoutMs)
+    const timer = setTimeout(() => { emitLog(onLog, 'WebRTC: data channel open timeout', 'error'); cleanup(); reject(new Error('Data channel open timeout')) }, timeoutMs)
 
     channel.addEventListener('open',  onOpen,  { once: true })
     channel.addEventListener('error', onErr,   { once: true })
