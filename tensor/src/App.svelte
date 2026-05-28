@@ -54,12 +54,14 @@
     {#if $sidebarVisible}
       <Sidebar />
     {/if}
-    <Notebook />
+    <div id="notebook-col">
+      <Notebook />
+      <DebugPanel />
+    </div>
     <DesignerPanel />
     <LiveTestOverlay />
   </div>
 
-  <DebugPanel />
   <StatusBar />
 </div>
 

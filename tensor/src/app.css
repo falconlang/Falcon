@@ -277,7 +277,8 @@ html, body {
 .toc-item.h2 { padding-left: 30px; font-size: 11.5px; }
 
 /* ── Notebook ── */
-#notebook-wrap { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; min-width: 300px; }
+#notebook-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 300px; }
+#notebook-wrap { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 #notebook {
   max-width: 780px;
   margin: 0 auto;

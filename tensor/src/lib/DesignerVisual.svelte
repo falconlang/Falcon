@@ -1632,7 +1632,7 @@
   .vis-parse-copy p {
     margin: 0;
     color: var(--text-muted);
-    font-family: var(--font-mono);
+    font-family: var(--mono);
     font-size: 11.5px;
     line-height: 1.45;
   }
@@ -1648,12 +1648,10 @@
     font-family: var(--font);
     font-size: 12px;
     cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
   }
-
-  .vis-parse-btn:hover {
-    border-color: var(--text-faint);
-    background: var(--cell-active);
-  }
+  .vis-parse-btn:hover { border-color: var(--text-faint); background: var(--cell-active); }
+  .vis-parse-btn:active { opacity: 0.7; transition: opacity 0.05s; }
 
   /* ── Tree panel ─────────────────────────────────────────────────────── */
   .vis-tree {
@@ -1697,6 +1695,7 @@
     background: var(--cell-active);
     color: var(--text);
   }
+  .vis-tree-filter button:active:not(.active) { opacity: 0.65; transition: opacity 0.05s; }
 
   .vis-tree-filter button.active {
     border-color: var(--accent);
@@ -1718,15 +1717,16 @@
   .vis-tree-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
   .vis-tree-empty {
-    padding: 10px 12px;
-    color: var(--text-muted);
+    padding: 16px 12px;
+    color: var(--text-faint);
     font-family: var(--font);
     font-size: 12px;
-    line-height: 1.35;
+    text-align: center;
   }
 
   /* Tree items */
   .vis-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -1822,8 +1822,6 @@
 
   .vis-item.drag-source { opacity: 0.38; }
 
-  .vis-item { position: relative; }
-
   .vis-item.drop-before::before,
   .vis-item.drop-after::after {
     content: '';
@@ -1897,6 +1895,7 @@
     font-size: 12px;
     outline: none;
     box-sizing: border-box;
+    transition: border-color 0.1s;
   }
   .vis-add-input::placeholder { color: var(--text-faint); }
   .vis-add-input.error {
@@ -2180,6 +2179,7 @@
     transition: background 0.1s;
   }
   .vis-section-hd:hover { background: var(--cell-active); }
+  .vis-section-hd:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
 
   .vis-section-caret {
     width: 8px; height: 8px; flex-shrink: 0;
@@ -2241,6 +2241,9 @@
     font-size: 12px;
     line-height: 1.5;
     pointer-events: none;
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+    transform-origin: top left;
     animation: visCtxIn 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
