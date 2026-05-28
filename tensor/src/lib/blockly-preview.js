@@ -1,4 +1,5 @@
 import { get } from 'svelte/store';
+import simpleComponentsJsonText from '../../../lang/code/compdb/simple_components.json?raw';
 import { listComponents, mistToXml } from './falcon-wasm.js';
 import { cells, designCode } from './stores.js';
 
@@ -16,6 +17,7 @@ const BLOCKLY_EXTENSION_SCRIPTS = [
 let blocklyRuntimePromise = null;
 let blocklyWarmupPromise = null;
 let componentTypesPromise = null;
+let simpleComponentAliases = null;
 let renderHostId = 0;
 
 function runtimeLoadError(promise) {
@@ -33,6 +35,142 @@ function lastBlocklyXmlChunk(xml) {
   const chunks = xmlChunks(xml);
   if (!chunks.length) throw new Error('No Blockly XML was generated');
   return chunks[chunks.length - 1];
+}
+
+function componentTypeAliases() {
+  if (simpleComponentAliases) return simpleComponentAliases;
+
+  const aliases = new Map();
+  const descriptors = JSON.parse(simpleComponentsJsonText);
+  for (const descriptor of descriptors) {
+    const name = String(descriptor?.name || '').trim();
+    if (!name) continue;
+
+    aliases.set(name, name);
+
+    const javaType = String(descriptor?.type || '').trim();
+    if (javaType) {
+      aliases.set(javaType, name);
+      aliases.set(javaType.split('.').pop(), name);
+    }
+  }
+
+  if (aliases.has('Form')) {
+    aliases.set('Screen', 'Form');
+  }
+
+  simpleComponentAliases = aliases;
+  return aliases;
+}
+
+function componentDescriptorName(typeName) {
+  const clean = String(typeName || '').trim();
+  if (!clean) return '';
+  return componentTypeAliases().get(clean) || clean;
+}
+
+function addComponentInstance(instances, typeName, instanceName) {
+  const cleanInstanceName = String(instanceName || '').trim();
+  const cleanTypeName = componentDescriptorName(typeName);
+  if (!cleanInstanceName || !cleanTypeName) return;
+  instances.set(cleanInstanceName, cleanTypeName);
+}
+
+function componentInstancesFromDefinitions(componentDefinitions) {
+  const instances = new Map();
+  if (!componentDefinitions || typeof componentDefinitions !== 'object') return instances;
+
+  if (Array.isArray(componentDefinitions)) {
+    for (const entry of componentDefinitions) {
+      if (!entry || typeof entry !== 'object') continue;
+      addComponentInstance(
+        instances,
+        entry.typeName ?? entry.type ?? entry.componentType ?? entry.component_type,
+        entry.instanceName ?? entry.name ?? entry.id ?? entry.instance_name,
+      );
+    }
+    return instances;
+  }
+
+  for (const [typeName, instanceNames] of Object.entries(componentDefinitions)) {
+    const names = Array.isArray(instanceNames) || instanceNames instanceof Set
+      ? Array.from(instanceNames)
+      : [instanceNames];
+    for (const instanceName of names) {
+      addComponentInstance(instances, typeName, instanceName);
+    }
+  }
+
+  return instances;
+}
+
+function collectComponentInstancesFromXml(xmlGenerated, instances = new Map()) {
+  const parser = new DOMParser();
+  for (const xmlString of xmlChunks(xmlGenerated)) {
+    const xml = parser.parseFromString(xmlString, 'text/xml');
+    for (const mutation of xml.querySelectorAll('mutation[component_type]')) {
+      const isGeneric = mutation.getAttribute('is_generic') === 'true';
+      if (isGeneric) continue;
+      addComponentInstance(
+        instances,
+        mutation.getAttribute('component_type'),
+        mutation.getAttribute('instance_name'),
+      );
+    }
+  }
+  return instances;
+}
+
+function ensureWorkspaceComponentDatabase(workspace) {
+  const { Blockly } = window;
+  if (!workspace.componentDb_ && Blockly?.ComponentDatabase) {
+    workspace.componentDb_ = new Blockly.ComponentDatabase();
+  }
+  return workspace.componentDb_;
+}
+
+function populateWorkspaceComponentTypes(workspace) {
+  const { Blockly } = window;
+  const componentDb = ensureWorkspaceComponentDatabase(workspace);
+
+  if (typeof workspace.populateComponentTypes === 'function') {
+    workspace.populateComponentTypes(simpleComponentsJsonText, {});
+  } else if (componentDb?.populateTypes) {
+    componentDb.populateTypes(JSON.parse(simpleComponentsJsonText));
+    componentDb.populateTranslations?.({});
+  } else if (Blockly?.ComponentDatabase) {
+    workspace.componentDb_ = new Blockly.ComponentDatabase();
+    workspace.componentDb_.populateTypes(JSON.parse(simpleComponentsJsonText));
+    workspace.componentDb_.populateTranslations?.({});
+  } else {
+    throw new Error('Blockly component database is unavailable');
+  }
+}
+
+function ensureWorkspaceAddComponentReady(workspace) {
+  workspace.typeBlock_ ||= { needsReload: {} };
+  workspace.typeBlock_.needsReload ||= {};
+  workspace.typeBlock_.hide ||= () => {};
+}
+
+function registerWorkspaceComponentInstances(workspace, componentDefinitions, xmlGenerated = '') {
+  const componentDb = ensureWorkspaceComponentDatabase(workspace);
+  const instances = collectComponentInstancesFromXml(
+    xmlGenerated,
+    componentInstancesFromDefinitions(componentDefinitions),
+  );
+
+  for (const [instanceName, typeName] of instances) {
+    const uid = `blockly-preview-${typeName}-${instanceName}`;
+    if (componentDb?.getInstance?.(uid) || componentDb?.getInstance?.(instanceName)) continue;
+
+    if (typeof workspace.addComponent === 'function') {
+      ensureWorkspaceAddComponentReady(workspace);
+      workspace.addComponent(uid, instanceName, typeName);
+    } else if (componentDb?.addInstance) {
+      componentDb.addInstance(uid, instanceName, typeName);
+    }
+  }
 }
 
 export function joinedFalconCodeThroughCell(cellId, targetSource = null) {
@@ -308,6 +446,7 @@ function createWorkspace(host) {
   workspace.screenList_ = [];
   workspace.assetList_ = [];
   workspace.componentDb_ = new Blockly.ComponentDatabase();
+  populateWorkspaceComponentTypes(workspace);
   workspace.procedureDb_ = new Blockly.ProcedureDatabase(workspace);
   workspace.variableDb_ = new Blockly.VariableDatabase();
   workspace.blocksNeedingRendering = [];
@@ -323,10 +462,26 @@ function nextFrame() {
   return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }
 
-function renderXmlIntoWorkspace(xmlGenerated, workspace) {
+function workspaceIsAttached(workspace) {
+  try {
+    const parentSvg = workspace?.getParentSvg?.();
+    return Boolean(parentSvg && document.documentElement.contains(parentSvg));
+  } catch {
+    return false;
+  }
+}
+
+function restoreMainWorkspace(previousWorkspace, renderWorkspace) {
+  const common = window.Blockly?.common;
+  if (!common?.getMainWorkspace || !common?.setMainWorkspace) return;
+  if (common.getMainWorkspace() !== renderWorkspace) return;
+  common.setMainWorkspace(workspaceIsAttached(previousWorkspace) ? previousWorkspace : null);
+}
+
+function renderXmlIntoWorkspace(xmlGenerated, workspace, { clear = true } = {}) {
   const { Blockly } = window;
   const blocks = [];
-  workspace.clear();
+  if (clear) workspace.clear();
 
   for (const xmlString of xmlChunks(xmlGenerated)) {
     const xml = Blockly.utils.xml.textToDom(xmlString);
@@ -368,8 +523,9 @@ function dataUriToBlob(dataUri) {
 
 function workspaceToPngBlob(workspace, blocks) {
   const { Blockly, AI } = window;
-  const topBlocks = workspace.getTopBlocks(true);
-  const renderedBlocks = topBlocks.length ? topBlocks : blocks;
+  const renderedBlocks = Array.isArray(blocks) && blocks.length
+    ? blocks
+    : workspace.getTopBlocks(true);
   if (!renderedBlocks.length) throw new Error('No Blockly blocks were generated');
 
   if (renderedBlocks.length === 1 && typeof Blockly.blockToPngBlob === 'function') {
@@ -389,23 +545,38 @@ function workspaceToPngBlob(workspace, blocks) {
   });
 }
 
-export async function blocklyXmlToPng(xml) {
+export async function blocklyXmlToPng(xml, componentDefinitions = undefined, options = {}) {
   await ensureBlocklyRuntime();
+  let defs = componentDefinitions;
+  if (defs === undefined) {
+    try {
+      defs = await componentDefinitionsFromDesigner();
+    } catch {
+      defs = null;
+    }
+  }
   const host = createRenderHost();
+  const previousMainWorkspace = window.Blockly?.common?.getMainWorkspace?.() || null;
   const workspace = createWorkspace(host);
+  const contextXml = options?.contextXml || '';
 
   try {
-    const blocks = renderXmlIntoWorkspace(xml, workspace);
+    registerWorkspaceComponentInstances(workspace, defs, `${contextXml}\0${xml}`);
+    const contextBlocks = contextXml
+      ? renderXmlIntoWorkspace(contextXml, workspace)
+      : [];
+    const blocks = renderXmlIntoWorkspace(xml, workspace, { clear: !contextBlocks.length });
     await nextFrame();
     arrangeBlocksVertically(workspace);
     window.Blockly.svgResize(workspace);
     workspace.resizeContents?.();
     await nextFrame();
     const blob = await workspaceToPngBlob(workspace, blocks);
-    return { blob, xml, blockCount: blocks.length };
+    return { blob, xml, blockCount: blocks.length, contextBlockCount: contextBlocks.length };
   } finally {
     workspace.dispose();
     host.remove();
+    restoreMainWorkspace(previousMainWorkspace, workspace);
   }
 }
 
@@ -417,7 +588,7 @@ export async function falconCodeToBlocklyPng(sourceCode, componentDefinitions = 
   const xml = await mistToXml(source, defs);
   const runtimeError = await runtimeReady;
   if (runtimeError) throw runtimeError;
-  return blocklyXmlToPng(xml);
+  return blocklyXmlToPng(xml, defs);
 }
 
 export async function falconCellToBlocklyPng(cellId, targetSource = null, componentDefinitions = null) {
@@ -433,10 +604,12 @@ export async function falconCellToBlocklyPng(cellId, targetSource = null, compon
   const runtimeReady = runtimeLoadError(ensureBlocklyRuntime());
   const defs = componentDefinitions ?? await componentDefinitionsFromDesigner();
   const fullXml = await mistToXml(source, defs);
-  const targetXml = lastBlocklyXmlChunk(fullXml);
+  const chunks = xmlChunks(fullXml);
+  const targetXml = chunks.length ? chunks[chunks.length - 1] : lastBlocklyXmlChunk(fullXml);
+  const contextXml = chunks.slice(0, -1).join('\0');
   const runtimeError = await runtimeReady;
   if (runtimeError) throw runtimeError;
-  const result = await blocklyXmlToPng(targetXml);
+  const result = await blocklyXmlToPng(targetXml, defs, { contextXml });
   return {
     ...result,
     xml: targetXml,

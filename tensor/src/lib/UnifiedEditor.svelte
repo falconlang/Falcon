@@ -368,12 +368,13 @@
     const endLine   = lineOfOffset(selEnd);
 
     let xmlResult;
+    let componentDefinitions;
     try {
-      const defs = await componentDefinitionsFromDesigner();
+      componentDefinitions = await componentDefinitionsFromDesigner();
       if (runId !== calloutRunId) return;
       await ensureBlocklyRuntime();
       if (runId !== calloutRunId) return;
-      xmlResult = await mistToXmlResult(editorValue, defs);
+      xmlResult = await mistToXmlResult(editorValue, componentDefinitions);
       if (runId !== calloutRunId) return;
     } catch { return; }
 
@@ -384,6 +385,7 @@
     const chunks = String(xml || '').split('\0').map(s => s.trim()).filter(Boolean);
     const xmlChunk = chunks[idx];
     if (!xmlChunk) { callout = null; return; }
+    const contextXml = chunks.slice(0, idx).join('\0');
 
     const imgHeight = Math.round((endLine - startLine + 1) * LINE_HEIGHT);
     const cx = calloutX(startLine, endLine);
@@ -394,7 +396,7 @@
     callout = { x: cx, y: calloutY(startLine, endLine), startLine, endLine, imgHeight, maxWidth, status: 'loading', imgUrl: null };
 
     try {
-      const result = await blocklyXmlToPng(xmlChunk);
+      const result = await blocklyXmlToPng(xmlChunk, componentDefinitions, { contextXml });
       if (runId !== calloutRunId) return;
       callout = { ...callout, status: 'ready', blob: result.blob, imgUrl: URL.createObjectURL(result.blob) };
     } catch {
