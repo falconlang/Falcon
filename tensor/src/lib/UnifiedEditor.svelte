@@ -319,7 +319,33 @@
   // ── Callout helpers ──
 
   function lineOfOffset(offset) {
-    return (editorValue.slice(0, offset).match(/\n/g) || []).length + 1;
+    const boundedOffset = Math.max(0, Math.min(offset, editorValue.length));
+    return (editorValue.slice(0, boundedOffset).match(/\n/g) || []).length + 1;
+  }
+
+  function selectionLineRange(selStart, selEnd) {
+    const start = Math.max(0, Math.min(selStart, editorValue.length));
+    const end = Math.max(start, Math.min(selEnd, editorValue.length));
+    const activeEnd = end > start && editorValue[end - 1] === '\n' ? end - 1 : end;
+    const startLine = lineOfOffset(start);
+    const endLine = Math.max(startLine, lineOfOffset(activeEnd));
+    return { startLine, endLine };
+  }
+
+  function firstCodeLineInSelection(startLine, endLine) {
+    const lines = editorValue.split('\n');
+    for (let line = startLine; line <= endLine; line += 1) {
+      const trimmed = (lines[line - 1] || '').trim();
+      if (!trimmed || trimmed.startsWith('//')) continue;
+      return line;
+    }
+    return null;
+  }
+
+  function topLevelIndexForSelection(lineNumbers, startLine, endLine) {
+    const firstCodeLine = firstCodeLineInSelection(startLine, endLine);
+    if (firstCodeLine === null) return -1;
+    return lineNumbers.findIndex(ln => ln === firstCodeLine);
   }
 
   function calloutY(startLine, endLine) {
@@ -358,19 +384,22 @@
   }
 
   function scheduleCalloutCheck() {
+    const runId = ++calloutRunId;
     clearTimeout(calloutDebounceTimer);
-    calloutDebounceTimer = setTimeout(runCalloutCheck, CALLOUT_DEBOUNCE_MS);
+    calloutDebounceTimer = setTimeout(() => runCalloutCheck(runId), CALLOUT_DEBOUNCE_MS);
   }
 
-  async function runCalloutCheck() {
-    if (!codeEl) return;
+  function onDocumentSelectionChange() {
+    if (document.activeElement === codeEl) scheduleCalloutCheck();
+  }
+
+  async function runCalloutCheck(runId) {
+    if (!codeEl || runId !== calloutRunId) return;
     const selStart = codeEl.selectionStart;
     const selEnd   = codeEl.selectionEnd;
     if (selStart === selEnd) { dismissCallout(); return; }
 
-    const runId = ++calloutRunId;
-    const startLine = lineOfOffset(selStart);
-    const endLine   = lineOfOffset(selEnd);
+    const { startLine: selectionStartLine, endLine } = selectionLineRange(selStart, selEnd);
 
     let xmlResult;
     let componentDefinitions;
@@ -384,8 +413,9 @@
     } catch { return; }
 
     const { xml, lineNumbers } = xmlResult;
-    const idx = lineNumbers.findIndex(ln => ln === startLine);
+    const idx = topLevelIndexForSelection(lineNumbers, selectionStartLine, endLine);
     if (idx === -1) { if (runId === calloutRunId) callout = null; return; }
+    const startLine = lineNumbers[idx];
 
     const chunks = String(xml || '').split('\0').map(s => s.trim()).filter(Boolean);
     const xmlChunk = chunks[idx];
@@ -411,9 +441,11 @@
   onMount(() => {
     editorValue = buildContent($cells);
     pushHistory(0);
+    document.addEventListener('selectionchange', onDocumentSelectionChange);
   });
 
   onDestroy(() => {
+    document.removeEventListener('selectionchange', onDocumentSelectionChange);
     dismissCallout();
   });
 </script>
