@@ -29,6 +29,7 @@
   let callout = null;
   let calloutRunId = 0;
   let calloutDebounceTimer = null;
+  let injectedReflowTimer = null;
 
   // ── Do it callout ──
   // null when hidden, or { x, y, startLine, endLine, maxWidth, status: 'running'|'ready', lines, ok }
@@ -52,7 +53,9 @@
 
   let lastInjectedErrorLine = null;
   let injectedLineNumber = null;
-  let injectedLineText = null;
+  let injectedLineTexts = [];
+
+  $: injectedLineCount = injectedLineTexts.length;
 
   function lineStartOffset(text, lineNumber) {
     const value = String(text ?? '');
@@ -74,16 +77,28 @@
     const index = Math.trunc(line) - 1;
     if (index < 0 || index >= lines.length) return null;
 
-    const exactIndexes = injectedLineText !== null
-      ? lines.map((candidate, i) => candidate === injectedLineText ? i : -1).filter(i => i !== -1)
+    const expectedCount = injectedLineCount;
+    if (!expectedCount) return null;
+
+    const exactIndexes = injectedLineTexts.length
+      ? lines
+          .map((candidate, i) => {
+            if (candidate !== injectedLineTexts[0]) return -1;
+            for (let offset = 1; offset < injectedLineTexts.length; offset += 1) {
+              if (lines[i + offset] !== injectedLineTexts[offset]) return -1;
+            }
+            return i;
+          })
+          .filter(i => i !== -1)
       : [];
     const lineIndex = exactIndexes.length
       ? exactIndexes.reduce((best, candidate) => Math.abs(candidate - index) < Math.abs(best - index) ? candidate : best, exactIndexes[0])
       : index;
     const lineStart = lineStartOffset(value, lineIndex + 1);
+    const lastLineIndex = Math.min(lines.length - 1, lineIndex + expectedCount - 1);
     let start = lineStart;
-    let end = lineStart + lines[lineIndex].length;
-    if (lineIndex < lines.length - 1) {
+    let end = lineStartOffset(value, lastLineIndex + 1) + lines[lastLineIndex].length;
+    if (lastLineIndex < lines.length - 1) {
       end += 1;
     } else if (lineIndex > 0) {
       start -= 1;
@@ -120,8 +135,9 @@
     const viewLine = Number(line);
     if (!Number.isFinite(viewLine) || viewLine < 1) return null;
     if (injectedLineNumber !== null) {
-      if (viewLine === injectedLineNumber) return null;
-      if (viewLine > injectedLineNumber) return viewLine - 1;
+      const injectedEndLine = injectedLineNumber + injectedLineCount - 1;
+      if (viewLine >= injectedLineNumber && viewLine <= injectedEndLine) return null;
+      if (viewLine > injectedEndLine) return viewLine - injectedLineCount;
     }
     return viewLine;
   }
@@ -129,7 +145,7 @@
   function sourceLineToViewLine(line) {
     const sourceLine = Number(line);
     if (!Number.isFinite(sourceLine) || sourceLine < 1) return 1;
-    if (injectedLineNumber !== null && sourceLine >= injectedLineNumber) return sourceLine + 1;
+    if (injectedLineNumber !== null && sourceLine >= injectedLineNumber) return sourceLine + injectedLineCount;
     return sourceLine;
   }
 
@@ -145,7 +161,7 @@
     const sourceStart = viewOffsetToSourceOffset(start, value);
     const sourceEnd = viewOffsetToSourceOffset(end, value);
     injectedLineNumber = null;
-    injectedLineText = null;
+    injectedLineTexts = [];
     lastInjectedErrorLine = null;
     editorValue = source;
     if (immediate && codeEl) {
@@ -169,6 +185,66 @@
     }
   }
 
+  function measureEditorText(text) {
+    if (!codeEl || typeof document === 'undefined') return String(text ?? '').length * 8;
+    const canvas = measureEditorText.canvas || (measureEditorText.canvas = document.createElement('canvas'));
+    const ctx = canvas.getContext('2d');
+    ctx.font = getComputedStyle(codeEl).font;
+    return ctx.measureText(String(text ?? '')).width;
+  }
+
+  function injectedLineMaxWidth() {
+    if (!codeEl) return 0;
+    const styles = getComputedStyle(codeEl);
+    const paddingLeft = Number.parseFloat(styles.paddingLeft || '0') || 0;
+    const paddingRight = Number.parseFloat(styles.paddingRight || '0') || 0;
+    return Math.max(80, codeEl.clientWidth - paddingLeft - paddingRight - 2);
+  }
+
+  function wrapTextForEditorLine(text, firstPrefix, continuationPrefix, maxWidth) {
+    const message = String(text ?? '');
+    if (!message) return [firstPrefix];
+    if (!maxWidth || measureEditorText(`${firstPrefix}${message}`) <= maxWidth) {
+      return [`${firstPrefix}${message}`];
+    }
+
+    const chars = Array.from(message);
+    const lines = [];
+    let index = 0;
+    let prefix = firstPrefix;
+
+    while (index < chars.length) {
+      let taken = [];
+      let lastBreak = -1;
+
+      while (index + taken.length < chars.length) {
+        const nextChar = chars[index + taken.length];
+        const candidate = `${prefix}${taken.join('')}${nextChar}`;
+        if (taken.length > 0 && measureEditorText(candidate) > maxWidth) break;
+        taken.push(nextChar);
+        if (/\s/.test(nextChar)) lastBreak = taken.length;
+      }
+
+      if (index + taken.length < chars.length && lastBreak > 0) {
+        taken = taken.slice(0, lastBreak);
+      }
+      if (!taken.length) taken = [chars[index]];
+
+      lines.push(`${prefix}${taken.join('').trimEnd()}`);
+      index += taken.length;
+      while (index < chars.length && /\s/.test(chars[index])) index += 1;
+      prefix = continuationPrefix;
+    }
+
+    return lines.length ? lines : [`${firstPrefix}${message}`];
+  }
+
+  function injectedErrorLines(indent, errorText) {
+    const message = `${DEBUG_ERROR_PREFIX}${errorText || 'Runtime error'}`;
+    const continuationPrefix = `${indent}${' '.repeat(Array.from(DEBUG_ERROR_PREFIX).length)}`;
+    return wrapTextForEditorLine(message, indent, continuationPrefix, injectedLineMaxWidth());
+  }
+
   function injectMewAtLine(unifiedLine) {
     const lineNum = Number(unifiedLine);
     if (!Number.isFinite(lineNum) || lineNum < 1) return;
@@ -176,8 +252,9 @@
     const errorLine = lines[lineNum - 1] ?? '';
     const indent = errorLine.match(/^\s*/)[0];
     const errorText = debugFirstErrorLines[0] || 'Runtime error';
-    injectedLineText = `${indent}${DEBUG_ERROR_PREFIX}${errorText}`;
-    lines.splice(lineNum, 0, injectedLineText);
+    const annotationLines = injectedErrorLines(indent, errorText);
+    injectedLineTexts = annotationLines;
+    lines.splice(lineNum, 0, ...annotationLines);
     injectedLineNumber = lineNum + 1;
     debugAnnotationActive.set(true);
     editorValue = lines.join('\n');
@@ -206,14 +283,15 @@
   $: lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
   $: highlightedCode = tokensToHtml(falconTokenize(editorValue));
   $: highlightedCodeFinal = (() => {
-    if (injectedLineNumber === null || !debugFirstError) return highlightedCode;
+    if (injectedLineNumber === null || !debugFirstError || !injectedLineCount) return highlightedCode;
     const lines = highlightedCode.split('\n');
-    const idx = injectedLineNumber - 1;
-    if (idx < 0 || idx >= lines.length) return highlightedCode;
     const editorLines = editorValue.split('\n');
-    const indent = (editorLines[idx] ?? '').match(/^\s*/)[0];
-    const errorText = debugFirstErrorLines[0] || 'Runtime error';
-    lines[idx] = `<span class="injected-error-text">${escHtml(indent)}${escHtml(DEBUG_ERROR_PREFIX)}${escHtml(errorText)}</span>`;
+    const startIdx = injectedLineNumber - 1;
+    for (let offset = 0; offset < injectedLineCount; offset += 1) {
+      const idx = startIdx + offset;
+      if (idx < 0 || idx >= lines.length) continue;
+      lines[idx] = `<span class="injected-error-text">${escHtml(editorLines[idx] ?? injectedLineTexts[offset] ?? '')}</span>`;
+    }
     return lines.join('\n');
   })();
 
@@ -651,6 +729,16 @@
     return `${CODE_PAD_TOP + (Math.max(1, Number(line) || 1) - 1) * LINE_HEIGHT}px`;
   }
 
+  function scheduleInjectedAnnotationReflow() {
+    updateCalloutY();
+    if (debugFirstErrorLine === null || injectedLineNumber === null) return;
+    clearTimeout(injectedReflowTimer);
+    injectedReflowTimer = setTimeout(() => {
+      injectedReflowTimer = null;
+      if (debugFirstErrorLine !== null) injectMewAtLine(debugFirstErrorLine);
+    }, 80);
+  }
+
 
   function onWindowPointerDown(e) {
     if (doItCallout?.status === 'ready' && doItCalloutEl && !doItCalloutEl.contains(e.target)) {
@@ -792,6 +880,7 @@
   }
 
   onDestroy(() => {
+    clearTimeout(injectedReflowTimer);
     unsubscribeCells?.();
     unsubscribeScreen?.();
     document.removeEventListener('selectionchange', onDocumentSelectionChange);
@@ -880,7 +969,7 @@
   </div>
 {/if}
 
-<svelte:window on:pointerdown={onWindowPointerDown} />
+<svelte:window on:pointerdown={onWindowPointerDown} on:resize={scheduleInjectedAnnotationReflow} />
 
 {#if doItCallout}
   <div
