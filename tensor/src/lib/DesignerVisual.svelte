@@ -1743,7 +1743,9 @@
 
   /* ── Tree panel ─────────────────────────────────────────────────────── */
   .vis-tree {
-    flex: 1;
+    flex: 0 1 45%;
+    max-width: 45%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border);
