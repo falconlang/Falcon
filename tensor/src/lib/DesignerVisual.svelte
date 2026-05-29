@@ -2,6 +2,20 @@
   import { createEventDispatcher, tick } from 'svelte';
   import simpleComponents from '../../../lang/code/compdb/simple_components.json';
   import { addDesignAsset, deleteDesignAsset, designAssets, renameDesignAsset } from './stores.js';
+  import {
+    customDesignerEditorMetadata,
+    optionsForDesignerEditorType,
+    shouldIncludeDesignerProperty,
+  } from './designer-properties.js';
+  import {
+    emptyListViewRow,
+    listViewColumnsForLayout,
+    listViewDataSummary,
+    parseListViewData,
+    pruneListViewDataForLayout,
+    renameListViewDataAsset,
+    serializeListViewData,
+  } from './listview-data.js';
 
   export let schemaValue = '';
   const dispatch = createEventDispatcher();
@@ -232,8 +246,7 @@
     }
 
     for (const prop of component.properties || []) {
-      const blockProp = blockByName.get(prop.name);
-      if (blockProp?.rw === 'invisible') continue;
+      if (!shouldIncludeDesignerProperty(component.name, prop)) continue;
       if (!orderedNames.includes(prop.name)) orderedNames.push(prop.name);
     }
 
@@ -243,6 +256,8 @@
       const options = optionsFromHelper(blockProp);
       const editorType = inferEditorType(name, blockProp, designerProp);
       const editorArgs = designerProp?.editorArgs || [];
+      const fallbackOptions = optionsForDesignerEditorType(editorType, editorArgs);
+      const customEditor = customDesignerEditorMetadata(editorType);
 
       return {
         name,
@@ -250,11 +265,9 @@
         category: normalizePropertyCategory(blockProp?.category),
         description: cleanDescription(blockProp?.description || designerProp?.description),
         defaultValue: designerProp?.defaultValue ?? '',
-        options: options.length
-          ? options
-          : editorType === 'choices'
-            ? editorArgs.map(arg => ({ value: arg, label: arg }))
-            : ENUM_OPTIONS[editorType] || [],
+        options: options.length ? options : fallbackOptions,
+        customEditor,
+        designerOnly: Boolean(designerProp && blockProp?.rw === 'invisible'),
       };
     });
   }
@@ -273,6 +286,10 @@
   const COMP_PROPS = buildComponentProps(simpleComponents);
   const KNOWN_COMPONENT_TYPES = new Set(Object.keys(COMP_PROPS));
   const COMPONENT_META = new Map(simpleComponents.map(component => [component.name, component]));
+  const CANVAS_CHILD_TYPES = new Set(['Ball', 'ImageSprite']);
+  const MAP_CHILD_TYPES = new Set(['Circle', 'FeatureCollection', 'LineString', 'Marker', 'Polygon', 'Rectangle']);
+  const FEATURE_COLLECTION_CHILD_TYPES = new Set(['Circle', 'LineString', 'Marker', 'Polygon', 'Rectangle']);
+  const CHART_CHILD_TYPES = new Set(['ChartData2D', 'Trendline']);
 
   function componentTypeName(ident) {
     const dotIdx = ident.indexOf('.');
@@ -281,6 +298,10 @@
 
   function isKnownComponentIdent(ident) {
     return KNOWN_COMPONENT_TYPES.has(componentTypeName(ident));
+  }
+
+  function dbComponentType(type) {
+    return COMPONENT_ALIASES[type] || type;
   }
 
   const FALLBACK_PROPS = [
@@ -293,9 +314,6 @@
   const CONTAINER_TYPES = new Set([
     'Screen',
     'Form',
-    'Canvas',
-    'Map',
-    'FeatureCollection',
     'ScrollHorizontal',
     'ScrollVertical',
     ...simpleComponents
@@ -304,8 +322,27 @@
   ]);
 
   function isNonVisibleComponentType(type) {
-    if (type === 'Screen' || type === 'Form') return false;
-    return COMPONENT_META.get(type)?.nonVisible === 'true';
+    const dbType = dbComponentType(type);
+    if (dbType === 'Form') return false;
+    return COMPONENT_META.get(dbType)?.nonVisible === 'true';
+  }
+
+  function canContainComponent(parentType, childType) {
+    const parent = dbComponentType(parentType);
+    const child = dbComponentType(childType);
+    if (!parent || !child) return false;
+    if (CANVAS_CHILD_TYPES.has(child)) return parent === 'Canvas';
+    if (MAP_CHILD_TYPES.has(child)) {
+      if (parent === 'Map') return true;
+      return parent === 'FeatureCollection' && FEATURE_COLLECTION_CHILD_TYPES.has(child);
+    }
+    if (CHART_CHILD_TYPES.has(child)) return parent === 'Chart';
+    if (isNonVisibleComponentType(child)) {
+      return parent === 'Form';
+    }
+    if (isNonVisibleComponentType(parent)) return false;
+    if (parent === 'Canvas' || parent === 'Map' || parent === 'FeatureCollection' || parent === 'Chart') return false;
+    return CONTAINER_TYPES.has(parent);
   }
 
   // ── Schema parser ──────────────────────────────────────────────────
@@ -398,6 +435,7 @@
       const type = componentTypeName(ident);
       let name = dotIdx === -1 ? null : ident.slice(dotIdx + 1);
       if (!type) fail('Expected a component type');
+      if (!isKnownComponentIdent(type)) fail(`Unknown component type "${type}"`);
       if (!name) {
         typeCounts[type] = (typeCounts[type] || 0) + 1;
         name = `${type}${typeCounts[type]}`;
@@ -452,10 +490,26 @@
       const root = parseComp('0');
       skipWs();
       if (pos < text.length) fail(`Unexpected token "${text[pos]}"`);
+      if (root.type !== 'Screen' && root.type !== 'Form') fail('The root designer component must be Screen');
+      validateTreePlacement(root);
+      validateUniqueComponentNames(root);
       return { root, error: null };
     } catch (err) {
       return { root: null, error: err.message || 'Unable to parse design schema.' };
     }
+  }
+
+  function validateTreePlacement(node, parent = null) {
+    if (parent && !canContainComponent(parent.type, node.type)) {
+      throw new Error(`${node.type}.${node.name} cannot be placed inside ${parent.type}.${parent.name}`);
+    }
+    for (const child of node.children || []) validateTreePlacement(child, node);
+  }
+
+  function validateUniqueComponentNames(node, seen = new Set()) {
+    if (seen.has(node.name)) throw new Error(`Duplicate component name "${node.name}"`);
+    seen.add(node.name);
+    for (const child of node.children || []) validateUniqueComponentNames(child, seen);
   }
 
   // ── Serializer ─────────────────────────────────────────────────────
@@ -648,10 +702,12 @@
     e.stopPropagation();
     if (helpPopup) { helpPopup = null; return; }
     const r = e.currentTarget.getBoundingClientRect();
-    const popupW = 220;
-    const x = Math.min(r.right + 6, window.innerWidth - popupW - 8);
-    const y = r.top;
-    helpPopup = { x, y, description: description || 'No description available.' };
+    const calloutW = 220;
+    const btnCenterX = r.left + r.width / 2;
+    const left = Math.max(8, Math.min(btnCenterX - calloutW / 2, window.innerWidth - calloutW - 8));
+    const arrowLeft = btnCenterX - left;
+    const bottomPx = window.innerHeight - r.top + 6;
+    helpPopup = { left, arrowLeft, bottomPx, description: description || 'No description available.' };
   }
 
   function closeHelp() { helpPopup = null; }
@@ -664,11 +720,13 @@
     const newComp = { type, name: newName, props: {}, children: [], pathId: '' };
 
     const sel = findNode(newTree, selectedPathId);
-    if (sel && CONTAINER_TYPES.has(sel.type)) {
+    if (isNonVisibleComponentType(type)) {
+      newTree.children.push(newComp);
+    } else if (sel && canContainComponent(sel.type, type)) {
       sel.children.push(newComp);
     } else if (sel && selectedPathId !== '0') {
       const p = findParentOf(newTree, selectedPathId);
-      if (p) p.parent.children.splice(p.index + 1, 0, newComp);
+      if (p && canContainComponent(p.parent.type, type)) p.parent.children.splice(p.index + 1, 0, newComp);
       else newTree.children.push(newComp);
     } else {
       newTree.children.push(newComp);
@@ -712,17 +770,30 @@
     const rect = e.currentTarget.getBoundingClientRect();
     const relY = (e.clientY - rect.top) / rect.height;
     const targetNode = flatList.find(n => n.pathId === pathId);
-    const targetIsContainer = CONTAINER_TYPES.has(targetNode?.type);
+    const targetParent = pathId !== '0' ? flatList.find(n => n.pathId === targetNode?.parentPathId) : null;
+    const targetAcceptsDragged = canContainComponent(targetNode?.type, dragged?.type);
+    const targetParentAcceptsDragged = targetParent
+      ? canContainComponent(targetParent.type, dragged?.type)
+      : pathId !== '0' && canContainComponent(mutableTree.type, dragged?.type);
 
     let position;
     if (pathId === '0') {
       position = 'into';
-    } else if (targetIsContainer && relY > 0.25 && relY < 0.75) {
+    } else if (targetAcceptsDragged && relY > 0.25 && relY < 0.75) {
       position = 'into';
-    } else {
+    } else if (targetParentAcceptsDragged) {
       position = relY < 0.5 ? 'before' : 'after';
+    } else {
+      dropTarget = null;
+      e.dataTransfer.dropEffect = 'none';
+      return;
     }
 
+    if (position === 'into' && !targetAcceptsDragged) {
+      dropTarget = null;
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
     dropTarget = { pathId, position };
     e.dataTransfer.dropEffect = 'move';
   }
@@ -752,11 +823,14 @@
     draggedParentResult.parent.children.splice(draggedParentResult.index, 1);
 
     if (position === 'into') {
+      if (!canContainComponent(targetNode.type, draggedNode.type)) { handleDragEnd(); return; }
       targetNode.children.push(draggedNode);
     } else if (targetParentNode) {
+      if (!canContainComponent(targetParentNode.type, draggedNode.type)) { handleDragEnd(); return; }
       const idx = targetParentNode.children.indexOf(targetNode);
       targetParentNode.children.splice(idx + (position === 'after' ? 1 : 0), 0, draggedNode);
     } else {
+      if (!canContainComponent(newTree.type, draggedNode.type)) { handleDragEnd(); return; }
       newTree.children.push(draggedNode);
     }
 
@@ -804,6 +878,31 @@
     ctxMenu = null;
     assetCtxMenu = null;
   }
+
+  // ── Property dropdown state ────────────────────────────────────────
+  let visDropdownKey = null;
+  let visDropdownX = 0;
+  let visDropdownY = 0;
+  let visDropdownMinWidth = 80;
+  let visDropdownOptions = [];
+  let visDropdownCurrent = null;
+  let visDropdownOnSelect = null;
+
+  function openVisDropdown(e, key, options, current, onSelect) {
+    e.stopPropagation();
+    if (visDropdownKey === key) { visDropdownKey = null; return; }
+    closeCtxMenu();
+    const rect = e.currentTarget.getBoundingClientRect();
+    visDropdownX = rect.left;
+    visDropdownY = rect.bottom + 4;
+    visDropdownMinWidth = rect.width;
+    visDropdownOptions = options;
+    visDropdownCurrent = String(current ?? '');
+    visDropdownOnSelect = onSelect;
+    visDropdownKey = key;
+  }
+
+  function closeVisDropdown() { visDropdownKey = null; }
 
   function ctxRename()  { closeCtxMenu(); startRename(); }
   function ctxDelete()  { closeCtxMenu(); deleteSelected(); }
@@ -927,6 +1026,9 @@
     if (!target) return;
     target.props = target.props || {};
     target.props[propName] = String(value);
+    if (target.type === 'ListView' && propName === 'ListViewLayout' && target.props.ListData) {
+      target.props.ListData = pruneListViewDataForLayout(target.props.ListData, value);
+    }
     applyChange(newTree);
     selectedPathId = pathId;
   }
@@ -1063,6 +1165,12 @@
         if (node.props[propName] === oldName) {
           node.props[propName] = nextName;
           changed = true;
+        } else if (node.type === 'ListView' && propName === 'ListData') {
+          const nextListData = renameListViewDataAsset(node.props[propName], oldName, nextName);
+          if (nextListData !== node.props[propName]) {
+            node.props[propName] = nextListData;
+            changed = true;
+          }
         }
       }
       for (const child of node.children || []) walk(child);
@@ -1136,6 +1244,63 @@
     return `${Math.round(size / 104857.6) / 10} MB`;
   }
 
+  // ── ListData dialog ────────────────────────────────────────────────
+  let listDataDialogOpen = false;
+  let listDataDialogPathId = null;
+  let listDataDialogRows = [];
+  let listDataDialogColumns = [];
+  let listDataDialogLayoutValue = '0';
+
+  function openListDataDialog(pathId) {
+    const node = findNode(mutableTree, pathId);
+    if (!node) return;
+    const layoutValue = String(node.props?.ListViewLayout ?? '0');
+    const currentData = node.props?.ListData ?? '';
+    listDataDialogPathId = pathId;
+    listDataDialogLayoutValue = layoutValue;
+    listDataDialogColumns = listViewColumnsForLayout(layoutValue);
+    listDataDialogRows = parseListViewData(currentData, layoutValue).map(r => ({ ...r }));
+    listDataDialogOpen = true;
+  }
+
+  function addListDataRow() {
+    listDataDialogRows = [...listDataDialogRows, emptyListViewRow(listDataDialogLayoutValue)];
+  }
+
+  function removeListDataRow(i) {
+    listDataDialogRows = listDataDialogRows.filter((_, idx) => idx !== i);
+  }
+
+  function moveListDataRow(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= listDataDialogRows.length) return;
+    const rows = [...listDataDialogRows];
+    [rows[i], rows[j]] = [rows[j], rows[i]];
+    listDataDialogRows = rows;
+  }
+
+  function updateListDataCell(i, col, value) {
+    listDataDialogRows = listDataDialogRows.map((r, idx) =>
+      idx === i ? { ...r, [col]: value } : r
+    );
+  }
+
+  function saveListDataDialog() {
+    const serialized = serializeListViewData(listDataDialogRows, listDataDialogLayoutValue);
+    updateProp(listDataDialogPathId, 'ListData', serialized);
+    listDataDialogOpen = false;
+  }
+
+  function cancelListDataDialog() {
+    listDataDialogOpen = false;
+  }
+
+  function handleListDataDialogKey(e) {
+    if (!listDataDialogOpen || e.key !== 'Escape') return;
+    e.stopPropagation();
+    cancelListDataDialog();
+  }
+
   // ── Component icons (12×12 viewBox inner markup) ───────────────────
   function compIcon(type) {
     switch (type) {
@@ -1152,10 +1317,106 @@
       case 'CheckBox':            return '<rect x="1" y="1" width="10" height="10" rx="1.5" stroke-width="1.3"/><path d="M3 6l2 2 4-4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
       case 'Clock':               return '<circle cx="6" cy="6" r="5" stroke-width="1.3"/><path d="M6 3.5V6l2 1.5" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>';
       case 'WebViewer':           return '<rect x="0.5" y="1.5" width="11" height="9" rx="1" stroke-width="1.3"/><path d="M0.5 4h11" stroke-width="1.1"/><circle cx="2.5" cy="2.8" r="0.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="2.8" r="0.6" fill="currentColor" stroke="none"/>';
+      case 'AbsoluteArrangement': return '<rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><path d="M3 0.5v3M0.5 3h3" stroke-width="1.1" stroke-linecap="round"/><rect x="4" y="4" width="5.5" height="5" rx="0.5" stroke-width="1.1"/>';
+      case 'AccelerometerSensor': return '<rect x="3.5" y="3.5" width="5" height="5" rx="1" stroke-width="1.3"/><path d="M6 1v2.5M6 8.5V11M1 6h2.5M8.5 6H11" stroke-width="1.2" stroke-linecap="round"/>';
+      case 'ActivityStarter':     return '<path d="M4.5 2H2a1 1 0 00-1 1v7a1 1 0 001 1h8a1 1 0 001-1V7.5" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 1.5h3.5V5M10.5 1.5L6.5 5.5" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'AnomalyDetection':    return '<polyline points="1,9 3,7.5 5,7.5 7,3 9,7.5 11,7.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="3" r="1.5" stroke-width="1.2"/>';
+      case 'Ball':                return '<circle cx="6" cy="6" r="4.5" stroke-width="1.3"/><path d="M4 4c.5-1 1.8-1.5 2.8-1" stroke-width="1" stroke-linecap="round"/>';
+      case 'BarcodeScanner':      return '<line x1="2" y1="2" x2="2" y2="10" stroke-width="1.5" stroke-linecap="round"/><line x1="3.5" y1="2" x2="3.5" y2="10" stroke-width="0.8" stroke-linecap="round"/><line x1="5" y1="2" x2="5" y2="10" stroke-width="1.5" stroke-linecap="round"/><line x1="6.5" y1="2" x2="6.5" y2="10" stroke-width="0.8" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="10" stroke-width="1.5" stroke-linecap="round"/><line x1="9.5" y1="2" x2="9.5" y2="10" stroke-width="0.8" stroke-linecap="round"/><line x1="0.5" y1="6" x2="11" y2="6" stroke-width="1" stroke-linecap="round"/>';
+      case 'Barometer':           return '<path d="M2 9.5 a4 4 0 0 1 8 0" stroke-width="1.3" stroke-linecap="round"/><line x1="2" y1="9.5" x2="10" y2="9.5" stroke-width="1.3" stroke-linecap="round"/><line x1="6" y1="9.5" x2="8.5" y2="6" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="9.5" r="0.8" fill="currentColor" stroke="none"/>';
+      case 'BluetoothClient':     return '<path d="M4 2v8M4 2l3.5 2-3.5 2M4 10l3.5-2-3.5-2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 6h2M10 5.2l1 .8-1 .8" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'BluetoothServer':     return '<path d="M3 2v8M3 2l3 2-3 2M3 10l3-2-3-2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><rect x="7.5" y="3.5" width="4" height="2" rx="0.4" stroke-width="1.1"/><rect x="7.5" y="6.5" width="4" height="2" rx="0.4" stroke-width="1.1"/>';
+      case 'Camcorder':           return '<rect x="0.5" y="3" width="7.5" height="6.5" rx="1" stroke-width="1.3"/><path d="M8 5.5l3.5-2v5l-3.5-2z" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="6.25" r="1.5" stroke-width="1.1"/>';
+      case 'Camera':              return '<rect x="0.5" y="3" width="11" height="7.5" rx="1" stroke-width="1.3"/><path d="M4 3V2h4v1" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="6.5" r="2" stroke-width="1.3"/>';
+      case 'Canvas':              return '<rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><path d="M2.5 9l2.5-4 2 2.5 1.5-2.5 2.5 4" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'Chart':               return '<line x1="1" y1="11" x2="11" y2="11" stroke-width="1.1" stroke-linecap="round"/><rect x="1.5" y="6" width="2" height="5" rx="0.3" stroke-width="1.2"/><rect x="5" y="3.5" width="2" height="7.5" rx="0.3" stroke-width="1.2"/><rect x="8.5" y="5" width="2" height="6" rx="0.3" stroke-width="1.2"/>';
+      case 'ChartData2D':         return '<line x1="1" y1="11" x2="11" y2="11" stroke-width="1.1" stroke-linecap="round"/><line x1="1" y1="1" x2="1" y2="11" stroke-width="1.1" stroke-linecap="round"/><path d="M2.5 8.5l2.5-3 2.5 1.5 3-4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="2.5" cy="8.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="5" cy="5.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="7.5" cy="7" r="0.8" fill="currentColor" stroke="none"/><circle cx="10.5" cy="3" r="0.8" fill="currentColor" stroke="none"/>';
+      case 'Circle':              return '<circle cx="6" cy="6" r="4.5" stroke-width="1.3"/><line x1="3" y1="6" x2="9" y2="6" stroke-width="0.8" stroke-linecap="round"/><line x1="6" y1="3" x2="6" y2="9" stroke-width="0.8" stroke-linecap="round"/>';
+      case 'CircularProgress':    return '<path d="M6 1.5 a4.5 4.5 0 1 1 -4.5 4.5" stroke-width="1.5" stroke-linecap="round"/>';
+      case 'CloudDB':             return '<path d="M1 6.5 Q2 4 3.5 6.5 Q6 1.5 8.5 6.5 Q10 4 11 6.5 H1z" stroke-width="1.3" stroke-linejoin="round"/><line x1="2.5" y1="8.5" x2="9.5" y2="8.5" stroke-width="1.2" stroke-linecap="round"/><line x1="2.5" y1="10.5" x2="8" y2="10.5" stroke-width="1.2" stroke-linecap="round"/>';
+      case 'ContactPicker':       return '<circle cx="5" cy="3.5" r="2" stroke-width="1.3"/><path d="M1 10.5a4 4 0 018 0" stroke-width="1.3" stroke-linecap="round"/><path d="M9.5 7v3.5M8 9l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'DataFile':            return '<path d="M2.5 1.5h5L10.5 5v5.5a1 1 0 01-1 1h-7a1 1 0 01-1-1v-8a1 1 0 011-1z" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 1.5V5h3" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="7" x2="8.5" y2="7" stroke-width="1.1" stroke-linecap="round"/><line x1="4" y1="9" x2="7.5" y2="9" stroke-width="1.1" stroke-linecap="round"/>';
+      case 'DatePicker':          return '<rect x="0.5" y="2" width="11" height="9.5" rx="1" stroke-width="1.3"/><line x1="0.5" y1="5.5" x2="11.5" y2="5.5" stroke-width="1.1"/><line x1="3.5" y1="0.5" x2="3.5" y2="3.5" stroke-width="1.3" stroke-linecap="round"/><line x1="8.5" y1="0.5" x2="8.5" y2="3.5" stroke-width="1.3" stroke-linecap="round"/><circle cx="4" cy="8.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="6" cy="8.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="8" cy="8.5" r="0.8" fill="currentColor" stroke="none"/>';
+      case 'EmailPicker':         return '<rect x="0.5" y="2.5" width="9" height="7" rx="1" stroke-width="1.3"/><path d="M0.5 3l4.5 3.5 4.5-3.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 7v3.5M9 9l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'Ev3ColorSensor':      return '<rect x="2" y="2" width="8" height="8" rx="1.5" stroke-width="1.3"/><circle cx="6" cy="6" r="2" stroke-width="1.2"/><circle cx="6" cy="6" r="0.8" fill="currentColor" stroke="none"/>';
+      case 'Ev3Commands':         return '<rect x="0.5" y="0.5" width="11" height="11" rx="1.5" stroke-width="1.3"/><path d="M3 4l2.5 2-2.5 2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><line x1="7" y1="8" x2="9.5" y2="8" stroke-width="1.3" stroke-linecap="round"/>';
+      case 'Ev3GyroSensor':       return '<path d="M3 2.5C1.5 3.5 1 5 1.5 6.5c.5 2 2.5 3.5 5 3.5a4 4 0 003.5-6" stroke-width="1.3" stroke-linecap="round"/><path d="M10 4l-1.5-.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/>';
+      case 'Ev3Motors':           return '<circle cx="6" cy="6" r="4" stroke-width="1.3"/><circle cx="6" cy="6" r="1.5" stroke-width="1.2"/><line x1="6" y1="2" x2="6" y2="4.5" stroke-width="1.1" stroke-linecap="round"/><line x1="6" y1="7.5" x2="6" y2="10" stroke-width="1.1" stroke-linecap="round"/><line x1="2" y1="6" x2="4.5" y2="6" stroke-width="1.1" stroke-linecap="round"/><line x1="7.5" y1="6" x2="10" y2="6" stroke-width="1.1" stroke-linecap="round"/>';
+      case 'Ev3Sound':            return '<path d="M1.5 4.5h2l3-3v9l-3-3H1.5z" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 4a3 3 0 010 4" stroke-width="1.3" stroke-linecap="round"/>';
+      case 'Ev3TouchSensor':      return '<rect x="1.5" y="5" width="9" height="5.5" rx="1" stroke-width="1.3"/><path d="M6 1.5v3.5" stroke-width="1.3" stroke-linecap="round"/><path d="M4.5 3.5l1.5-2 1.5 2" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="7.5" r="1.2" stroke-width="1.1"/>';
+      case 'Ev3UI':               return '<rect x="0.5" y="2" width="11" height="8" rx="1" stroke-width="1.3"/><rect x="1.5" y="3" width="5.5" height="5" rx="0.5" stroke-width="1.1"/><circle cx="9" cy="5" r="0.9" stroke-width="1.1"/><circle cx="9" cy="7.5" r="0.9" stroke-width="1.1"/>';
+      case 'Ev3UltrasonicSensor': return '<circle cx="2.5" cy="6" r="1.5" stroke-width="1.3"/><path d="M5 5 a2 2 0 0 1 0 2" stroke-width="1.2" stroke-linecap="round"/><path d="M6.5 3.5 a3 3 0 0 1 0 5" stroke-width="1.1" stroke-linecap="round"/>';
+      case 'FeatureCollection':   return '<path d="M1 6L3.5 2.5 6 6 8 4l3 3.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="2.5" cy="9.5" r="1" stroke-width="1.2"/><path d="M5.5 8v3M4 9.5h3" stroke-width="1.1" stroke-linecap="round"/><rect x="8.5" y="8.5" width="3" height="2.5" rx="0.4" stroke-width="1.1"/>';
+      case 'File':                return '<path d="M2.5 1.5h5L10.5 5v5.5a1 1 0 01-1 1h-7a1 1 0 01-1-1v-8a1 1 0 011-1z" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 1.5V5h3" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'FilePicker':          return '<path d="M2 1.5h4L8.5 5v5.5a1 1 0 01-1 1H3a1 1 0 01-1-1V2.5a1 1 0 011-1z" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 1.5V5h2.5" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 7.5v3.5M8.5 9.5l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'FirebaseDB':          return '<ellipse cx="6" cy="3" rx="4" ry="1.2" stroke-width="1.2"/><path d="M2 3v6M10 3v6" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="6" cy="9" rx="4" ry="1.2" stroke-width="1.2"/><path d="M7 4.5L5 7h2.5L5.5 9.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'FusiontablesControl': return '<rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><line x1="0.5" y1="4" x2="11.5" y2="4" stroke-width="1.1"/><line x1="0.5" y1="7.5" x2="11.5" y2="7.5" stroke-width="1.1"/><line x1="4" y1="0.5" x2="4" y2="11.5" stroke-width="1.1"/>';
+      case 'GameClient':          return '<rect x="0.5" y="3.5" width="11" height="6" rx="2" stroke-width="1.3"/><path d="M3.5 5.5v2M2.5 6.5h2" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="9.5" cy="6" r="0.8" fill="currentColor" stroke="none"/>';
+      case 'GyroscopeSensor':     return '<circle cx="6" cy="6" r="4.5" stroke-width="1.3"/><ellipse cx="6" cy="6" rx="4.5" ry="1.8" stroke-width="1.1"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/>';
+      case 'HorizontalScrollArrangement': return '<rect x="0.5" y="1" width="11" height="8.5" rx="1" stroke-width="1.3"/><line x1="4.5" y1="1" x2="4.5" y2="9.5" stroke-width="1.1"/><line x1="8" y1="1" x2="8" y2="9.5" stroke-width="1.1"/><rect x="1" y="10.5" width="5" height="1" rx="0.5" stroke-width="1.1"/>';
+      case 'Hygrometer':          return '<path d="M6 1.5C6 1.5 2.5 5.5 2.5 7.5a3.5 3.5 0 007 0C9.5 5.5 6 1.5 6 1.5z" stroke-width="1.3" stroke-linejoin="round"/><path d="M4.5 7.5a1.5 1.5 0 012.5-1" stroke-width="1" stroke-linecap="round"/>';
+      case 'ImageBot':            return '<rect x="0.5" y="1.5" width="11" height="9" rx="1.5" stroke-width="1.3"/><path d="M0.5 8l3-3 2 2 2-3 4 4.5" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 1l.5 1.5 1.5.5-1.5.5L8.5 5l-.5-1.5L6.5 3l1.5-.5z" fill="currentColor" stroke="none"/>';
+      case 'ImagePicker':         return '<rect x="0.5" y="1.5" width="9" height="8" rx="1.5" stroke-width="1.3"/><path d="M0.5 7l2.5-3 2 2 1.5-2.5 3 4" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 6.5v3.5M9 8.5l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'ImageSprite':         return '<rect x="2" y="2" width="7" height="7" rx="1" stroke-width="1.3"/><path d="M9.5 6h2M10.5 5l1 1-1 1" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 9.5v2M5 10.5l1 1 1-1" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'LightSensor':         return '<circle cx="6" cy="6" r="2.5" stroke-width="1.3"/><path d="M6 1v1.5M6 9.5V11M1 6h1.5M9.5 6H11M2.6 2.6l1 1M8.4 8.4l1 1M9.4 2.6l-1 1M3.6 8.4l-1 1" stroke-width="1.2" stroke-linecap="round"/>';
+      case 'LineString':          return '<path d="M1.5 9l3-5 2.5 3 2.5-3 2.5 3" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1.5" cy="9" r="0.9" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7" r="0.9" fill="currentColor" stroke="none"/>';
+      case 'LinearProgress':      return '<rect x="0.5" y="4.5" width="11" height="3" rx="1.5" stroke-width="1.3"/><rect x="0.5" y="4.5" width="7" height="3" rx="1.5" fill="currentColor" stroke="none"/>';
+      case 'ListPicker':          return '<rect x="0.5" y="0.5" width="9" height="11" rx="1" stroke-width="1.3"/><line x1="2.5" y1="3.5" x2="7.5" y2="3.5" stroke-width="1.1"/><line x1="2.5" y1="6" x2="7.5" y2="6" stroke-width="1.1"/><line x1="2.5" y1="8.5" x2="7.5" y2="8.5" stroke-width="1.1"/><path d="M10.5 5v3.5M9 7l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'LocationSensor':      return '<path d="M6 1a4 4 0 00-4 4c0 3 4 7 4 7s4-4 4-7a4 4 0 00-4-4z" stroke-width="1.3" stroke-linejoin="round"/><circle cx="6" cy="5" r="1.5" stroke-width="1.2"/>';
+      case 'MagneticFieldSensor': return '<path d="M3 2v6a3 3 0 006 0V2" stroke-width="1.3" stroke-linecap="round"/><line x1="2" y1="2" x2="4" y2="2" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="2" x2="10" y2="2" stroke-width="1.5" stroke-linecap="round"/>';
+      case 'Map':                 return '<rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><path d="M0.5 8c2-2 4 1 6 0s2-3 5-2" stroke-width="1.1" stroke-linecap="round"/><circle cx="7" cy="3" r="1.3" stroke-width="1.2"/><line x1="7" y1="4.3" x2="7" y2="5.5" stroke-width="1.2" stroke-linecap="round"/>';
+      case 'Marker':              return '<path d="M6 1a3.5 3.5 0 00-3.5 3.5C2.5 7.5 6 11 6 11s3.5-3.5 3.5-6.5A3.5 3.5 0 006 1z" stroke-width="1.3" stroke-linejoin="round"/><circle cx="6" cy="4.5" r="1.2" fill="currentColor" stroke="none"/>';
+      case 'MediaStore':          return '<path d="M1 4.5h9a1 1 0 011 1v5a1 1 0 01-1 1H1a1 1 0 01-1-1V5.5a1 1 0 011-1z" stroke-width="1.3" stroke-linejoin="round"/><path d="M1 4.5l1.5-2h3l1.5 2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 6.5v3M3 8h2" stroke-width="1.1" stroke-linecap="round"/><path d="M7 7l2 1-2 1" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'Navigation':          return '<path d="M2 10L6 2l4 8-4-2.5L2 10z" stroke-width="1.3" stroke-linejoin="round"/>';
+      case 'NearField':           return '<circle cx="6" cy="6" r="1.5" stroke-width="1.3"/><path d="M3.5 3.5a3.5 3.5 0 015 5" stroke-width="1.2" stroke-linecap="round"/><path d="M1.5 1.5a6 6 0 019 9" stroke-width="1.1" stroke-linecap="round"/>';
+      case 'NxtColorSensor':      return '<rect x="1.5" y="2" width="9" height="8" rx="1" stroke-width="1.3"/><circle cx="6" cy="6" r="2" stroke-width="1.2"/><circle cx="6" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="3" cy="4.5" r="0.5" fill="currentColor" stroke="none"/><circle cx="9" cy="4.5" r="0.5" fill="currentColor" stroke="none"/>';
+      case 'NxtDirectCommands':   return '<rect x="0.5" y="1.5" width="11" height="9" rx="1" stroke-width="1.3"/><path d="M3 5l2 1.5-2 1.5" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><line x1="6.5" y1="7.5" x2="9" y2="7.5" stroke-width="1.3" stroke-linecap="round"/>';
+      case 'NxtDrive':            return '<circle cx="3" cy="8" r="2.5" stroke-width="1.3"/><circle cx="9" cy="8" r="2.5" stroke-width="1.3"/><rect x="3.5" y="2.5" width="5" height="3.5" rx="0.5" stroke-width="1.2"/><line x1="3" y1="5.5" x2="3" y2="8" stroke-width="1" stroke-linecap="round"/><line x1="9" y1="5.5" x2="9" y2="8" stroke-width="1" stroke-linecap="round"/>';
+      case 'NxtLightSensor':      return '<rect x="1.5" y="2" width="9" height="8" rx="1" stroke-width="1.3"/><circle cx="6" cy="6" r="2" stroke-width="1.2"/><path d="M6 3.5v1M6 8.5v1M3.5 6h1M7.5 6h1" stroke-width="1" stroke-linecap="round"/>';
+      case 'NxtSoundSensor':      return '<rect x="1.5" y="2" width="9" height="8" rx="1" stroke-width="1.3"/><circle cx="5" cy="6" r="1.5" stroke-width="1.2"/><path d="M7 4.5a2 2 0 010 3" stroke-width="1.2" stroke-linecap="round"/>';
+      case 'NxtTouchSensor':      return '<rect x="2" y="5" width="8" height="5" rx="1" stroke-width="1.3"/><rect x="4" y="2" width="4" height="3.5" rx="1.5" stroke-width="1.3"/>';
+      case 'NxtUltrasonicSensor': return '<rect x="1" y="3" width="5" height="6" rx="1" stroke-width="1.3"/><circle cx="3.5" cy="6" r="1.5" stroke-width="1.2"/><path d="M7 4.5a2 2 0 010 3" stroke-width="1.2" stroke-linecap="round"/><path d="M8 4a2.5 2.5 0 010 4" stroke-width="1.1" stroke-linecap="round"/>';
+      case 'OrientationSensor':   return '<rect x="3.5" y="1" width="5" height="8.5" rx="1.5" stroke-width="1.3"/><path d="M1.5 5C1 6.5 1.5 8.5 3.5 9.5" stroke-width="1.2" stroke-linecap="round"/><path d="M1.5 5l1 .5-.5-1.5" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 5C11 6.5 10.5 8.5 8.5 9.5" stroke-width="1.2" stroke-linecap="round"/><path d="M10.5 5l-1 .5.5-1.5" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'PasswordTextBox':     return '<rect x="0.5" y="3" width="11" height="6" rx="1" stroke-width="1.3"/><circle cx="3.5" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="6" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="8.5" cy="6" r="0.8" fill="currentColor" stroke="none"/>';
+      case 'Pedometer':           return '<circle cx="6" cy="2.5" r="1.5" stroke-width="1.2"/><path d="M6 4v3.5M4 5.5l2 1.5 2-1.5M4.5 8l1.5 3M7.5 8l-1.5 3" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'PhoneCall':           return '<circle cx="4" cy="3" r="2" stroke-width="1.3"/><circle cx="8" cy="9" r="2" stroke-width="1.3"/><path d="M4 5v3h4v-1" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'PhoneNumberPicker':   return '<circle cx="3.5" cy="3" r="1.5" stroke-width="1.2"/><circle cx="7" cy="8" r="1.5" stroke-width="1.2"/><path d="M3.5 4.5v3h3.5v-.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 6.5v4M8 9l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'PhoneStatus':         return '<rect x="3" y="0.5" width="6" height="11" rx="1.5" stroke-width="1.3"/><line x1="3" y1="3" x2="9" y2="3" stroke-width="1.1"/><rect x="4.5" y="7" width="1" height="2" rx="0.2" fill="currentColor" stroke="none"/><rect x="6" y="6" width="1" height="3" rx="0.2" fill="currentColor" stroke="none"/><rect x="7.5" y="5" width="1" height="4" rx="0.2" fill="currentColor" stroke="none"/>';
+      case 'Player':              return '<circle cx="6" cy="6" r="5" stroke-width="1.3"/><path d="M4.5 4l4 2-4 2z" fill="currentColor" stroke="none"/>';
+      case 'Polygon':             return '<path d="M6 1l4 3.5-1.5 5.5H3.5L2 4.5z" stroke-width="1.3" stroke-linejoin="round"/>';
+      case 'ProximitySensor':     return '<rect x="0.5" y="4" width="4.5" height="4" rx="0.8" stroke-width="1.3"/><path d="M6.5 5.5a1 1 0 010 1" stroke-width="1.2" stroke-linecap="round"/><path d="M7.5 4.5a2 2 0 010 3" stroke-width="1.2" stroke-linecap="round"/><path d="M9 3.5a2.5 2.5 0 010 5" stroke-width="1.1" stroke-linecap="round"/>';
+      case 'Rectangle':           return '<rect x="2" y="3" width="8" height="6" stroke-width="1.3"/><rect x="1" y="2" width="2" height="2" rx="0.3" fill="currentColor" stroke="none"/><rect x="9" y="2" width="2" height="2" rx="0.3" fill="currentColor" stroke="none"/><rect x="1" y="8" width="2" height="2" rx="0.3" fill="currentColor" stroke="none"/><rect x="9" y="8" width="2" height="2" rx="0.3" fill="currentColor" stroke="none"/>';
+      case 'Regression':          return '<line x1="1" y1="11" x2="11" y2="11" stroke-width="1.1" stroke-linecap="round"/><line x1="1" y1="1" x2="1" y2="11" stroke-width="1.1" stroke-linecap="round"/><circle cx="3" cy="8" r="0.8" fill="currentColor" stroke="none"/><circle cx="4.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="6" cy="5" r="0.8" fill="currentColor" stroke="none"/><circle cx="8" cy="4" r="0.8" fill="currentColor" stroke="none"/><circle cx="10" cy="3" r="0.8" fill="currentColor" stroke="none"/><line x1="2" y1="9" x2="11" y2="2.5" stroke-width="1.2" stroke-linecap="round"/>';
+      case 'Serial':              return '<rect x="1" y="3.5" width="10" height="5" rx="1" stroke-width="1.3"/><circle cx="3.5" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="6" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="8.5" cy="6" r="0.8" fill="currentColor" stroke="none"/><line x1="2" y1="8.5" x2="2" y2="10" stroke-width="1.2" stroke-linecap="round"/><line x1="10" y1="8.5" x2="10" y2="10" stroke-width="1.2" stroke-linecap="round"/>';
+      case 'Sharing':             return '<circle cx="9.5" cy="2.5" r="1.5" stroke-width="1.2"/><circle cx="9.5" cy="9.5" r="1.5" stroke-width="1.2"/><circle cx="2.5" cy="6" r="1.5" stroke-width="1.2"/><line x1="4" y1="6" x2="8" y2="3" stroke-width="1.2"/><line x1="4" y1="6" x2="8" y2="9" stroke-width="1.2"/>';
+      case 'Slider':              return '<line x1="0.5" y1="6" x2="11.5" y2="6" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="6" r="2.5" stroke-width="1.3"/>';
+      case 'Sound':               return '<line x1="8" y1="1.5" x2="8" y2="9" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="9" r="2" stroke-width="1.2"/><path d="M8 1.5l3.5 1.5" stroke-width="1.2" stroke-linecap="round"/>';
+      case 'SoundRecorder':       return '<rect x="4.5" y="1" width="3" height="6" rx="1.5" stroke-width="1.3"/><path d="M3 7a3 3 0 006 0" stroke-width="1.3" stroke-linecap="round"/><line x1="6" y1="10" x2="6" y2="11.5" stroke-width="1.3" stroke-linecap="round"/><line x1="4" y1="11.5" x2="8" y2="11.5" stroke-width="1.3" stroke-linecap="round"/>';
+      case 'SpeechRecognizer':    return '<rect x="3" y="1" width="3" height="5.5" rx="1.5" stroke-width="1.3"/><path d="M2 6.5a2.5 2.5 0 015 0" stroke-width="1.3" stroke-linecap="round"/><line x1="4.5" y1="9" x2="4.5" y2="10" stroke-width="1.2" stroke-linecap="round"/><path d="M8.5 4h2.5M8.5 6.5h3M8.5 9h2" stroke-width="1.1" stroke-linecap="round"/>';
+      case 'Spinner':             return '<rect x="0.5" y="3.5" width="11" height="5" rx="1" stroke-width="1.3"/><line x1="8" y1="3.5" x2="8" y2="8.5" stroke-width="1.1"/><path d="M9.5 5.5l1 1 1-1" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="6" x2="6" y2="6" stroke-width="1.1" stroke-linecap="round"/>';
+      case 'Spreadsheet':         return '<rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><line x1="0.5" y1="3.5" x2="11.5" y2="3.5" stroke-width="1.1"/><line x1="0.5" y1="7" x2="11.5" y2="7" stroke-width="1.1"/><line x1="4" y1="3.5" x2="4" y2="11.5" stroke-width="1.1"/><line x1="7.5" y1="3.5" x2="7.5" y2="11.5" stroke-width="1.1"/>';
+      case 'Switch':              return '<rect x="0.5" y="4" width="11" height="4" rx="2" stroke-width="1.3"/><circle cx="8.5" cy="6" r="1.8" stroke-width="1.3"/>';
+      case 'TableArrangement':    return '<rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><line x1="0.5" y1="4.5" x2="11.5" y2="4.5" stroke-width="1.1"/><line x1="0.5" y1="8.5" x2="11.5" y2="8.5" stroke-width="1.1"/><line x1="4.5" y1="0.5" x2="4.5" y2="11.5" stroke-width="1.1"/><line x1="8.5" y1="0.5" x2="8.5" y2="11.5" stroke-width="1.1"/>';
+      case 'TextToSpeech':        return '<path d="M1 3h5M1 5.5h4M1 8h5" stroke-width="1.2" stroke-linecap="round"/><path d="M7 4.5h1l3-2v6l-3-2H7z" stroke-width="1.2" stroke-linejoin="round"/>';
+      case 'Texting':             return '<path d="M1.5 2h9a1 1 0 011 1v5a1 1 0 01-1 1H3.5L1 11V9H1.5a1 1 0 01-1-1V3a1 1 0 011-1z" stroke-width="1.3"/><line x1="3.5" y1="4.5" x2="9.5" y2="4.5" stroke-width="1" stroke-linecap="round"/><line x1="3.5" y1="6.5" x2="8" y2="6.5" stroke-width="1" stroke-linecap="round"/>';
+      case 'Thermometer':         return '<rect x="5" y="1" width="2" height="8" rx="1" stroke-width="1.3"/><circle cx="6" cy="9.5" r="2" stroke-width="1.3"/><rect x="5.5" y="4" width="1" height="6" rx="0.5" fill="currentColor" stroke="none"/>';
+      case 'TimePicker':          return '<circle cx="4.5" cy="6" r="4" stroke-width="1.3"/><path d="M4.5 3.5V6l1.5 1.2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 3.5v4.5M8 6.5l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'TinyDB':              return '<ellipse cx="6" cy="3" rx="3.5" ry="1" stroke-width="1.2"/><path d="M2.5 3v6M9.5 3v6" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="6" cy="9" rx="3.5" ry="1" stroke-width="1.2"/><circle cx="6" cy="6" r="1.2" stroke-width="1.1"/>';
+      case 'TinyWebDB':           return '<ellipse cx="6" cy="3.5" rx="3.5" ry="1" stroke-width="1.2"/><path d="M2.5 3.5v5.5M9.5 3.5v5.5" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="6" cy="9" rx="3.5" ry="1" stroke-width="1.2"/><circle cx="6" cy="6.5" r="1.5" stroke-width="1.1"/><line x1="4.5" y1="6.5" x2="7.5" y2="6.5" stroke-width="0.9" stroke-linecap="round"/>';
+      case 'Translator':          return '<path d="M1 1.5h6v4.5H3L1 7.5z" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 5.5h6v4.5H9l-2 2v-2H5z" stroke-width="1.2" stroke-linejoin="round"/>';
+      case 'Trendline':           return '<line x1="1" y1="11" x2="11" y2="11" stroke-width="1.1" stroke-linecap="round"/><line x1="1" y1="1" x2="1" y2="11" stroke-width="1.1" stroke-linecap="round"/><path d="M2 9.5C3 8 4 6.5 6 5S9 3.5 11 3" stroke-width="1.3" stroke-linecap="round"/>';
+      case 'Twitter':             return '<path d="M11 2a5 5 0 01-7.5 6.5C2 10 1 11 1 11c2-1 3.5-2.5 4-4A5 5 0 0111 2z" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      case 'VerticalScrollArrangement': return '<rect x="1" y="0.5" width="8.5" height="11" rx="1" stroke-width="1.3"/><line x1="1" y1="4.5" x2="9.5" y2="4.5" stroke-width="1.1"/><line x1="1" y1="8" x2="9.5" y2="8" stroke-width="1.1"/><rect x="10.5" y="1.5" width="1" height="4" rx="0.5" stroke-width="1.1"/>';
+      case 'VideoPlayer':         return '<rect x="0.5" y="2" width="11" height="8" rx="1" stroke-width="1.3"/><path d="M4.5 5l4 2-4 2z" fill="currentColor" stroke="none"/>';
+      case 'Voting':              return '<rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke-width="1.3"/><path d="M3.5 4.5l1.5 1.5 3-3" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><line x1="3.5" y1="7.5" x2="8.5" y2="7.5" stroke-width="1.2" stroke-linecap="round"/>';
+      case 'Web':                 return '<circle cx="6" cy="6" r="5" stroke-width="1.3"/><path d="M6 1c-1.5 1.5-2.5 3-2.5 5S4.5 9.5 6 11M6 1c1.5 1.5 2.5 3 2.5 5S7.5 9.5 6 11" stroke-width="1" stroke-linecap="round"/><line x1="1" y1="6" x2="11" y2="6" stroke-width="1" stroke-linecap="round"/>';
+      case 'YandexTranslate':     return '<circle cx="5" cy="6" r="4.5" stroke-width="1.3"/><path d="M3 3.5c1 .5 2.5.5 4 0M2.5 6h5M3 8.5c1-.5 2.5-.5 4 0" stroke-width="0.9" stroke-linecap="round"/><path d="M9.5 4.5l2 1.5-2 1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
       default:                    return '<rect x="1.5" y="1.5" width="9" height="9" rx="1.5" stroke-width="1.3"/>';
     }
   }
 </script>
+
+<svelte:window on:keydown={handleListDataDialogKey} />
 
 <div class="vis-body">
   {#if parseError}
@@ -1572,15 +1833,21 @@
                         />
                       {:else if prop.editorType === 'layout_size'}
                         {@const mode = layoutMode(val)}
+                        {@const layoutLabels = { automatic: 'Automatic', fill: 'Fill parent', custom: 'Pixels' }}
+                        {@const layoutKey = `layout-${selectedNode.pathId}-${prop.name}`}
                         <div class="vis-layout-edit">
-                          <select
-                            class="vis-select"
-                            on:change={e => updateLayoutMode(selectedNode.pathId, prop.name, e.currentTarget.value, val)}
+                          <button
+                            class="vis-select-btn"
+                            class:open={visDropdownKey === layoutKey}
+                            on:click={e => openVisDropdown(e, layoutKey,
+                              [{ value: 'automatic', label: 'Automatic' }, { value: 'fill', label: 'Fill parent' }, { value: 'custom', label: 'Pixels' }],
+                              mode,
+                              v => updateLayoutMode(selectedNode.pathId, prop.name, v, val)
+                            )}
                           >
-                            <option value="automatic" selected={mode === 'automatic'}>Automatic</option>
-                            <option value="fill" selected={mode === 'fill'}>Fill parent</option>
-                            <option value="custom" selected={mode === 'custom'}>Pixels</option>
-                          </select>
+                            <span class="vis-select-btn-label">{layoutLabels[mode] ?? mode}</span>
+                            <svg class="vis-select-btn-chevron" class:rotated={visDropdownKey === layoutKey} viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 3l2.5 2.5 2.5-2.5"/></svg>
+                          </button>
                           {#if mode === 'custom'}
                             <input
                               type="number"
@@ -1607,16 +1874,20 @@
                           on:input={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
                         ></textarea>
                       {:else if prop.editorType === 'asset'}
+                        {@const assetKey = `asset-${selectedNode.pathId}-${prop.name}`}
                         <div class="vis-asset-control">
-                          <select
-                            class="vis-select"
-                            on:change={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                          <button
+                            class="vis-select-btn"
+                            class:open={visDropdownKey === assetKey}
+                            on:click={e => openVisDropdown(e, assetKey,
+                              [{ value: '', label: 'None...' }, ...assetOptions(editorVal).map(a => ({ value: a, label: a }))],
+                              editorVal || '',
+                              v => updateProp(selectedNode.pathId, prop.name, v)
+                            )}
                           >
-                            <option value="" selected={!editorVal}>None...</option>
-                            {#each assetOptions(editorVal) as asset}
-                              <option value={asset} selected={editorVal === asset}>{asset}</option>
-                            {/each}
-                          </select>
+                            <span class="vis-select-btn-label">{editorVal || 'None...'}</span>
+                            <svg class="vis-select-btn-chevron" class:rotated={visDropdownKey === assetKey} viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 3l2.5 2.5 2.5-2.5"/></svg>
+                          </button>
                           <label class="vis-asset-upload" title="Choose asset file">
                             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                               <path d="M6 1v7M3.5 3.5L6 1l2.5 2.5M2 10h8"/>
@@ -1629,16 +1900,30 @@
                           </label>
                         </div>
                       {:else if options.length > 0}
-                        <select
-                          class="vis-select"
-                          on:change={e => updateProp(selectedNode.pathId, prop.name, e.currentTarget.value)}
+                        {@const optKey = `opt-${selectedNode.pathId}-${prop.name}`}
+                        {@const curOptVal = selectValue(prop, val)}
+                        {@const curOptLabel = options.find(o => String(o.value) === curOptVal)?.label ?? curOptVal}
+                        <button
+                          class="vis-select-btn"
+                          class:open={visDropdownKey === optKey}
+                          on:click={e => openVisDropdown(e, optKey,
+                            options.map(o => ({ value: String(o.value), label: o.label })),
+                            curOptVal,
+                            v => updateProp(selectedNode.pathId, prop.name, v)
+                          )}
                         >
-                          {#each options as option}
-                            <option value={option.value} selected={selectValue(prop, val) === String(option.value)}>
-                              {option.label}
-                            </option>
-                          {/each}
-                        </select>
+                          <span class="vis-select-btn-label">{curOptLabel}</span>
+                          <svg class="vis-select-btn-chevron" class:rotated={visDropdownKey === optKey} viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 3l2.5 2.5 2.5-2.5"/></svg>
+                        </button>
+                      {:else if prop.customEditor?.editorType === 'ListViewAddData'}
+                        {@const layoutValue = String(propVal(selectedNode, 'ListViewLayout') ?? '0')}
+                        <div class="vis-listdata-control">
+                          <span class="vis-listdata-summary">{listViewDataSummary(editorVal, layoutValue)}</span>
+                          <button
+                            class="vis-listdata-edit-btn"
+                            on:click={() => openListDataDialog(selectedNode.pathId)}
+                          >Edit rows</button>
+                        </div>
                       {:else}
                         <input
                           type="text"
@@ -1667,14 +1952,162 @@
   </div>
   {/if}
 
-  <!-- ── Help popup ──────────────────────────────────────────────────── -->
+  <!-- ── Property dropdown ─────────────────────────────────────────────── -->
+  {#if visDropdownKey}
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="vis-ctx-backdrop" role="presentation" on:click={closeVisDropdown} on:keydown></div>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div
+      class="vis-ctx-menu vis-dropdown"
+      style="left:{visDropdownX}px; top:{visDropdownY}px; min-width:{visDropdownMinWidth}px"
+      role="listbox"
+      tabindex="-1"
+      on:click|stopPropagation
+      on:keydown={e => e.key === 'Escape' && closeVisDropdown()}
+    >
+      {#each visDropdownOptions as opt}
+        <button
+          type="button"
+          class="vis-ctx-item"
+          class:vis-option-active={opt.value === visDropdownCurrent}
+          role="option"
+          aria-selected={opt.value === visDropdownCurrent}
+          on:click={() => { visDropdownOnSelect?.(opt.value); closeVisDropdown(); }}
+        >{opt.label}</button>
+      {/each}
+    </div>
+  {/if}
+
+  <!-- ── Help callout ─────────────────────────────────────────────────── -->
   {#if helpPopup}
     <div class="vis-ctx-backdrop" role="presentation" on:click={closeHelp} on:keydown></div>
     <div
-      class="vis-help-popup"
-      style="left:{helpPopup.x}px; top:{helpPopup.y}px"
+      class="vis-help-callout"
+      style="left:{helpPopup.left}px; bottom:{helpPopup.bottomPx}px; --arrow-left:{helpPopup.arrowLeft}px;"
       role="tooltip"
     >{helpPopup.description}</div>
+  {/if}
+
+  <!-- ── ListData dialog ──────────────────────────────────────────────── -->
+  {#if listDataDialogOpen}
+    <button
+      type="button"
+      class="vis-listdata-backdrop"
+      aria-label="Close List Data dialog"
+      on:click={cancelListDataDialog}
+    ></button>
+    <div
+      class="vis-listdata-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Edit List Data"
+    >
+      <div class="vis-listdata-hd">
+        <span class="vis-listdata-title">Edit List Data</span>
+        <button class="vis-listdata-close" on:click={cancelListDataDialog} aria-label="Close">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M2 2l8 8M10 2l-8 8"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="vis-listdata-table-wrap">
+        <table class="vis-listdata-table">
+          <thead>
+            <tr>
+              <th class="vis-listdata-th vis-listdata-th-order"></th>
+              {#each listDataDialogColumns as col}
+                <th class="vis-listdata-th">{col}</th>
+              {/each}
+              <th class="vis-listdata-th vis-listdata-th-del"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each listDataDialogRows as row, i (i)}
+              <tr class="vis-listdata-tr">
+                <td class="vis-listdata-td vis-listdata-td-order">
+                  <div class="vis-listdata-reorder">
+                    <button
+                      class="vis-listdata-reorder-btn"
+                      disabled={i === 0}
+                      on:click={() => moveListDataRow(i, -1)}
+                      aria-label="Move row up"
+                    >
+                      <svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 6V2M2 4l2-2 2 2"/>
+                      </svg>
+                    </button>
+                    <button
+                      class="vis-listdata-reorder-btn"
+                      disabled={i === listDataDialogRows.length - 1}
+                      on:click={() => moveListDataRow(i, 1)}
+                      aria-label="Move row down"
+                    >
+                      <svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 2v4M2 4l2 2 2-2"/>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+                {#each listDataDialogColumns as col}
+                  <td class="vis-listdata-td">
+                    {#if col === 'Image'}
+                      <select
+                        class="vis-listdata-select"
+                        value={row[col] ?? 'None'}
+                        on:change={e => updateListDataCell(i, col, e.currentTarget.value)}
+                      >
+                        <option value="None">None</option>
+                        {#each mediaAssets.map(a => a.name).filter(Boolean) as assetName}
+                          <option value={assetName}>{assetName}</option>
+                        {/each}
+                      </select>
+                    {:else}
+                      <input
+                        type="text"
+                        class="vis-listdata-input"
+                        value={row[col] ?? ''}
+                        on:input={e => updateListDataCell(i, col, e.currentTarget.value)}
+                        placeholder={col}
+                      />
+                    {/if}
+                  </td>
+                {/each}
+                <td class="vis-listdata-td vis-listdata-td-del">
+                  <button
+                    class="vis-listdata-del-btn"
+                    on:click={() => removeListDataRow(i)}
+                    aria-label="Remove row"
+                  >
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 3h8M5 3V2h2v1M10 3l-.6 7H2.6L2 3"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+        {#if listDataDialogRows.length === 0}
+          <div class="vis-listdata-empty-rows">No rows yet. Click "Add row" to begin.</div>
+        {/if}
+      </div>
+
+      <div class="vis-listdata-footer">
+        <button class="vis-listdata-add-btn" on:click={addListDataRow}>
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M5 1v8M1 5h8"/>
+          </svg>
+          Add row
+        </button>
+        <div class="vis-listdata-footer-actions">
+          <button class="vis-listdata-cancel-btn" on:click={cancelListDataDialog}>Cancel</button>
+          <button class="vis-listdata-save-btn" on:click={saveListDataDialog}>Save</button>
+        </div>
+      </div>
+    </div>
   {/if}
 </div>
 
@@ -2364,14 +2797,14 @@
 
   .vis-row-editor { min-width: 0; }
 
-  .vis-help-popup {
+  .vis-help-callout {
     position: fixed;
     z-index: 60;
     width: 220px;
     padding: 8px 10px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
     box-shadow: var(--shadow-md);
     color: var(--text-muted);
     font-family: var(--font);
@@ -2379,9 +2812,27 @@
     line-height: 1.5;
     pointer-events: none;
     opacity: 0;
-    transform: scale(0.96) translateY(-4px);
-    transform-origin: top left;
-    animation: visCtxIn 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform: translateY(3px);
+    animation: visHelpCalloutIn 0.14s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes visHelpCalloutIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Arrow pointing downward toward the button */
+  .vis-help-callout::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: var(--arrow-left, 50%);
+    width: 8px;
+    height: 8px;
+    background: var(--surface);
+    border-bottom: 1.5px solid var(--border);
+    border-right: 1.5px solid var(--border);
+    transform: translateX(-50%) rotate(45deg);
+    border-radius: 0 0 2px 0;
   }
 
   /* Color */
@@ -2473,7 +2924,7 @@
     align-items: center;
   }
 
-  .vis-layout-edit .vis-select:only-child {
+  .vis-layout-edit .vis-select-btn:only-child {
     grid-column: 1 / -1;
   }
 
@@ -2532,18 +2983,44 @@
     cursor: pointer;
   }
 
-  /* Select */
-  .vis-select {
-    width: 100%; height: 24px; padding: 0 20px 0 7px;
-    border: 1px solid var(--border); border-radius: var(--radius);
-    background: var(--bg); color: var(--text-muted);
-    font-family: var(--font); font-size: 11.5px;
-    outline: none; cursor: pointer; appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 8 8' fill='none' stroke='%23B0AEA8' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.5 3l2.5 2.5 2.5-2.5'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 6px center; background-size: 10px;
-    box-sizing: border-box; transition: border-color 0.1s;
+  /* Custom select trigger */
+  .vis-select-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    height: 24px;
+    padding: 0 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11.5px;
+    text-align: left;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.1s, background 0.1s;
   }
-  .vis-select:focus { border-color: var(--accent); }
+  .vis-select-btn:hover { background: var(--cell-active); border-color: var(--text-faint); }
+  .vis-select-btn.open { border-color: var(--accent); }
+  .vis-select-btn-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .vis-select-btn-chevron {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    color: var(--text-faint);
+    transition: transform 0.15s;
+  }
+  .vis-select-btn-chevron.rotated { transform: rotate(180deg); }
+
+  /* Active option in dropdown */
+  .vis-option-active { color: var(--accent) !important; font-weight: 500; }
 
   /* Empty */
   .vis-empty {
@@ -2553,4 +3030,324 @@
     font-size: 12px; font-family: var(--font); padding: 24px; text-align: center;
   }
   .vis-empty svg { width: 28px; height: 28px; opacity: 0.6; }
+
+  /* ── ListData property row control ──────────────────────────────────── */
+  .vis-listdata-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .vis-listdata-summary {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font);
+    font-size: 11.5px;
+    color: var(--text-faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vis-listdata-edit-btn {
+    flex-shrink: 0;
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 0.1s, background 0.1s, color 0.1s;
+  }
+  .vis-listdata-edit-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* ── ListData dialog ─────────────────────────────────────────────────── */
+  .vis-listdata-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.45);
+    cursor: default;
+  }
+
+  .vis-listdata-dialog {
+    position: fixed;
+    z-index: 91;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(600px, calc(100vw - 32px));
+    max-height: min(520px, calc(100vh - 64px));
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.32);
+    overflow: hidden;
+    animation: visCtxIn 0.14s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .vis-listdata-hd {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--bg);
+  }
+
+  .vis-listdata-title {
+    flex: 1;
+    font-family: var(--font);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vis-listdata-close {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-faint);
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.1s, color 0.1s;
+  }
+  .vis-listdata-close:hover { background: var(--border-soft); color: var(--text-muted); }
+  .vis-listdata-close svg { width: 11px; height: 11px; }
+
+  .vis-listdata-table-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .vis-listdata-table-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
+  .vis-listdata-table-wrap::-webkit-scrollbar-track { background: transparent; }
+  .vis-listdata-table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  .vis-listdata-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font);
+    font-size: 12px;
+    table-layout: fixed;
+  }
+
+  .vis-listdata-th {
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 1;
+    padding: 5px 8px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-faint);
+    border-bottom: 1px solid var(--border-soft);
+    white-space: nowrap;
+  }
+
+  .vis-listdata-th-order { width: 44px; }
+  .vis-listdata-th-del { width: 34px; }
+
+  .vis-listdata-tr:hover { background: var(--cell-active); }
+
+  .vis-listdata-td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: middle;
+  }
+
+  .vis-listdata-td-order {
+    width: 44px;
+    padding: 3px 4px;
+    text-align: center;
+  }
+
+  .vis-listdata-td-del {
+    width: 34px;
+    text-align: center;
+    padding: 3px 4px;
+  }
+
+  .vis-listdata-reorder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+
+  .vis-listdata-reorder-btn {
+    width: 20px;
+    height: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 0;
+    border-radius: 2px;
+    transition: background 0.08s, color 0.08s;
+  }
+  .vis-listdata-reorder-btn:hover:not(:disabled) { background: var(--border-soft); color: var(--text-muted); }
+  .vis-listdata-reorder-btn:disabled { opacity: 0.22; cursor: default; }
+  .vis-listdata-reorder-btn svg { width: 8px; height: 8px; }
+
+  .vis-listdata-del-btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+    border: none;
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 0;
+    border-radius: 3px;
+    transition: background 0.08s, color 0.08s;
+  }
+  .vis-listdata-del-btn:hover {
+    background: color-mix(in srgb, var(--error) 12%, transparent);
+    color: var(--error);
+  }
+  .vis-listdata-del-btn svg { width: 12px; height: 12px; }
+
+  .vis-listdata-input {
+    width: 100%;
+    height: 24px;
+    padding: 0 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11.5px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.1s;
+  }
+  .vis-listdata-input:focus { border-color: var(--accent); }
+  .vis-listdata-input::placeholder { color: var(--text-faint); }
+
+  .vis-listdata-select {
+    width: 100%;
+    height: 24px;
+    padding: 0 5px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11.5px;
+    outline: none;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.1s;
+  }
+  .vis-listdata-select:focus { border-color: var(--accent); }
+
+  .vis-listdata-empty-rows {
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--text-faint);
+    font-family: var(--font);
+    font-size: 12px;
+  }
+
+  .vis-listdata-footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 7px 10px;
+    gap: 8px;
+    border-top: 1px solid var(--border-soft);
+    background: var(--bg);
+  }
+
+  .vis-listdata-footer-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .vis-listdata-add-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.1s, background 0.1s, color 0.1s;
+  }
+  .vis-listdata-add-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .vis-listdata-add-btn svg { width: 10px; height: 10px; }
+
+  .vis-listdata-cancel-btn {
+    height: 26px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.1s, background 0.1s;
+  }
+  .vis-listdata-cancel-btn:hover { border-color: var(--text-faint); background: var(--cell-active); }
+
+  .vis-listdata-save-btn {
+    height: 26px;
+    padding: 0 14px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.1s;
+  }
+  .vis-listdata-save-btn:hover { opacity: 0.86; }
 </style>

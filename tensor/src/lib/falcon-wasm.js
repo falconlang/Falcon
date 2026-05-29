@@ -167,6 +167,11 @@ export async function mistToXml(sourceCode, componentDefs, safe = true) {
   return (await mistToXmlResult(sourceCode, componentDefs, safe)).xml
 }
 
+export async function xmlToMist(xml) {
+  await waitForReady()
+  return withMistErrors(() => window.xmlToMist(String(xml ?? '')))
+}
+
 export async function getComponentDefinitionsCode(sourceCode) {
   await waitForReady()
   return withMistErrors(() => window.getComponentDefinitionsCode(sourceCode))
@@ -201,5 +206,51 @@ export async function annToYailDiagnosticResult(annSource, codeYail = '') {
     return { ok: true, error: '', diagnostics: [], yail }
   } catch (e) {
     return { ok: false, error: e.message || String(e), diagnostics: [], yail: '' }
+  }
+}
+
+export async function runCodeDiagnosticResult(sourceCode) {
+  await waitForReady()
+  const output = []
+  const originalPrint = window.falconPrint
+  const originalMistError = window.mistError
+
+  window.falconPrint = line => output.push(String(line ?? ''))
+
+  try {
+    if (typeof window.runCodeWithDiagnostics === 'function') {
+      const result = normalizeDiagnosticResult(
+        window.runCodeWithDiagnostics(String(sourceCode ?? '')),
+        () => ({ output }),
+      )
+      return result
+    }
+
+    if (typeof window.runCode !== 'function') {
+      throw new Error('runCode is not available')
+    }
+
+    const errors = []
+    window.mistError = msg => errors.push(String(msg ?? ''))
+    window.runCode(String(sourceCode ?? ''))
+    if (errors.length) {
+      return {
+        ok: false,
+        error: errors.join('\n'),
+        diagnostics: [],
+        output,
+      }
+    }
+    return { ok: true, error: '', diagnostics: [], output }
+  } catch (e) {
+    return {
+      ok: false,
+      error: e?.message || String(e),
+      diagnostics: e?.diagnostics ?? [],
+      output,
+    }
+  } finally {
+    window.falconPrint = originalPrint
+    window.mistError = originalMistError
   }
 }

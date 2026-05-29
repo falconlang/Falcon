@@ -1,11 +1,13 @@
-// Minimal QR encoder for the five-digit MIT Companion code.
-// Implements QR Code version 1 with medium error correction and numeric mode.
+// Minimal QR encoder for the MIT Companion code.
+// Implements QR Code version 1 with medium error correction and alphanumeric mode.
 const SIZE = 21;
 const DATA_CODEWORDS = 16;
 const ECC_CODEWORDS = 10;
 const MASK = 0;
 const FORMAT_XOR = 0x5412;
 const PAD_BYTES = [0xec, 0x11];
+const QR_ALPHANUMERIC = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+const COMPANION_CODE_RE = /^[A-Z0-9]{5}$/;
 
 function appendBits(out, value, length) {
   if (length < 0 || length > 31 || value >>> length !== 0) {
@@ -20,18 +22,26 @@ function bitAt(byte, index) {
   return ((byte >>> index) & 1) !== 0;
 }
 
-function encodeNumericData(text) {
-  if (!/^[0-9]{1,16}$/.test(text)) {
-    throw new Error('Companion QR codes must be 1 to 16 digits');
+function encodeAlphanumericData(text) {
+  if (!COMPANION_CODE_RE.test(text)) {
+    throw new Error('Companion QR codes must be 5 uppercase alphanumeric characters');
   }
 
   const bits = [];
-  appendBits(bits, 0b0001, 4);
-  appendBits(bits, text.length, 10);
+  appendBits(bits, 0b0010, 4);
+  appendBits(bits, text.length, 9);
 
-  for (let i = 0; i < text.length; i += 3) {
-    const chunk = text.slice(i, i + 3);
-    appendBits(bits, Number(chunk), chunk.length === 3 ? 10 : chunk.length === 2 ? 7 : 4);
+  for (let i = 0; i < text.length; i += 2) {
+    const first = QR_ALPHANUMERIC.indexOf(text[i]);
+    const second = QR_ALPHANUMERIC.indexOf(text[i + 1] ?? '');
+    if (first < 0 || (i + 1 < text.length && second < 0)) {
+      throw new Error('Companion QR codes must use QR alphanumeric characters');
+    }
+    if (i + 1 < text.length) {
+      appendBits(bits, first * 45 + second, 11);
+    } else {
+      appendBits(bits, first, 6);
+    }
   }
 
   const capacity = DATA_CODEWORDS * 8;
@@ -197,11 +207,11 @@ function svgEscape(value) {
 
 export function createQrSvg(value, {
   size = 148,
-  fgColor = '#1A1916',
+  fgColor = '#1A1A21',
   bgColor = '#ffffff',
 } = {}) {
   const text = String(value ?? '');
-  const data = encodeNumericData(text);
+  const data = encodeAlphanumericData(text);
   const ecc = reedSolomonRemainder(data, reedSolomonDivisor(ECC_CODEWORDS));
   const matrix = createMatrix();
 

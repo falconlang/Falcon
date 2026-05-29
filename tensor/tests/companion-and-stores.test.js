@@ -1,0 +1,443 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { get } from 'svelte/store';
+import { extractComponentDefs, generateCompanionCode, normalizeCompanionDesignSource } from '../src/lib/companion.js';
+import { splitFalconSourceByTopLevelLines } from '../src/lib/cell-splitting.js';
+import { DEBUG_TRACE_PREFIX, buildFalconSourceMap, parseDebugTraceValue } from '../src/lib/debug-source-map.js';
+import { ensureDebugNotifierDesignSource, instrumentFalconSourceForDebug } from '../src/lib/debug-instrumentation.js';
+import { createQrSvg } from '../src/lib/qr-code.js';
+import {
+  activeCellId,
+  appendDebugLogsFromCompanionResponse,
+  cells,
+  copiedCellAvailable,
+  copyCellById,
+  debugLogs,
+  getProjectSnapshot,
+  loadProjectState,
+  pasteCopiedCellBelow,
+  projectProperties,
+  replaceCodeCells,
+  screenList,
+  setProjectProperty,
+} from '../src/lib/stores.js';
+import {
+  PROJECT_PROPERTY_DEFINITIONS,
+  VISIBLE_PROJECT_PROPERTY_DEFINITIONS,
+  applyProjectPropertiesToScmProperties,
+  normalizeProjectProperties,
+  projectPropertiesToAiaProperties,
+} from '../src/lib/project-properties.js';
+import {
+  buildComponentProps,
+  customDesignerPropertyReport,
+  unknownDesignerEditorTypes,
+} from '../src/lib/designer-properties.js';
+import {
+  emptyListViewRow,
+  listViewColumnsForLayout,
+  parseListViewData,
+  pruneListViewDataForLayout,
+  renameListViewDataAsset,
+  serializeListViewData,
+} from '../src/lib/listview-data.js';
+
+const simpleComponents = JSON.parse(readFileSync(new URL('../../lang/code/compdb/simple_components.json', import.meta.url), 'utf8'));
+
+test('extractComponentDefs includes anonymous designer components', () => {
+  const defs = extractComponentDefs(`
+    Screen.Screen1 {
+      Label { Text: "First" }
+      HorizontalArrangement {
+        Button.SaveButton
+        Label { Text: "Second" }
+      }
+    }
+  `);
+
+  assert.deepEqual(defs.Screen, ['Screen1']);
+  assert.deepEqual(defs.Label, ['Label1', 'Label2']);
+  assert.deepEqual(defs.HorizontalArrangement, ['HorizontalArrangement1']);
+  assert.deepEqual(defs.Button, ['SaveButton']);
+});
+
+test('extractComponentDefs ignores unknown designer component types', () => {
+  const defs = extractComponentDefs(`
+    Screen.Screen1 {
+      Button.SaveButton
+      MysteryThing.Hidden
+    }
+  `);
+
+  assert.deepEqual(defs.Screen, ['Screen1']);
+  assert.deepEqual(defs.Button, ['SaveButton']);
+  assert.equal(defs.MysteryThing, undefined);
+});
+
+test('extractComponentDefs handles same-line bodyless children and current component names', () => {
+  const defs = extractComponentDefs('Screen.Screen1 { Button.A, Button.B, NxtSoundSensor.SoundSensor1 }');
+
+  assert.deepEqual(defs.Screen, ['Screen1']);
+  assert.deepEqual(defs.Button, ['A', 'B']);
+  assert.deepEqual(defs.NxtSoundSensor, ['SoundSensor1']);
+  assert.equal(defs.NxtSound, undefined);
+});
+
+test('normalizeCompanionDesignSource supplies empty screen fallback and active screen root name', () => {
+  assert.equal(
+    normalizeCompanionDesignSource('', 'Screen2'),
+    'Screen.Screen2 { Title: "Screen2" }'
+  );
+  assert.equal(
+    normalizeCompanionDesignSource('Screen.Screen1 { Title: "Old" }', 'Screen2'),
+    'Screen.Screen2 { Title: "Old" }'
+  );
+});
+
+test('generateCompanionCode returns a 5 character uppercase alphanumeric code', () => {
+  for (let i = 0; i < 100; i += 1) {
+    assert.match(generateCompanionCode(), /^[A-Z0-9]{5}$/);
+  }
+});
+
+test('createQrSvg enforces 5 character uppercase alphanumeric companion codes', () => {
+  const svg = createQrSvg('AB12C');
+  assert.match(svg, /^<svg\b/);
+  assert.match(svg, /aria-label="Companion code AB12C"/);
+
+  assert.throws(() => createQrSvg('123456789'), /5 uppercase alphanumeric/);
+  assert.throws(() => createQrSvg('abc12'), /5 uppercase alphanumeric/);
+});
+
+test('buildFalconSourceMap maps cells to unified editor lines', () => {
+  const result = buildFalconSourceMap([
+    { id: 'a', type: 'code', code: 'first()\nsecond()' },
+    { id: 'm', type: 'markdown', content: 'ignored' },
+    { id: 'b', type: 'code', code: 'third()' },
+  ]);
+
+  assert.equal(result.source, 'first()\nsecond()\n\nthird()');
+  assert.deepEqual(result.entries.map(entry => [entry.cellId, entry.cellLine, entry.unifiedLine]), [
+    ['a', 1, 1],
+    ['a', 2, 2],
+    ['b', 1, 4],
+  ]);
+});
+
+test('instrumentFalconSourceForDebug emits hidden trace calls for executable lines', () => {
+  const source = `func helper() = {
+  // ignored
+  if (true) {
+    println("yes")
+  } else {
+    println("no")
+  }
+}`;
+  const map = buildFalconSourceMap([{ id: 'c1', type: 'code', code: source }]);
+  const result = instrumentFalconSourceForDebug(source, map.entries, {
+    sessionId: 'dbg-test',
+    notifierName: 'TensorDebugNotifier',
+  });
+
+  assert.match(result.source, /TensorDebugNotifier\.LogInfo/);
+  assert.equal(result.tracePoints.some(point => point.cellLine === 2), false);
+  assert.deepEqual(
+    result.tracePoints.map(point => [point.cellId, point.cellLine, point.unifiedLine]),
+    [
+      ['c1', 3, 3],
+      ['c1', 4, 4],
+      ['c1', 6, 6],
+    ],
+  );
+
+  assert.match(result.source, /__TENSOR_DEBUG__\{\\\"type\\\":\\\"trace\\\"/);
+  const trace = parseDebugTraceValue({
+    type: 'log',
+    item: DEBUG_TRACE_PREFIX + JSON.stringify(result.tracePoints[0]),
+  });
+  assert.equal(trace.sessionId, 'dbg-test');
+  assert.equal(trace.cellId, 'c1');
+});
+
+test('instrumentFalconSourceForDebug preserves cell-local line numbers across cells', () => {
+  const map = buildFalconSourceMap([
+    { id: 'a', type: 'code', code: 'when Screen1.Initialize {\n  first()\n}' },
+    { id: 'b', type: 'code', code: 'when Button1.Click {\n  second()\n  third()\n}' },
+  ]);
+  const result = instrumentFalconSourceForDebug(map.source, map.entries, {
+    sessionId: 'dbg-cells',
+    notifierName: 'TensorDebugNotifier',
+  });
+
+  assert.deepEqual(
+    result.tracePoints.map(point => [point.cellId, point.cellLine, point.unifiedLine]),
+    [
+      ['a', 2, 2],
+      ['b', 2, 6],
+      ['b', 3, 7],
+    ],
+  );
+});
+
+test('ensureDebugNotifierDesignSource injects a unique compile-only notifier', () => {
+  const injected = ensureDebugNotifierDesignSource('Screen.Screen1 { Title: "Demo" }');
+
+  assert.equal(injected.notifierName, 'TensorDebugNotifier');
+  assert.match(injected.designSource, /Title: "Demo",\n  Notifier\.TensorDebugNotifier\n}/);
+
+  const second = ensureDebugNotifierDesignSource(injected.designSource);
+  assert.equal(second.notifierName, 'TensorDebugNotifier2');
+  assert.match(second.designSource, /Notifier\.TensorDebugNotifier2/);
+});
+
+test('appendDebugLogsFromCompanionResponse hides internal debug trace logs', () => {
+  const originalLogs = get(debugLogs);
+  debugLogs.set([]);
+
+  appendDebugLogsFromCompanionResponse({
+    values: [
+      { type: 'log', item: '__TENSOR_DEBUG__{"sessionId":"dbg","cellId":"c1","cellLine":1,"unifiedLine":1}' },
+      { type: 'log', item: 'visible', level: 'info' },
+    ],
+  });
+
+  assert.deepEqual(get(debugLogs).map(log => log.message), ['visible']);
+  debugLogs.set(originalLogs);
+});
+
+test('splitFalconSourceByTopLevelLines creates cells from parser line starts', () => {
+  const source = `// prelude
+
+func helper() = {
+  1
+}
+
+when Button1.Click {
+  helper()
+}`;
+
+  assert.deepEqual(splitFalconSourceByTopLevelLines(source, [3, 7]), [
+    '// prelude',
+    'func helper() = {\n  1\n}',
+    'when Button1.Click {\n  helper()\n}',
+  ]);
+});
+
+test('replaceCodeCells preserves markdown and rebuilds code cells', () => {
+  const originalCells = get(cells);
+  const originalActive = get(activeCellId);
+
+  cells.set([
+    { id: 'm1', type: 'markdown', content: 'Intro' },
+    { id: 'old1', type: 'code', code: 'old one', execCount: 7 },
+    { id: 'old2', type: 'code', code: 'old two', execCount: null },
+    { id: 'm2', type: 'markdown', content: 'Outro' },
+  ]);
+
+  replaceCodeCells(['first()', 'second()', 'third()'], { activeIndex: 1 });
+  const nextCells = get(cells);
+  assert.deepEqual(nextCells.map(cell => [cell.id, cell.type, cell.code ?? cell.content]), [
+    ['m1', 'markdown', 'Intro'],
+    ['old1', 'code', 'first()'],
+    ['old2', 'code', 'second()'],
+    [nextCells[3].id, 'code', 'third()'],
+    ['m2', 'markdown', 'Outro'],
+  ]);
+  assert.equal(get(activeCellId), 'old2');
+
+  cells.set(originalCells);
+  activeCellId.set(originalActive);
+});
+
+test('replaceCodeCells preserves interleaved markdown anchors', () => {
+  const originalCells = get(cells);
+  const originalActive = get(activeCellId);
+
+  cells.set([
+    { id: 'old1', type: 'code', code: 'old one', execCount: 7 },
+    { id: 'm1', type: 'markdown', content: 'Between' },
+    { id: 'old2', type: 'code', code: 'old two', execCount: null },
+    { id: 'm2', type: 'markdown', content: 'Outro' },
+  ]);
+
+  replaceCodeCells(['first()', 'second()', 'third()']);
+  const nextCells = get(cells);
+  assert.deepEqual(nextCells.map(cell => [cell.id, cell.type, cell.code ?? cell.content]), [
+    ['old1', 'code', 'first()'],
+    ['m1', 'markdown', 'Between'],
+    ['old2', 'code', 'second()'],
+    [nextCells[3].id, 'code', 'third()'],
+    ['m2', 'markdown', 'Outro'],
+  ]);
+
+  cells.set(originalCells);
+  activeCellId.set(originalActive);
+});
+
+test('loadProjectState makes duplicate screen names unique', () => {
+  const originalProject = getProjectSnapshot();
+
+  loadProjectState({
+    projectName: 'DupScreens',
+    activeScreen: 'Screen1',
+    screens: [
+      { name: 'Screen1', cells: [], designCode: '' },
+      { name: 'Screen1', cells: [], designCode: '' },
+      { name: 'Screen2', cells: [], designCode: '' },
+    ],
+  });
+
+  assert.deepEqual(get(screenList), ['Screen1', 'Screen2', 'Screen3']);
+
+  loadProjectState(originalProject);
+});
+
+test('copyCellById and pasteCopiedCellBelow clone a cell below the target', () => {
+  const originalCells = get(cells);
+  const originalFirst = originalCells[0];
+  const originalSecond = originalCells[1];
+
+  assert.equal(copyCellById(originalFirst.id), true);
+  assert.equal(get(copiedCellAvailable), true);
+
+  const pastedId = pasteCopiedCellBelow(originalSecond.id);
+  const nextCells = get(cells);
+  const pastedIndex = nextCells.findIndex(cell => cell.id === pastedId);
+
+  assert.notEqual(pastedId, originalFirst.id);
+  assert.equal(pastedIndex, 2);
+  assert.equal(nextCells[pastedIndex].type, originalFirst.type);
+  assert.equal(nextCells[pastedIndex].code, originalFirst.code);
+
+  cells.set(originalCells);
+});
+
+test('project property definitions include App Inventor project properties and hide BlocksToolkit from UI', () => {
+  assert.equal(PROJECT_PROPERTY_DEFINITIONS.length, 20);
+  assert.ok(PROJECT_PROPERTY_DEFINITIONS.some(property => property.name === 'BlocksToolkit'));
+  assert.equal(VISIBLE_PROJECT_PROPERTY_DEFINITIONS.some(property => property.name === 'BlocksToolkit'), false);
+  assert.deepEqual(
+    PROJECT_PROPERTY_DEFINITIONS.filter(property => property.category === 'iOS Settings').map(property => property.name),
+    [
+      'NSBluetoothAlwaysUsageDescription',
+      'NSBluetoothPeripheralUsageDescription',
+      'NSContactsUsageDescription',
+      'NSMicrophoneUsageDescription',
+      'NSCameraUsageDescription',
+      'NSSpeechRecognitionUsageDescription',
+      'NSLocationWhenInUseUsageDescription',
+    ]
+  );
+});
+
+test('project properties normalize AIA keys and serialize back to project.properties keys', () => {
+  const normalized = normalizeProjectProperties({
+    aname: 'Demo App',
+    subsetjson: '{"shownComponentTypes":["Button"]}',
+    defaultfilescope: 'Shared',
+    showlistsasjson: 'false',
+    'color.primary': '#112233',
+    NSCameraUsageDescription: 'Take photos',
+    customflag: 'kept',
+  });
+
+  assert.equal(normalized.AppName, 'Demo App');
+  assert.equal(normalized.BlocksToolkit, '{"shownComponentTypes":["Button"]}');
+  assert.equal(normalized.DefaultFileScope, 'Shared');
+  assert.equal(normalized.ShowListsAsJson, 'False');
+  assert.equal(normalized.PrimaryColor, '&HFF112233');
+
+  const aiaProperties = projectPropertiesToAiaProperties(normalized);
+  assert.equal(aiaProperties.aname, 'Demo App');
+  assert.equal(aiaProperties.subsetjson, '{"shownComponentTypes":["Button"]}');
+  assert.equal(aiaProperties.defaultfilescope, 'Shared');
+  assert.equal(aiaProperties.showlistsasjson, 'False');
+  assert.equal(aiaProperties['color.primary'], '&HFF112233');
+  assert.equal(aiaProperties.NSCameraUsageDescription, 'Take photos');
+  assert.equal(aiaProperties.customflag, 'kept');
+  assert.equal('BlocksToolkit' in aiaProperties, false);
+});
+
+test('setProjectProperty updates canonical store values including hidden BlocksToolkit backend', () => {
+  const original = get(projectProperties);
+
+  assert.equal(setProjectProperty('AppName', 'Store Demo'), 'Store Demo');
+  assert.equal(setProjectProperty('BlocksToolkit', '{"level":"beginner"}'), '{"level":"beginner"}');
+
+  const next = get(projectProperties);
+  assert.equal(next.AppName, 'Store Demo');
+  assert.equal(next.BlocksToolkit, '{"level":"beginner"}');
+
+  projectProperties.set(original);
+});
+
+test('project properties are applied to Screen1 SCM properties', () => {
+  const scmProperties = applyProjectPropertiesToScmProperties({
+    $Name: 'Screen1',
+    $Type: 'Form',
+    Title: 'Screen1',
+    AppName: 'Old',
+    Icon: 'old.png',
+    aname: 'legacy',
+  }, {
+    AppName: '',
+    DefaultFileScope: 'Cache',
+    BlocksToolkit: '{"toolkit":"all"}',
+    Theme: 'Classic',
+  }, 'DemoProject');
+
+  assert.equal(scmProperties.$Name, 'Screen1');
+  assert.equal(scmProperties.AppName, '');
+  assert.equal(scmProperties.DefaultFileScope, 'Cache');
+  assert.equal(scmProperties.BlocksToolkit, '{"toolkit":"all"}');
+  assert.equal(scmProperties.Theme, 'Classic');
+  assert.equal(scmProperties.ActionBar, 'False');
+  assert.equal('Icon' in scmProperties, false);
+  assert.equal('aname' in scmProperties, false);
+});
+
+test('designer property metadata exposes ListView custom designer properties', () => {
+  const props = buildComponentProps(simpleComponents);
+  const listViewProps = props.ListView;
+  const listData = listViewProps.find(prop => prop.name === 'ListData');
+  const layout = listViewProps.find(prop => prop.name === 'ListViewLayout');
+
+  assert.equal(listData.editorType, 'ListViewAddData');
+  assert.equal(listData.designerOnly, true);
+  assert.equal(listData.customEditor.kind, 'dialog');
+  assert.equal(listData.customEditor.layoutProperty, 'ListViewLayout');
+  assert.deepEqual(layout.options.map(option => option.value), ['0', '1', '2', '3', '4', '5']);
+
+  assert.equal(props.Form.some(prop => prop.name === 'BlocksToolkit'), false);
+  assert.equal(props.Form.some(prop => prop.name === 'AppName'), false);
+});
+
+test('custom designer property scan currently finds only ListView.ListData dialog editor', () => {
+  assert.deepEqual(customDesignerPropertyReport(simpleComponents), [
+    {
+      component: 'ListView',
+      property: 'ListData',
+      editorType: 'ListViewAddData',
+      kind: 'dialog',
+    },
+  ]);
+  assert.equal(
+    unknownDesignerEditorTypes(simpleComponents).some(entry => entry.editorType === 'ListViewAddData'),
+    false
+  );
+});
+
+test('ListView data helpers preserve App Inventor row JSON by layout', () => {
+  assert.deepEqual(listViewColumnsForLayout('4'), ['Text1', 'Text2', 'Image']);
+  assert.deepEqual(emptyListViewRow('3'), { Text1: '', Image: 'None' });
+
+  const rows = parseListViewData('[{"Text1":"Alpha","Text2":"Detail","Image":"one.png"}]', '4');
+  assert.deepEqual(rows, [{ Text1: 'Alpha', Text2: 'Detail', Image: 'one.png' }]);
+  assert.equal(serializeListViewData(rows, '1'), '[{"Text1":"Alpha","Text2":"Detail"}]');
+  assert.equal(pruneListViewDataForLayout(JSON.stringify(rows), '0'), '[{"Text1":"Alpha"}]');
+  assert.equal(
+    renameListViewDataAsset(JSON.stringify(rows), 'one.png', 'two.png'),
+    '[{"Text1":"Alpha","Text2":"Detail","Image":"two.png"}]'
+  );
+});

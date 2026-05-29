@@ -4,12 +4,121 @@ import {
   blocklyToYail,
   annToYail,
   annToYailDiagnosticResult,
+  listComponents,
 } from './falcon-wasm.js'
+import {
+  createDebugSessionId,
+  ensureDebugNotifierDesignSource,
+  instrumentFalconSourceForDebug,
+} from './debug-instrumentation.js'
 
 const RENDEZVOUS = 'https://rendezvous.appinventor.mit.edu/rendezvous/'
+const RENDEZVOUS2 = 'https://rendezvous.appinventor.mit.edu/rendezvous2/'
+const DEFAULT_ICE_SERVERS = [
+  {
+    server: 'turn:turn.appinventor.mit.edu:3478',
+    username: 'oh',
+    password: 'boy',
+  },
+]
+const WEBRTC_CHUNK_LENGTH = 15000
+const COMPANION_CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const COMPANION_CODE_LENGTH = 5
+const KNOWN_COMPONENT_TYPES = new Set([
+  'Screen',
+  'AbsoluteArrangement', 'AccelerometerSensor', 'ActivityStarter', 'AnomalyDetection',
+  'Ball', 'BarcodeScanner', 'Barometer', 'BluetoothClient', 'BluetoothServer', 'Button',
+  'Camcorder', 'Camera', 'Canvas', 'Chart', 'ChartData2D', 'ChatBot', 'CheckBox',
+  'Circle', 'CircularProgress', 'Clock', 'CloudDB', 'ContactPicker', 'DataFile',
+  'DatePicker', 'EmailPicker', 'Ev3ColorSensor', 'Ev3Commands', 'Ev3GyroSensor',
+  'Ev3Motors', 'Ev3Sound', 'Ev3TouchSensor', 'Ev3UI', 'Ev3UltrasonicSensor',
+  'FeatureCollection', 'File', 'FilePicker', 'FirebaseDB', 'FusiontablesControl',
+  'GameClient', 'GyroscopeSensor', 'HorizontalArrangement', 'HorizontalScrollArrangement',
+  'Hygrometer', 'Image', 'ImageBot', 'ImagePicker', 'ImageSprite', 'Label',
+  'LightSensor', 'LineString', 'LinearProgress', 'ListPicker', 'ListView',
+  'LocationSensor', 'MagneticFieldSensor', 'Map', 'Marker', 'MediaStore', 'Navigation',
+  'NearField', 'Notifier', 'NxtColorSensor', 'NxtDirectCommands', 'NxtDrive',
+  'NxtLightSensor', 'NxtSoundSensor', 'NxtTouchSensor', 'NxtUltrasonicSensor',
+  'OrientationSensor', 'PasswordTextBox', 'Pedometer', 'PhoneCall', 'PhoneNumberPicker',
+  'PhoneStatus', 'Player', 'Polygon', 'ProximitySensor', 'Rectangle', 'Regression',
+  'Serial', 'Sharing', 'Slider', 'Sound', 'SoundRecorder', 'SpeechRecognizer',
+  'Spinner', 'Spreadsheet', 'Switch', 'TableArrangement', 'TextBox', 'TextToSpeech',
+  'Texting', 'Thermometer', 'TimePicker', 'TinyDB', 'TinyWebDB', 'Translator',
+  'Trendline', 'Twitter', 'VerticalArrangement', 'VerticalScrollArrangement',
+  'VideoPlayer', 'Voting', 'Web', 'WebViewer', 'YandexTranslate',
+])
+KNOWN_COMPONENT_TYPES.add('Form')
+
+let chunkSequence = 0
 
 function emitLog(onLog, message, level = 'info') {
   if (typeof onLog === 'function') onLog({ message, level })
+}
+
+function randomByte() {
+  const cryptoApi = globalThis.crypto
+  if (cryptoApi?.getRandomValues) {
+    const bytes = new Uint8Array(1)
+    cryptoApi.getRandomValues(bytes)
+    return bytes[0]
+  }
+  return Math.floor(Math.random() * 256)
+}
+
+export function generateCompanionCode() {
+  let code = ''
+  const maxUnbiasedByte = 256 - (256 % COMPANION_CODE_ALPHABET.length)
+  while (code.length < COMPANION_CODE_LENGTH) {
+    const byte = randomByte()
+    if (byte >= maxUnbiasedByte) continue
+    code += COMPANION_CODE_ALPHABET[byte % COMPANION_CODE_ALPHABET.length]
+  }
+  return code
+}
+
+function normalizeRendezvous2Url(value) {
+  let url = String(value || RENDEZVOUS2).trim()
+  if (!url) url = RENDEZVOUS2
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`
+  url = url.replace(/\/+$/, '')
+  if (!/\/rendezvous2$/i.test(url)) url = `${url}/rendezvous2`
+  return `${url}/`
+}
+
+function nextChunkSymbol() {
+  chunkSequence += 1
+  return `Q${chunkSequence}`
+}
+
+export function chunkCompanionMessage(input) {
+  const message = String(input ?? '')
+  if (message.length <= WEBRTC_CHUNK_LENGTH) return [message]
+
+  let remaining = message
+  const chunks = []
+  while (remaining.length > 0) {
+    chunks.push(remaining.slice(0, WEBRTC_CHUNK_LENGTH))
+    remaining = remaining.slice(WEBRTC_CHUNK_LENGTH)
+  }
+
+  const symbol = nextChunkSymbol()
+  const out = [`(define ${symbol} "")`]
+  for (let item of chunks) {
+    item = item.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+    out.push(`(set! ${symbol} (string-append ${symbol} "${item}"))`)
+  }
+  out.push(`(eval (read (open-input-string ${symbol})))`)
+  out.push(`(set! ${symbol} #!null)`)
+  return out
+}
+
+export function sendCompanionMessage(channel, input) {
+  if (!channel || channel.readyState !== 'open') {
+    throw new Error('Companion data channel is not open')
+  }
+  const chunks = chunkCompanionMessage(input)
+  for (const chunk of chunks) channel.send(chunk)
+  return chunks.length
 }
 
 function describeIceCandidate(candidate) {
@@ -63,11 +172,24 @@ function maskIgnoredSpans(text) {
   return chars.join('')
 }
 
-export function extractComponentDefs(annSource) {
+function canonicalComponentDefType(type) {
+  return type === 'Form' ? 'Screen' : type
+}
+
+async function knownComponentTypesForExtraction() {
+  const names = await listComponents()
+  return new Set([...names, 'Screen', 'Form'])
+}
+
+export function extractComponentDefs(annSource, knownTypes = KNOWN_COMPONENT_TYPES) {
   const defs = {}
+  const typeCounts = {}
+  const known = knownTypes instanceof Set ? knownTypes : new Set(knownTypes || [])
   const addDef = (type, id) => {
-    if (!defs[type]) defs[type] = []
-    if (!defs[type].includes(id)) defs[type].push(id)
+    if (known.size && !known.has(type)) return
+    const defType = canonicalComponentDefType(type)
+    if (!defs[defType]) defs[defType] = []
+    if (!defs[defType].includes(id)) defs[defType].push(id)
   }
 
   // Legacy @Type { id: "name" } syntax
@@ -79,9 +201,15 @@ export function extractComponentDefs(annSource) {
 
   // Current Type.name syntax
   const searchable = maskIgnoredSpans(annSource)
-  const dotRe = /(?:^|[{}\n])\s*([A-Z][A-Za-z0-9_]*)(?:\s*\.\s*([A-Za-z_]\w*))\s*(?=\{|$)/gm
+  const dotRe = /(?:^|[{},\n])\s*([A-Z][A-Za-z0-9_]*)(?:\s*\.\s*([A-Za-z_]\w*))?\s*(?=\s*(?:\{|[,}\n]|$))/gm
   while ((m = dotRe.exec(searchable)) !== null) {
-    addDef(m[1], m[2])
+    const type = m[1]
+    let id = m[2]
+    if (!id) {
+      typeCounts[type] = (typeCounts[type] || 0) + 1
+      id = `${type}${typeCounts[type]}`
+    }
+    addDef(type, id)
   }
 
   return defs
@@ -114,22 +242,77 @@ export function wrapSnippet(yail) {
   return `(begin (require <com.google.youngandroid.runtime>) (process-repl-input -1 (begin ${yail})))`
 }
 
-export async function compileForCompanion(mistSource, annSource) {
-  const componentDefs = extractComponentDefs(annSource)
-  const blocklyXml    = await mistToXml(mistSource, componentDefs)
+function safeScreenName(name = 'Screen1') {
+  const clean = String(name || '').trim().replace(/[^A-Za-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '')
+  const fallback = clean || 'Screen1'
+  return /^[A-Za-z]/.test(fallback) ? fallback : `Screen_${fallback}`
+}
+
+export function normalizeCompanionDesignSource(annSource, screenName = 'Screen1') {
+  const source = String(annSource || '')
+  const cleanName = safeScreenName(screenName)
+  if (!source.trim()) return `Screen.${cleanName} { Title: "${cleanName}" }`
+  return source.replace(
+    /^(\s*(?:(?:\/\/[^\n]*(?:\n|$))\s*)*(?:Screen|Form))(?:\s*\.\s*[A-Za-z_]\w*)?/,
+    `$1.${cleanName}`,
+  )
+}
+
+async function companionDesignContext(annSource, screenName, { debug = null } = {}) {
+  let normalizedAnnSource = normalizeCompanionDesignSource(annSource, screenName)
+  let debugNotifierName = null
+
+  if (debug?.enabled) {
+    const injected = ensureDebugNotifierDesignSource(normalizedAnnSource, debug.notifierName)
+    normalizedAnnSource = injected.designSource
+    debugNotifierName = injected.notifierName
+  }
+
+  const componentDefs = extractComponentDefs(normalizedAnnSource, await knownComponentTypesForExtraction())
+  return { normalizedAnnSource, componentDefs, debugNotifierName }
+}
+
+export async function compileForCompanion(mistSource, annSource, { screenName = 'Screen1', debug = null } = {}) {
+  const debugEnabled = Boolean(debug?.enabled)
+  const sessionId = debug?.sessionId || (debugEnabled ? createDebugSessionId() : null)
+  const { normalizedAnnSource, componentDefs, debugNotifierName } = await companionDesignContext(annSource, screenName, { debug })
+  const annPreflight = await annToYailDiagnosticResult(normalizedAnnSource, '')
+  if (!annPreflight.ok) {
+    throw new Error(annPreflight.error || 'Design validation failed')
+  }
+
+  let compileSource = mistSource
+  let debugInfo = null
+
+  if (debugEnabled) {
+    await mistToXml(mistSource, componentDefs)
+    const instrumented = instrumentFalconSourceForDebug(mistSource, debug.lineMap || [], {
+      sessionId,
+      notifierName: debugNotifierName,
+    })
+    compileSource = instrumented.source
+    debugInfo = {
+      sessionId: instrumented.sessionId,
+      notifierName: instrumented.notifierName,
+      lineMap: instrumented.lineMap,
+      tracePoints: instrumented.tracePoints,
+    }
+  }
+
+  const blocklyXml    = await mistToXml(compileSource, componentDefs)
   const codeYail      = await blocklyToYail(blocklyXml)
   const eventDefs     = extractEventDefs(blocklyXml)
   const missingEvents = findMissingEvents(eventDefs, codeYail)
   if (missingEvents.length) {
     throw new Error(`Compiled YAIL payload is missing event code for: ${missingEvents.map(({ component, event }) => `${component}.${event}`).join(', ')}`)
   }
-  const fullYail      = await annToYail(annSource, codeYail)
+  const fullYail      = await annToYail(normalizedAnnSource, codeYail)
   const missingScreens = findMissingScreens(componentDefs, fullYail)
   if (missingScreens.length) {
     throw new Error(`Compiled YAIL payload is missing screen code for: ${missingScreens.join(', ')}`)
   }
   const replPayload   = wrapForRepl(fullYail)
-  return { componentDefs, screenIds: componentDefs.Screen ?? [], eventDefs, blocklyXml, codeYail, fullYail, replPayload }
+  return { componentDefs, screenIds: componentDefs.Screen ?? [], eventDefs, blocklyXml, codeYail, fullYail, replPayload, debug: debugInfo }
 }
 
 export async function validateSources(mistSource, annSource) {
@@ -183,6 +366,16 @@ export async function compileSnippet(mistSnippet, componentDefs) {
   const xml  = await mistToXml(mistSnippet, componentDefs)
   const yail = await blocklyToYail(xml)
   return wrapSnippet(yail)
+}
+
+export async function compileSnippetForCompanion(mistSnippet, annSource, { screenName = 'Screen1' } = {}) {
+  const { normalizedAnnSource, componentDefs } = await companionDesignContext(annSource, screenName)
+  const annPreflight = await annToYailDiagnosticResult(normalizedAnnSource, '')
+  if (!annPreflight.ok) {
+    throw new Error(annPreflight.error || 'Design validation failed')
+  }
+  const replPayload = await compileSnippet(mistSnippet, componentDefs)
+  return { componentDefs, replPayload }
 }
 
 async function sha1Hex(text) {
@@ -299,13 +492,11 @@ async function receiveOfferResponse(peer, responseUrl, signal, onLog) {
   }
 }
 
-export async function connectCompanion(code, digest, config, signal, onLog) {
-  const rawServers = config.iceServers ?? config.iceservers
+export async function connectCompanion(code, _digest, config = {}, signal, onLog) {
+  const rendezvous2 = normalizeRendezvous2Url(config.rendezvous2)
+  const rawServers = config.iceServers ?? config.iceservers ?? DEFAULT_ICE_SERVERS
   if (!Array.isArray(rawServers)) {
-    throw new Error('Rendezvous response is missing iceServers — companion may be in legacy (non-WebRTC) mode')
-  }
-  if (!config.rendezvous2) {
-    throw new Error('Rendezvous response is missing rendezvous2 URL')
+    throw new Error('Rendezvous response included malformed ICE server data')
   }
 
   const iceServers = rawServers
@@ -339,29 +530,40 @@ export async function connectCompanion(code, digest, config, signal, onLog) {
       return
     }
     emitLog(onLog, `ICE: local ${describeIceCandidate(candidate)} discovered`)
-    postSignal(config.rendezvous2, {
-      key:       digest + '-s',
+    postSignal(rendezvous2, {
+      key:       code + '-s',
       webrtc:    true,
       nonce:     Math.floor(Math.random() * 10000) + 1,
       candidate: candidate.toJSON(),
     }, signal, onLog, 'local ICE candidate').catch(() => {})
   }
 
-  emitLog(onLog, 'WebRTC: creating SDP offer')
-  const offer = await peer.createOffer()
-  await peer.setLocalDescription(offer)
-  emitLog(onLog, 'WebRTC: local offer set')
-  await postSignal(config.rendezvous2, {
-    key:       code + '-s',
-    webrtc:    true,
-    nonce:     Math.floor(Math.random() * 10000) + 1,
-    offer,
-    candidate: null,
-  }, signal, onLog, 'SDP offer')
+  try {
+    emitLog(onLog, 'WebRTC: creating SDP offer')
+    const offer = await peer.createOffer()
+    await peer.setLocalDescription(offer)
+    emitLog(onLog, 'WebRTC: local offer set')
+    await postSignal(rendezvous2, {
+      key:       code + '-s',
+      webrtc:    true,
+      nonce:     Math.floor(Math.random() * 10000) + 1,
+      offer,
+      candidate: null,
+    }, signal, onLog, 'SDP offer')
 
-  await receiveOfferResponse(peer, config.rendezvous2 + code + '-r', signal, onLog)
-  await waitForChannelOpen(channel, signal, onLog)
-  return { peer, channel }
+    await receiveOfferResponse(peer, rendezvous2 + code + '-r', signal, onLog)
+    await waitForChannelOpen(channel, signal, onLog)
+    return { peer, channel }
+  } catch (e) {
+    peer.onicecandidate = null
+    peer.onicegatheringstatechange = null
+    peer.oniceconnectionstatechange = null
+    peer.onconnectionstatechange = null
+    peer.onsignalingstatechange = null
+    try { channel.close() } catch {}
+    try { peer.close() } catch {}
+    throw e
+  }
 }
 
 function waitForChannelOpen(channel, signal, onLog, timeoutMs = 5000) {

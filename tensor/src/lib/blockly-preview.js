@@ -206,9 +206,10 @@ function addComponentDefinition(defs, type, instanceName, knownTypes) {
   const cleanInstance = String(instanceName || '').trim();
   if (!cleanType || !cleanInstance) return;
   if (knownTypes.size && !knownTypes.has(cleanType)) return;
-  defs[cleanType] ||= [];
-  if (!defs[cleanType].includes(cleanInstance)) {
-    defs[cleanType].push(cleanInstance);
+  const defType = cleanType === 'Form' ? 'Screen' : cleanType;
+  defs[defType] ||= [];
+  if (!defs[defType].includes(cleanInstance)) {
+    defs[defType].push(cleanInstance);
   }
 }
 
@@ -270,7 +271,7 @@ export async function componentDefinitionsFromDesigner(source = get(designCode))
   }
 
   const searchable = maskDesignerIgnoredSpans(original);
-  const componentRe = /(?:^|[{},\n])\s*([A-Z][A-Za-z0-9_]*)(?:\s*\.\s*([A-Za-z_]\w*))?\s*(?=\{|$)/gm;
+  const componentRe = /(?:^|[{},\n])\s*([A-Z][A-Za-z0-9_]*)(?:\s*\.\s*([A-Za-z_]\w*))?\s*(?=\s*(?:\{|[,}\n]|$))/gm;
   while ((match = componentRe.exec(searchable)) !== null) {
     const type = match[1];
     if (knownTypes.size && !knownTypes.has(type)) continue;
@@ -318,6 +319,7 @@ function loadScript(src) {
       existing.addEventListener('error', reject, { once: true });
     });
   }
+  if (existing) existing.remove();
 
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
@@ -330,7 +332,12 @@ function loadScript(src) {
       script.dataset.loading = 'false';
       resolve();
     };
-    script.onerror = () => reject(new Error(`Failed to load ${src}`));
+    script.onerror = () => {
+      script.dataset.loading = 'false';
+      script.dataset.error = 'true';
+      script.remove();
+      reject(new Error(`Failed to load ${src}`));
+    };
     document.head.appendChild(script);
   });
 }
@@ -347,7 +354,10 @@ export async function ensureBlocklyRuntime() {
       if (!window.Blockly?.Xml || !window.AI?.Blockly) {
         throw new Error('Blockly runtime did not initialize');
       }
-    })();
+    })().catch(error => {
+      blocklyRuntimePromise = null;
+      throw error;
+    });
   }
   await blocklyRuntimePromise;
 }
@@ -625,6 +635,20 @@ export async function copyPngBlobToClipboard(blob) {
   await navigator.clipboard.write([
     new ClipboardItem({ 'image/png': png }),
   ]);
+}
+
+export async function copyBlocksBlobToClipboard(blob, xml = '') {
+  if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+    throw new Error('Clipboard writes are not supported in this browser');
+  }
+  const png = blob.type === 'image/png' ? blob : new Blob([blob], { type: 'image/png' });
+  const item = {
+    'image/png': png,
+  };
+  if (String(xml || '').trim()) {
+    item['text/plain'] = new Blob([String(xml)], { type: 'text/plain' });
+  }
+  await navigator.clipboard.write([new ClipboardItem(item)]);
 }
 
 export async function readPngBlobFromClipboard() {

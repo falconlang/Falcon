@@ -4,20 +4,43 @@
     cells,
     designCode,
     appendDebugLogsFromCompanionResponse,
+    activeScreen,
     getDesignSource,
-    getFalconSource,
     liveTestOpen,
     liveTestState,
+    companionCommand,
+    projectName,
+    setDoItResult,
+    debugModeEnabled,
+    enableDebugMode,
+    disableDebugMode,
+    startDebugSession,
+    clearDebugActiveLocation,
+    clearDebugRuntimeState,
+    setDebugTraceLocation,
+    setDebugRuntimeError,
   } from './stores.js';
   import {
     compileForCompanion,
+    compileSnippetForCompanion,
     connectCompanion,
+    generateCompanionCode,
     pollRendezvous,
+    sendCompanionMessage,
   } from './companion.js';
+  import {
+    DEBUG_IDLE_CLEAR_MS,
+    buildFalconSourceMap,
+    parseDebugTraceValue,
+  } from './debug-source-map.js';
+  import {
+    exportCurrentProjectToAia,
+    sanitizeProjectName,
+  } from './appinventor-aia.js';
   import { createQrSvg } from './qr-code.js';
 
   let liveCode = null;
-  let digitsEl;
+  let codeCharsEl;
   let qrSvg = '';
   let status = 'idle';
   let error = null;
@@ -30,8 +53,13 @@
   let channel = null;
   let attemptToken = 0;
   let lastSentSourceKey = null;
+  let lastFailedSourceKey = null;
   let refreshTimer = null;
   let wasOpen = false;
+  let commandRunning = false;
+  let pendingDoItCellId = null;
+  let debugIdleTimer = null;
+  const COMPANION_DEBUG = Boolean(import.meta.env?.DEV);
 
   $: liveTestState.set({
     status,
@@ -40,12 +68,53 @@
     messageCount,
   });
 
-  function genCode() {
-    return String(Math.floor(10000 + Math.random() * 90000));
+  function currentFalconSourceMap() {
+    return buildFalconSourceMap($cells);
   }
 
   function companionSourceKey() {
-    return `${getFalconSource()}\0${getDesignSource()}`;
+    const { source } = currentFalconSourceMap();
+    return `${$activeScreen}\0${source}\0${getDesignSource()}\0debug:${$debugModeEnabled ? '1' : '0'}`;
+  }
+
+  function debugCompileOptions(sourceMap) {
+    if (!$debugModeEnabled) return null;
+    return {
+      enabled: true,
+      lineMap: sourceMap.entries,
+    };
+  }
+
+  async function compileCurrentForCompanion() {
+    const sourceMap = currentFalconSourceMap();
+    if ($debugModeEnabled) clearDebugRuntimeState();
+    const result = await compileForCompanion(sourceMap.source, getDesignSource(), {
+      screenName: $activeScreen,
+      debug: debugCompileOptions(sourceMap),
+    });
+
+    if ($debugModeEnabled && result.debug) {
+      startDebugSession({
+        sessionId: result.debug.sessionId,
+        lineMap: result.debug.lineMap,
+      });
+    }
+
+    return result;
+  }
+
+  function clearDebugIdleTimer() {
+    if (!debugIdleTimer) return;
+    clearTimeout(debugIdleTimer);
+    debugIdleTimer = null;
+  }
+
+  function scheduleDebugIdleClear(sessionId) {
+    clearDebugIdleTimer();
+    debugIdleTimer = setTimeout(() => {
+      clearDebugActiveLocation(sessionId);
+      debugIdleTimer = null;
+    }, DEBUG_IDLE_CLEAR_MS);
   }
 
   $: statusText = status === 'connecting' ? 'Negotiating a connection…'
@@ -77,30 +146,82 @@
     ].slice(-8);
   }
 
+  function schemeString(value) {
+    return `"${String(value ?? '')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')}"`;
+  }
+
+  async function blobToBase64(blob) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const chunkSize = 0x8000;
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  }
+
+  function projectArchiveSaveMessage(filename, base64) {
+    return `(begin
+  (require <com.google.youngandroid.runtime>)
+  (define-alias AIFileUtil <com.google.appinventor.components.runtime.util.FileUtil>)
+  (define-alias AIQUtil <com.google.appinventor.components.runtime.util.QUtil>)
+  (define-alias AIForm <com.google.appinventor.components.runtime.Form>)
+  (define-alias AIBase64 <android.util.Base64>)
+  (process-repl-input -1
+    (begin
+      (AIFileUtil:writeFile
+        (AIBase64:decode ${schemeString(base64)} 0)
+        (string-append (AIQUtil:getExternalStoragePath (AIForm:getActiveForm) #t) "/Download/${filename}")))))`;
+  }
+
   function resetConnectionLogs(message = null) {
     connectionLogs = [];
     logId = 0;
     if (message) addConnectionLog(message);
   }
 
-  function ltRenderDigits(code) {
-    if (!digitsEl) return;
-    digitsEl.innerHTML = code.split('').map(d => `<span class="lt-digit">${d}</span>`).join('');
+  function renderCodeChars(code) {
+    if (!codeCharsEl) return;
+    codeCharsEl.innerHTML = code.split('').map(char => `<span class="lt-code-char">${char}</span>`).join('');
   }
 
   function ltRenderQR(code) {
     qrSvg = createQrSvg(code, {
       size: 148,
-      fgColor: '#1A1916',
-      bgColor: '#FAFAF8',
+      fgColor: '#1A1A21',
+      bgColor: '#FFFFFF',
     });
   }
 
   function renderConnectionCode() {
     tick().then(() => {
       if (!liveCode) return;
-      ltRenderDigits(liveCode);
+      renderCodeChars(liveCode);
       ltRenderQR(liveCode);
+    });
+  }
+
+  function applyDebugTrace(value) {
+    const trace = parseDebugTraceValue(value);
+    if (!trace || !$debugModeEnabled) return false;
+    if (setDebugTraceLocation(trace)) {
+      scheduleDebugIdleClear(trace.sessionId);
+      return true;
+    }
+    return false;
+  }
+
+  function applyDebugRuntimeError(value, source = 'Runtime') {
+    if (!$debugModeEnabled || pendingDoItCellId) return false;
+    clearDebugIdleTimer();
+    return setDebugRuntimeError({
+      message: value?.value ?? value?.item ?? value?.message ?? 'Runtime error',
+      source: value?.blockid || source,
+      status: value?.status || null,
     });
   }
 
@@ -115,20 +236,42 @@
       }
       appendDebugLogsFromCompanionResponse(resp);
       for (const value of resp.values ?? []) {
-        if (value.type === 'log') continue;
+        if (value.type === 'log') {
+          applyDebugTrace(value);
+          continue;
+        }
+        if (value.type === 'startCache') {
+          addConnectionLog('Companion requested a project cache; saving archive');
+          saveProjectToCompanion();
+          continue;
+        }
+        if (value.type === 'assetTransferred') {
+          addConnectionLog(`Companion asset transferred: ${value.value || 'asset'}`, 'info');
+          continue;
+        }
         if (value.type === 'error') {
           console.error('[companion] runtime error:', value.value);
+          applyDebugRuntimeError(value, 'Runtime');
           addConnectionLog(`Runtime error: ${value.value}`, 'error');
           continue;
         }
         if (value.status === 'OK') {
-          if (value.value && value.value !== '*nothing*') {
-            console.log('[companion] ->', value.value);
+          if (pendingDoItCellId) {
+            const lines = value.value && value.value !== '*nothing*' ? [value.value] : [];
+            setDoItResult(pendingDoItCellId, lines, true);
+            pendingDoItCellId = null;
+          } else if (value.value && value.value !== '*nothing*') {
             addConnectionLog(`Companion value: ${value.value}`, 'info');
           }
         } else {
           console.error('[companion] eval error:', value.value);
-          addConnectionLog(`Companion eval error: ${value.value}`, 'error');
+          if (pendingDoItCellId) {
+            setDoItResult(pendingDoItCellId, [value.value || 'Evaluation error'], false);
+            pendingDoItCellId = null;
+          } else {
+            applyDebugRuntimeError(value, 'Evaluation');
+            addConnectionLog(`Companion eval error: ${value.value}`, 'error');
+          }
         }
       }
     } catch {
@@ -138,13 +281,14 @@
   }
 
   function logCompanionPayload(label, result) {
+    if (!COMPANION_DEBUG) return;
     const screenList = result.screenIds?.length ? result.screenIds.join(', ') : '(none)';
     const eventList = result.eventDefs?.length
       ? result.eventDefs.map(({ component, event }) => `${component}.${event}`).join(', ')
       : '(none)';
-    console.log(`[companion] ${label} screens in compiled YAIL: ${screenList}`);
-    console.log(`[companion] ${label} events in compiled YAIL: ${eventList}`);
-    console.log(`[companion] ${label} REPL payload sent:\n${result.replPayload}`);
+    console.debug(`[companion] ${label} screens in compiled YAIL: ${screenList}`);
+    console.debug(`[companion] ${label} events in compiled YAIL: ${eventList}`);
+    console.debug(`[companion] ${label} REPL payload sent:\n${result.replPayload}`);
   }
 
   function cancelAttempt() {
@@ -165,6 +309,7 @@
     channel = null;
     peer = null;
     lastSentSourceKey = null;
+    lastFailedSourceKey = null;
 
     if (localChannel) {
       localChannel.onmessage = null;
@@ -177,9 +322,24 @@
     }
   }
 
+  function sendDoneToCompanion(reason = 'disconnect') {
+    const activeChannel = channel;
+    if (!activeChannel || activeChannel.readyState !== 'open') return false;
+    try {
+      activeChannel.send('#DONE#');
+      addConnectionLog(`${reason}: sent Companion shutdown signal`);
+      return true;
+    } catch (e) {
+      addConnectionLog(`${reason}: unable to send shutdown signal`, 'warn');
+      return false;
+    }
+  }
+
   function resetDisconnected() {
     cancelAttempt();
     closeTransport();
+    clearDebugIdleTimer();
+    clearDebugRuntimeState();
     liveCode = null;
     qrSvg = '';
     status = 'idle';
@@ -188,42 +348,86 @@
     resetConnectionLogs();
   }
 
+  async function resetConnection() {
+    sendDoneToCompanion('Reset connection');
+    cancelAttempt();
+    closeTransport();
+    liveCode = null;
+    qrSvg = '';
+    status = 'idle';
+    error = null;
+    messageCount = 0;
+    resetConnectionLogs('Reset connection requested');
+
+    try {
+      addConnectionLog('aiStarter: requesting /reset');
+      await requestAiStarter('reset', 'aiStarter reset');
+      addConnectionLog('Connection reset complete');
+    } catch (e) {
+      addConnectionLog('aiStarter reset was not available; Companion session was closed locally', 'warn');
+    }
+
+    liveTestOpen.set(false);
+  }
+
   function close() {
     if (status !== 'connected') resetDisconnected();
     liveTestOpen.set(false);
   }
 
   function disconnectCompanion() {
+    sendDoneToCompanion('Disconnect');
     resetDisconnected();
     liveTestOpen.set(false);
   }
 
-  async function refreshCompanion() {
+  function sendCompiledResult(label, result, sourceKey, activeChannel = channel) {
+    if (channel !== activeChannel || !activeChannel || activeChannel.readyState !== 'open') {
+      throw new Error('Companion disconnected before the update could be sent');
+    }
+    logCompanionPayload(label, result);
+    const chunkCount = sendCompanionMessage(activeChannel, result.replPayload);
+    lastSentSourceKey = sourceKey;
+    addConnectionLog(`${label}: REPL payload sent${chunkCount > 1 ? ` in ${chunkCount} chunks` : ''}`, 'info');
+    return chunkCount;
+  }
+
+  async function refreshCompanion({ force = false, label = 'manual refresh' } = {}) {
     refreshTimer = null;
-    if (status !== 'connected') return;
+    if (status !== 'connected') {
+      error = 'Companion is not connected';
+      addConnectionLog(`${label}: Companion is not connected`, 'warn');
+      return;
+    }
 
     const activeChannel = channel;
     const sourceKey = companionSourceKey();
-    if (!activeChannel || activeChannel.readyState !== 'open' || sourceKey === lastSentSourceKey) return;
+    if (!activeChannel || activeChannel.readyState !== 'open') {
+      error = 'Companion data channel is not open';
+      addConnectionLog(`${label}: data channel is not open`, 'error');
+      return;
+    }
+    if (!force && sourceKey === lastSentSourceKey) return;
 
     try {
-      const result = await compileForCompanion(getFalconSource(), getDesignSource());
-      if (channel === activeChannel && activeChannel.readyState === 'open') {
-        logCompanionPayload('auto-refresh', result);
-        activeChannel.send(result.replPayload);
-        lastSentSourceKey = sourceKey;
-      }
+      addConnectionLog(`${label}: compiling Falcon and Designer sources`);
+      const result = await compileCurrentForCompanion();
+      sendCompiledResult(label, result, sourceKey, activeChannel);
+      lastFailedSourceKey = null;
+      error = null;
+      scheduleRefresh();
     } catch (e) {
-      console.error('[companion] auto-refresh failed:', e.message || String(e));
+      console.error('[companion] refresh failed:', e.message || String(e));
       error = e.message || String(e);
+      lastFailedSourceKey = sourceKey;
+      addConnectionLog(`${label}: ${error}`, 'error');
     }
-
-    scheduleRefresh();
   }
 
   function scheduleRefresh() {
     if (status !== 'connected') return;
-    if (companionSourceKey() === lastSentSourceKey) return;
+    const sourceKey = companionSourceKey();
+    if (sourceKey === lastSentSourceKey || sourceKey === lastFailedSourceKey) return;
     if (refreshTimer) clearTimeout(refreshTimer);
     refreshTimer = setTimeout(refreshCompanion, 600);
   }
@@ -234,11 +438,12 @@
 
     const token = attemptToken + 1;
     attemptToken = token;
-    liveCode = genCode();
+    liveCode = generateCompanionCode();
     status = 'polling';
     error = null;
     messageCount = 0;
     lastSentSourceKey = null;
+    lastFailedSourceKey = null;
     resetConnectionLogs(`Live test code ${liveCode} generated`);
     addConnectionLog('Compiling Falcon and Designer sources');
     renderConnectionCode();
@@ -248,7 +453,7 @@
 
     try {
       const sourceKey = companionSourceKey();
-      const result = await compileForCompanion(getFalconSource(), getDesignSource());
+      const result = await compileCurrentForCompanion();
       if (token !== attemptToken || abort.signal.aborted) return;
       const eventCount = result.eventDefs?.length || 0;
       const screenCount = result.screenIds?.length || 0;
@@ -290,10 +495,8 @@
         }
       };
 
-      logCompanionPayload('initial send', result);
       addConnectionLog('Sending REPL payload to companion');
-      conn.channel.send(result.replPayload);
-      lastSentSourceKey = sourceKey;
+      sendCompiledResult('initial send', result, sourceKey, conn.channel);
       status = 'connected';
       error = null;
       addConnectionLog('REPL payload accepted by data channel', 'info');
@@ -313,17 +516,169 @@
     startCompanion();
   }
 
+  function requestAiStarter(path, label) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    return fetch(`http://localhost:8004/${path}/`, { signal: controller.signal })
+      .then(response => {
+        if (!response.ok) throw new Error(`${label} failed with HTTP ${response.status}`);
+        return response.text();
+      })
+      .finally(() => clearTimeout(timeout));
+  }
+
+  async function hardResetCompanion() {
+    if (typeof window !== 'undefined') {
+      const ok = window.confirm('Hard reset the Companion/emulator connection? This resets the local aiStarter session.');
+      if (!ok) return;
+    }
+
+    sendDoneToCompanion('Hard reset');
+    cancelAttempt();
+    closeTransport();
+    liveCode = null;
+    qrSvg = '';
+    messageCount = 0;
+    status = 'idle';
+    error = null;
+    resetConnectionLogs('Hard reset requested');
+
+    try {
+      addConnectionLog('aiStarter: requesting /reset');
+      await requestAiStarter('reset', 'aiStarter reset');
+      addConnectionLog('aiStarter: requesting /emulatorreset');
+      await requestAiStarter('emulatorreset', 'aiStarter emulator reset');
+      addConnectionLog('Hard reset complete');
+      liveTestOpen.set(false);
+    } catch (e) {
+      status = 'error';
+      error = e.name === 'AbortError'
+        ? 'aiStarter hard reset timed out. Make sure aiStarter is running on port 8004.'
+        : (e.message || String(e));
+      addConnectionLog(`Hard reset failed: ${error}`, 'error');
+      liveTestOpen.set(true);
+    }
+  }
+
+  async function saveProjectToCompanion() {
+    if (commandRunning) return;
+    if (status !== 'connected' || !channel || channel.readyState !== 'open') {
+      error = 'Start Live test before saving the project';
+      addConnectionLog(error, 'warn');
+      liveTestOpen.set(true);
+      return;
+    }
+
+    commandRunning = true;
+    const activeChannel = channel;
+    try {
+      addConnectionLog('Exporting current project archive');
+      const blob = await exportCurrentProjectToAia();
+      const safeName = sanitizeProjectName($projectName);
+      const filename = `${safeName}.aia`;
+      const base64 = await blobToBase64(blob);
+      const yail = projectArchiveSaveMessage(filename, base64);
+      if (channel !== activeChannel || activeChannel.readyState !== 'open') {
+        throw new Error('Companion disconnected before the project archive could be saved');
+      }
+      const chunkCount = sendCompanionMessage(activeChannel, yail);
+      addConnectionLog(`Project archive sent to Companion as ${filename}${chunkCount > 1 ? ` in ${chunkCount} chunks` : ''}`);
+      error = null;
+    } catch (e) {
+      error = e.message || String(e);
+      addConnectionLog(`Save project failed: ${error}`, 'error');
+      console.error('[companion] save project failed:', e);
+    } finally {
+      commandRunning = false;
+    }
+  }
+
+  async function doItCompanion(source, label = 'Do it', cellId = null) {
+    if (status !== 'connected' || !channel || channel.readyState !== 'open') {
+      error = 'Companion is not connected';
+      addConnectionLog(`${label}: Companion is not connected`, 'warn');
+      liveTestOpen.set(true);
+      return;
+    }
+
+    pendingDoItCellId = cellId;
+    const activeChannel = channel;
+    try {
+      addConnectionLog(`${label}: compiling selected Falcon code`);
+      const result = await compileSnippetForCompanion(source, getDesignSource(), { screenName: $activeScreen });
+      if (channel !== activeChannel || activeChannel.readyState !== 'open') {
+        throw new Error('Companion disconnected before the selected code could be sent');
+      }
+      const chunkCount = sendCompanionMessage(activeChannel, result.replPayload);
+      addConnectionLog(`${label}: selected code sent${chunkCount > 1 ? ` in ${chunkCount} chunks` : ''}`, 'info');
+      error = null;
+    } catch (e) {
+      if (pendingDoItCellId === cellId) {
+        setDoItResult(cellId, [e.message || String(e)], false);
+        pendingDoItCellId = null;
+      }
+      error = e.message || String(e);
+      addConnectionLog(`${label}: ${error}`, 'error');
+      console.error('[companion] do it failed:', e);
+    }
+  }
+
+  async function setCompanionDebugMode(enabled) {
+    if (enabled) {
+      enableDebugMode();
+      if (status === 'connected') {
+        await refreshCompanion({ force: true, label: 'debug enabled' });
+      }
+      return;
+    }
+
+    disableDebugMode();
+    if (status === 'connected') {
+      await refreshCompanion({ force: true, label: 'debug disabled' });
+    }
+  }
+
+  async function runCompanionCommand(cmd) {
+    const action = typeof cmd === 'string' ? cmd : cmd?.type || cmd?.action;
+    if (action === 'do-it') {
+      await doItCompanion(cmd?.source || '', cmd?.label || 'Do it', cmd?.cellId || null);
+    } else if (action === 'toggle-debug') {
+      await setCompanionDebugMode(!$debugModeEnabled);
+    } else if (action === 'debug-enable') {
+      await setCompanionDebugMode(true);
+    } else if (action === 'debug-disable') {
+      await setCompanionDebugMode(false);
+    } else if (action === 'refresh') {
+      await refreshCompanion({ force: true, label: 'manual refresh' });
+    } else if (action === 'reset') {
+      await resetConnection();
+    } else if (action === 'hard-reset') {
+      await hardResetCompanion();
+    } else if (action === 'save') {
+      await saveProjectToCompanion();
+    }
+  }
+
   function backdropClick(e) {
     if (e.target === e.currentTarget) close();
+  }
+
+  $: if ($companionCommand) {
+    const cmd = $companionCommand;
+    companionCommand.set(null);
+    runCompanionCommand(cmd);
   }
 
   onMount(() => {
     const unsubCells = cells.subscribe(() => scheduleRefresh());
     const unsubDesign = designCode.subscribe(() => scheduleRefresh());
+    const unsubDebug = debugModeEnabled.subscribe(() => scheduleRefresh());
 
     return () => {
       unsubCells();
       unsubDesign();
+      unsubDebug();
+      clearDebugIdleTimer();
       resetDisconnected();
     };
   });
@@ -356,7 +711,7 @@
           <circle cx="8" cy="12.5" r="0.9" fill="currentColor" stroke="none"/>
         </svg>
       </div>
-      <span class="lt-title">Live Test</span>
+      <span class="lt-title">Live test</span>
       <button class="lt-close-btn" on:click={status === 'connected' ? disconnectCompanion : close} title={status === 'connected' ? 'Disconnect' : 'Cancel'}>
         <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
           <path d="M2 2l6 6M8 2l-6 6"/>
@@ -406,7 +761,7 @@
         <span class="lt-or-line"></span>
       </div>
 
-      <div class="lt-code-display" bind:this={digitsEl}></div>
+      <div class="lt-code-display" bind:this={codeCharsEl}></div>
 
       <div class="lt-status lt-status--{status}" aria-live="polite">
         <span class="lt-dot"></span>

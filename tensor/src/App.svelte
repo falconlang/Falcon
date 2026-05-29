@@ -16,22 +16,22 @@
 
   onMount(() => {
     const warmBlockly = () => warmBlocklyPreviewRuntime();
+    let idleId = null;
+    let warmTimer = null;
     if (window.requestIdleCallback) {
-      window.requestIdleCallback(warmBlockly, { timeout: 2500 });
+      idleId = window.requestIdleCallback(warmBlockly, { timeout: 2500 });
     } else {
-      window.setTimeout(warmBlockly, 800);
+      warmTimer = window.setTimeout(warmBlockly, 800);
     }
 
-    document.addEventListener('click', hideCtx);
-
-    document.addEventListener('keydown', e => {
+    const onKeyDown = e => {
       if (e.key === 'Escape') {
         hideCtx();
         liveTestOpen.set(false);
       }
-    });
+    };
 
-    document.addEventListener('selectionchange', () => {
+    const onSelectionChange = () => {
       const activeEl = document.activeElement;
       if (
         activeEl?.classList?.contains('code-area')
@@ -52,7 +52,19 @@
         if (area && area.id.startsWith('code-')) selCellId = area.id.slice(5);
       }
       doItCellId.set(selCellId);
-    });
+    };
+
+    document.addEventListener('click', hideCtx);
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('selectionchange', onSelectionChange);
+
+    return () => {
+      document.removeEventListener('click', hideCtx);
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('selectionchange', onSelectionChange);
+      if (idleId !== null && window.cancelIdleCallback) window.cancelIdleCallback(idleId);
+      if (warmTimer !== null) window.clearTimeout(warmTimer);
+    };
   });
 </script>
 
