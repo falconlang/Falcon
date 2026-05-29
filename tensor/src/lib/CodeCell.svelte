@@ -11,6 +11,7 @@
   import { falconTokenize, tokensToHtml } from './tokenizer.js';
   import { falconCellToBlocklyPng, warmBlocklyPreviewRuntime } from './blockly-preview.js';
   import { runCodeDiagnosticResult } from './falcon-wasm.js';
+  import { buildFalconSourceMap } from './debug-source-map.js';
 
   export let cell;
   export let active = false;
@@ -50,10 +51,13 @@
   $: isDoItVisible = $doItCellId === cell.id;
   $: isCompanionConnected = $liveTestState.status === 'connected';
   $: doItResult = $doItResults[cell.id] ?? null;
-  $: debugActiveLine = $debugModeEnabled && $debugActiveLocation?.cellId === cell.id
-    ? $debugActiveLocation.cellLine
-    : null;
-  $: debugError = $debugModeEnabled ? ($debugRuntimeErrors[cell.id] ?? null) : null;
+  $: currentDebugLineMap = $debugModeEnabled ? buildFalconSourceMap($cells).entries : [];
+  $: debugActiveLocationForCell = $debugModeEnabled ? remapDebugLocationForCell($debugActiveLocation) : null;
+  $: debugActiveLine = debugActiveLocationForCell?.cellLine ?? null;
+  $: debugErrorEntries = $debugModeEnabled ? Object.values($debugRuntimeErrors || {}) : [];
+  $: debugError = debugErrorEntries
+    .map(entry => remapDebugLocationForCell(entry))
+    .find(Boolean) ?? null;
   $: debugErrorLines = debugError?.message
     ? String(debugError.message).split(/\r?\n/)
     : [];
@@ -80,6 +84,26 @@
   ) {
     handledBlocklyRequestId = $blocklyPreviewRequest.id;
     previewPastedBlocks($blocklyPreviewRequest.blob);
+  }
+
+  function remapDebugLocationForCell(location) {
+    if (!location) return null;
+    const unifiedLine = Number(location.unifiedLine);
+    if (Number.isFinite(unifiedLine)) {
+      const currentEntry = currentDebugLineMap.find(entry => entry.unifiedLine === unifiedLine);
+      if (currentEntry) {
+        return currentEntry.cellId === cell.id
+          ? {
+              ...location,
+              cellId: currentEntry.cellId,
+              cellLine: currentEntry.cellLine,
+              unifiedLine: currentEntry.unifiedLine,
+            }
+          : null;
+      }
+    }
+
+    return location.cellId === cell.id ? location : null;
   }
 
   function codeText() {

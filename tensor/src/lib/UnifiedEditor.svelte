@@ -4,9 +4,9 @@
     activeScreen, cells, replaceCodeCells,
     liveTestState, companionCommand,
     doItResults, clearDoItResult, unifiedSelectionActive,
-    debugModeEnabled, debugActiveLocation, debugRuntimeErrors,
+    debugModeEnabled, debugActiveLocation, debugRuntimeErrors, debugAnnotationActive,
   } from './stores.js';
-  import { falconTokenize, tokensToHtml } from './tokenizer.js';
+  import { falconTokenize, tokensToHtml, escHtml } from './tokenizer.js';
   import { mistToXmlResult, runCodeDiagnosticResult } from './falcon-wasm.js';
   import { blocklyXmlToPng, componentDefinitionsFromDesigner, ensureBlocklyRuntime, copyPngBlobToClipboard, downloadPngBlob } from './blockly-preview.js';
   import { splitFalconSourceByTopLevelLines } from './cell-splitting.js';
@@ -50,6 +50,141 @@
     ? String(debugFirstError.message).split(/\r?\n/)
     : [];
 
+  let lastInjectedErrorLine = null;
+  let injectedLineNumber = null;
+  let injectedLineText = null;
+
+  function lineStartOffset(text, lineNumber) {
+    const value = String(text ?? '');
+    const line = Math.max(1, Math.trunc(Number(lineNumber) || 1));
+    let offset = 0;
+    for (let current = 1; current < line; current += 1) {
+      const nextBreak = value.indexOf('\n', offset);
+      if (nextBreak === -1) return value.length;
+      offset = nextBreak + 1;
+    }
+    return offset;
+  }
+
+  function injectedLineRemovalRange(text = editorValue) {
+    const value = String(text ?? '');
+    const line = Number(injectedLineNumber);
+    if (!Number.isFinite(line) || line < 1) return null;
+    const lines = value.split('\n');
+    const index = Math.trunc(line) - 1;
+    if (index < 0 || index >= lines.length) return null;
+
+    const exactIndexes = injectedLineText !== null
+      ? lines.map((candidate, i) => candidate === injectedLineText ? i : -1).filter(i => i !== -1)
+      : [];
+    const lineIndex = exactIndexes.length
+      ? exactIndexes.reduce((best, candidate) => Math.abs(candidate - index) < Math.abs(best - index) ? candidate : best, exactIndexes[0])
+      : index;
+    const lineStart = lineStartOffset(value, lineIndex + 1);
+    let start = lineStart;
+    let end = lineStart + lines[lineIndex].length;
+    if (lineIndex < lines.length - 1) {
+      end += 1;
+    } else if (lineIndex > 0) {
+      start -= 1;
+    }
+    return { start, end };
+  }
+
+  function viewOffsetToSourceOffset(offset, text = editorValue, removalRange = injectedLineRemovalRange(text)) {
+    const value = String(text ?? '');
+    const bounded = Math.max(0, Math.min(Number(offset) || 0, value.length));
+    if (!removalRange) return bounded;
+    if (bounded <= removalRange.start) return bounded;
+    if (bounded >= removalRange.end) return bounded - (removalRange.end - removalRange.start);
+    return removalRange.start;
+  }
+
+  // The only supported accessor for unified editor source code.
+  // It strips debug annotation rows before returning, even though those rows live in the view buffer.
+  export function getUnifiedEditorCode(range = null) {
+    const value = String(editorValue ?? '');
+    const removalRange = injectedLineRemovalRange(value);
+    const source = removalRange
+      ? value.slice(0, removalRange.start) + value.slice(removalRange.end)
+      : value;
+
+    if (!range || range.start == null || range.end == null) return source;
+
+    const sourceStart = viewOffsetToSourceOffset(range.start, value, removalRange);
+    const sourceEnd = viewOffsetToSourceOffset(range.end, value, removalRange);
+    return source.slice(Math.min(sourceStart, sourceEnd), Math.max(sourceStart, sourceEnd));
+  }
+
+  function viewLineToSourceLine(line) {
+    const viewLine = Number(line);
+    if (!Number.isFinite(viewLine) || viewLine < 1) return null;
+    if (injectedLineNumber !== null) {
+      if (viewLine === injectedLineNumber) return null;
+      if (viewLine > injectedLineNumber) return viewLine - 1;
+    }
+    return viewLine;
+  }
+
+  function sourceLineToViewLine(line) {
+    const sourceLine = Number(line);
+    if (!Number.isFinite(sourceLine) || sourceLine < 1) return 1;
+    if (injectedLineNumber !== null && sourceLine >= injectedLineNumber) return sourceLine + 1;
+    return sourceLine;
+  }
+
+  function lineNumberLabel(viewLine) {
+    return viewLineToSourceLine(viewLine) ?? '';
+  }
+
+  function clearInjectedAnnotationFromView({ sync = false, immediate = false } = {}) {
+    if (injectedLineNumber === null) return false;
+    const value = String(editorValue ?? '');
+    const source = getUnifiedEditorCode();
+    const { start, end } = selectionRange();
+    const sourceStart = viewOffsetToSourceOffset(start, value);
+    const sourceEnd = viewOffsetToSourceOffset(end, value);
+    injectedLineNumber = null;
+    injectedLineText = null;
+    lastInjectedErrorLine = null;
+    editorValue = source;
+    if (immediate && codeEl) {
+      codeEl.value = source;
+      codeEl.setSelectionRange(sourceStart, sourceEnd);
+    } else {
+      setSelection(sourceStart, sourceEnd);
+    }
+    if (sync) syncToStore();
+    tick().then(syncScroll);
+    return true;
+  }
+
+  $: {
+    if (debugFirstErrorLine === null) {
+      if (injectedLineNumber !== null) clearInjectedAnnotationFromView();
+      else lastInjectedErrorLine = null;
+    } else if (debugFirstErrorLine !== lastInjectedErrorLine) {
+      lastInjectedErrorLine = debugFirstErrorLine;
+      tick().then(() => injectMewAtLine(debugFirstErrorLine));
+    }
+  }
+
+  function injectMewAtLine(unifiedLine) {
+    const lineNum = Number(unifiedLine);
+    if (!Number.isFinite(lineNum) || lineNum < 1) return;
+    const lines = getUnifiedEditorCode().split('\n');
+    const errorLine = lines[lineNum - 1] ?? '';
+    const indent = errorLine.match(/^\s*/)[0];
+    const errorText = debugFirstErrorLines[0] || 'Runtime error';
+    injectedLineText = `${indent}${DEBUG_ERROR_PREFIX}${errorText}`;
+    lines.splice(lineNum, 0, injectedLineText);
+    injectedLineNumber = lineNum + 1;
+    debugAnnotationActive.set(true);
+    editorValue = lines.join('\n');
+    tick().then(syncScroll);
+    tick().then(() => debugAnnotationActive.set(false));
+  }
+
   $: {
     const result = $doItResults['unified'];
     if (result && pendingDoItPos) {
@@ -65,10 +200,22 @@
   const CODE_PAD_TOP = 12;        // must match .code-area padding-top
   const CALLOUT_GAP = 8;
   const CALLOUT_PADDING = 12; // 6px × 2
+  const DEBUG_ERROR_PREFIX = '🐛 ';
 
   $: lineCount = Math.max(editorValue.split('\n').length, 1);
   $: lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
   $: highlightedCode = tokensToHtml(falconTokenize(editorValue));
+  $: highlightedCodeFinal = (() => {
+    if (injectedLineNumber === null || !debugFirstError) return highlightedCode;
+    const lines = highlightedCode.split('\n');
+    const idx = injectedLineNumber - 1;
+    if (idx < 0 || idx >= lines.length) return highlightedCode;
+    const editorLines = editorValue.split('\n');
+    const indent = (editorLines[idx] ?? '').match(/^\s*/)[0];
+    const errorText = debugFirstErrorLines[0] || 'Runtime error';
+    lines[idx] = `<span class="injected-error-text">${escHtml(indent)}${escHtml(DEBUG_ERROR_PREFIX)}${escHtml(errorText)}</span>`;
+    return lines.join('\n');
+  })();
 
   function buildContent(cellList) {
     const codeCells = cellList.filter(c => c.type === 'code');
@@ -101,14 +248,15 @@
   function syncToStore() {
     syncingToStore = true;
     try {
-      replaceCodeCells(editorValue.trim() ? [editorValue] : []);
+      const source = getUnifiedEditorCode();
+      replaceCodeCells(source.trim() ? [source] : []);
     } finally {
       syncingToStore = false;
     }
   }
 
   export async function commitToCells() {
-    const source = editorValue;
+    const source = getUnifiedEditorCode();
     if (!source.trim()) {
       syncingToStore = true;
       try {
@@ -337,7 +485,16 @@
     return (e.ctrlKey || e.metaKey) && !e.altKey && (e.key === '/' || e.key === '?' || e.code === 'Slash' || e.code === 'NumpadDivide' || code === 191 || code === 111);
   }
 
+  function isEditingKey(e) {
+    if (isUndoShortcut(e) || isRedoShortcut(e) || isCommentShortcut(e)) return true;
+    if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Enter' || e.key === 'Tab') return true;
+    return isPlainTextKey(e) && e.key?.length === 1;
+  }
+
   function handleKey(e) {
+    if (injectedLineNumber !== null && isEditingKey(e)) {
+      clearInjectedAnnotationFromView({ sync: true, immediate: true });
+    }
     if (isUndoShortcut(e)) { e.preventDefault(); e.stopPropagation(); restoreHistory(historyIndex - 1); return; }
     if (isRedoShortcut(e)) { e.preventDefault(); e.stopPropagation(); restoreHistory(historyIndex + 1); return; }
     if (isCommentShortcut(e)) { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); toggleLineComments(); return; }
@@ -369,30 +526,54 @@
 
   function onInput(e) {
     editorValue = e.currentTarget.value;
+    if (injectedLineNumber !== null) {
+      clearInjectedAnnotationFromView({ sync: false, immediate: true });
+    }
     syncToStore();
     dismissCallout();
     pushHistory();
     syncScroll();
   }
 
-  // ── Callout helpers ──
-
-  function lineOfOffset(offset) {
-    const boundedOffset = Math.max(0, Math.min(offset, editorValue.length));
-    return (editorValue.slice(0, boundedOffset).match(/\n/g) || []).length + 1;
+  function onBeforeInput(e) {
+    if (injectedLineNumber !== null) {
+      clearInjectedAnnotationFromView({ sync: true, immediate: true });
+    }
   }
 
-  function selectionLineRange(selStart, selEnd) {
-    const start = Math.max(0, Math.min(selStart, editorValue.length));
-    const end = Math.max(start, Math.min(selEnd, editorValue.length));
-    const activeEnd = end > start && editorValue[end - 1] === '\n' ? end - 1 : end;
-    const startLine = lineOfOffset(start);
-    const endLine = Math.max(startLine, lineOfOffset(activeEnd));
+  // ── Callout helpers ──
+
+  function lineOfOffsetInText(text, offset) {
+    const value = String(text ?? '');
+    const boundedOffset = Math.max(0, Math.min(Number(offset) || 0, value.length));
+    return (value.slice(0, boundedOffset).match(/\n/g) || []).length + 1;
+  }
+
+  function selectionLineRangeInText(text, selStart, selEnd) {
+    const value = String(text ?? '');
+    const start = Math.max(0, Math.min(Number(selStart) || 0, value.length));
+    const end = Math.max(start, Math.min(Number(selEnd) || 0, value.length));
+    const activeEnd = end > start && value[end - 1] === '\n' ? end - 1 : end;
+    const startLine = lineOfOffsetInText(value, start);
+    const endLine = Math.max(startLine, lineOfOffsetInText(value, activeEnd));
     return { startLine, endLine };
   }
 
-  function firstCodeLineInSelection(startLine, endLine) {
-    const lines = editorValue.split('\n');
+  function selectionLineRange(selStart, selEnd) {
+    return selectionLineRangeInText(editorValue, selStart, selEnd);
+  }
+
+  function sourceSelectionLineRange(selStart, selEnd) {
+    const value = String(editorValue ?? '');
+    const source = getUnifiedEditorCode();
+    const removalRange = injectedLineRemovalRange(value);
+    const sourceStart = viewOffsetToSourceOffset(selStart, value, removalRange);
+    const sourceEnd = viewOffsetToSourceOffset(selEnd, value, removalRange);
+    return selectionLineRangeInText(source, sourceStart, sourceEnd);
+  }
+
+  function firstCodeLineInSelection(source, startLine, endLine) {
+    const lines = String(source ?? '').split('\n');
     for (let line = startLine; line <= endLine; line += 1) {
       const trimmed = (lines[line - 1] || '').trim();
       if (!trimmed || trimmed.startsWith('//')) continue;
@@ -401,8 +582,8 @@
     return null;
   }
 
-  function topLevelIndexForSelection(lineNumbers, startLine, endLine) {
-    const firstCodeLine = firstCodeLineInSelection(startLine, endLine);
+  function topLevelIndexForSelection(source, lineNumbers, startLine, endLine) {
+    const firstCodeLine = firstCodeLineInSelection(source, startLine, endLine);
     if (firstCodeLine === null) return -1;
     return lineNumbers.findIndex(ln => ln === firstCodeLine);
   }
@@ -470,9 +651,6 @@
     return `${CODE_PAD_TOP + (Math.max(1, Number(line) || 1) - 1) * LINE_HEIGHT}px`;
   }
 
-  function debugMessageTop(line) {
-    return `${CODE_PAD_TOP + Math.max(1, Number(line) || 1) * LINE_HEIGHT + 2}px`;
-  }
 
   function onWindowPointerDown(e) {
     if (doItCallout?.status === 'ready' && doItCalloutEl && !doItCalloutEl.contains(e.target)) {
@@ -502,9 +680,13 @@
     const selStart = codeEl.selectionStart;
     const selEnd   = codeEl.selectionEnd;
     if (selStart === selEnd) { unifiedSelectionActive.set(false); dismissCallout(); return; }
+    const source = getUnifiedEditorCode();
+    const selectedSource = getUnifiedEditorCode({ start: selStart, end: selEnd });
+    if (!selectedSource.trim()) { unifiedSelectionActive.set(false); dismissCallout(); return; }
     unifiedSelectionActive.set(true);
 
-    const { startLine: selectionStartLine, endLine } = selectionLineRange(selStart, selEnd);
+    const { endLine: viewEndLine } = selectionLineRange(selStart, selEnd);
+    const { startLine: selectionStartLine, endLine: selectionEndLine } = sourceSelectionLineRange(selStart, selEnd);
 
     let xmlResult;
     let componentDefinitions;
@@ -513,14 +695,16 @@
       if (runId !== calloutRunId) return;
       await ensureBlocklyRuntime();
       if (runId !== calloutRunId) return;
-      xmlResult = await mistToXmlResult(editorValue, componentDefinitions);
+      xmlResult = await mistToXmlResult(source, componentDefinitions);
       if (runId !== calloutRunId) return;
     } catch { return; }
 
     const { xml, lineNumbers } = xmlResult;
-    const idx = topLevelIndexForSelection(lineNumbers, selectionStartLine, endLine);
+    const idx = topLevelIndexForSelection(source, lineNumbers, selectionStartLine, selectionEndLine);
     if (idx === -1) { if (runId === calloutRunId) callout = null; return; }
-    const startLine = lineNumbers[idx];
+    const sourceStartLine = lineNumbers[idx];
+    const startLine = sourceLineToViewLine(sourceStartLine);
+    const endLine = Math.max(startLine, viewEndLine);
 
     const chunks = String(xml || '').split('\0').map(s => s.trim()).filter(Boolean);
     const xmlChunk = chunks[idx];
@@ -572,7 +756,7 @@
     if (selStart === selEnd) return;
     const start = Math.min(selStart, selEnd);
     const end = Math.max(selStart, selEnd);
-    const source = editorValue.slice(start, end);
+    const source = getUnifiedEditorCode({ start, end });
     if (!source.trim()) return;
 
     const { startLine, endLine } = selectionLineRange(start, end);
@@ -628,43 +812,26 @@
     {#if debugActiveUnifiedLine !== null}
       <div
         class="debug-line-backdrop debug-line-backdrop--active"
-        style:top={debugLineTop(debugActiveUnifiedLine)}
+        style:top={debugLineTop(sourceLineToViewLine(debugActiveUnifiedLine))}
       ></div>
     {/if}
     {#each debugErrorEntries as error (error.cellId)}
       <div
         class="debug-line-backdrop debug-line-backdrop--error"
-        style:top={debugLineTop(error.unifiedLine)}
+        style:top={debugLineTop(sourceLineToViewLine(error.unifiedLine))}
       ></div>
     {/each}
-    {#if debugFirstError}
-      <div
-        class="debug-inline-error"
-        style:top={debugMessageTop(debugFirstErrorLine)}
-      >
-        <span class="debug-inline-error-icon" aria-hidden="true">✗</span>
-        <div class="debug-inline-error-body">
-          {#if debugFirstErrorLines.length}
-            {#each debugFirstErrorLines as line}
-              <div>{line}</div>
-            {/each}
-          {:else}
-            <div>Runtime error</div>
-          {/if}
-        </div>
-      </div>
-    {/if}
     <div class="line-nums" aria-hidden="true">
       {#each lineNumbers as n}
         <div
-          class:debug-current-line={debugActiveUnifiedLine === n}
-          class:debug-error-line={debugErrorUnifiedLines.has(n)}
-          data-line={n}
-        >{n}</div>
+          class:debug-current-line={debugActiveUnifiedLine === viewLineToSourceLine(n)}
+          class:debug-error-line={debugErrorUnifiedLines.has(viewLineToSourceLine(n))}
+          data-line={viewLineToSourceLine(n) ?? undefined}
+        >{lineNumberLabel(n)}</div>
       {/each}
     </div>
     <div class="code-stack">
-      <pre class="code-highlight" aria-hidden="true" bind:this={highlightEl}>{@html highlightedCode}</pre>
+      <pre class="code-highlight" aria-hidden="true" bind:this={highlightEl}>{@html highlightedCodeFinal}</pre>
       <textarea
         class="code-area"
         aria-multiline="true"
@@ -674,6 +841,7 @@
         bind:this={codeEl}
         value={editorValue}
         on:keydown={handleKey}
+        on:beforeinput={onBeforeInput}
         on:input={onInput}
         on:scroll={syncScroll}
         on:select={scheduleCalloutCheck}
@@ -745,6 +913,10 @@
 {/if}
 
 <style>
+  :global(.injected-error-text) {
+    color: var(--error);
+  }
+
   .unified-wrap {
     display: flex;
     flex-direction: column;

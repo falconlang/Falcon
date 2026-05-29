@@ -738,7 +738,10 @@ html, body {
   flex-shrink: 0;
   line-height: 1.65;
 }
-.line-nums div { padding: 0 10px 0 8px; }
+.line-nums div {
+  min-height: 1.65em;
+  padding: 0 10px 0 8px;
+}
 
 .code-stack {
   flex: 1;

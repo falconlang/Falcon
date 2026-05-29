@@ -19,6 +19,7 @@
     clearDebugRuntimeState,
     setDebugTraceLocation,
     setDebugRuntimeError,
+    debugAnnotationActive,
   } from './stores.js';
   import {
     compileForCompanion,
@@ -426,6 +427,7 @@
 
   function scheduleRefresh() {
     if (status !== 'connected') return;
+    if ($debugAnnotationActive) return;
     const sourceKey = companionSourceKey();
     if (sourceKey === lastSentSourceKey || sourceKey === lastFailedSourceKey) return;
     if (refreshTimer) clearTimeout(refreshTimer);

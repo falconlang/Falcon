@@ -108,6 +108,7 @@ export const debugExecutionState = writable({
 export const debugLineMap = writable([]);
 export const debugActiveLocation = writable(null);
 export const debugRuntimeErrors = writable({});
+export const debugAnnotationActive = writable(false);
 export const copiedCellAvailable = writable(false);
 
 let blocklyPreviewRequestId = 0;
@@ -597,8 +598,8 @@ export function updateCellCode(id, code) {
   cells.update(cs => cs.map(c => c.id === id ? { ...c, code } : c));
 }
 
-export function replaceCodeCells(codeChunks, { activeIndex = 0 } = {}) {
-  clearDebugRuntimeState();
+export function replaceCodeCells(codeChunks, { activeIndex = 0, skipDebugClear = false } = {}) {
+  if (!skipDebugClear) clearDebugRuntimeState();
   const chunks = Array.from(codeChunks || [])
     .map(code => String(code ?? ''))
     .filter(code => code.trim().length > 0);
