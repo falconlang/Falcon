@@ -1,3 +1,9 @@
+import {
+  DEFAULT_AI_ACCENT_COLOR,
+  DEFAULT_AI_PRIMARY_COLOR,
+  DEFAULT_AI_PRIMARY_COLOR_DARK,
+} from './appinventor-validation.js';
+
 const PROJECT_PROPERTY_CATEGORY_ORDER = ['General', 'Theming', 'Publishing', 'iOS Settings'];
 
 export const PROJECT_PROPERTY_CATEGORIES = Object.freeze([
@@ -74,7 +80,7 @@ export const PROJECT_PROPERTY_DEFINITIONS = Object.freeze([
     name: 'PrimaryColor',
     category: 'Theming',
     editorType: 'color',
-    defaultValue: '&HFF3F51B5',
+    defaultValue: DEFAULT_AI_PRIMARY_COLOR,
     aiaKey: 'color.primary',
     description: 'The primary color used for Material UI elements, such as the ActionBar.',
   },
@@ -82,7 +88,7 @@ export const PROJECT_PROPERTY_DEFINITIONS = Object.freeze([
     name: 'PrimaryColorDark',
     category: 'Theming',
     editorType: 'color',
-    defaultValue: '&HFF303F9F',
+    defaultValue: DEFAULT_AI_PRIMARY_COLOR_DARK,
     aiaKey: 'color.primary.dark',
     description: 'The primary color used for darker Material UI elements.',
   },
@@ -90,7 +96,7 @@ export const PROJECT_PROPERTY_DEFINITIONS = Object.freeze([
     name: 'AccentColor',
     category: 'Theming',
     editorType: 'color',
-    defaultValue: '&HFFFF4081',
+    defaultValue: DEFAULT_AI_ACCENT_COLOR,
     aiaKey: 'color.accent',
     description: 'The accent color used for highlights and other user interface accents.',
   },

@@ -1,6 +1,7 @@
 package design
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"strings"
@@ -47,12 +48,12 @@ func TestParseAnnReadsDotIds(t *testing.T) {
 
 func TestParseAnnNormalizesColorLiterals(t *testing.T) {
 	source := `Screen.Screen1 {
-  BackgroundColor: &HFF446A98,
-  Button.AddButton {
-    BackgroundColor: #FFFFF,
-    TextColor: #336699CC
-  }
-}`
+	  BackgroundColor: &HFF446A98,
+	  Button.AddButton {
+	    BackgroundColor: #0FFFFF,
+	    TextColor: #336699CC
+	  }
+	}`
 
 	screen, err := ParseAnn(source)
 	if err != nil {
@@ -100,6 +101,80 @@ func TestAnnYailConvertsColorLiteralsToNumbers(t *testing.T) {
 	}
 }
 
+func TestAnnYailUsesComponentMetadataForValues(t *testing.T) {
+	source := `Screen.Screen1 {
+  Button.HideButton { Text: "Café", Visible: False }
+  BluetoothClient.BluetoothClient1
+  NxtDrive.Drive { BluetoothClient: BluetoothClient1 }
+}`
+
+	yail, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err != nil {
+		t.Fatalf("ConvertAnnToYail() error = %v", err)
+	}
+	for _, want := range []string{
+		`(set-and-coerce-property! 'HideButton 'Visible #f 'boolean)`,
+		`(set-and-coerce-property! 'Drive 'BluetoothClient (get-component BluetoothClient1) 'component)`,
+		`"Caf\u00e9"`,
+	} {
+		if !strings.Contains(yail, want) {
+			t.Fatalf("generated YAIL does not contain %q:\n%s", want, yail)
+		}
+	}
+	if strings.Contains(yail, `\u00c3\u00a9`) {
+		t.Fatalf("generated YAIL used UTF-8 byte escapes instead of UTF-16 code units:\n%s", yail)
+	}
+}
+
+func TestAnnYailSkipsInternalPropertiesAndAlwaysSendsDefaults(t *testing.T) {
+	source := `Screen.Screen1 {
+  Uuid: "0",
+  TutorialURL: "https://example.invalid/tutorial",
+  BlocksToolkit: "{}"
+}`
+
+	yail, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err != nil {
+		t.Fatalf("ConvertAnnToYail() error = %v", err)
+	}
+	for _, forbidden := range []string{"Uuid", "TutorialURL", "BlocksToolkit"} {
+		if strings.Contains(yail, forbidden) {
+			t.Fatalf("generated YAIL contains internal property %q:\n%s", forbidden, yail)
+		}
+	}
+	for _, want := range []string{
+		`(set-and-coerce-property! 'Screen1 'ShowListsAsJson #t 'boolean)`,
+		`(set-and-coerce-property! 'Screen1 'Sizing "Responsive" 'text)`,
+	} {
+		if !strings.Contains(yail, want) {
+			t.Fatalf("generated YAIL does not contain always-send default %q:\n%s", want, yail)
+		}
+	}
+}
+
+func TestAnnValidationRejectsUnknownDuplicateAndIllegalContainment(t *testing.T) {
+	source := `Screen.Screen1 {
+  Button.Dup
+  Label.Dup
+  Button.Bad { Label.Child }
+  Mystery.Thing
+}`
+
+	_, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err == nil {
+		t.Fatal("ConvertAnnToYail() error = nil, want validation diagnostics")
+	}
+	for _, want := range []string{
+		`duplicate component name "Dup"`,
+		`Label.Child cannot be placed inside Button.Bad`,
+		`unknown component type "Mystery"`,
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("validation error = %q, want substring %q", err.Error(), want)
+		}
+	}
+}
+
 func TestAnnValidationReportsPropertyPosition(t *testing.T) {
 	source := "Screen.Screen1 {\n  Button.AddButton { Texxt: \"+\" }\n}"
 	_, err := NewAnnYailConverter().ConvertAnnToYail(source)
@@ -139,6 +214,52 @@ func TestSchemaToAimlWritesDotIds(t *testing.T) {
 		if !strings.Contains(ann, want) {
 			t.Fatalf("ConvertSchemaToAiml() =\n%s\nwant substring %q", ann, want)
 		}
+	}
+}
+
+func TestSchemaToAimlSkipsInternalDesignerProperties(t *testing.T) {
+	source := `{"Properties":{"$Name":"Screen1","Uuid":"0","TutorialURL":"https://example.invalid","BlocksToolkit":"{}","$Components":[]}}`
+
+	ann, err := NewSchemaParser(source).ConvertSchemaToAiml()
+	if err != nil {
+		t.Fatalf("ConvertSchemaToAiml() error = %v", err)
+	}
+	for _, forbidden := range []string{"Uuid", "TutorialURL", "BlocksToolkit"} {
+		if strings.Contains(ann, forbidden) {
+			t.Fatalf("ConvertSchemaToAiml() contains internal property %q:\n%s", forbidden, ann)
+		}
+	}
+}
+
+func TestAimlToSchemaUsesCurrentAppInventorVersions(t *testing.T) {
+	source := `Screen.Screen1 { Button.AddButton }`
+
+	schemaText, err := NewAimlParser(source).ConvertAimlToSchema()
+	if err != nil {
+		t.Fatalf("ConvertAimlToSchema() error = %v", err)
+	}
+
+	var schema struct {
+		YaVersion  string `json:"YaVersion"`
+		Properties struct {
+			Version    string `json:"$Version"`
+			Components []struct {
+				Type    string `json:"$Type"`
+				Version string `json:"$Version"`
+			} `json:"$Components"`
+		} `json:"Properties"`
+	}
+	if err := json.Unmarshal([]byte(schemaText), &schema); err != nil {
+		t.Fatalf("generated schema is not JSON: %v\n%s", err, schemaText)
+	}
+	if schema.YaVersion != appInventorYaVersion {
+		t.Fatalf("YaVersion = %q, want %q", schema.YaVersion, appInventorYaVersion)
+	}
+	if schema.Properties.Version != appInventorComponentVersion("Screen") {
+		t.Fatalf("Form $Version = %q, want %q", schema.Properties.Version, appInventorComponentVersion("Screen"))
+	}
+	if len(schema.Properties.Components) != 1 || schema.Properties.Components[0].Version != appInventorComponentVersion("Button") {
+		t.Fatalf("Button component version not current: %#v", schema.Properties.Components)
 	}
 }
 

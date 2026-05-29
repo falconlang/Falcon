@@ -11,7 +11,7 @@ import (
 	"Falcon/design"
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
+	"errors"
 	"net"
 	"os"
 	"os/signal"
@@ -58,7 +58,7 @@ func compileMistToYail(source, fileName string, typeMap map[string][]string, rev
 func compileFalconSnippet(code string, typeMap map[string][]string, reverseMap map[string]string) (yail string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("%v", r)
+			err = panicErr(r)
 		}
 	}()
 	yail = compileMistToYail(code, "<eval>", typeMap, reverseMap)
@@ -94,40 +94,40 @@ type replResponse struct {
 func companionRun(mistFile, annFile string) {
 	annBytes, err := os.ReadFile(annFile)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error reading ann file:", err)
+		writeLine(os.Stderr, "error reading ann file:", err)
 		os.Exit(1)
 	}
 	annSource := string(annBytes)
 
 	screen, err := design.ParseAnn(annSource)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error parsing ann file:", err)
+		writeLine(os.Stderr, "error parsing ann file:", err)
 		os.Exit(1)
 	}
 	typeMap, reverseMap := design.ExtractComponents(screen)
 
 	mistBytes, err := os.ReadFile(mistFile)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error reading mist file:", err)
+		writeLine(os.Stderr, "error reading mist file:", err)
 		os.Exit(1)
 	}
 	codeYail := compileMistToYail(string(mistBytes), filepath.Base(mistFile), typeMap, reverseMap)
 
 	fullYail, err := design.NewAnnYailConverter().ConvertAnnToReplYail(annSource, codeYail)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error generating YAIL:", err)
+		writeLine(os.Stderr, "error generating YAIL:", err)
 		os.Exit(1)
 	}
 	replYail := wrapForRepl(fullYail)
 
-	fmt.Println("=== Generated REPL YAIL ===")
-	fmt.Println(replYail)
-	fmt.Println("===========================")
+	writeLine(os.Stdout, "=== Generated REPL YAIL ===")
+	writeLine(os.Stdout, replYail)
+	writeLine(os.Stdout, "===========================")
 
-	var code string
-	fmt.Print("Enter companion code: ")
-	if _, err := fmt.Scan(&code); err != nil {
-		fmt.Fprintln(os.Stderr, "error reading code:", err)
+	writeText(os.Stdout, "Enter companion code: ")
+	code, err := readWord(os.Stdin)
+	if err != nil {
+		writeLine(os.Stderr, "error reading code:", err)
 		os.Exit(1)
 	}
 
@@ -135,26 +135,26 @@ func companionRun(mistFile, annFile string) {
 	var doneOnce sync.Once
 	repl := NewRepl(code, DefaultRendezvous, 60,
 		func(c *webrtc.DataChannel) {
-			fmt.Println("Companion connected! Sending YAIL...")
+			writeLine(os.Stdout, "Companion connected! Sending YAIL...")
 			if err := c.SendText(replYail); err != nil {
-				fmt.Fprintln(os.Stderr, "send error:", err)
+				writeLine(os.Stderr, "send error:", err)
 			}
 		},
 		func(graceful bool) {
 			if graceful {
-				fmt.Println("Companion disconnected gracefully.")
+				writeLine(os.Stdout, "Companion disconnected gracefully.")
 			} else {
-				fmt.Println("Companion disconnected unexpectedly.")
+				writeLine(os.Stdout, "Companion disconnected unexpectedly.")
 			}
 			doneOnce.Do(func() { close(done) })
 		},
 		func(msg webrtc.DataChannelMessage) {
-			fmt.Printf("=> %s\n", formatReplResponse(msg.Data))
+			writeLine(os.Stdout, "=> "+formatReplResponse(msg.Data))
 		},
 	)
 
 	if err := repl.Connect(); err != nil {
-		fmt.Fprintln(os.Stderr, "connect error:", err)
+		writeLine(os.Stderr, "connect error:", err)
 		os.Exit(1)
 	}
 
@@ -171,14 +171,14 @@ func companionRun(mistFile, annFile string) {
 func companionServe(mistFile, annFile string) {
 	annBytes, err := os.ReadFile(annFile)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error reading ann file:", err)
+		writeLine(os.Stderr, "error reading ann file:", err)
 		os.Exit(1)
 	}
 	annSource := string(annBytes)
 
 	screen, err := design.ParseAnn(annSource)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error parsing ann file:", err)
+		writeLine(os.Stderr, "error parsing ann file:", err)
 		os.Exit(1)
 	}
 	typeMap, reverseMap := design.ExtractComponents(screen)
@@ -188,22 +188,22 @@ func companionServe(mistFile, annFile string) {
 	if mistFile != "" {
 		mistBytes, err := os.ReadFile(mistFile)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "error reading mist file:", err)
+			writeLine(os.Stderr, "error reading mist file:", err)
 			os.Exit(1)
 		}
 		codeYail = compileMistToYail(string(mistBytes), filepath.Base(mistFile), typeMap, reverseMap)
 	}
 	fullYail, err := design.NewAnnYailConverter().ConvertAnnToReplYail(annSource, codeYail)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error generating YAIL:", err)
+		writeLine(os.Stderr, "error generating YAIL:", err)
 		os.Exit(1)
 	}
 	initYail := wrapForRepl(fullYail)
 
-	var code string
-	fmt.Print("Enter companion code: ")
-	if _, err := fmt.Scan(&code); err != nil {
-		fmt.Fprintln(os.Stderr, "error reading code:", err)
+	writeText(os.Stdout, "Enter companion code: ")
+	code, err := readWord(os.Stdin)
+	if err != nil {
+		writeLine(os.Stderr, "error reading code:", err)
 		os.Exit(1)
 	}
 
@@ -212,51 +212,51 @@ func companionServe(mistFile, annFile string) {
 	var disconnectedOnce sync.Once
 	repl := NewRepl(code, DefaultRendezvous, 60,
 		func(c *webrtc.DataChannel) {
-			fmt.Println("Companion connected! Sending initial YAIL...")
+			writeLine(os.Stdout, "Companion connected! Sending initial YAIL...")
 			if err := c.SendText(initYail); err != nil {
-				fmt.Fprintln(os.Stderr, "init send error:", err)
+				writeLine(os.Stderr, "init send error:", err)
 			}
 			connected <- c
 		},
 		func(graceful bool) {
-			fmt.Println("Companion disconnected.")
+			writeLine(os.Stdout, "Companion disconnected.")
 			disconnectedOnce.Do(func() { close(disconnected) })
 		},
 		func(msg webrtc.DataChannelMessage) {
 			select {
 			case companionRespCh <- string(msg.Data):
 			default:
-				fmt.Printf("[companion] %s\n", formatReplResponse(msg.Data))
+				writeLine(os.Stdout, "[companion] "+formatReplResponse(msg.Data))
 			}
 		},
 	)
 
 	if err := repl.Connect(); err != nil {
-		fmt.Fprintln(os.Stderr, "connect error:", err)
+		writeLine(os.Stderr, "connect error:", err)
 		os.Exit(1)
 	}
 
 	ch, err := waitForDataChannel(connected, 15*time.Second)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "connect error:", err)
+		writeLine(os.Stderr, "connect error:", err)
 		os.Exit(1)
 	}
 
 	// Drain the initial setup response so it doesn't pollute the first eval
 	select {
 	case resp := <-companionRespCh:
-		fmt.Printf("[setup] %s\n", formatReplResponse([]byte(resp)))
+		writeLine(os.Stdout, "[setup] "+formatReplResponse([]byte(resp)))
 	case <-time.After(5 * time.Second):
-		fmt.Println("[setup] No response from companion (continuing)")
+		writeLine(os.Stdout, "[setup] No response from companion (continuing)")
 	}
 
 	ln, err := listenUnixSocket(socketPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "socket listen error:", err)
+		writeLine(os.Stderr, "socket listen error:", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("Ready. Listening on", socketPath)
+	writeLine(os.Stdout, "Ready. Listening on", socketPath)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -284,7 +284,7 @@ func waitForDataChannel(connected <-chan *webrtc.DataChannel, timeout time.Durat
 	case ch := <-connected:
 		return ch, nil
 	case <-time.After(timeout):
-		return nil, fmt.Errorf("timeout waiting for WebRTC data channel")
+		return nil, errors.New("timeout waiting for WebRTC data channel")
 	}
 }
 
@@ -297,11 +297,11 @@ func listenUnixSocket(path string) (net.Listener, error) {
 	conn, dialErr := net.DialTimeout("unix", path, 200*time.Millisecond)
 	if dialErr == nil {
 		conn.Close()
-		return nil, fmt.Errorf("%s is already in use", path)
+		return nil, errors.New(path + " is already in use")
 	}
 
 	if removeErr := os.Remove(path); removeErr != nil && !os.IsNotExist(removeErr) {
-		return nil, fmt.Errorf("remove stale socket: %w", removeErr)
+		return nil, wrapError("remove stale socket", removeErr)
 	}
 	ln, listenErr := net.Listen("unix", path)
 	if listenErr != nil {
@@ -370,13 +370,13 @@ func handleEvalConn(conn net.Conn, ch *webrtc.DataChannel, mistFile, annFile str
 func buildRefreshYail(mistFile, annFile string, typeMap map[string][]string, reverseMap map[string]string) (result string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("%v", r)
+			err = panicErr(r)
 		}
 	}()
 
 	annBytes, readErr := os.ReadFile(annFile)
 	if readErr != nil {
-		return "", fmt.Errorf("read ann: %w", readErr)
+		return "", wrapError("read ann", readErr)
 	}
 	annSource := string(annBytes)
 
@@ -384,7 +384,7 @@ func buildRefreshYail(mistFile, annFile string, typeMap map[string][]string, rev
 	if mistFile != "" {
 		mistBytes, readErr := os.ReadFile(mistFile)
 		if readErr != nil {
-			return "", fmt.Errorf("read mist: %w", readErr)
+			return "", wrapError("read mist", readErr)
 		}
 		codeYail = compileMistToYail(string(mistBytes), filepath.Base(mistFile), typeMap, reverseMap)
 	}

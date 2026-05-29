@@ -3,6 +3,7 @@ package design
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"strconv"
 )
 
@@ -20,6 +21,9 @@ func (p *XmlParser) ConvertXmlToSchema() (string, error) {
 	if err := xml.Unmarshal([]byte(p.xmlContent), &screen); err != nil {
 		return "", err
 	}
+	if screen.Type != "Screen" {
+		return "", errors.New("root XML element must be Screen")
+	}
 	var components []interface{}
 	for _, child := range screen.Children {
 		components = append(components, p.componentToJson(child))
@@ -28,7 +32,7 @@ func (p *XmlParser) ConvertXmlToSchema() (string, error) {
 	props := map[string]interface{}{
 		"$Name":       screen.Id,
 		"$Type":       "Form",
-		"$Version":    "31",
+		"$Version":    appInventorComponentVersion("Screen"),
 		"$Components": components,
 	}
 	// add Screen's properties here
@@ -38,7 +42,7 @@ func (p *XmlParser) ConvertXmlToSchema() (string, error) {
 
 	schema := map[string]interface{}{
 		"authURL":    []interface{}{"ai2.appinventor.mit.edu"},
-		"YaVersion":  "200",
+		"YaVersion":  appInventorYaVersion,
 		"Source":     "Form",
 		"Properties": props,
 	}
@@ -62,8 +66,8 @@ func (p *XmlParser) componentToJson(component Component) interface{} {
 	}
 	schema := map[string]interface{}{
 		"$Name":    compId,
-		"$Type":    component.Type,
-		"$Version": "32",
+		"$Type":    dbCompType(component.Type),
+		"$Version": appInventorComponentVersion(component.Type),
 	}
 	if len(children) > 0 {
 		schema["$Components"] = children

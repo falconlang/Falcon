@@ -255,7 +255,10 @@ func xmlToMist(this js.Value, p []js.Value) any {
 			return js.ValueOf("No XML content provided")
 		}
 		xmlContent := p[0].String()
-		exprs := blocklyParser.NewParser(xmlContent).GenerateAST()
+		exprs, err := blocklyParser.NewParser(xmlContent).TryGenerateAST()
+		if err != nil {
+			panic(err)
+		}
 		var builder strings.Builder
 
 		for _, expr := range exprs {
@@ -269,6 +272,49 @@ func xmlToMist(this js.Value, p []js.Value) any {
 		}
 		return js.ValueOf(builder.String())
 	})
+}
+
+func xmlToMistWithDiagnostics(this js.Value, p []js.Value) any {
+	if len(p) < 1 {
+		msg := "No XML content provided"
+		return diagnosticResult(false, "blocks", "Screen1.bky", msg, nil, map[string]any{"source": ""})
+	}
+
+	xmlContent := p[0].String()
+	var source string
+	var raw string
+	var diagnostics []wasmDiagnostic
+	ok := true
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				raw, diagnostics = diagnosticsForRecover(r, "blocks", "Screen1.bky")
+				ok = false
+			}
+		}()
+
+		exprs, err := blocklyParser.NewParser(xmlContent).TryGenerateAST()
+		if err != nil {
+			raw = err.Error()
+			diagnostics = fallbackDiagnostic(raw, "blocks", "Screen1.bky")
+			ok = false
+			return
+		}
+
+		var builder strings.Builder
+		for _, expr := range exprs {
+			builder.WriteString(expr.String())
+			builder.WriteString("\n")
+
+			block := expr.Blockly(true)
+			if block.Order() > 0 {
+				builder.WriteString("\n")
+			}
+		}
+		source = builder.String()
+	}()
+
+	return diagnosticResult(ok, "blocks", "Screen1.bky", raw, diagnostics, map[string]any{"source": source})
 }
 
 func convertSchemaToAiml(this js.Value, p []js.Value) any {
@@ -380,9 +426,42 @@ func blocklyToYail(this js.Value, p []js.Value) any {
 		if len(p) < 1 {
 			return js.ValueOf("blocklyToYail(xmlContent) not provided!")
 		}
-		yail := blocklyYail.NewParser(p[0].String()).GenerateYAIL()
+		yail, err := blocklyYail.NewParser(p[0].String()).TryGenerateYAIL()
+		if err != nil {
+			panic(err)
+		}
 		return js.ValueOf(yail)
 	})
+}
+
+func blocklyToYailWithDiagnostics(this js.Value, p []js.Value) any {
+	if len(p) < 1 {
+		msg := "blocklyToYail(xmlContent) not provided!"
+		return diagnosticResult(false, "blocks", "Screen1.bky", msg, nil, map[string]any{"yail": ""})
+	}
+
+	var yail string
+	var raw string
+	var diagnostics []wasmDiagnostic
+	ok := true
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				raw, diagnostics = diagnosticsForRecover(r, "blocks", "Screen1.bky")
+				ok = false
+			}
+		}()
+
+		var err error
+		yail, err = blocklyYail.NewParser(p[0].String()).TryGenerateYAIL()
+		if err != nil {
+			raw = err.Error()
+			diagnostics = fallbackDiagnostic(raw, "blocks", "Screen1.bky")
+			ok = false
+		}
+	}()
+
+	return diagnosticResult(ok, "blocks", "Screen1.bky", raw, diagnostics, map[string]any{"yail": yail})
 }
 
 // describeComponent returns a JSON string with the full metadata for a component
@@ -510,11 +589,13 @@ func main() {
 	js.Global().Set("mistToXmlWithDiagnostics", js.FuncOf(mistToXmlWithDiagnostics))
 	js.Global().Set("getComponentDefinitionsCode", js.FuncOf(getComponentDefinitionsCode))
 	js.Global().Set("xmlToMist", js.FuncOf(xmlToMist))
+	js.Global().Set("xmlToMistWithDiagnostics", js.FuncOf(xmlToMistWithDiagnostics))
 	js.Global().Set("schemaToAiml", js.FuncOf(convertSchemaToAiml))
 	js.Global().Set("aimlToSchema", js.FuncOf(convertAimlToSchema))
 	js.Global().Set("annToYail", js.FuncOf(annToYail))
 	js.Global().Set("annToYailWithDiagnostics", js.FuncOf(annToYailWithDiagnostics))
 	js.Global().Set("blocklyToYail", js.FuncOf(blocklyToYail))
+	js.Global().Set("blocklyToYailWithDiagnostics", js.FuncOf(blocklyToYailWithDiagnostics))
 	js.Global().Set("runCode", js.FuncOf(runCode))
 	js.Global().Set("runCodeWithDiagnostics", js.FuncOf(runCodeWithDiagnostics))
 	js.Global().Set("describeComponent", js.FuncOf(describeComponent))

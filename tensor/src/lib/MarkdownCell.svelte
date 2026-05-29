@@ -28,7 +28,8 @@
   function safeHref(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
-    if (raw.startsWith('#') || raw.startsWith('/')) return raw;
+    if (raw.startsWith('#')) return raw;
+    if (raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\')) return raw;
     try {
       const url = new URL(raw, window.location.href);
       return ['http:', 'https:', 'mailto:', 'tel:'].includes(url.protocol) ? raw : '';

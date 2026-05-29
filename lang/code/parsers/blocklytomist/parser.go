@@ -12,6 +12,7 @@ import (
 	"Falcon/code/ast/variables"
 	"Falcon/code/lex"
 	"encoding/xml"
+	"errors"
 	"strconv"
 	"strings"
 )
@@ -57,7 +58,31 @@ func NewParser(xmlContent string) *Parser {
 }
 
 func (p *Parser) GenerateAST() []ast.Expr {
-	return p.parseAllBlocks(p.decodeXML())
+	exprs, err := p.TryGenerateAST()
+	if err != nil {
+		panic(err)
+	}
+	return exprs
+}
+
+func (p *Parser) TryGenerateAST() (exprs []ast.Expr, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = recoveredError(r)
+			exprs = nil
+		}
+	}()
+	return p.parseAllBlocks(p.decodeXML()), nil
+}
+
+func recoveredError(r any) error {
+	if err, ok := r.(error); ok {
+		return err
+	}
+	if msg, ok := r.(string); ok {
+		return errors.New(msg)
+	}
+	return errors.New("unknown parser error")
 }
 
 func (p *Parser) decodeXML() []ast.Block {
@@ -75,6 +100,9 @@ func (p *Parser) decodeXML() []ast.Block {
 func (p *Parser) parseAllBlocks(allBlocks []ast.Block) []ast.Expr {
 	var parsedBlocks []ast.Expr
 	for i := range allBlocks {
+		if allBlocks[i].Disabled {
+			continue
+		}
 		parsedBlocks = append(parsedBlocks, p.recursiveParse(allBlocks[i])...)
 	}
 	return parsedBlocks
@@ -88,6 +116,9 @@ func (p *Parser) singleExpr(block ast.Block) ast.Expr {
 }
 
 func (p *Parser) parseBlock(block ast.Block) ast.Expr {
+	if block.Disabled {
+		return &common.EmptySocket{}
+	}
 	switch block.Type {
 	case "controls_if":
 		return p.ctrlIf(block)
@@ -627,6 +658,9 @@ func (p *Parser) variableSet(block ast.Block) ast.Expr {
 }
 
 func (p *Parser) variableGet(block ast.Block) ast.Expr {
+	if len(block.Fields) == 0 {
+		return &common.EmptySocket{}
+	}
 	varName := block.Fields[0].Name
 	if varName == "VAR" {
 		varName = block.SingleField()
@@ -1113,7 +1147,7 @@ func makeToken(symbol string) *lex.Token {
 }
 
 func (p *Parser) optSingleBody(block ast.Block) []ast.Expr {
-	if len(block.Statements) > 0 {
+	if len(block.Statements) > 0 && block.SingleStatement().Block != nil {
 		return p.recursiveParse(*block.SingleStatement().Block)
 	}
 	return []ast.Expr{}
@@ -1134,7 +1168,9 @@ func (p *Parser) makeStatementMap(allStatements []ast.Statement) StatementMap {
 func (p *Parser) recursiveParse(currBlock ast.Block) []ast.Expr {
 	var pParsed []ast.Expr
 	for {
-		pParsed = append(pParsed, p.parseBlock(currBlock))
+		if !currBlock.Disabled {
+			pParsed = append(pParsed, p.parseBlock(currBlock))
+		}
 		if currBlock.Next == nil || currBlock.Next.Block == nil {
 			break
 		}

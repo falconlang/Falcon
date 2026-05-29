@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "build:wasm": "cd ../lang && GOCACHE=${GOCACHE:-/tmp/falcon-go-build-cache} GOOS=js GOARCH=wasm go build -o web/falcon.wasm && cp web/falcon.wasm ../tensor/public/falcon.wasm",
+    "dev": "npm run build:wasm && vite",
+    "build": "npm run build:wasm && vite build",
     "test": "node --test tests/*.test.js",
     "preview": "vite preview"
   },

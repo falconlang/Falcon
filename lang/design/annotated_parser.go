@@ -2,7 +2,6 @@ package design
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 	"unicode"
@@ -21,7 +20,7 @@ type AnnParseError struct {
 }
 
 func (e *AnnParseError) Error() string {
-	return fmt.Sprintf("%s at position %d", e.Message, e.Position)
+	return e.Message + " at position " + strconv.Itoa(e.Position)
 }
 
 type AnnDiagnostic struct {
@@ -61,7 +60,7 @@ func (p *AimlParser) ConvertAimlToSchema() (string, error) {
 	props := map[string]interface{}{
 		"$Name":       screen.Id,
 		"$Type":       "Form",
-		"$Version":    "31",
+		"$Version":    appInventorComponentVersion("Screen"),
 		"$Components": components,
 	}
 	for k, v := range screen.Properties {
@@ -70,7 +69,7 @@ func (p *AimlParser) ConvertAimlToSchema() (string, error) {
 
 	schema := map[string]interface{}{
 		"authURL":    []interface{}{"ai2.appinventor.mit.edu"},
-		"YaVersion":  "200",
+		"YaVersion":  appInventorYaVersion,
 		"Source":     "Form",
 		"Properties": props,
 	}
@@ -106,8 +105,8 @@ func (p *AimlParser) componentToJson(component Component) interface{} {
 	}
 	schema := map[string]interface{}{
 		"$Name":    compId,
-		"$Type":    component.Type,
-		"$Version": "32",
+		"$Type":    dbCompType(component.Type),
+		"$Version": appInventorComponentVersion(component.Type),
 	}
 	if len(children) > 0 {
 		schema["$Components"] = children
@@ -143,7 +142,7 @@ func (p *AimlParser) parseComponent() (Component, error) {
 		idStart := p.pos
 		comp.Id = p.readIdentifier()
 		if comp.Id == "" {
-			return Component{}, p.parseError("expected component id after %s.", typeName)
+			return Component{}, p.parseError("expected component id after " + typeName + ".")
 		}
 		comp.idPosition = idStart
 		p.skipWhitespace()
@@ -153,7 +152,7 @@ func (p *AimlParser) parseComponent() (Component, error) {
 		if comp.Id != "" {
 			return comp, nil
 		}
-		return Component{}, p.parseError("expected '{' after %s", typeName)
+		return Component{}, p.parseError("expected '{' after " + typeName)
 	}
 	p.pos++
 
@@ -188,7 +187,7 @@ func (p *AimlParser) parseComponent() (Component, error) {
 		keyStart := p.pos
 		key := p.readIdentifier()
 		if key == "" {
-			return Component{}, p.parseError("unexpected character %q", string(p.source[p.pos]))
+			return Component{}, p.parseError("unexpected character " + strconv.Quote(string(p.source[p.pos])))
 		}
 		p.skipWhitespace()
 		if p.pos >= len(p.source) || p.source[p.pos] != ':' {
@@ -219,7 +218,7 @@ func (p *AimlParser) parseComponent() (Component, error) {
 		}
 		value, err = normalizeAnnPropertyValue(key, value)
 		if err != nil {
-			return Component{}, p.parseError("%s", err.Error())
+			return Component{}, p.parseError(err.Error())
 		}
 
 		if key == "id" {
@@ -243,8 +242,8 @@ func (p *AimlParser) parseComponent() (Component, error) {
 	return comp, nil
 }
 
-func (p *AimlParser) parseError(message string, args ...any) error {
-	return &AnnParseError{Message: fmt.Sprintf(message, args...), Position: p.pos}
+func (p *AimlParser) parseError(message string) error {
+	return &AnnParseError{Message: message, Position: p.pos}
 }
 
 func (p *AimlParser) readIdentifier() string {
@@ -304,7 +303,7 @@ func annColorLiteralToIntString(value string) (string, bool, error) {
 	}
 	color, err := strconv.ParseUint(argbHex, 16, 32)
 	if err != nil {
-		return "", true, fmt.Errorf("invalid color literal %q", value)
+		return "", true, invalidColorLiteral(value)
 	}
 	return strconv.FormatInt(int64(int32(color)), 10), true, nil
 }
@@ -318,10 +317,10 @@ func annColorLiteralToARGBHex(value string) (string, bool, error) {
 
 	if strings.HasPrefix(lower, "&h") || strings.HasPrefix(lower, "#x") {
 		hex := raw[2:]
-		if len(hex) == 0 || len(hex) > 8 || !isHexDigits(hex) {
-			return "", true, fmt.Errorf("invalid color literal %q", value)
+		if len(hex) != 8 || !isHexDigits(hex) {
+			return "", true, invalidColorLiteral(value)
 		}
-		return strings.ToUpper(leftPadHex(hex, 8)), true, nil
+		return strings.ToUpper(hex), true, nil
 	}
 
 	if !strings.HasPrefix(raw, "#") {
@@ -330,7 +329,7 @@ func annColorLiteralToARGBHex(value string) (string, bool, error) {
 
 	hex := raw[1:]
 	if len(hex) == 0 || !isHexDigits(hex) {
-		return "", true, fmt.Errorf("invalid color literal %q", value)
+		return "", true, invalidColorLiteral(value)
 	}
 
 	switch len(hex) {
@@ -353,11 +352,8 @@ func annColorLiteralToARGBHex(value string) (string, bool, error) {
 	case 8:
 		// App Inventor's picker works with #RRGGBBAA, then serializes AARRGGBB.
 		return strings.ToUpper(hex[6:8] + hex[0:6]), true, nil
-	case 1, 2, 5:
-		// Be forgiving for hand-written short RGB values such as #FFFFF.
-		return strings.ToUpper("FF" + leftPadHex(hex, 6)), true, nil
 	default:
-		return "", true, fmt.Errorf("invalid color literal %q", value)
+		return "", true, invalidColorLiteral(value)
 	}
 }
 
@@ -368,13 +364,6 @@ func isHexDigits(value string) bool {
 		}
 	}
 	return true
-}
-
-func leftPadHex(value string, digits int) string {
-	if len(value) >= digits {
-		return value
-	}
-	return strings.Repeat("0", digits-len(value)) + value
 }
 
 func (p *AimlParser) readString() (string, error) {

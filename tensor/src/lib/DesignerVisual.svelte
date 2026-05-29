@@ -16,6 +16,13 @@
     renameListViewDataAsset,
     serializeListViewData,
   } from './listview-data.js';
+  import {
+    appInventorAssetNameError,
+    appInventorNameError,
+    isValidComponentName,
+    isValidScreenName,
+    normalizeAppInventorAssetName,
+  } from './appinventor-validation.js';
 
   export let schemaValue = '';
   const dispatch = createEventDispatcher();
@@ -440,6 +447,9 @@
         typeCounts[type] = (typeCounts[type] || 0) + 1;
         name = `${type}${typeCounts[type]}`;
       }
+      const isRootType = type === 'Screen' || type === 'Form';
+      const validName = isRootType ? isValidScreenName(name) : isValidComponentName(name);
+      if (!validName) fail(appInventorNameError(name, { component: !isRootType }));
       return { type, name, props: {}, children: [], pathId };
     }
 
@@ -976,8 +986,6 @@
     tick().then(() => { renameInputEl?.focus(); renameInputEl?.select(); });
   }
 
-  const COMPONENT_NAME_RE = /^[a-zA-Z][a-zA-Z0-9_]*$/;
-
   function commitRename() {
     if (!renamingPathId || !mutableTree) { renamingPathId = null; renameError = ''; return; }
     const targetPathId = renamingPathId;
@@ -988,8 +996,9 @@
       tick().then(() => renameInputEl?.focus());
       return;
     }
-    if (!COMPONENT_NAME_RE.test(value)) {
-      renameError = 'Letters, numbers, underscores only; must start with a letter.';
+    const nameError = appInventorNameError(value, { component: true });
+    if (nameError || !isValidComponentName(value)) {
+      renameError = nameError || 'Invalid App Inventor component name.';
       tick().then(() => renameInputEl?.focus());
       return;
     }
@@ -1123,7 +1132,7 @@
   }
 
   function cleanAssetName(name) {
-    return String(name || '').trim().replace(/[\\/]+/g, '-');
+    return normalizeAppInventorAssetName(name);
   }
 
   function assetNameExists(name, exceptId = null) {
@@ -1192,6 +1201,12 @@
     const clean = cleanAssetName(assetRenameValue);
     if (!clean) {
       assetRenameError = 'Name is required.';
+      tick().then(() => assetRenameInputEl?.focus());
+      return;
+    }
+    const assetNameError = appInventorAssetNameError(clean);
+    if (assetNameError) {
+      assetRenameError = assetNameError;
       tick().then(() => assetRenameInputEl?.focus());
       return;
     }

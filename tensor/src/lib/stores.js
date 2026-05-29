@@ -5,6 +5,10 @@ import {
   normalizeProjectProperties,
   withProjectPropertyValue,
 } from './project-properties.js';
+import {
+  isValidAppInventorAssetName,
+  normalizeAppInventorAssetName,
+} from './appinventor-validation.js';
 import { isDebugTraceValue, lineMapEntryForUnifiedLine } from './debug-source-map.js';
 
 export const initialDesignCode = `Screen.Screen1 { Title: "Calculator",
@@ -846,7 +850,7 @@ function assetNameFrom(input) {
 }
 
 function normalizeAssetName(name) {
-  return String(name || '').trim().replace(/[\\/]+/g, '-');
+  return normalizeAppInventorAssetName(name);
 }
 
 function splitAssetName(name) {
@@ -857,7 +861,7 @@ function splitAssetName(name) {
 
 function uniqueAssetName(name, assets, exceptId = null) {
   const clean = normalizeAssetName(name);
-  if (!clean) return '';
+  if (!clean || !isValidAppInventorAssetName(clean)) return '';
   const existing = new Set(
     assets
       .filter(asset => (typeof asset === 'string' ? asset : asset.id) !== exceptId)
@@ -867,12 +871,21 @@ function uniqueAssetName(name, assets, exceptId = null) {
 
   const { base, ext } = splitAssetName(clean);
   let n = 2;
-  let next = `${base} ${n}${ext}`;
+  let next = `${base}_${n}${ext}`;
   while (existing.has(next)) {
     n += 1;
-    next = `${base} ${n}${ext}`;
+    next = `${base}_${n}${ext}`;
   }
   return next;
+}
+
+function replaceProjectAssetReference(oldName, nextName) {
+  if (!oldName) return;
+  projectProperties.update(properties => {
+    const normalized = normalizeProjectProperties(properties);
+    if (normalized.Icon !== oldName) return properties;
+    return { ...normalized, Icon: nextName || '' };
+  });
 }
 
 function createAssetRecord(fileOrName, name, existingAssets) {
@@ -921,18 +934,21 @@ export function addDesignAsset(fileOrName) {
 
 export function renameDesignAsset(assetId, nextName) {
   let renamed = null;
+  let oldName = '';
   designAssets.update(assets => {
     const clean = uniqueAssetName(nextName, assets, assetId);
     if (!clean) return assets;
     return assets.map(asset => {
       const id = typeof asset === 'string' ? asset : asset.id;
       if (id !== assetId && assetNameFrom(asset) !== assetId) return asset;
+      oldName = assetNameFrom(asset);
       renamed = typeof asset === 'string'
         ? { id: clean, name: clean, size: 0, type: '', blob: null, url: '' }
         : { ...asset, name: clean };
       return renamed;
     });
   });
+  if (renamed?.name && oldName) replaceProjectAssetReference(oldName, renamed.name);
   return renamed;
 }
 
@@ -953,6 +969,8 @@ export function deleteDesignAsset(assetId) {
     }
     return next;
   });
+  const removedName = assetNameFrom(removed);
+  if (removedName) replaceProjectAssetReference(removedName, '');
   return typeof removed === 'string'
     ? { id: removed, name: removed, size: 0, type: '', blob: null, url: '' }
     : removed;

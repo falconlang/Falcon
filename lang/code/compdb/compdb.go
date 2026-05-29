@@ -3,7 +3,8 @@ package compdb
 import (
 	_ "embed"
 	"encoding/json"
-	"fmt"
+	"errors"
+	"strconv"
 	"strings"
 )
 
@@ -13,15 +14,17 @@ var simpleComponentsJSON []byte
 // ── JSON types ────────────────────────────────────────────────────────────────
 
 type scComponent struct {
-	Name            string       `json:"name"`
-	Type            string       `json:"type"`
-	CategoryString  string       `json:"categoryString"`
-	NonVisible      string       `json:"nonVisible"`
-	HelpString      string       `json:"helpString"`
-	ShowOnPalette   string       `json:"showOnPalette"`
-	BlockProperties []scProperty `json:"blockProperties"`
-	Methods         []scMethod   `json:"methods"`
-	Events          []scEvent    `json:"events"`
+	Name            string               `json:"name"`
+	Type            string               `json:"type"`
+	Version         string               `json:"version"`
+	CategoryString  string               `json:"categoryString"`
+	NonVisible      string               `json:"nonVisible"`
+	HelpString      string               `json:"helpString"`
+	ShowOnPalette   string               `json:"showOnPalette"`
+	BlockProperties []scProperty         `json:"blockProperties"`
+	Properties      []scDesignerProperty `json:"properties"`
+	Methods         []scMethod           `json:"methods"`
+	Events          []scEvent            `json:"events"`
 }
 
 type scProperty struct {
@@ -32,6 +35,12 @@ type scProperty struct {
 	Description string    `json:"description"`
 	Category    string    `json:"category"`
 	Helper      *scHelper `json:"helper,omitempty"`
+}
+
+type scDesignerProperty struct {
+	Name         string `json:"name"`
+	EditorType   string `json:"editorType"`
+	DefaultValue string `json:"defaultValue"`
 }
 
 type scMethod struct {
@@ -197,6 +206,47 @@ func (db *CompDB) GetFQCN(shortName string) string {
 	return shortName
 }
 
+// IsKnownComponent reports whether the component database has metadata for the
+// short component name.
+func (db *CompDB) IsKnownComponent(shortName string) bool {
+	_, ok := db.components[shortName]
+	return ok
+}
+
+// ComponentVersion returns the current App Inventor component version, falling
+// back to "1" for unknown extension types.
+func (db *CompDB) ComponentVersion(shortName string) string {
+	if comp, ok := db.components[shortName]; ok && comp.Version != "" {
+		return comp.Version
+	}
+	return "1"
+}
+
+// IsNonVisible reports whether the component is marked non-visible in the
+// component database.
+func (db *CompDB) IsNonVisible(shortName string) bool {
+	return db.components[shortName].NonVisible == "true"
+}
+
+// CategoryString returns the App Inventor palette category for a component.
+func (db *CompDB) CategoryString(shortName string) string {
+	return db.components[shortName].CategoryString
+}
+
+// DesignerPropertyDefault returns a designer property's default value.
+func (db *CompDB) DesignerPropertyDefault(compType, propName string) (string, bool) {
+	comp, ok := db.components[compType]
+	if !ok {
+		return "", false
+	}
+	for _, prop := range comp.Properties {
+		if prop.Name == propName {
+			return prop.DefaultValue, true
+		}
+	}
+	return "", false
+}
+
 // GetPropType returns the YAIL type for a component property (e.g. "number",
 // "text", "boolean"), falling back to "any".
 func (db *CompDB) GetPropType(compType, propName string) string {
@@ -246,20 +296,31 @@ func (db *CompDB) GetOptionList(key string) *OptionList {
 // component type is unknown (can't validate extensions). When the property is not
 // found, the error includes a "did you mean" hint if a case-insensitive match exists.
 func (db *CompDB) ValidateProperty(compType, propName string) error {
-	pm := db.propType[compType]
-	if pm == nil {
+	comp, known := db.components[compType]
+	if !known {
 		return nil // unknown component — extension or unmapped type
 	}
+	pm := db.propType[compType]
 	if pm[propName] != "" {
 		return nil
+	}
+	for _, prop := range comp.Properties {
+		if prop.Name == propName {
+			return nil
+		}
 	}
 	lower := strings.ToLower(propName)
 	for k := range pm {
 		if strings.ToLower(k) == lower {
-			return fmt.Errorf("%s: unknown property %q, did you mean %q?", compType, propName, k)
+			return errors.New(compType + ": unknown property " + strconv.Quote(propName) + ", did you mean " + strconv.Quote(k) + "?")
 		}
 	}
-	return fmt.Errorf("%s: unknown property %q", compType, propName)
+	for _, prop := range comp.Properties {
+		if strings.ToLower(prop.Name) == lower {
+			return errors.New(compType + ": unknown property " + strconv.Quote(propName) + ", did you mean " + strconv.Quote(prop.Name) + "?")
+		}
+	}
+	return errors.New(compType + ": unknown property " + strconv.Quote(propName))
 }
 
 // DescribeComponent returns the JSON-encoded description of a component
@@ -291,16 +352,13 @@ func (db *CompDB) ListComponentNames() []string {
 func (db *CompDB) ValidateEvent(compType, eventName string, params []string) error {
 	def, ok := db.events[compType+"."+eventName]
 	if !ok {
-		return fmt.Errorf("component %s has no event %s", compType, eventName)
+		return errors.New("component " + compType + " has no event " + eventName)
 	}
 	if len(params) != len(def.Params) {
 		if len(def.Params) == 0 {
-			return fmt.Errorf("event %s.%s takes no parameters", compType, eventName)
+			return errors.New("event " + compType + "." + eventName + " takes no parameters")
 		}
-		return fmt.Errorf("event %s.%s expects %d parameter(s) (%s) but got %d",
-			compType, eventName,
-			len(def.Params), strings.Join(def.Params, ", "),
-			len(params))
+		return errors.New("event " + compType + "." + eventName + " expects " + strconv.Itoa(len(def.Params)) + " parameter(s) (" + strings.Join(def.Params, ", ") + ") but got " + strconv.Itoa(len(params)))
 	}
 	return nil
 }

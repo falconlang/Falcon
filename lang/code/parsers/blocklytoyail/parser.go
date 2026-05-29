@@ -13,6 +13,7 @@ package blocklytoyail
 import (
 	"Falcon/code/ast"
 	"encoding/xml"
+	"errors"
 	"strconv"
 	"strings"
 	"unicode/utf16"
@@ -34,12 +35,36 @@ func NewParser(xmlContent string) *Parser {
 }
 
 func (p *Parser) GenerateYAIL() string {
+	yail, err := p.TryGenerateYAIL()
+	if err != nil {
+		panic(err)
+	}
+	return yail
+}
+
+func (p *Parser) TryGenerateYAIL() (yail string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = recoveredError(r)
+			yail = ""
+		}
+	}()
 	blocks := p.decodeXML()
 	parts := make([]string, 0, len(blocks))
 	for _, b := range blocks {
 		parts = append(parts, p.genChain(b))
 	}
-	return strings.Join(parts, "\n")
+	return strings.Join(parts, "\n"), nil
+}
+
+func recoveredError(r any) error {
+	if err, ok := r.(error); ok {
+		return err
+	}
+	if msg, ok := r.(string); ok {
+		return errors.New(msg)
+	}
+	return errors.New("unknown parser error")
 }
 
 func (p *Parser) decodeXML() []ast.Block {
@@ -900,10 +925,16 @@ func (p *Parser) genBlock(b ast.Block) string {
 		return "(get-component " + fieldByName(b, "COMPONENT_SELECTOR") + ")"
 	case "component_all_component_block":
 		ct := ""
+		if fieldType := fieldByName(b, "COMPONENT_TYPE_SELECTOR"); fieldType != "" {
+			ct = fieldType
+		}
+		if fieldType := fieldByName(b, "COMPONENT_SELECTOR"); fieldType != "" {
+			ct = fieldType
+		}
 		if b.Mutation != nil {
 			ct = b.Mutation.ComponentType
 		}
-		return "(get-all-components " + ct + ")"
+		return "(get-all-components " + globalDB.GetFQCN(ct) + ")"
 
 	// generators/yail/helpers.js
 	case "helpers_assets", "helpers_screen_names", "helpers_provider", "helpers_providermodel":
@@ -1168,7 +1199,7 @@ func (p *Parser) genComponentMethod(b ast.Block) string {
 	args := make([]string, numArgs)
 	typeList := make([]string, numArgs)
 	for i, a := range argMeta {
-		args[i] = p.genValueSlot(b.Values, "ARG"+strconv.Itoa(i))
+		args[i] = p.vs(b.Values, "ARG"+strconv.Itoa(i), yailNull)
 		typeList[i] = a.Type
 	}
 	argList := ""
@@ -1178,7 +1209,7 @@ func (p *Parser) genComponentMethod(b ast.Block) string {
 	types := strings.Join(typeList, " ")
 
 	if mut.IsGeneric {
-		comp := p.genValueSlot(b.Values, "COMPONENT")
+		comp := p.vs(b.Values, "COMPONENT", yailNull)
 		allTypes := "component"
 		if numArgs > 0 {
 			allTypes += " " + types
@@ -1245,10 +1276,10 @@ func (p *Parser) genComponentProp(b ast.Block) string {
 	propName := fieldByName(b, "PROP")
 	isSet := mut.SetOrGet == "set"
 	if mut.IsGeneric {
-		comp := p.genValueSlot(b.Values, "COMPONENT")
+		comp := p.vs(b.Values, "COMPONENT", yailNull)
 		fqcn := globalDB.GetFQCN(mut.ComponentType)
 		if isSet {
-			val := p.genValueSlot(b.Values, "VALUE")
+			val := p.vs(b.Values, "VALUE", yailNull)
 			propType := globalDB.GetPropType(mut.ComponentType, propName)
 			return "(set-and-coerce-property-and-check! " + comp +
 				" '" + fqcn + " '" + propName + " " + val + " '" + propType + ")"
@@ -1260,7 +1291,7 @@ func (p *Parser) genComponentProp(b ast.Block) string {
 		compName = mut.InstanceName
 	}
 	if isSet {
-		val := p.genValueSlot(b.Values, "VALUE")
+		val := p.vs(b.Values, "VALUE", yailNull)
 		propType := globalDB.GetPropType(mut.ComponentType, propName)
 		return "(set-and-coerce-property! '" + compName + " '" + propName + " " + val + " '" + propType + ")"
 	}

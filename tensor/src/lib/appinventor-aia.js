@@ -1,27 +1,45 @@
 import simpleComponents from '../../../lang/code/compdb/simple_components.json';
 import { getProjectSnapshot } from './stores.js';
 import { mistToXmlResult, xmlToMist } from './falcon-wasm.js';
-import { componentDefinitionsFromDesigner } from './blockly-preview.js';
+import { componentDefinitionsFromDesigner, upgradeBlocklyXml } from './blockly-preview.js';
 import {
   blocklyXmlHasBlockComments,
   blocklyXmlToFalconCodeWithComments,
   injectFalconCommentsIntoBlocklyXml,
 } from './blockly-comments.js';
 import {
-  actionBarForTheme,
+  CURRENT_BLOCKS_LANGUAGE_VERSION as BLOCKS_LANGUAGE_VERSION,
+  CURRENT_YA_VERSION as YA_VERSION,
+  componentDefinitionsFromScmProperties,
+  formJsonForBlockUpgrade,
+  serializeScmJson,
+  upgradeLegacyScmText,
+} from './appinventor-legacy.js';
+import {
   applyProjectPropertiesToScmProperties,
   extractProjectPropertiesFromScmProperties,
   normalizeProjectProperties,
-  projectPropertiesToAiaProperties,
 } from './project-properties.js';
+import {
+  decodeJavaPropertiesBytes,
+  parseProperties,
+  projectPropertiesText,
+  sourceBasePath,
+} from './aia-project-properties.js';
+import {
+  appInventorAssetNameError,
+  appInventorNameError,
+  isAppInventorIdentifier,
+  isReservedAppInventorName,
+  isValidComponentName,
+  isValidScreenName,
+} from './appinventor-validation.js';
 
-const YA_VERSION = '233';
-const BLOCKS_LANGUAGE_VERSION = '37';
-const DEFAULT_USER = 'ai_tensor';
 const DEFAULT_PROJECT = 'TensorProject';
 const PROJECT_PROPERTIES_PATH = 'youngandroidproject/project.properties';
 const SCM_JSON_PREFIX = '#|\n$JSON\n';
 const SCM_JSON_SUFFIX = '\n|#';
+const PRESERVED_BLOCKS_MARKER = 'data-tensor-preserved-blockly';
 
 let jsZipPromise = null;
 
@@ -93,8 +111,10 @@ export function sanitizeProjectName(name) {
     .replace(/[^A-Za-z0-9_]/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_+|_+$/g, '');
-  const safe = clean || DEFAULT_PROJECT;
-  return /^[A-Za-z]/.test(safe) ? safe : `Project_${safe}`;
+  let safe = clean || DEFAULT_PROJECT;
+  if (!/^[A-Za-z]/.test(safe)) safe = `Project_${safe}`;
+  if (!isAppInventorIdentifier(safe) || isReservedAppInventorName(safe)) safe = `${safe}_Project`;
+  return safe;
 }
 
 function sanitizeScreenName(name, fallback = 'Screen1') {
@@ -102,8 +122,10 @@ function sanitizeScreenName(name, fallback = 'Screen1') {
     .replace(/[^A-Za-z0-9_]/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_+|_+$/g, '');
-  const safe = clean || fallback;
-  return /^[A-Za-z]/.test(safe) ? safe : `Screen_${safe}`;
+  let safe = clean || fallback;
+  if (!/^[A-Za-z]/.test(safe)) safe = `Screen_${safe}`;
+  if (!isValidScreenName(safe)) safe = `${safe}_Screen`;
+  return safe;
 }
 
 function uniqueScreenName(name, usedNames, fallback = 'Screen1') {
@@ -121,152 +143,47 @@ function uniqueScreenName(name, usedNames, fallback = 'Screen1') {
 }
 
 function zipPathForAsset(name) {
+  const parts = assetPathParts(name);
+  return `assets/${parts.join('/')}`;
+}
+
+function assetPathParts(name) {
   const parts = String(name || '')
     .replace(/\\/g, '/')
     .split('/')
     .map(part => part.trim())
     .filter(part => part && part !== '.' && part !== '..');
-  return parts.length ? `assets/${parts.join('/')}` : '';
-}
-
-function sourceBasePath(project) {
-  return `src/appinventor/${DEFAULT_USER}/${project}`;
-}
-
-function qualifiedMain(project, screen = 'Screen1') {
-  return `appinventor.${DEFAULT_USER}.${project}.${screen}`;
-}
-
-function parseProperties(text) {
-  const props = {};
-  for (const rawLine of String(text || '').split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('#') || line.startsWith('!')) continue;
-    const index = findPropertySeparator(line);
-    const key = index === -1 ? line : line.slice(0, index).trim();
-    const value = index === -1 ? '' : line.slice(index + 1).trim();
-    if (key) props[unescapePropertyText(key)] = unescapePropertyText(value);
+  if (!parts.length) throw new Error(`Invalid App Inventor asset name "${name}": Name is required.`);
+  for (const part of parts) {
+    const error = appInventorAssetNameError(part);
+    if (error) throw new Error(`Invalid App Inventor asset name "${name}": ${error}`);
   }
-  return props;
+  return parts;
 }
 
-function findPropertySeparator(line) {
-  let escaped = false;
-  for (let i = 0; i < line.length; i += 1) {
-    const ch = line[i];
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (ch === '\\') {
-      escaped = true;
-      continue;
-    }
-    if (ch === ':' || ch === '=') return i;
+function assetNameForImport(pathName, usedNames = null) {
+  const clean = assetPathParts(pathName).join('/');
+  if (!usedNames) return clean;
+
+  const dot = clean.lastIndexOf('.');
+  const base = dot > 0 ? clean.slice(0, dot) : clean;
+  const ext = dot > 0 ? clean.slice(dot) : '';
+  let next = clean;
+  let n = 2;
+  while (usedNames.has(next)) {
+    next = `${base}_${n}${ext}`;
+    n += 1;
   }
-  return -1;
-}
-
-function unescapePropertyText(value) {
-  let out = '';
-  const text = String(value ?? '');
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (ch !== '\\' || i + 1 >= text.length) {
-      out += ch;
-      continue;
-    }
-    const next = text[++i];
-    if (next === 'n') out += '\n';
-    else if (next === 'r') out += '\r';
-    else if (next === 't') out += '\t';
-    else out += next;
-  }
-  return out;
-}
-
-function escapePropertyText(value, { key = false } = {}) {
-  let out = '';
-  const text = String(value ?? '');
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (ch === '\\') out += '\\\\';
-    else if (ch === '\n') out += '\\n';
-    else if (ch === '\r') out += '\\r';
-    else if (ch === '\t') out += '\\t';
-    else if (ch === ':' || ch === '=' || ch === '#' || ch === '!' || (key && /\s/.test(ch))) out += `\\${ch}`;
-    else out += ch;
-  }
-  return out;
-}
-
-function projectPropertiesText(project, baseProperties = {}) {
-  const aiaProperties = projectPropertiesToAiaProperties(baseProperties);
-  const theme = aiaProperties.theme || 'AppTheme.Light.DarkActionBar';
-  const actionBar = actionBarForTheme(theme);
-  const props = {
-    ...aiaProperties,
-    main: qualifiedMain(project, 'Screen1'),
-    name: project,
-    assets: '../assets',
-    source: '../src',
-    build: '../build',
-    versioncode: aiaProperties.versioncode || '1',
-    versionname: aiaProperties.versionname || '1.0',
-    useslocation: aiaProperties.useslocation || 'False',
-    aname: aiaProperties.aname ?? '',
-    sizing: aiaProperties.sizing || 'Responsive',
-    showlistsasjson: aiaProperties.showlistsasjson || 'True',
-    actionbar: actionBar,
-    theme,
-    defaultfilescope: aiaProperties.defaultfilescope || 'App',
-    projectcolors: aiaProperties.projectcolors || '{}',
-    'color.primary': aiaProperties['color.primary'] || '&HFF3F51B5',
-    'color.primary.dark': aiaProperties['color.primary.dark'] || '&HFF303F9F',
-    'color.accent': aiaProperties['color.accent'] || '&HFFFF4081',
-  };
-
-  const preferredOrder = [
-    'main',
-    'name',
-    'assets',
-    'source',
-    'build',
-    'versioncode',
-    'versionname',
-    'useslocation',
-    'aname',
-    'sizing',
-    'showlistsasjson',
-    'tutorialurl',
-    'subsetjson',
-    'actionbar',
-    'theme',
-    'defaultfilescope',
-    'color.primary',
-    'color.primary.dark',
-    'color.accent',
-    'aiversioning',
-    'lastopened',
-    'buildnumber',
-    'NSBluetoothAlwaysUsageDescription',
-    'NSBluetoothPeripheralUsageDescription',
-    'NSContactsUsageDescription',
-    'NSMicrophoneUsageDescription',
-    'NSCameraUsageDescription',
-    'NSSpeechRecognitionUsageDescription',
-    'NSLocationWhenInUseUsageDescription',
-    'projectcolors',
-  ];
-  const keys = [
-    ...preferredOrder.filter(key => key in props),
-    ...Object.keys(props).filter(key => !preferredOrder.includes(key)).sort(),
-  ];
-  return `${keys.map(key => `${escapePropertyText(key, { key: true })}=${escapePropertyText(props[key])}`).join('\n')}\n`;
+  usedNames.add(next);
+  return next;
 }
 
 function textFileBaseName(path) {
   return String(path || '').split('/').pop()?.replace(/\.[^.]+$/, '') || '';
+}
+
+function appInventorSourceBase(path) {
+  return String(path || '').replace(/\.(scm|bky|blk)$/i, '');
 }
 
 function screenSort(a, b) {
@@ -333,7 +250,7 @@ function scmComponentToSchema(component, depth = 0) {
   const type = component.$Type === 'Form' ? 'Screen' : component.$Type;
   const name = component.$Name || type;
   const props = Object.entries(component)
-    .filter(([key]) => !key.startsWith('$') && key !== 'Uuid')
+    .filter(([key]) => !key.startsWith('$') && key !== 'Uuid' && key !== 'TutorialURL' && key !== 'BlocksToolkit')
     .map(([key, value]) => `${indent}  ${key}: ${schemaValueText(value, type, key)}`);
   const children = (component.$Components || [])
     .map(child => scmComponentToSchema(child, depth + 1));
@@ -450,6 +367,9 @@ function parseDesignSchema(source) {
       typeCounts[type] = (typeCounts[type] || 0) + 1;
       name = `${type}${typeCounts[type]}`;
     }
+    const isRootType = type === 'Screen' || type === 'Form';
+    const valid = isRootType ? isValidScreenName(name) : isValidComponentName(name);
+    if (!valid) fail(appInventorNameError(name, { component: !isRootType }));
     return { type, name, props: {}, children: [] };
   }
 
@@ -689,7 +609,15 @@ async function blocklyXmlForScreen(screen) {
   const defs = await componentDefinitionsFromDesigner(screen.designCode || '');
   const result = await mistToXmlResult(source, defs);
   const xml = injectFalconCommentsIntoBlocklyXml(result.xml, source, result.lineNumbers);
-  return generatedBlocklyXml(xml);
+  const shouldPreserveRaw = String(screen.rawBlocklyXml || '').trim()
+    && (screen.cells || []).some(cell =>
+      cell.type === 'markdown'
+      && (
+        String(cell.content || '').includes(PRESERVED_BLOCKS_MARKER)
+        || String(cell.content || '').includes('Imported App Inventor blocks are preserved for export')
+      )
+    );
+  return generatedBlocklyXml(shouldPreserveRaw ? `${screen.rawBlocklyXml}\0${xml}` : xml);
 }
 
 async function blobForAsset(asset) {
@@ -716,6 +644,7 @@ function normalizedAssetRecord(name, blob) {
 
 async function importedBlocksCell(screenName, rawBlocklyXml) {
   if (!String(rawBlocklyXml || '').trim()) return [];
+  if (!blocklyXmlHasUserBlocks(rawBlocklyXml)) return [];
   if (blocklyXmlHasBlockComments(rawBlocklyXml)) {
     try {
       const code = await blocklyXmlToFalconCodeWithComments(rawBlocklyXml, xmlToMist);
@@ -734,8 +663,20 @@ async function importedBlocksCell(screenName, rawBlocklyXml) {
   return [{
     id: `imported-${screenName}-${Date.now()}`,
     type: 'markdown',
-    content: '<div class="md-p">Imported App Inventor blocks are preserved for export. Add Falcon code to replace this screen&apos;s blocks.</div>',
+    content: `<div class="md-p" ${PRESERVED_BLOCKS_MARKER}="true">Imported App Inventor blocks are preserved for export. Falcon code added to this screen will be appended as new blocks.</div>`,
   }];
+}
+
+function blocklyXmlHasUserBlocks(xmlText) {
+  const text = String(xmlText || '').trim();
+  if (!text) return false;
+  try {
+    const doc = new DOMParser().parseFromString(text, 'text/xml');
+    if (hasParserError(doc)) return true;
+    return doc.getElementsByTagName('block').length > 0;
+  } catch {
+    return true;
+  }
 }
 
 export async function importAiaFile(file) {
@@ -746,70 +687,131 @@ export async function importAiaFile(file) {
     throw new Error('This file is not an App Inventor project archive: missing youngandroidproject/project.properties');
   }
 
-  const projectProperties = parseProperties(await propsEntry.async('string'));
+  const projectProperties = parseProperties(decodeJavaPropertiesBytes(await propsEntry.async('uint8array')));
   const project = sanitizeProjectName(projectProperties.name || stripKnownExtension(file?.name) || DEFAULT_PROJECT);
   const screenFiles = new Map();
+  const assetNames = [];
+  const importAssetNames = new Map();
+  const usedAssetNames = new Set();
 
   for (const [path, entry] of Object.entries(zip.files)) {
-    if (entry.dir || !path.startsWith('src/') || !/\.(scm|bky)$/i.test(path)) continue;
-    const base = path.replace(/\.(scm|bky)$/i, '');
+    if (entry.dir && !path.startsWith('assets/')) continue;
+    if (!entry.dir && path.startsWith('assets/')) {
+      const rawName = path.slice('assets/'.length);
+      if (rawName) {
+        const name = assetNameForImport(rawName, usedAssetNames);
+        importAssetNames.set(path, name);
+        assetNames.push(name);
+      }
+      continue;
+    }
+    if (entry.dir || !path.startsWith('src/') || !/\.(scm|bky|blk)$/i.test(path)) continue;
+    const base = appInventorSourceBase(path);
     const record = screenFiles.get(base) || {};
     if (/\.scm$/i.test(path)) record.scm = path;
     if (/\.bky$/i.test(path)) record.bky = path;
+    if (/\.blk$/i.test(path)) record.blk = path;
     screenFiles.set(base, record);
   }
 
-  const screens = [];
+  const screenRecords = [];
   const usedScreenNames = new Set();
   let screen1ProjectProperties = {};
   for (const [base, record] of screenFiles) {
     if (!record.scm) continue;
     const rawScm = await zip.file(record.scm).async('string');
-    const rawBlocklyXml = record.bky ? await zip.file(record.bky).async('string') : '';
-    const fallbackName = sanitizeScreenName(textFileBaseName(base), `Screen${screens.length + 1}`);
+    const blockPath = record.bky || record.blk || '';
+    const rawBlocks = blockPath ? await zip.file(blockPath).async('string') : '';
+    const fallbackName = sanitizeScreenName(textFileBaseName(base), `Screen${screenRecords.length + 1}`);
     let designCode = '';
     let screenName = fallbackName;
+    let sourceScm = rawScm;
+    let preUpgradeFormJson = '{}';
+    let componentDefinitions = null;
 
     try {
-      const scm = extractScmJson(rawScm);
+      const upgraded = upgradeLegacyScmText(rawScm, {
+        host: typeof window !== 'undefined' ? window.location.hostname : '',
+      });
+      const scm = upgraded.scm;
+      preUpgradeFormJson = formJsonForBlockUpgrade(upgraded.original);
       screenName = sanitizeScreenName(scm?.Properties?.$Name || fallbackName, fallbackName);
+      screenName = uniqueScreenName(screenName, usedScreenNames, fallbackName);
+      if (scm?.Properties) scm.Properties.$Name = screenName;
+      componentDefinitions = componentDefinitionsFromScmProperties(scm.Properties);
       designCode = scmComponentToSchema(scm.Properties);
+      sourceScm = serializeScmJson(scm);
       if (screenName === 'Screen1' && !usedScreenNames.has('Screen1')) {
         screen1ProjectProperties = extractProjectPropertiesFromScmProperties(scm.Properties);
       }
     } catch {
       designCode = scmToDesignSchema(rawScm, fallbackName);
+      screenName = uniqueScreenName(screenName, usedScreenNames, fallbackName);
     }
-    screenName = uniqueScreenName(screenName, usedScreenNames, fallbackName);
     usedScreenNames.add(screenName);
 
-    screens.push({
+    screenRecords.push({
       name: screenName,
-      cells: await importedBlocksCell(screenName, rawBlocklyXml),
       designCode,
-      rawBlocklyXml,
-      sourceScm: rawScm,
+      rawBlocks,
+      blockPath,
+      preUpgradeFormJson,
+      componentDefinitions,
+      sourceScm,
       sourceDesignCode: designCode,
     });
   }
 
-  if (!screens.length) {
+  if (!screenRecords.length) {
     throw new Error('No App Inventor screens were found in the project archive');
+  }
+
+  const screenNames = screenRecords.map(screen => screen.name);
+  const screens = [];
+  for (const record of screenRecords) {
+    let rawBlocklyXml = record.rawBlocks;
+    if (record.blockPath || String(record.rawBlocks || '').trim()) {
+      try {
+        rawBlocklyXml = await upgradeBlocklyXml(
+          record.rawBlocks,
+          record.preUpgradeFormJson,
+          record.componentDefinitions,
+          {
+            assetNames,
+            screenName: record.name,
+            screenNames,
+          },
+        );
+      } catch (error) {
+        console.debug('[aia-import-block-upgrade]', error);
+      }
+    }
+    screens.push({
+      name: record.name,
+      cells: await importedBlocksCell(record.name, rawBlocklyXml),
+      designCode: record.designCode,
+      rawBlocklyXml,
+      sourceScm: record.sourceScm,
+      sourceDesignCode: record.sourceDesignCode,
+    });
   }
 
   const assets = [];
   for (const [path, entry] of Object.entries(zip.files)) {
     if (entry.dir || !path.startsWith('assets/')) continue;
-    const name = path.slice('assets/'.length);
+    const name = importAssetNames.get(path) || assetNameForImport(path.slice('assets/'.length));
     if (!name) continue;
     const blob = await entry.async('blob');
     assets.push(normalizedAssetRecord(name, blob));
   }
 
   screens.sort(screenSort);
-  const screenNames = new Set(screens.map(screen => screen.name));
-  const activeScreen = screenNames.has(projectProperties.lastopened)
+  const activeScreenNames = new Set(screens.map(screen => screen.name));
+  const sanitizedLastOpened = sanitizeScreenName(projectProperties.lastopened || '', '');
+  const activeScreen = activeScreenNames.has(projectProperties.lastopened)
     ? projectProperties.lastopened
+    : activeScreenNames.has(sanitizedLastOpened)
+      ? sanitizedLastOpened
     : screens[0].name;
 
   return {
@@ -829,9 +831,10 @@ export async function exportCurrentProjectToAia() {
   const snapshot = getProjectSnapshot();
   const project = sanitizeProjectName(snapshot.projectName);
   const zip = new JSZip();
-  const basePath = sourceBasePath(project);
   const sortedScreens = [...snapshot.screens].sort(screenSort);
   const normalizedProjectProperties = normalizeProjectProperties(snapshot.projectProperties);
+  validateExportAssets(snapshot.assets || [], normalizedProjectProperties);
+  const basePath = sourceBasePath(project, normalizedProjectProperties);
   const usedScreenNames = new Set();
   const screenRecords = sortedScreens.map((screen, index) => {
     const sanitized = sanitizeScreenName(screen.name, `Screen${index + 1}`);
@@ -880,7 +883,6 @@ export async function exportCurrentProjectToAia() {
   for (const asset of snapshot.assets || []) {
     const name = typeof asset === 'string' ? asset : asset?.name;
     const path = zipPathForAsset(name);
-    if (!path) continue;
     zip.file(path, await blobForAsset(asset));
   }
 
@@ -889,6 +891,19 @@ export async function exportCurrentProjectToAia() {
     compression: 'DEFLATE',
     comment: 'Built with MIT App Inventor',
   });
+}
+
+function validateExportAssets(assets, projectProperties) {
+  const assetNames = new Set();
+  for (const asset of assets) {
+    const name = typeof asset === 'string' ? asset : asset?.name;
+    assetNames.add(assetPathParts(name).join('/'));
+  }
+
+  const icon = String(projectProperties?.Icon || '').trim();
+  if (!icon) return;
+  const iconPath = assetPathParts(icon).join('/');
+  if (!assetNames.has(iconPath)) throw new Error(`Project icon "${icon}" is not present in Media assets.`);
 }
 
 export function downloadBlob(blob, filename) {

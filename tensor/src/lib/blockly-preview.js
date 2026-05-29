@@ -3,6 +3,7 @@ import simpleComponentsJsonText from '../../../lang/code/compdb/simple_component
 import { listComponents, mistToXmlResult } from './falcon-wasm.js';
 import { cells, designCode } from './stores.js';
 import { injectFalconCommentsIntoBlocklyXml } from './blockly-comments.js';
+import { CURRENT_BLOCKS_LANGUAGE_VERSION, CURRENT_YA_VERSION } from './appinventor-legacy.js';
 
 const BLOCKLY_CORE_SCRIPTS = [
   '/compiled_blockly/messages.js',
@@ -307,6 +308,25 @@ function installBlocklyHostStubs() {
       root.BlocklyPanel_getOdeMessage ||= key => key;
       root.BlocklyPanel_callToggleWarning ||= () => {};
       root.BlocklyPanel_getComponentContainerUuid ||= () => '';
+      root.YA_VERSION = Number(CURRENT_YA_VERSION);
+      root.BLOCKS_VERSION = Number(CURRENT_BLOCKS_LANGUAGE_VERSION);
+    } catch {}
+  }
+}
+
+function installBlocklyVersionGlobals() {
+  const roots = [window];
+  try {
+    if (window.parent && window.parent !== window) roots.push(window.parent);
+  } catch {}
+  try {
+    if (window.top && window.top !== window && window.top !== window.parent) roots.push(window.top);
+  } catch {}
+
+  for (const root of roots) {
+    try {
+      root.YA_VERSION = Number(CURRENT_YA_VERSION);
+      root.BLOCKS_VERSION = Number(CURRENT_BLOCKS_LANGUAGE_VERSION);
     } catch {}
   }
 }
@@ -355,6 +375,7 @@ export async function ensureBlocklyRuntime() {
       if (!window.Blockly?.Xml || !window.AI?.Blockly) {
         throw new Error('Blockly runtime did not initialize');
       }
+      installBlocklyVersionGlobals();
     })().catch(error => {
       blocklyRuntimePromise = null;
       throw error;
@@ -487,6 +508,68 @@ function restoreMainWorkspace(previousWorkspace, renderWorkspace) {
   if (!common?.getMainWorkspace || !common?.setMainWorkspace) return;
   if (common.getMainWorkspace() !== renderWorkspace) return;
   common.setMainWorkspace(workspaceIsAttached(previousWorkspace) ? previousWorkspace : null);
+}
+
+function saveWorkspaceBlocklyXml(workspace, { prettify = true } = {}) {
+  const { Blockly } = window;
+  installBlocklyVersionGlobals();
+  if (Blockly.SaveFile?.get) {
+    return Blockly.SaveFile.get(prettify, workspace);
+  }
+
+  const xml = Blockly.Xml.workspaceToDom(workspace, false);
+  for (const tag of Array.from(xml.getElementsByTagName('yacodeblocks'))) {
+    tag.remove();
+  }
+  const meta = document.createElement('yacodeblocks');
+  meta.setAttribute('ya-version', CURRENT_YA_VERSION);
+  meta.setAttribute('language-version', CURRENT_BLOCKS_LANGUAGE_VERSION);
+  xml.appendChild(meta);
+  return prettify ? Blockly.Xml.domToPrettyText(xml) : Blockly.Xml.domToText(xml);
+}
+
+function emptyWorkspaceBlocklyXml() {
+  return `<xml xmlns="http://www.w3.org/1999/xhtml">\n  <yacodeblocks ya-version="${CURRENT_YA_VERSION}" language-version="${CURRENT_BLOCKS_LANGUAGE_VERSION}"></yacodeblocks>\n</xml>`;
+}
+
+function applyWorkspaceImportContext(workspace, {
+  assetNames = [],
+  screenName = 'Screen1',
+  screenNames = [],
+} = {}) {
+  workspace.formName = screenName;
+  workspace.screenList_ = Array.from(new Set([screenName, ...(screenNames || [])].filter(Boolean)));
+  workspace.assetList_ = Array.from(new Set((assetNames || []).filter(Boolean)));
+}
+
+export async function upgradeBlocklyXml(blocksContent, preUpgradeFormJson, componentDefinitions = null, options = {}) {
+  const source = String(blocksContent || '').trim();
+  if (!source) {
+    return emptyWorkspaceBlocklyXml();
+  }
+
+  await ensureBlocklyRuntime();
+  const { Blockly } = window;
+  if (!Blockly.Versioning?.upgrade) {
+    throw new Error('Blockly versioning runtime is unavailable');
+  }
+
+  const host = createRenderHost();
+  const previousMainWorkspace = Blockly.common?.getMainWorkspace?.() || null;
+  const workspace = createWorkspace(host);
+
+  try {
+    applyWorkspaceImportContext(workspace, options);
+    registerWorkspaceComponentInstances(workspace, componentDefinitions, source);
+    Blockly.common?.setMainWorkspace?.(workspace);
+    Blockly.Versioning.setLogging?.(false);
+    Blockly.Versioning.upgrade(String(preUpgradeFormJson || '{}'), source, workspace);
+    return saveWorkspaceBlocklyXml(workspace, { prettify: true });
+  } finally {
+    workspace.dispose();
+    host.remove();
+    restoreMainWorkspace(previousMainWorkspace, workspace);
+  }
 }
 
 function renderXmlIntoWorkspace(xmlGenerated, workspace, { clear = true } = {}) {

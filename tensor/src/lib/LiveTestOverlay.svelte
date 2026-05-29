@@ -867,10 +867,9 @@
 </div>
 
 {#if $runtimeErrorNotice.show}
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <div class="re-backdrop" role="dialog" aria-modal="true" on:click|self={dismissRuntimeError}>
-    <div class="re-card">
+  <div class="re-backdrop">
+    <button type="button" class="re-backdrop-hit" aria-label="Dismiss runtime error" on:click={dismissRuntimeError}></button>
+    <div class="re-card" role="dialog" aria-modal="true">
 
       <div class="re-header">
         <div class="re-header-icon" aria-hidden="true">

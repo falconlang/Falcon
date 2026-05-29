@@ -33,9 +33,20 @@ import {
   PROJECT_PROPERTY_DEFINITIONS,
   VISIBLE_PROJECT_PROPERTY_DEFINITIONS,
   applyProjectPropertiesToScmProperties,
+  extractProjectPropertiesFromScmProperties,
   normalizeProjectProperties,
   projectPropertiesToAiaProperties,
 } from '../src/lib/project-properties.js';
+import {
+  parseProperties,
+  projectPropertiesText,
+} from '../src/lib/aia-project-properties.js';
+import {
+  CURRENT_YA_VERSION,
+  componentDefinitionsFromScmProperties,
+  formJsonForBlockUpgrade,
+  upgradeLegacyScmText,
+} from '../src/lib/appinventor-legacy.js';
 import {
   buildComponentProps,
   customDesignerPropertyReport,
@@ -416,6 +427,108 @@ test('project properties normalize AIA keys and serialize back to project.proper
   assert.equal(aiaProperties.NSCameraUsageDescription, 'Take photos');
   assert.equal(aiaProperties.customflag, 'kept');
   assert.equal('BlocksToolkit' in aiaProperties, false);
+});
+
+test('project property defaults match App Inventor project.properties defaults', () => {
+  const normalized = normalizeProjectProperties({});
+
+  assert.equal(normalized.PrimaryColor, '&HFF3F51B5');
+  assert.equal(normalized.PrimaryColorDark, '&HFF303F9F');
+  assert.equal(normalized.AccentColor, '&HFFFF4081');
+});
+
+test('AIA project.properties parser and writer follow Java properties escaping', () => {
+  const parsed = parseProperties([
+    'aname=Caf\\u00e9',
+    'description=first\\',
+    '  second',
+    'spaced\\ key\\ =\\ leading',
+    'path=a\\:b',
+  ].join('\n'));
+
+  assert.equal(parsed.aname, 'Café');
+  assert.equal(parsed.description, 'firstsecond');
+  assert.equal(parsed['spaced key '], ' leading');
+  assert.equal(parsed.path, 'a:b');
+
+  const text = projectPropertiesText('RenamedProject', {
+    main: 'appinventor.ai_original.OldProject.Screen1',
+    aname: 'Café',
+  });
+
+  assert.match(text, /^main=appinventor\.ai_original\.RenamedProject\.Screen1$/m);
+  assert.match(text, /^aname=Caf\\u00e9$/m);
+  assert.match(text, /^color\.primary=&HFF3F51B5$/m);
+  assert.match(text, /^color\.primary\.dark=&HFF303F9F$/m);
+  assert.match(text, /^color\.accent=&HFFFF4081$/m);
+});
+
+test('legacy App Inventor SCM is upgraded to the current Tensor import shape', () => {
+  const legacyScm = `#|
+$Properties
+$Source $Form
+$Define Screen1 $As Form
+Layout = 1
+Layout.Orientation = 1
+Title = "Screen1"
+$End $Define
+$End $Properties
+
+|#
+#|
+$JSON
+{"Source":"Form","Properties":{"$Name":"Screen1","$Type":"Form","Layout":"1","Layout.Orientation":"1","Title":"\\"Screen1\\""}}
+|#`;
+
+  const upgraded = upgradeLegacyScmText(legacyScm, { host: 'tensor.test' });
+  const props = upgraded.scm.Properties;
+
+  assert.equal(upgraded.scm.YaVersion, CURRENT_YA_VERSION);
+  assert.equal(props.$Version, '31');
+  assert.equal(props.Uuid, '0');
+  assert.equal(props.Title, 'Screen1');
+  assert.equal(props.Sizing, 'Fixed');
+  assert.equal(props.ShowListsAsJson, 'False');
+  assert.equal(props.Theme, 'Classic');
+  assert.equal('Layout' in props, false);
+  assert.equal('Layout.Orientation' in props, false);
+  assert.deepEqual(upgraded.scm.authURL, ['tensor.test']);
+  assert.deepEqual(componentDefinitionsFromScmProperties(props), { Screen: ['Screen1'] });
+
+  const blockUpgradeJson = JSON.parse(formJsonForBlockUpgrade(upgraded.original));
+  assert.equal(blockUpgradeJson.Properties.$Version, '1');
+
+  const normalized = normalizeProjectProperties(extractProjectPropertiesFromScmProperties(props));
+  assert.equal(normalized.Sizing, 'Fixed');
+  assert.equal(normalized.ShowListsAsJson, 'False');
+  assert.equal(normalized.Theme, 'Classic');
+});
+
+test('legacy SCM upgrader applies App Inventor component renames and property migrations', () => {
+  const upgraded = upgradeLegacyScmText(JSON.stringify({
+    YaVersion: '1',
+    Source: 'Form',
+    Properties: {
+      $Name: 'Screen1',
+      $Type: 'Form',
+      $Version: '1',
+      $Components: [
+        { $Name: 'Logger1', $Type: 'Logger', $Version: '1' },
+        { $Name: 'Button1', $Type: 'Button', $Version: '1', Alignment: '1' },
+        { $Name: 'TextBox1', $Type: 'TextBox', $Version: '3' },
+        { $Name: 'File1', $Type: 'File', $Version: '3', LegacyMode: 'True' },
+      ],
+    },
+  }));
+
+  const children = upgraded.scm.Properties.$Components;
+  assert.equal(children[0].$Type, 'Notifier');
+  assert.equal(children[0].$Version, '6');
+  assert.equal(children[1].TextAlignment, '1');
+  assert.equal('Alignment' in children[1], false);
+  assert.equal(children[2].MultiLine, 'True');
+  assert.equal(children[3].DefaultScope, 'Legacy');
+  assert.equal('LegacyMode' in children[3], false);
 });
 
 test('setProjectProperty updates canonical store values including hidden BlocksToolkit backend', () => {

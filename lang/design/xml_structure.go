@@ -175,7 +175,13 @@ func (c *Component) WriteXML(w io.Writer, indent int) error {
 		tag += ` id="` + buf.String() + `"`
 	}
 
-	for k, v := range c.Properties {
+	keys := make([]string, 0, len(c.Properties))
+	for k := range c.Properties {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := c.Properties[k]
 		if k == "id" || k == "type" {
 			continue
 		}

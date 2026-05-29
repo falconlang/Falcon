@@ -103,6 +103,12 @@ function normalizeYailDiagnosticResult(result) {
   }))
 }
 
+function normalizeSourceDiagnosticResult(result) {
+  return normalizeDiagnosticResult(result, obj => ({
+    source: typeof obj.source === 'string' ? obj.source : '',
+  }))
+}
+
 export async function describeComponent(name) {
   await waitForReady()
   const json = window.describeComponent(name)
@@ -169,6 +175,11 @@ export async function mistToXml(sourceCode, componentDefs, safe = true) {
 
 export async function xmlToMist(xml) {
   await waitForReady()
+  if (typeof window.xmlToMistWithDiagnostics === 'function') {
+    const result = normalizeSourceDiagnosticResult(window.xmlToMistWithDiagnostics(String(xml ?? '')))
+    if (!result.ok) throw new FalconDiagnosticError(result, 'Blockly conversion failed')
+    return result.source
+  }
   return withMistErrors(() => window.xmlToMist(String(xml ?? '')))
 }
 
@@ -179,11 +190,18 @@ export async function getComponentDefinitionsCode(sourceCode) {
 
 export async function blocklyToYail(xml) {
   await waitForReady()
-  return withMistErrors(() => {
-    const xmlText = xml && typeof xml === 'object' && typeof xml.xml === 'string' ? xml.xml : xml
-    const chunks = String(xmlText).split('\0').map(chunk => chunk.trim()).filter(Boolean)
-    return chunks.map(chunk => window.blocklyToYail(chunk)).filter(Boolean).join('\n')
-  })
+  const xmlText = xml && typeof xml === 'object' && typeof xml.xml === 'string' ? xml.xml : xml
+  const chunks = String(xmlText).split('\0').map(chunk => chunk.trim()).filter(Boolean)
+  if (typeof window.blocklyToYailWithDiagnostics === 'function') {
+    const parts = []
+    for (const chunk of chunks) {
+      const result = normalizeYailDiagnosticResult(window.blocklyToYailWithDiagnostics(chunk))
+      if (!result.ok) throw new FalconDiagnosticError(result, 'Blockly YAIL conversion failed')
+      if (result.yail) parts.push(result.yail)
+    }
+    return parts.join('\n')
+  }
+  return withMistErrors(() => chunks.map(chunk => window.blocklyToYail(chunk)).filter(Boolean).join('\n'))
 }
 
 export async function annToYail(annSource, codeYail = '') {

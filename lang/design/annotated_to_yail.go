@@ -2,13 +2,51 @@ package design
 
 import (
 	"Falcon/code/compdb"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf16"
 )
 
 const yailComponentPkg = "com.google.appinventor.components.runtime."
+const appInventorYaVersion = "233"
+
+var suppressedDesignerProperties = map[string]bool{
+	"Uuid":          true,
+	"TutorialURL":   true,
+	"BlocksToolkit": true,
+}
+
+var alwaysSendDesignerDefaults = map[string][]string{
+	"Form": {"ShowListsAsJson", "Sizing"},
+}
+
+var canvasChildTypes = map[string]bool{
+	"Ball":        true,
+	"ImageSprite": true,
+}
+
+var mapChildTypes = map[string]bool{
+	"Circle":            true,
+	"FeatureCollection": true,
+	"LineString":        true,
+	"Marker":            true,
+	"Polygon":           true,
+	"Rectangle":         true,
+}
+
+var featureCollectionChildTypes = map[string]bool{
+	"Circle":     true,
+	"LineString": true,
+	"Marker":     true,
+	"Polygon":    true,
+	"Rectangle":  true,
+}
+
+var chartChildTypes = map[string]bool{
+	"ChartData2D": true,
+	"Trendline":   true,
+}
 
 type AnnYailConverter struct {
 	autoIdCount map[string]int
@@ -86,6 +124,14 @@ func dbCompType(annType string) string {
 	return annType
 }
 
+func appInventorComponentVersion(annType string) string {
+	return compdb.GlobalDB.ComponentVersion(dbCompType(annType))
+}
+
+func shouldSendDesignerProperty(propName string) bool {
+	return !strings.HasPrefix(propName, "$") && !suppressedDesignerProperties[propName]
+}
+
 // ValidateAnnSource parses source and validates every property name against the
 // component DB. All errors are returned together so the caller can report them
 // all at once rather than one at a time.
@@ -102,7 +148,7 @@ func ValidateAnnSource(source string) error {
 // all in one pass rather than one at a time.
 func validateAnn(screen Component) error {
 	var diagnostics []AnnDiagnostic
-	collectComponentPropertyErrors(screen, &diagnostics)
+	collectAnnErrors(screen, &diagnostics)
 	if len(diagnostics) == 0 {
 		return nil
 	}
@@ -122,15 +168,99 @@ func validateAnn(screen Component) error {
 	}
 }
 
-func collectComponentPropertyErrors(component Component, diagnostics *[]AnnDiagnostic) {
+func collectAnnErrors(screen Component, diagnostics *[]AnnDiagnostic) {
+	if screen.Type != "Screen" && screen.Type != "Form" {
+		*diagnostics = append(*diagnostics, AnnDiagnostic{
+			Message:  "the root designer component must be Screen",
+			Position: screen.typePosition,
+			Length:   len([]rune(screen.Type)),
+		})
+	}
+	seen := make(map[string]AnnDiagnostic)
+	autoIds := make(map[string]int)
+	componentIds := make(map[string]bool)
+	collectComponentIds(screen, nil, componentIds, make(map[string]int))
+	collectComponentErrors(screen, nil, diagnostics, seen, autoIds, componentIds)
+}
+
+func collectComponentIds(component Component, parent *Component, ids map[string]bool, autoIds map[string]int) {
 	compId := component.Id
 	if compId == "" {
-		compId = component.Type
+		if parent == nil {
+			compId = "Screen1"
+		} else {
+			count := autoIds[component.Type] + 1
+			autoIds[component.Type] = count
+			compId = component.Type + strconv.Itoa(count)
+		}
+	}
+	ids[compId] = true
+	for _, child := range component.Children {
+		collectComponentIds(child, &component, ids, autoIds)
+	}
+}
+
+func collectComponentErrors(component Component, parent *Component, diagnostics *[]AnnDiagnostic, seen map[string]AnnDiagnostic, autoIds map[string]int, componentIds map[string]bool) {
+	compId := component.Id
+	if compId == "" {
+		if parent == nil {
+			compId = "Screen1"
+		} else {
+			count := autoIds[component.Type] + 1
+			autoIds[component.Type] = count
+			compId = component.Type + strconv.Itoa(count)
+		}
 	}
 
-	for propName := range component.Properties {
+	dbType := dbCompType(component.Type)
+	if !compdb.GlobalDB.IsKnownComponent(dbType) {
+		*diagnostics = append(*diagnostics, AnnDiagnostic{
+			Message:  "unknown component type " + strconv.Quote(component.Type),
+			Position: component.typePosition,
+			Length:   len([]rune(component.Type)),
+		})
+	}
+
+	if parent != nil && !canContainAnnComponent(parent.Type, component.Type) {
+		parentId := parent.Id
+		if parentId == "" {
+			parentId = parent.Type
+		}
+		*diagnostics = append(*diagnostics, AnnDiagnostic{
+			Message:  component.Type + "." + compId + " cannot be placed inside " + parent.Type + "." + parentId,
+			Position: component.typePosition,
+			Length:   len([]rune(component.Type)),
+		})
+	}
+
+	if previous, ok := seen[compId]; ok {
+		position := component.idPosition
+		length := len([]rune(compId))
+		if position == 0 {
+			position = component.typePosition
+			length = len([]rune(component.Type))
+		}
+		*diagnostics = append(*diagnostics, AnnDiagnostic{
+			Message:  "duplicate component name " + strconv.Quote(compId) + "; first used at position " + strconv.Itoa(previous.Position),
+			Position: position,
+			Length:   length,
+		})
+	} else {
+		position := component.idPosition
+		length := len([]rune(compId))
+		if position == 0 {
+			position = component.typePosition
+			length = len([]rune(component.Type))
+		}
+		seen[compId] = AnnDiagnostic{Position: position, Length: length}
+	}
+
+	for propName, propValue := range component.Properties {
+		if !shouldSendDesignerProperty(propName) {
+			continue
+		}
 		if err := compdb.GlobalDB.ValidateProperty(dbCompType(component.Type), propName); err != nil {
-			message := fmt.Sprintf("%s %q: %v", component.Type, compId, err)
+			message := component.Type + " " + strconv.Quote(compId) + ": " + err.Error()
 			position := component.typePosition
 			if propPosition, ok := component.propertyPositions[propName]; ok {
 				position = propPosition
@@ -144,12 +274,58 @@ func collectComponentPropertyErrors(component Component, diagnostics *[]AnnDiagn
 				Position: position,
 				Length:   length,
 			})
+			continue
+		}
+		if compdb.GlobalDB.GetPropType(dbCompType(component.Type), propName) == "component" {
+			target := strings.TrimSpace(propValue)
+			if target != "" && target != "null" && !componentIds[target] {
+				position := component.typePosition
+				if propPosition, ok := component.propertyPositions[propName]; ok {
+					position = propPosition
+				}
+				length := len([]rune(propName))
+				if propLength, ok := component.propertyLengths[propName]; ok && propLength > 0 {
+					length = propLength
+				}
+				*diagnostics = append(*diagnostics, AnnDiagnostic{
+					Message:  component.Type + " " + strconv.Quote(compId) + ": component property " + strconv.Quote(propName) + " references unknown component " + strconv.Quote(target),
+					Position: position,
+					Length:   length,
+				})
+			}
 		}
 	}
 
 	for _, child := range component.Children {
-		collectComponentPropertyErrors(child, diagnostics)
+		collectComponentErrors(child, &component, diagnostics, seen, autoIds, componentIds)
 	}
+}
+
+func canContainAnnComponent(parentType, childType string) bool {
+	parent := dbCompType(parentType)
+	child := dbCompType(childType)
+	if canvasChildTypes[child] {
+		return parent == "Canvas"
+	}
+	if mapChildTypes[child] {
+		return parent == "Map" || (parent == "FeatureCollection" && featureCollectionChildTypes[child])
+	}
+	if chartChildTypes[child] {
+		return parent == "Chart"
+	}
+	if compdb.GlobalDB.IsNonVisible(child) {
+		return parent == "Form"
+	}
+	if compdb.GlobalDB.IsNonVisible(parent) {
+		return false
+	}
+	if parent == "Canvas" || parent == "Map" || parent == "FeatureCollection" || parent == "Chart" {
+		return false
+	}
+	return parent == "Form" ||
+		parent == "ScrollHorizontal" ||
+		parent == "ScrollVertical" ||
+		compdb.GlobalDB.CategoryString(parent) == "LAYOUT"
 }
 
 func (c *AnnYailConverter) generateYail(screen Component, codeYail string) (string, error) {
@@ -182,17 +358,18 @@ func (c *AnnYailConverter) generateYail(screen Component, codeYail string) (stri
 		sb.WriteString("\n")
 	}
 
-	if len(screen.Properties) > 0 {
+	screenProperties := sortedSendableProperties(screen)
+	if len(screenProperties) > 0 {
 		sb.WriteString("(do-after-form-creation")
-		for k, v := range screen.Properties {
+		for _, entry := range screenProperties {
 			sb.WriteString("\n  (set-and-coerce-property! '")
 			sb.WriteString(formName)
 			sb.WriteString(" '")
-			sb.WriteString(k)
+			sb.WriteString(entry.name)
 			sb.WriteString(" ")
-			sb.WriteString(annFormatValue(k, v))
+			sb.WriteString(annFormatValue(screen.Type, entry.name, entry.value))
 			sb.WriteString(" ")
-			sb.WriteString(annYailType(k, v))
+			sb.WriteString(annYailType(screen.Type, entry.name))
 			sb.WriteString(")")
 		}
 		sb.WriteString(")\n")
@@ -211,6 +388,42 @@ func (c *AnnYailConverter) generateYail(screen Component, codeYail string) (stri
 	sb.WriteString(")")
 
 	return sb.String(), nil
+}
+
+type annPropertyEntry struct {
+	name  string
+	value string
+}
+
+func sortedSendableProperties(component Component) []annPropertyEntry {
+	values := make(map[string]string, len(component.Properties))
+	for k, v := range component.Properties {
+		if shouldSendDesignerProperty(k) {
+			values[k] = v
+		}
+	}
+
+	dbType := dbCompType(component.Type)
+	for _, propName := range alwaysSendDesignerDefaults[dbType] {
+		if _, ok := values[propName]; ok {
+			continue
+		}
+		if defaultValue, ok := compdb.GlobalDB.DesignerPropertyDefault(dbType, propName); ok {
+			values[propName] = defaultValue
+		}
+	}
+
+	keys := make([]string, 0, len(values))
+	for k := range values {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	entries := make([]annPropertyEntry, 0, len(keys))
+	for _, k := range keys {
+		entries = append(entries, annPropertyEntry{name: k, value: values[k]})
+	}
+	return entries
 }
 
 func (c *AnnYailConverter) genComponents(parentName string, children []Component, sb *strings.Builder, componentNames *[]string) {
@@ -232,77 +445,81 @@ func (c *AnnYailConverter) genComponents(parentName string, children []Component
 		sb.WriteString(compId)
 		sb.WriteString("\n")
 
-		for k, v := range child.Properties {
+		for _, entry := range sortedSendableProperties(child) {
 			sb.WriteString("  (set-and-coerce-property! '")
 			sb.WriteString(compId)
 			sb.WriteString(" '")
-			sb.WriteString(k)
+			sb.WriteString(entry.name)
 			sb.WriteString(" ")
-			sb.WriteString(annFormatValue(k, v))
+			sb.WriteString(annFormatValue(child.Type, entry.name, entry.value))
 			sb.WriteString(" ")
-			sb.WriteString(annYailType(k, v))
+			sb.WriteString(annYailType(child.Type, entry.name))
 			sb.WriteString(")\n")
 		}
 
-		c.genComponents(compId, child.Children, sb, componentNames)
-
 		sb.WriteString(")\n")
+		c.genComponents(compId, child.Children, sb, componentNames)
 	}
 }
 
-func annYailType(propName, v string) string {
-	if v == "true" || v == "false" {
-		return "'boolean"
-	}
-	if isAnnColorProperty(propName) {
-		if _, ok, err := annColorLiteralToIntString(v); ok && err == nil {
-			return "'number"
-		}
-	}
-	if _, err := strconv.ParseFloat(v, 64); err == nil {
-		return "'number"
-	}
-	return "'text"
+func annYailType(componentType, propName string) string {
+	propType := compdb.GlobalDB.GetPropType(dbCompType(componentType), propName)
+	return "'" + propType
 }
 
-func annFormatValue(propName, v string) string {
-	if v == "true" {
-		return "#t"
-	}
-	if v == "false" {
-		return "#f"
-	}
-	if isAnnColorProperty(propName) {
-		if colorInt, ok, err := annColorLiteralToIntString(v); ok && err == nil {
-			return colorInt
+func annFormatValue(componentType, propName, v string) string {
+	propType := compdb.GlobalDB.GetPropType(dbCompType(componentType), propName)
+	switch propType {
+	case "number":
+		if isAnnNumberLiteral(v) {
+			return v
 		}
+		if strings.HasPrefix(strings.ToLower(v), "&h") && len(v) > 2 {
+			return "#x" + v[2:]
+		}
+	case "boolean":
+		if strings.EqualFold(v, "true") || v == "1" {
+			return "#t"
+		}
+		if strings.EqualFold(v, "false") || v == "0" {
+			return "#f"
+		}
+	case "component":
+		if v == "" {
+			return `""`
+		}
+		return "(get-component " + v + ")"
 	}
-	if _, err := strconv.ParseFloat(v, 64); err == nil {
-		return v
+	if v == "" || v == "null" {
+		return `""`
 	}
 	return annQuoteStr(v)
+}
+
+func isAnnNumberLiteral(v string) bool {
+	if v == "" {
+		return false
+	}
+	_, err := strconv.ParseFloat(v, 64)
+	return err == nil
 }
 
 func annQuoteStr(s string) string {
 	var sb strings.Builder
 	sb.WriteByte('"')
-	for i := 0; i < len(s); i++ {
-		c := s[i]
+	for _, c := range s {
 		switch {
 		case c == '\\':
-			if i+1 < len(s) && (s[i+1] == 'n' || s[i+1] == 't' || s[i+1] == 'r') {
-				sb.WriteByte(c)
-			} else {
-				sb.WriteString(`\\`)
-			}
+			sb.WriteString(`\\`)
 		case c == '"':
 			sb.WriteString(`\"`)
 		case c >= 32 && c <= 126:
-			sb.WriteByte(c)
+			sb.WriteRune(c)
 		default:
-			hex := "000" + strconv.FormatInt(int64(c), 16)
-			sb.WriteString(`\u`)
-			sb.WriteString(hex[len(hex)-4:])
+			for _, codeUnit := range utf16.Encode([]rune{c}) {
+				sb.WriteString(`\u`)
+				sb.WriteString(lowerHex4(codeUnit))
+			}
 		}
 	}
 	sb.WriteByte('"')

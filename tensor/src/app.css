@@ -2307,12 +2307,21 @@ input:focus-visible {
   justify-content: center;
   animation: re-backdrop-in 0.18s ease;
 }
+.re-backdrop-hit {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
 @keyframes re-backdrop-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
 .re-card {
+  position: relative;
+  z-index: 1;
   background: var(--surface);
   border: 3px solid color-mix(in srgb, var(--error) 38%, var(--border));
   border-radius: var(--radius-md);
