@@ -1458,3 +1458,77 @@ input:focus-visible {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
+
+/* Sidebar backdrop: hidden by default, shown as overlay at ≤1024px */
+.sidebar-backdrop { display: none; }
+
+/* ── Responsive: Tablet / narrow desktop (≤1024px) ── */
+@media (max-width: 1024px) {
+  /* Sidebar becomes a fixed overlay drawer — doesn't push notebook */
+  #sidebar {
+    position: fixed;
+    top: 86px; /* topbar 48px + toolbar 38px */
+    left: 0;
+    bottom: 24px; /* statusbar 24px */
+    z-index: 30;
+    box-shadow: 4px 0 28px rgba(0,0,0,0.18);
+  }
+
+  /* Backdrop to dim content and tap-close sidebar */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 86px 0 24px 0;
+    z-index: 29;
+    background: rgba(26,25,22,0.22);
+  }
+
+  /* Hide designer panel — notebook fills full width */
+  #resize-handle { display: none; }
+  #designer-panel { display: none; }
+
+  /* Notebook expands to fill the freed space */
+  #notebook-col { min-width: 0; }
+  #notebook {
+    max-width: 100%;
+    padding: 20px 16px 64px 20px;
+  }
+
+  /* Cell gutter is at left: -28px — too far outside at narrow widths */
+  .cell-gutter { display: none; }
+
+  /* Larger touch targets (44px guideline) */
+  .run-btn { width: 30px; height: 30px; }
+  .tl-btn { min-height: 32px; padding: 0 10px; }
+  .add-btn { padding: 5px 12px; min-height: 32px; }
+  .cell-menu-btn { width: 26px; height: 26px; opacity: 1; }
+  .cell:hover .cell-menu-btn, .cell.active .cell-menu-btn { opacity: 1; }
+  .tb-btn { padding: 6px 10px; }
+}
+
+/* ── Responsive: Small tablet / large phone (≤768px) ── */
+@media (max-width: 768px) {
+  /* Topbar: tighten padding, hide button labels */
+  #topbar { padding: 0 10px; }
+  .tb-btn span { display: none; }
+  .tb-btn { padding: 6px 8px; }
+  .file-name { min-width: 90px; }
+
+  /* Toolbar: icon-only to reclaim horizontal space */
+  .tl-btn { font-size: 0; gap: 0; padding: 0 9px; min-height: 34px; }
+  .tl-btn svg { width: 14px; height: 14px; }
+  .add-btn { padding: 4px 10px; font-size: 11.5px; }
+  .tl-sep { margin: 0 2px; }
+
+  /* Screen selector: pull out of absolute centering into normal flow */
+  .screen-selector { position: static; transform: none; }
+  #toolbar .tb-spacer:first-of-type { display: none; }
+  #toolbar { gap: 1px; }
+
+  /* Status bar: only show the first item */
+  #statusbar .status-sep { display: none; }
+  #statusbar .status-item:not(:first-child) { display: none; }
+
+  /* Tighter notebook padding on small screens */
+  #notebook { padding: 16px 12px 52px 16px; }
+}

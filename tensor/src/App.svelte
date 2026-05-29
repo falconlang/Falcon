@@ -12,6 +12,8 @@
   import LiveTestOverlay from './lib/LiveTestOverlay.svelte';
   import { warmBlocklyPreviewRuntime } from './lib/blockly-preview.js';
 
+  function closeSidebar() { sidebarVisible.set(false); }
+
   onMount(() => {
     const warmBlockly = () => warmBlocklyPreviewRuntime();
     if (window.requestIdleCallback) {
@@ -61,6 +63,9 @@
   <div id="main" style="position: relative">
     {#if $sidebarVisible}
       <Sidebar />
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div class="sidebar-backdrop" on:click={closeSidebar}></div>
     {/if}
     <div id="notebook-col">
       <Notebook />
