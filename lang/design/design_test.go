@@ -45,6 +45,29 @@ func TestParseAnnReadsDotIds(t *testing.T) {
 	}
 }
 
+func TestParseAnnMatchesTensorSchemaSurface(t *testing.T) {
+	source := `Screen.Screen1 {
+  // bodyless anonymous components are valid in Tensor's designer syntax
+  Button,
+  Label.StatusLabel,
+  Title: My App
+}`
+
+	screen, err := ParseAnn(source)
+	if err != nil {
+		t.Fatalf("ParseAnn() error = %v", err)
+	}
+	if got := screen.Properties["Title"]; got != "My App" {
+		t.Fatalf("screen Title = %q, want My App", got)
+	}
+	if len(screen.Children) != 2 {
+		t.Fatalf("len(screen.Children) = %d, want 2", len(screen.Children))
+	}
+	if got := screen.Children[0].Type; got != "Button" {
+		t.Fatalf("first child type = %q, want Button", got)
+	}
+}
+
 func TestParseAnnNormalizesColorLiterals(t *testing.T) {
 	source := `Screen.Screen1 {
   BackgroundColor: &HFF446A98,
@@ -100,6 +123,43 @@ func TestAnnYailConvertsColorLiteralsToNumbers(t *testing.T) {
 	}
 }
 
+func TestAnnYailUsesComponentPropertyTypes(t *testing.T) {
+	source := `Screen.Screen1 {
+  Label.Counter { Text: 123 },
+  TextBox.Amount { NumbersOnly: True }
+}`
+
+	yail, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err != nil {
+		t.Fatalf("ConvertAnnToYail() error = %v", err)
+	}
+	for _, want := range []string{
+		`(set-and-coerce-property! 'Counter 'Text "123" 'text)`,
+		`(set-and-coerce-property! 'Amount 'NumbersOnly #t 'boolean)`,
+	} {
+		if !strings.Contains(yail, want) {
+			t.Fatalf("generated YAIL does not contain %q:\n%s", want, yail)
+		}
+	}
+}
+
+func TestAnnYailQuotesUnicodeByCodePoint(t *testing.T) {
+	source := `Screen.Screen1 { Label.Greeting { Text: "é你好😀" } }`
+
+	yail, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err != nil {
+		t.Fatalf("ConvertAnnToYail() error = %v", err)
+	}
+	for _, want := range []string{`\u00e9`, `\u4f60`, `\u597d`, `\ud83d\ude00`} {
+		if !strings.Contains(yail, want) {
+			t.Fatalf("generated YAIL does not contain %q:\n%s", want, yail)
+		}
+	}
+	if strings.Contains(yail, `\u00c3\u00a9`) {
+		t.Fatalf("generated YAIL appears to contain UTF-8 byte escapes:\n%s", yail)
+	}
+}
+
 func TestAnnValidationReportsPropertyPosition(t *testing.T) {
 	source := "Screen.Screen1 {\n  Button.AddButton { Texxt: \"+\" }\n}"
 	_, err := NewAnnYailConverter().ConvertAnnToYail(source)
@@ -125,6 +185,91 @@ func TestAnnValidationReportsPropertyPosition(t *testing.T) {
 	}
 	if !strings.Contains(diagnostic.Message, `unknown property "Texxt"`) {
 		t.Fatalf("diagnostic.Message = %q, want unknown property message", diagnostic.Message)
+	}
+}
+
+func TestAnnValidationRejectsUnknownComponentType(t *testing.T) {
+	source := "Screen.Screen1 {\n  MysteryThing.Hidden\n}"
+	_, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err == nil {
+		t.Fatal("ConvertAnnToYail() error = nil, want component type diagnostic")
+	}
+
+	var diagnosticErr *AnnDiagnosticListError
+	if !errors.As(err, &diagnosticErr) {
+		t.Fatalf("ConvertAnnToYail() error = %T %v, want *AnnDiagnosticListError", err, err)
+	}
+	if len(diagnosticErr.Diagnostics) != 1 {
+		t.Fatalf("diagnostics = %#v, want one diagnostic", diagnosticErr.Diagnostics)
+	}
+	if !strings.Contains(diagnosticErr.Diagnostics[0].Message, `unknown component type "MysteryThing"`) {
+		t.Fatalf("diagnostic.Message = %q, want unknown component message", diagnosticErr.Diagnostics[0].Message)
+	}
+}
+
+func TestAnnValidationRejectsNestedNonVisibleComponent(t *testing.T) {
+	source := `Screen.Screen1 {
+  HorizontalArrangement.Row {
+    Notifier.Notifier1
+  }
+}`
+	_, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err == nil {
+		t.Fatal("ConvertAnnToYail() error = nil, want placement diagnostic")
+	}
+
+	var diagnosticErr *AnnDiagnosticListError
+	if !errors.As(err, &diagnosticErr) {
+		t.Fatalf("ConvertAnnToYail() error = %T %v, want *AnnDiagnosticListError", err, err)
+	}
+	if len(diagnosticErr.Diagnostics) != 1 {
+		t.Fatalf("diagnostics = %#v, want one diagnostic", diagnosticErr.Diagnostics)
+	}
+	if !strings.Contains(diagnosticErr.Diagnostics[0].Message, `Notifier "Notifier1" cannot be placed inside HorizontalArrangement "Row"`) {
+		t.Fatalf("diagnostic.Message = %q, want placement message", diagnosticErr.Diagnostics[0].Message)
+	}
+}
+
+func TestAnnValidationMatchesAppInventorPlacementRules(t *testing.T) {
+	valid := []string{
+		`Screen.Screen1 { Canvas.Canvas1 { Ball.Ball1, ImageSprite.Sprite1 } }`,
+		`Screen.Screen1 { Map.Map1 { Marker.Marker1, Circle.Circle1, FeatureCollection.Features { Polygon.Polygon1 } } }`,
+		`Screen.Screen1 { Chart.Chart1 { ChartData2D.Series1, Trendline.Trendline1 } }`,
+	}
+	for _, source := range valid {
+		if _, err := NewAnnYailConverter().ConvertAnnToYail(source); err != nil {
+			t.Fatalf("ConvertAnnToYail(%q) error = %v", source, err)
+		}
+	}
+
+	invalid := []string{
+		`Screen.Screen1 { Canvas.Canvas1 { Button.Button1 } }`,
+		`Screen.Screen1 { Map.Map1 { Button.Button1 } }`,
+		`Screen.Screen1 { ChartData2D.Series1 }`,
+		`Screen.Screen1 { Chart.Chart1 { Button.Button1 } }`,
+	}
+	for _, source := range invalid {
+		if _, err := NewAnnYailConverter().ConvertAnnToYail(source); err == nil {
+			t.Fatalf("ConvertAnnToYail(%q) error = nil, want placement error", source)
+		}
+	}
+}
+
+func TestAnnValidationRejectsDuplicateComponentNames(t *testing.T) {
+	source := `Screen.Screen1 {
+  Button.Save,
+  Label.Save
+}`
+	_, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err == nil {
+		t.Fatal("ConvertAnnToYail() error = nil, want duplicate name diagnostic")
+	}
+	var diagnosticErr *AnnDiagnosticListError
+	if !errors.As(err, &diagnosticErr) {
+		t.Fatalf("ConvertAnnToYail() error = %T %v, want *AnnDiagnosticListError", err, err)
+	}
+	if !strings.Contains(diagnosticErr.Error(), `duplicate component name "Save"`) {
+		t.Fatalf("diagnostic error = %q, want duplicate component name", diagnosticErr.Error())
 	}
 }
 

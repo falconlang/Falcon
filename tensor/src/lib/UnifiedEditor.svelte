@@ -6,50 +6,64 @@
     doItResults, clearDoItResult, unifiedSelectionActive,
     debugModeEnabled, debugActiveLocation, debugRuntimeErrors,
   } from './stores.js';
-  import { falconTokenize, tokensToHtml } from './tokenizer.js';
   import { mistToXmlResult, runCodeDiagnosticResult } from './falcon-wasm.js';
   import { blocklyXmlToPng, componentDefinitionsFromDesigner, ensureBlocklyRuntime, copyPngBlobToClipboard, downloadPngBlob } from './blockly-preview.js';
   import { splitFalconSourceByTopLevelLines } from './cell-splitting.js';
+  import { falconLang, falconSyntaxHighlighting } from './falcon-cm.js';
 
-  const AUTO_PAIRS = { '{': '}', '(': ')', '[': ']', '"': '"' };
-  const HISTORY_LIMIT = 100;
+  // CodeMirror imports
+  import { EditorView, keymap, lineNumbers, Decoration, WidgetType, gutter, GutterMarker } from '@codemirror/view';
+  import { EditorState, StateField, StateEffect, RangeSetBuilder } from '@codemirror/state';
+  import { defaultKeymap, historyKeymap, history, toggleComment, indentWithTab } from '@codemirror/commands';
+  import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+  import { indentOnInput } from '@codemirror/language';
 
-  let codeEl, highlightEl, wrapEl, editorContainerEl;
-  let editorValue = '';
-  let history = [];
-  let historyIndex = -1;
-  let applyingHistory = false;
+  // ── State ─────────────────────────────────────────────────────────────────
+  let cmEl;
+  let wrapEl;
+  let view;
   let syncingToStore = false;
   let unsubscribeCells = null;
   let unsubscribeScreen = null;
   let lastCellsSignature = '';
 
-  // ── Blockly callout ──
-  // null when hidden, or { x, y, status: 'loading'|'ready'|'error', imgUrl }
+  // Callout state
   let callout = null;
   let calloutRunId = 0;
   let calloutDebounceTimer = null;
-
-  // ── Do it callout ──
-  // null when hidden, or { x, y, startLine, endLine, maxWidth, status: 'running'|'ready', lines, ok }
   let doItCallout = null;
   let doItCalloutEl = null;
   let pendingDoItPos = null;
 
+  const CALLOUT_DEBOUNCE_MS = 280;
+  const LINE_HEIGHT = 13 * 1.65;
+  const CODE_PAD_TOP = 12;
+  const CALLOUT_GAP = 8;
+  const CALLOUT_PADDING = 12;
+
   $: isCompanionConnected = $liveTestState.status === 'connected';
+
   $: debugActiveUnifiedLine = $debugModeEnabled ? ($debugActiveLocation?.unifiedLine ?? null) : null;
   $: debugErrorEntries = $debugModeEnabled
     ? Object.values($debugRuntimeErrors || {})
-        .filter(error => error?.unifiedLine)
+        .filter(e => e?.unifiedLine)
         .sort((a, b) => a.unifiedLine - b.unifiedLine)
     : [];
-  $: debugErrorUnifiedLines = new Set(debugErrorEntries.map(error => error.unifiedLine));
+  $: debugErrorUnifiedLines = new Set(debugErrorEntries.map(e => e.unifiedLine));
   $: debugFirstError = debugErrorEntries[0] ?? null;
   $: debugFirstErrorLine = debugFirstError?.unifiedLine ?? null;
   $: debugFirstErrorLines = debugFirstError?.message
-    ? String(debugFirstError.message).split(/\r?\n/)
-    : [];
+    ? String(debugFirstError.message).split(/\r?\n/) : [];
 
+  // Push debug state into CM
+  $: if (view) {
+    view.dispatch({ effects: [
+      setDebugActiveLine.of(debugActiveUnifiedLine),
+      setDebugErrorEntries.of(debugErrorEntries),
+    ]});
+  }
+
+  // Handle do-it result arriving via store
   $: {
     const result = $doItResults['unified'];
     if (result && pendingDoItPos) {
@@ -60,340 +74,185 @@
     }
   }
 
-  const CALLOUT_DEBOUNCE_MS = 280;
-  const LINE_HEIGHT = 13 * 1.65; // must match .code-area font-size × line-height
-  const CODE_PAD_TOP = 12;        // must match .code-area padding-top
-  const CALLOUT_GAP = 8;
-  const CALLOUT_PADDING = 12; // 6px × 2
+  // ── CodeMirror effects & state ────────────────────────────────────────────
+  const externalChange      = StateEffect.define();
+  const setDebugActiveLine  = StateEffect.define();
+  const setDebugErrorEntries = StateEffect.define();
 
-  $: lineCount = Math.max(editorValue.split('\n').length, 1);
-  $: lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
-  $: highlightedCode = tokensToHtml(falconTokenize(editorValue));
+  class ErrorWidget extends WidgetType {
+    constructor(lines) { super(); this.lines = lines; }
+    eq(other) { return JSON.stringify(other.lines) === JSON.stringify(this.lines); }
+    toDOM() {
+      const wrap = document.createElement('div');
+      wrap.className = 'cm-debug-error-widget';
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 14 14'); icon.setAttribute('fill', 'none');
+      icon.setAttribute('stroke', 'currentColor'); icon.setAttribute('stroke-width', '1.4');
+      icon.setAttribute('stroke-linecap', 'round'); icon.setAttribute('stroke-linejoin', 'round');
+      icon.setAttribute('width', '13'); icon.setAttribute('height', '13');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.innerHTML = '<ellipse cx="7" cy="7.5" rx="3" ry="3.5"/><path d="M7 4V2.5"/><path d="M4 7.5H2M12 7.5h-2"/><path d="M4.5 5.2l-1.2-1.2M9.5 5.2l1.2-1.2"/><path d="M4.5 9.8l-1.2 1.2M9.5 9.8l1.2 1.2"/>';
+      const body = document.createElement('div');
+      body.className = 'cm-debug-error-widget-body';
+      for (const msg of (this.lines.length ? this.lines : ['Runtime error'])) {
+        const d = document.createElement('div'); d.textContent = msg; body.appendChild(d);
+      }
+      wrap.appendChild(icon); wrap.appendChild(body);
+      return wrap;
+    }
+    ignoreEvent() { return true; }
+  }
 
+  class DebugCurrentMarker extends GutterMarker {
+    toDOM() { return document.createTextNode(''); }
+    elementClass = 'debug-gutter-current';
+  }
+  class DebugErrorMarker extends GutterMarker {
+    toDOM() { return document.createTextNode(''); }
+    elementClass = 'debug-gutter-error';
+  }
+  const debugCurrentMarker = new DebugCurrentMarker();
+  const debugErrorMarker = new DebugErrorMarker();
+
+  const debugState = StateField.define({
+    create() { return { activeLine: null, errorEntries: [] }; },
+    update(val, tr) {
+      let next = val;
+      for (const e of tr.effects) {
+        if (e.is(setDebugActiveLine))  next = { ...next, activeLine: e.value };
+        if (e.is(setDebugErrorEntries)) next = { ...next, errorEntries: e.value };
+      }
+      return next;
+    },
+  });
+
+  const debugDecorations = EditorView.decorations.compute([debugState], state => {
+    const { activeLine, errorEntries } = state.field(debugState);
+    const builder = new RangeSetBuilder();
+    const entries = [];
+
+    if (activeLine != null && activeLine >= 1 && activeLine <= state.doc.lines) {
+      const line = state.doc.line(activeLine);
+      entries.push({ from: line.from, to: line.from, dec: Decoration.line({ class: 'cm-debug-active-line' }) });
+    }
+
+    for (const err of (errorEntries || [])) {
+      const ln = err.unifiedLine;
+      if (ln == null || ln < 1 || ln > state.doc.lines) continue;
+      const line = state.doc.line(ln);
+      entries.push({ from: line.from, to: line.from, dec: Decoration.line({ class: 'cm-debug-error-line-bg' }) });
+      const msgs = err.message ? String(err.message).split(/\r?\n/) : [];
+      entries.push({
+        from: line.to, to: line.to,
+        dec: Decoration.widget({ widget: new ErrorWidget(msgs), block: true, side: 1 }),
+      });
+    }
+
+    entries.sort((a, b) => a.from - b.from || a.to - b.to);
+    for (const e of entries) builder.add(e.from, e.to, e.dec);
+    return builder.finish();
+  });
+
+  const debugGutter = gutter({
+    class: 'cm-debug-gutter',
+    lineMarker(view, line) {
+      const { activeLine, errorEntries } = view.state.field(debugState);
+      const lineNo = view.state.doc.lineAt(line.from).number;
+      if (lineNo === activeLine) return debugCurrentMarker;
+      if ((errorEntries || []).some(e => e.unifiedLine === lineNo)) return debugErrorMarker;
+      return null;
+    },
+    lineMarkerChange: update => update.transactions.some(tr =>
+      tr.effects.some(e => e.is(setDebugActiveLine) || e.is(setDebugErrorEntries))),
+  });
+
+  // Track selection for callout + unifiedSelectionActive
+  const selectionListener = EditorView.updateListener.of(update => {
+    if (!update.selectionSet && !update.docChanged) return;
+    const sel = update.state.selection.main;
+    const hasSelection = sel.from !== sel.to;
+    unifiedSelectionActive.set(hasSelection);
+    if (hasSelection) scheduleCalloutCheck();
+    else { unifiedSelectionActive.set(false); dismissCallout(); }
+  });
+
+  // ── Cell ↔ editor sync helpers ────────────────────────────────────────────
   function buildContent(cellList) {
-    const codeCells = cellList.filter(c => c.type === 'code');
-    return codeCells.map(c => c.code || '').join('\n\n');
+    return cellList.filter(c => c.type === 'code').map(c => c.code || '').join('\n\n');
   }
 
   function codeCellsSignature(cellList) {
-    return JSON.stringify((cellList || [])
-      .filter(c => c.type === 'code')
-      .map(c => [c.id, c.code || '']));
-  }
-
-  function resetHistory(caret = 0) {
-    history = [];
-    historyIndex = -1;
-    pushHistory(Math.max(0, Math.min(caret, editorValue.length)));
+    return JSON.stringify((cellList || []).filter(c => c.type === 'code').map(c => [c.id, c.code || '']));
   }
 
   function syncFromCells(cellList, force = false) {
-    const signature = codeCellsSignature(cellList);
-    if (!force && signature === lastCellsSignature) return;
-    const nextContent = buildContent(cellList || []);
-    lastCellsSignature = signature;
-    editorValue = nextContent;
+    const sig = codeCellsSignature(cellList);
+    if (!force && sig === lastCellsSignature) return;
+    lastCellsSignature = sig;
+    const next = buildContent(cellList || []);
+    if (!view) return;
+    const current = view.state.doc.toString();
+    if (next === current) return;
+    view.dispatch({
+      changes: { from: 0, to: current.length, insert: next },
+      annotations: [externalChange.of(true)],
+    });
     dismissCallout();
-    resetHistory(0);
-    tick().then(syncScroll);
   }
 
   function syncToStore() {
+    if (!view) return;
+    const text = view.state.doc.toString();
     syncingToStore = true;
-    try {
-      replaceCodeCells(editorValue.trim() ? [editorValue] : []);
-    } finally {
-      syncingToStore = false;
-    }
+    try { replaceCodeCells(text.trim() ? [text] : []); }
+    finally { syncingToStore = false; }
   }
 
   export async function commitToCells() {
-    const source = editorValue;
+    if (!view) return false;
+    const source = view.state.doc.toString();
     if (!source.trim()) {
       syncingToStore = true;
-      try {
-        replaceCodeCells([]);
-      } finally {
-        syncingToStore = false;
-      }
+      try { replaceCodeCells([]); } finally { syncingToStore = false; }
       return true;
     }
-
     try {
       const componentDefinitions = await componentDefinitionsFromDesigner();
       const result = await mistToXmlResult(source, componentDefinitions);
       const chunks = splitFalconSourceByTopLevelLines(source, result.lineNumbers);
       syncingToStore = true;
-      try {
-        replaceCodeCells(chunks);
-      } finally {
-        syncingToStore = false;
-      }
+      try { replaceCodeCells(chunks); } finally { syncingToStore = false; }
       return true;
     } catch (e) {
       console.warn('[unified-editor] unable to split source by top-level expressions:', e);
       syncingToStore = true;
-      try {
-        replaceCodeCells([source]);
-      } finally {
-        syncingToStore = false;
-      }
+      try { replaceCodeCells([source]); } finally { syncingToStore = false; }
       return false;
     }
   }
 
-  function selectionRange() {
-    if (!codeEl) return { start: editorValue.length, end: editorValue.length };
-    return { start: codeEl.selectionStart ?? editorValue.length, end: codeEl.selectionEnd ?? editorValue.length };
-  }
-
-  function selectionCaret() { return selectionRange().end; }
-
-  function setSelection(start, end = start) {
-    if (!codeEl) return;
-    const s = Math.max(0, Math.min(start, editorValue.length));
-    const e = Math.max(s, Math.min(end, editorValue.length));
-    tick().then(() => {
-      if (!codeEl) return;
-      codeEl.focus({ preventScroll: true });
-      codeEl.setSelectionRange(s, e);
-    });
-  }
-
-  function render(text, caret = null) {
-    editorValue = text;
-    syncToStore();
-    if (caret !== null) setSelection(caret);
-  }
-
-  function pushHistory(caret = selectionCaret()) {
-    if (applyingHistory) return;
-    const current = history[historyIndex];
-    if (current?.text === editorValue) { history[historyIndex] = { text: editorValue, caret }; return; }
-    history = history.slice(0, historyIndex + 1);
-    history.push({ text: editorValue, caret });
-    if (history.length > HISTORY_LIMIT) history.shift();
-    historyIndex = history.length - 1;
-  }
-
-  function restoreHistory(idx) {
-    if (idx < 0 || idx >= history.length) return false;
-    applyingHistory = true;
-    historyIndex = idx;
-    const entry = history[historyIndex];
-    render(entry.text, entry.caret);
-    applyingHistory = false;
-    return true;
-  }
-
-  function isInsideString(text, offset) {
-    let inString = false, inLineComment = false;
-    for (let i = 0; i < offset; i++) {
-      const ch = text[i], next = text[i + 1];
-      if (inLineComment) { if (ch === '\n') inLineComment = false; continue; }
-      if (inString) { if (ch === '\\') { i++; continue; } if (ch === '"') inString = false; continue; }
-      if (ch === '/' && next === '/') { inLineComment = true; i++; continue; }
-      if (ch === '"') inString = true;
-    }
-    return inString;
-  }
-
-  function isPlainTextKey(e) { return !e.ctrlKey && !e.metaKey && !e.altKey; }
-
-  function autoPair(e) {
-    if (!isPlainTextKey(e) || !(e.key in AUTO_PAIRS)) return false;
-    const text = editorValue;
-    const { start, end } = selectionRange();
-    const s = Math.max(0, Math.min(start, text.length));
-    const en = Math.max(s, Math.min(end, text.length));
-    if (isInsideString(text, s)) return false;
-    const open = e.key, close = AUTO_PAIRS[open];
-    const selected = text.slice(s, en);
-    const next = text.slice(0, s) + open + selected + close + text.slice(en);
-    const caret = s === en ? s + 1 : en + 2;
-    e.preventDefault(); e.stopPropagation();
-    render(next, caret); pushHistory(caret);
-    return true;
-  }
-
-  function skipExistingClose(e) {
-    if (!isPlainTextKey(e) || !Object.values(AUTO_PAIRS).includes(e.key)) return false;
-    const text = editorValue;
-    const { start, end } = selectionRange();
-    if (start !== end) return false;
-    const caret = Math.max(0, Math.min(start, text.length));
-    if (text[caret] !== e.key) return false;
-    if (e.key === '"' ? !isInsideString(text, caret) : isInsideString(text, caret)) return false;
-    e.preventDefault(); e.stopPropagation();
-    setSelection(caret + 1); pushHistory(caret + 1);
-    return true;
-  }
-
-  function currentLinePrefix(text, offset) {
-    const lineStart = text.lastIndexOf('\n', Math.max(0, offset - 1)) + 1;
-    return text.slice(lineStart, offset);
-  }
-
-  function indentForNewLine(text, offset) {
-    const prefix = currentLinePrefix(text, offset);
-    const baseIndent = prefix.match(/^\s*/)[0];
-    const shouldIncrease = !isInsideString(text, offset) && prefix.trimEnd().endsWith('{');
-    return shouldIncrease ? `${baseIndent}  ` : baseIndent;
-  }
-
-  function insertIndentedNewline() {
-    const text = editorValue;
-    const { start, end } = selectionRange();
-    const indent = indentForNewLine(text, start);
-    const insert = `\n${indent}`;
-    const next = text.slice(0, start) + insert + text.slice(end);
-    const caret = start + insert.length;
-    render(next, caret); pushHistory(caret);
-  }
-
-  function deleteIndentOnlyLine(e) {
-    if (e.key !== 'Backspace' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return false;
-    const text = editorValue;
-    const { start, end } = selectionRange();
-    if (start !== end || start === 0) return false;
-    const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
-    const linePrefix = text.slice(lineStart, start);
-    if (lineStart === 0 || linePrefix.length === 0 || /\S/.test(linePrefix)) return false;
-    const prevEnd = lineStart - 1;
-    e.preventDefault(); e.stopPropagation();
-    render(text.slice(0, prevEnd) + text.slice(start), prevEnd); pushHistory(prevEnd);
-    return true;
-  }
-
-  function deleteEmptyPair(e) {
-    if (e.key !== 'Backspace' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return false;
-    const text = editorValue;
-    const { start, end } = selectionRange();
-    if (start !== end || start === 0) return false;
-    const open = text[start - 1], close = text[start];
-    if (AUTO_PAIRS[open] !== close) return false;
-    e.preventDefault(); e.stopPropagation();
-    const caret = start - 1;
-    render(text.slice(0, caret) + text.slice(start + 1), caret); pushHistory(caret);
-    return true;
-  }
-
-  function expandBraceOnEnter(e) {
-    if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return false;
-    const text = editorValue;
-    const { start, end } = selectionRange();
-    if (start !== end) return false;
-    const caret = Math.max(0, Math.min(start, text.length));
-    if (text[caret - 1] !== '{' || text[caret] !== '}') return false;
-    if (isInsideString(text, caret)) return false;
-    const lineStart = text.lastIndexOf('\n', Math.max(0, caret - 1)) + 1;
-    const baseIndent = text.slice(lineStart, caret).match(/^\s*/)[0];
-    const innerIndent = `${baseIndent}  `;
-    const insert = `\n${innerIndent}\n${baseIndent}`;
-    const next = text.slice(0, caret) + insert + text.slice(caret);
-    const nextCaret = caret + 1 + innerIndent.length;
-    e.preventDefault(); e.stopPropagation();
-    render(next, nextCaret); pushHistory(nextCaret);
-    return true;
-  }
-
-  function selectedLineRange(text, start, end) {
-    const activeEnd = end > start && text[end - 1] === '\n' ? end - 1 : end;
-    const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
-    const nextBreak = text.indexOf('\n', activeEnd);
-    const lineEnd = nextBreak === -1 ? text.length : nextBreak;
-    return { lineStart, lineEnd };
-  }
-
-  function toggleLineComments() {
-    if (!codeEl) return;
-    const text = editorValue;
-    const { start, end } = selectionRange();
-    const s = Math.max(0, Math.min(start, text.length));
-    const en = Math.max(s, Math.min(end, text.length));
-    const { lineStart, lineEnd } = selectedLineRange(text, s, en);
-    const lines = text.slice(lineStart, lineEnd).split('\n');
-    const candidates = lines.filter(l => l.trim().length > 0);
-    const shouldUncomment = candidates.length > 0 && candidates.every(l => /^\s*\/\//.test(l));
-    const nextLines = lines.map(line => {
-      if (shouldUncomment) {
-        const match = line.match(/^(\s*)\/\/ ?/);
-        return match ? match[1] + line.slice(match[0].length) : line;
-      }
-      const indent = line.match(/^\s*/)[0];
-      return `${indent}// ${line.slice(indent.length)}`;
-    });
-    const toggled = nextLines.join('\n');
-    const next = text.slice(0, lineStart) + toggled + text.slice(lineEnd);
-    const toggledEnd = lineStart + toggled.length;
-    const nextLineStart = next[toggledEnd] === '\n' ? toggledEnd + 1 : toggledEnd;
-    render(next, nextLineStart); pushHistory(nextLineStart);
-  }
-
-  function isUndoShortcut(e) { return (e.ctrlKey || e.metaKey) && !e.altKey && e.key?.toLowerCase() === 'z' && !e.shiftKey; }
-  function isRedoShortcut(e) { const k = e.key?.toLowerCase(); return (e.ctrlKey || e.metaKey) && !e.altKey && (k === 'y' || (k === 'z' && e.shiftKey)); }
-  function isCommentShortcut(e) {
-    const code = e.keyCode || e.which;
-    return (e.ctrlKey || e.metaKey) && !e.altKey && (e.key === '/' || e.key === '?' || e.code === 'Slash' || e.code === 'NumpadDivide' || code === 191 || code === 111);
-  }
-
-  function handleKey(e) {
-    if (isUndoShortcut(e)) { e.preventDefault(); e.stopPropagation(); restoreHistory(historyIndex - 1); return; }
-    if (isRedoShortcut(e)) { e.preventDefault(); e.stopPropagation(); restoreHistory(historyIndex + 1); return; }
-    if (isCommentShortcut(e)) { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); toggleLineComments(); return; }
-    if (skipExistingClose(e) || autoPair(e)) return;
-    if (deleteEmptyPair(e)) return;
-    if (deleteIndentOnlyLine(e)) return;
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const text = editorValue;
-      const { start, end } = selectionRange();
-      const next = text.slice(0, start) + '  ' + text.slice(end);
-      const caret = start + 2;
-      render(next, caret); pushHistory(caret);
-      return;
-    }
-    if (e.key === 'Enter') {
-      if (expandBraceOnEnter(e)) return;
-      e.preventDefault();
-      insertIndentedNewline();
-    }
-  }
-
-  function syncScroll() {
-    if (!codeEl || !highlightEl) return;
-    highlightEl.scrollLeft = codeEl.scrollLeft;
-    highlightEl.scrollTop = codeEl.scrollTop;
-    updateCalloutY();
-  }
-
-  function onInput(e) {
-    editorValue = e.currentTarget.value;
-    syncToStore();
-    dismissCallout();
-    pushHistory();
-    syncScroll();
-  }
-
-  // ── Callout helpers ──
+  // ── Callout helpers ───────────────────────────────────────────────────────
+  function editorValue() { return view?.state.doc.toString() || ''; }
 
   function lineOfOffset(offset) {
-    const boundedOffset = Math.max(0, Math.min(offset, editorValue.length));
-    return (editorValue.slice(0, boundedOffset).match(/\n/g) || []).length + 1;
+    if (!view) return 1;
+    return view.state.doc.lineAt(Math.max(0, Math.min(offset, view.state.doc.length))).number;
   }
 
   function selectionLineRange(selStart, selEnd) {
-    const start = Math.max(0, Math.min(selStart, editorValue.length));
-    const end = Math.max(start, Math.min(selEnd, editorValue.length));
-    const activeEnd = end > start && editorValue[end - 1] === '\n' ? end - 1 : end;
-    const startLine = lineOfOffset(start);
-    const endLine = Math.max(startLine, lineOfOffset(activeEnd));
+    if (!view) return { startLine: 1, endLine: 1 };
+    const doc = view.state.doc;
+    const s = Math.max(0, Math.min(selStart, doc.length));
+    const e = Math.max(s, Math.min(selEnd, doc.length));
+    const activeEnd = e > s && doc.sliceString(e - 1, e) === '\n' ? e - 1 : e;
+    const startLine = doc.lineAt(s).number;
+    const endLine = Math.max(startLine, doc.lineAt(activeEnd).number);
     return { startLine, endLine };
   }
 
   function firstCodeLineInSelection(startLine, endLine) {
-    const lines = editorValue.split('\n');
-    for (let line = startLine; line <= endLine; line += 1) {
+    const lines = editorValue().split('\n');
+    for (let line = startLine; line <= endLine; line++) {
       const trimmed = (lines[line - 1] || '').trim();
       if (!trimmed || trimmed.startsWith('//')) continue;
       return line;
@@ -408,50 +267,45 @@
   }
 
   function calloutY(startLine, endLine) {
-    if (!codeEl || !editorContainerEl) return 0;
-    const rect = codeEl.getBoundingClientRect();
+    if (!view || !wrapEl) return 0;
+    const rect = view.scrollDOM.getBoundingClientRect();
     const centerLine = (startLine + endLine) / 2;
-    return rect.top + CODE_PAD_TOP + (centerLine - 1) * LINE_HEIGHT - codeEl.scrollTop;
+    return rect.top + CODE_PAD_TOP + (centerLine - 1) * LINE_HEIGHT - view.scrollDOM.scrollTop;
   }
 
   function calloutX(startLine, endLine) {
-    if (!codeEl) return { x: 0, overflowed: false };
-    const lines = editorValue.split('\n');
+    if (!view) return { x: 0, overflowed: false };
+    const lines = editorValue().split('\n');
     const selLines = lines.slice(startLine - 1, endLine);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    ctx.font = getComputedStyle(codeEl).font;
+    ctx.font = getComputedStyle(view.contentDOM).font;
     const maxPx = Math.max(0, ...selLines.map(l => ctx.measureText(l).width));
-    const rect = codeEl.getBoundingClientRect();
-    const rawX = rect.left + 4 + maxPx; // 4px matches .code-area padding-left
+    const rect = view.scrollDOM.getBoundingClientRect();
+    const rawX = rect.left + 4 + maxPx;
     const frameRight = wrapEl ? wrapEl.getBoundingClientRect().right : window.innerWidth;
     const overflowed = rawX + CALLOUT_GAP > frameRight;
     return { x: overflowed ? frameRight : rawX, overflowed };
   }
 
   function doItCalloutPos(startLine, selStart) {
-    if (!codeEl) return { x: 0, y: 0, maxWidth: 280 };
-    const rect = codeEl.getBoundingClientRect();
-
-    // Measure the pixel column of the selection start within its line
-    const lines = editorValue.split('\n');
+    if (!view) return { x: 0, y: 0, maxWidth: 280 };
+    const rect = view.scrollDOM.getBoundingClientRect();
+    const lines = editorValue().split('\n');
     const lineCharStart = lines.slice(0, startLine - 1).reduce((acc, l) => acc + l.length + 1, 0);
-    const textToSel = editorValue.slice(lineCharStart, Math.max(lineCharStart, Math.min(selStart ?? lineCharStart, lineCharStart + (lines[startLine - 1] || '').length)));
+    const textToSel = editorValue().slice(lineCharStart, Math.max(lineCharStart, Math.min(selStart ?? lineCharStart, lineCharStart + (lines[startLine - 1] || '').length)));
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    ctx.font = getComputedStyle(codeEl).font;
+    ctx.font = getComputedStyle(view.contentDOM).font;
     const colPx = ctx.measureText(textToSel).width;
-
-    // x = left content edge + column offset - horizontal scroll
-    const x = rect.left + 4 + colPx - (codeEl.scrollLeft || 0);
-    const y = rect.top + CODE_PAD_TOP + (startLine - 1) * LINE_HEIGHT - codeEl.scrollTop;
+    const x = rect.left + 4 + colPx - (view.scrollDOM.scrollLeft || 0);
+    const y = rect.top + CODE_PAD_TOP + (startLine - 1) * LINE_HEIGHT - view.scrollDOM.scrollTop;
     const frameRight = wrapEl ? wrapEl.getBoundingClientRect().right : window.innerWidth;
     const maxWidth = Math.max(120, Math.min(320, frameRight - x - 16));
     return { x, y, maxWidth };
   }
 
   function updateCalloutY() {
-    if (!codeEl || !editorContainerEl) return;
     if (callout) {
       const { x, overflowed } = calloutX(callout.startLine, callout.endLine);
       callout = { ...callout, y: calloutY(callout.startLine, callout.endLine), x, overflowed };
@@ -462,17 +316,7 @@
     }
   }
 
-  function dismissDoItCallout() {
-    doItCallout = null;
-  }
-
-  function debugLineTop(line) {
-    return `${CODE_PAD_TOP + (Math.max(1, Number(line) || 1) - 1) * LINE_HEIGHT}px`;
-  }
-
-  function debugMessageTop(line) {
-    return `${CODE_PAD_TOP + Math.max(1, Number(line) || 1) * LINE_HEIGHT + 2}px`;
-  }
+  function dismissDoItCallout() { doItCallout = null; }
 
   function onWindowPointerDown(e) {
     if (doItCallout?.status === 'ready' && doItCalloutEl && !doItCalloutEl.contains(e.target)) {
@@ -493,27 +337,21 @@
     calloutDebounceTimer = setTimeout(() => runCalloutCheck(runId), CALLOUT_DEBOUNCE_MS);
   }
 
-  function onDocumentSelectionChange() {
-    if (document.activeElement === codeEl) scheduleCalloutCheck();
-  }
-
   async function runCalloutCheck(runId) {
-    if (!codeEl || runId !== calloutRunId) return;
-    const selStart = codeEl.selectionStart;
-    const selEnd   = codeEl.selectionEnd;
+    if (!view || runId !== calloutRunId) return;
+    const { from: selStart, to: selEnd } = view.state.selection.main;
     if (selStart === selEnd) { unifiedSelectionActive.set(false); dismissCallout(); return; }
     unifiedSelectionActive.set(true);
 
     const { startLine: selectionStartLine, endLine } = selectionLineRange(selStart, selEnd);
 
-    let xmlResult;
-    let componentDefinitions;
+    let xmlResult, componentDefinitions;
     try {
       componentDefinitions = await componentDefinitionsFromDesigner();
       if (runId !== calloutRunId) return;
       await ensureBlocklyRuntime();
       if (runId !== calloutRunId) return;
-      xmlResult = await mistToXmlResult(editorValue, componentDefinitions);
+      xmlResult = await mistToXmlResult(editorValue(), componentDefinitions);
       if (runId !== calloutRunId) return;
     } catch { return; }
 
@@ -521,7 +359,6 @@
     const idx = topLevelIndexForSelection(lineNumbers, selectionStartLine, endLine);
     if (idx === -1) { if (runId === calloutRunId) callout = null; return; }
     const startLine = lineNumbers[idx];
-
     const chunks = String(xml || '').split('\0').map(s => s.trim()).filter(Boolean);
     const xmlChunk = chunks[idx];
     if (!xmlChunk) { callout = null; return; }
@@ -543,41 +380,17 @@
     }
   }
 
-  onMount(() => {
-    let mountedScreen = null;
-    unsubscribeCells = cells.subscribe(cellList => {
-      const signature = codeCellsSignature(cellList);
-      if (syncingToStore) {
-        lastCellsSignature = signature;
-        return;
-      }
-      syncFromCells(cellList);
-    });
-    unsubscribeScreen = activeScreen.subscribe(name => {
-      if (mountedScreen === null) {
-        mountedScreen = name;
-        return;
-      }
-      if (name === mountedScreen) return;
-      mountedScreen = name;
-      syncFromCells($cells, true);
-    });
-    document.addEventListener('selectionchange', onDocumentSelectionChange);
-  });
-
+  // ── Do it (run selection) ─────────────────────────────────────────────────
   export async function runDoIt() {
-    if (!codeEl) return;
-    const selStart = codeEl.selectionStart ?? 0;
-    const selEnd = codeEl.selectionEnd ?? 0;
-    if (selStart === selEnd) return;
-    const start = Math.min(selStart, selEnd);
-    const end = Math.max(selStart, selEnd);
-    const source = editorValue.slice(start, end);
+    if (!view) return;
+    const { from, to } = view.state.selection.main;
+    if (from === to) return;
+    const source = view.state.sliceDoc(from, to);
     if (!source.trim()) return;
 
-    const { startLine, endLine } = selectionLineRange(start, end);
-    const pos = doItCalloutPos(startLine, start);
-    pendingDoItPos = { ...pos, startLine, endLine, selStart: start };
+    const { startLine, endLine } = selectionLineRange(from, to);
+    const pos = doItCalloutPos(startLine, from);
+    pendingDoItPos = { ...pos, startLine, endLine, selStart: from };
     doItCallout = { ...pendingDoItPos, status: 'running', lines: [], ok: true };
 
     if (isCompanionConnected) {
@@ -591,9 +404,7 @@
       const lines = [];
       for (const line of result.output || []) lines.push(line);
       if (!result.ok) {
-        const diags = result.diagnostics?.length
-          ? result.diagnostics
-          : [{ message: result.error || 'Execution failed' }];
+        const diags = result.diagnostics?.length ? result.diagnostics : [{ message: result.error || 'Execution failed' }];
         for (const d of diags) {
           const loc = d.line ? `:${d.line}${d.column ? `:${d.column}` : ''}` : '';
           lines.push(`${loc ? loc + ' ' : ''}${d.message}`);
@@ -607,13 +418,100 @@
     }
   }
 
+  // ── Build EditorView ──────────────────────────────────────────────────────
+  function buildView(container, doc) {
+    return new EditorView({
+      parent: container,
+      state: EditorState.create({
+        doc,
+        extensions: [
+          history(),
+          falconLang,
+          falconSyntaxHighlighting,
+          closeBrackets(),
+          indentOnInput(),
+          lineNumbers(),
+          debugState,
+          debugDecorations,
+          debugGutter,
+          selectionListener,
+          keymap.of([
+            { key: 'Mod-/', run: toggleComment },
+            { key: 'Tab', run: indentWithTab.run, shift: indentWithTab.shift },
+            ...closeBracketsKeymap,
+            ...defaultKeymap,
+            ...historyKeymap,
+          ]),
+          EditorView.updateListener.of(update => {
+            if (!update.docChanged) return;
+            if (update.transactions.some(tr => tr.annotation(externalChange))) return;
+            syncToStore();
+            dismissCallout();
+          }),
+          EditorView.domEventHandlers({
+            scroll() { updateCalloutY(); },
+            blur()   { unifiedSelectionActive.set(false); },
+          }),
+          EditorView.theme({
+            '&': { background: 'transparent', height: '100%' },
+            '.cm-scroller': {
+              fontFamily: 'var(--mono)',
+              fontSize: '13px',
+              lineHeight: '1.65',
+              overflow: 'auto',
+            },
+            '.cm-content': { padding: '12px 16px 12px 4px', caretColor: 'var(--text)' },
+            '.cm-line': { padding: '0' },
+            '&.cm-focused .cm-cursor': { borderLeftColor: 'var(--text)' },
+            '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
+              background: 'color-mix(in srgb, var(--accent) 24%, transparent)',
+            },
+            '&.cm-focused': { outline: 'none' },
+            '.cm-gutters': {
+              background: 'var(--surface)',
+              border: 'none',
+              color: 'var(--text-faint)',
+              fontFamily: 'var(--mono)',
+              fontSize: '13px',
+              lineHeight: '1.65',
+              userSelect: 'none',
+              minWidth: '40px',
+            },
+            '.cm-lineNumbers .cm-gutterElement': { padding: '0 10px 0 8px', minWidth: '32px', textAlign: 'right' },
+            '.cm-debug-gutter': { width: '3px', background: 'transparent' },
+            '.cm-debug-gutter .cm-gutterElement': { padding: '0' },
+          }),
+        ],
+      }),
+    });
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  onMount(() => {
+    let mountedScreen = null;
+    view = buildView(cmEl, '');
+
+    unsubscribeCells = cells.subscribe(cellList => {
+      const sig = codeCellsSignature(cellList);
+      if (syncingToStore) { lastCellsSignature = sig; return; }
+      syncFromCells(cellList);
+    });
+
+    unsubscribeScreen = activeScreen.subscribe(name => {
+      if (mountedScreen === null) { mountedScreen = name; return; }
+      if (name === mountedScreen) return;
+      mountedScreen = name;
+      syncFromCells($cells, true);
+    });
+  });
+
   onDestroy(() => {
     unsubscribeCells?.();
     unsubscribeScreen?.();
-    document.removeEventListener('selectionchange', onDocumentSelectionChange);
     unifiedSelectionActive.set(false);
     dismissCallout();
     dismissDoItCallout();
+    view?.destroy();
   });
 </script>
 
@@ -624,64 +522,8 @@
   data-debug-active-line={debugActiveUnifiedLine || undefined}
   bind:this={wrapEl}
 >
-  <div class="unified-editor" bind:this={editorContainerEl}>
-    {#if debugActiveUnifiedLine !== null}
-      <div
-        class="debug-line-backdrop debug-line-backdrop--active"
-        style:top={debugLineTop(debugActiveUnifiedLine)}
-      ></div>
-    {/if}
-    {#each debugErrorEntries as error (error.cellId)}
-      <div
-        class="debug-line-backdrop debug-line-backdrop--error"
-        style:top={debugLineTop(error.unifiedLine)}
-      ></div>
-    {/each}
-    {#if debugFirstError}
-      <div
-        class="debug-inline-error"
-        style:top={debugMessageTop(debugFirstErrorLine)}
-      >
-        <span class="debug-inline-error-icon" aria-hidden="true">✗</span>
-        <div class="debug-inline-error-body">
-          {#if debugFirstErrorLines.length}
-            {#each debugFirstErrorLines as line}
-              <div>{line}</div>
-            {/each}
-          {:else}
-            <div>Runtime error</div>
-          {/if}
-        </div>
-      </div>
-    {/if}
-    <div class="line-nums" aria-hidden="true">
-      {#each lineNumbers as n}
-        <div
-          class:debug-current-line={debugActiveUnifiedLine === n}
-          class:debug-error-line={debugErrorUnifiedLines.has(n)}
-          data-line={n}
-        >{n}</div>
-      {/each}
-    </div>
-    <div class="code-stack">
-      <pre class="code-highlight" aria-hidden="true" bind:this={highlightEl}>{@html highlightedCode}</pre>
-      <textarea
-        class="code-area"
-        aria-multiline="true"
-        spellcheck="false"
-        wrap="off"
-        rows={lineCount}
-        bind:this={codeEl}
-        value={editorValue}
-        on:keydown={handleKey}
-        on:input={onInput}
-        on:scroll={syncScroll}
-        on:select={scheduleCalloutCheck}
-        on:mouseup={scheduleCalloutCheck}
-        on:keyup={scheduleCalloutCheck}
-        on:blur={() => unifiedSelectionActive.set(false)}
-      ></textarea>
-    </div>
+  <div class="unified-editor">
+    <div class="cm-host" bind:this={cmEl}></div>
   </div>
 </div>
 
@@ -752,11 +594,15 @@
   }
 
   .unified-editor {
-    position: relative;
     flex: 1;
     display: flex;
     background: var(--surface);
     overflow: hidden;
+  }
+
+  .cm-host {
+    flex: 1;
+    min-width: 0;
   }
 
   /* ── Blockly callout ── */
@@ -771,7 +617,6 @@
     pointer-events: auto;
   }
 
-  /* Arrow pointing left — rotated square on left edge */
   .blocks-callout::after {
     content: '';
     position: absolute;
@@ -786,9 +631,7 @@
     border-radius: 0 0 0 2px;
   }
 
-  .blocks-callout--loading {
-    padding: 10px 12px;
-  }
+  .blocks-callout--loading { padding: 10px 12px; }
 
   .callout-spinner {
     display: block;
@@ -798,9 +641,7 @@
     color: var(--text-faint);
   }
 
-  @keyframes callout-spin {
-    to { transform: rotate(360deg); }
-  }
+  @keyframes callout-spin { to { transform: rotate(360deg); } }
 
   .callout-img {
     display: block;
@@ -810,151 +651,59 @@
     border-radius: 6px;
   }
 
-  .callout-actions {
-    display: flex;
-    gap: 4px;
-    margin-top: 6px;
-  }
+  .callout-actions { display: flex; gap: 4px; margin-top: 6px; }
 
   .callout-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    height: 26px;
-    padding: 0 8px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-muted);
-    font-family: var(--font);
-    font-size: 11px;
-    border-radius: 6px;
-    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    gap: 4px; height: 26px; padding: 0 8px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); font-family: var(--font); font-size: 11px;
+    border-radius: 6px; cursor: pointer;
     transition: background 0.1s, color 0.1s, border-color 0.1s;
     white-space: nowrap;
   }
-
-  .callout-action-btn:hover {
-    background: var(--cell-active);
-    color: var(--text);
-    border-color: var(--text-faint);
-  }
-
-  .callout-action-btn svg {
-    width: 12px;
-    height: 12px;
-    flex-shrink: 0;
-  }
+  .callout-action-btn:hover { background: var(--cell-active); color: var(--text); border-color: var(--text-faint); }
+  .callout-action-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
 
   /* ── Do it callout ── */
   .do-it-callout {
-    position: fixed;
-    z-index: 80;
-    /* sits above the first selected line with a small gap */
+    position: fixed; z-index: 80;
     transform: translateY(calc(-100% - 6px));
-    border-radius: 10px;
-    padding: 7px 8px 7px 10px;
-    pointer-events: auto;
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    font-family: var(--mono);
-    font-size: 12px;
-    line-height: 1.5;
-    min-width: 60px;
+    border-radius: 10px; padding: 7px 8px 7px 10px;
+    pointer-events: auto; display: flex; align-items: flex-start;
+    gap: 6px; font-family: var(--mono); font-size: 12px;
+    line-height: 1.5; min-width: 60px;
   }
-
-  /* Arrow pointing down toward the selection */
   .do-it-callout::after {
-    content: '';
-    position: absolute;
-    bottom: -5px;
-    left: 10px;
-    width: 8px;
-    height: 8px;
-    border-bottom: 1.5px solid var(--accent);
-    border-right: 1.5px solid var(--accent);
-    transform: rotate(45deg);
-    border-radius: 0 0 2px 0;
+    content: ''; position: absolute; bottom: -5px; left: 10px;
+    width: 8px; height: 8px;
+    border-bottom: 1.5px solid var(--accent); border-right: 1.5px solid var(--accent);
+    transform: rotate(45deg); border-radius: 0 0 2px 0;
   }
+  .do-it-callout--ok { background: var(--run-soft); border: 1.5px solid var(--accent); color: var(--text); }
+  .do-it-callout--ok::after { background: var(--run-soft); border-color: var(--accent); }
+  .do-it-callout--error { background: var(--error-soft); border: 1.5px solid var(--error); color: var(--error); }
+  .do-it-callout--error::after { background: var(--error-soft); border-color: var(--error); }
+  .do-it-callout--running { background: var(--surface); border: 1.5px solid var(--border); padding: 10px 12px; }
+  .do-it-callout--running::after { background: var(--surface); border-color: var(--border); }
 
-  .do-it-callout--ok {
-    background: var(--run-soft);
-    border: 1.5px solid var(--accent);
-    color: var(--text);
-  }
-  .do-it-callout--ok::after {
-    background: var(--run-soft);
-    border-color: var(--accent);
-  }
-
-  .do-it-callout--error {
-    background: var(--error-soft);
-    border: 1.5px solid var(--error);
-    color: var(--error);
-  }
-  .do-it-callout--error::after {
-    background: var(--error-soft);
-    border-color: var(--error);
-  }
-
-  .do-it-callout--running {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    padding: 10px 12px;
-  }
-  .do-it-callout--running::after {
-    background: var(--surface);
-    border-color: var(--border);
-  }
-
-  .do-it-callout-arrow {
-    flex-shrink: 0;
-    font-weight: 600;
-    color: var(--accent);
-    user-select: none;
-    padding-top: 1px;
-  }
+  .do-it-callout-arrow { flex-shrink: 0; font-weight: 600; color: var(--accent); user-select: none; padding-top: 1px; }
   .do-it-callout--error .do-it-callout-arrow { color: var(--error); }
-
-  .do-it-callout-body {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .do-it-callout-line {
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-  .do-it-callout-line--empty {
-    color: var(--text-faint);
-    font-style: italic;
-  }
+  .do-it-callout-body { flex: 1; min-width: 0; }
+  .do-it-callout-line { white-space: pre-wrap; word-break: break-word; }
+  .do-it-callout-line--empty { color: var(--text-faint); font-style: italic; }
   .do-it-callout--error .do-it-callout-line { color: var(--error); }
 
   .do-it-callout-dismiss {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-faint);
-    font-size: 14px;
-    line-height: 1;
-    padding: 1px 3px;
-    border-radius: 3px;
-    transition: background 0.1s, color 0.1s;
-    margin-top: 1px;
+    flex-shrink: 0; background: none; border: none; cursor: pointer;
+    color: var(--text-faint); font-size: 14px; line-height: 1;
+    padding: 1px 3px; border-radius: 3px;
+    transition: background 0.1s, color 0.1s; margin-top: 1px;
   }
-  .do-it-callout-dismiss:hover {
-    background: var(--border-soft);
-    color: var(--text-muted);
-  }
+  .do-it-callout-dismiss:hover { background: var(--border-soft); color: var(--text-muted); }
 
   .do-it-callout-spinner {
-    display: block;
-    width: 16px;
-    height: 16px;
-    animation: callout-spin 0.9s linear infinite;
-    color: var(--text-faint);
+    display: block; width: 16px; height: 16px;
+    animation: callout-spin 0.9s linear infinite; color: var(--text-faint);
   }
 </style>

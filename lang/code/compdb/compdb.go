@@ -19,6 +19,7 @@ type scComponent struct {
 	NonVisible      string       `json:"nonVisible"`
 	HelpString      string       `json:"helpString"`
 	ShowOnPalette   string       `json:"showOnPalette"`
+	Properties      []scProperty `json:"properties"`
 	BlockProperties []scProperty `json:"blockProperties"`
 	Methods         []scMethod   `json:"methods"`
 	Events          []scEvent    `json:"events"`
@@ -27,6 +28,7 @@ type scComponent struct {
 type scProperty struct {
 	Name        string    `json:"name"`
 	Type        string    `json:"type"`
+	EditorType  string    `json:"editorType"`
 	RW          string    `json:"rw"`
 	Deprecated  string    `json:"deprecated"`
 	Description string    `json:"description"`
@@ -109,6 +111,32 @@ type CompDB struct {
 	components         map[string]scComponent       // shortName → full component data
 }
 
+var (
+	canvasChildTypes = map[string]bool{
+		"Ball":        true,
+		"ImageSprite": true,
+	}
+	mapChildTypes = map[string]bool{
+		"Circle":            true,
+		"FeatureCollection": true,
+		"LineString":        true,
+		"Marker":            true,
+		"Polygon":           true,
+		"Rectangle":         true,
+	}
+	featureCollectionChildTypes = map[string]bool{
+		"Circle":     true,
+		"LineString": true,
+		"Marker":     true,
+		"Polygon":    true,
+		"Rectangle":  true,
+	}
+	chartChildTypes = map[string]bool{
+		"ChartData2D": true,
+		"Trendline":   true,
+	}
+)
+
 // GlobalDB is the singleton component database, initialized once at package load.
 var GlobalDB = initCompDB()
 
@@ -135,6 +163,11 @@ func initCompDB() *CompDB {
 			pm[prop.Name] = prop.Type
 			if prop.Helper != nil {
 				db.indexHelper(prop.Helper)
+			}
+		}
+		for _, prop := range comp.Properties {
+			if pm[prop.Name] == "" {
+				pm[prop.Name] = inferDesignerPropertyType(prop)
 			}
 		}
 		db.propType[comp.Name] = pm
@@ -165,6 +198,22 @@ func initCompDB() *CompDB {
 	}
 
 	return db
+}
+
+func inferDesignerPropertyType(prop scProperty) string {
+	switch prop.Type {
+	case "boolean", "number", "text", "list", "component", "any":
+		return prop.Type
+	}
+	switch prop.EditorType {
+	case "boolean":
+		return "boolean"
+	case "color", "float", "integer", "layout_size", "non_negative_float", "non_negative_integer":
+		return "number"
+	case "ListViewAddData":
+		return "list"
+	}
+	return "text"
 }
 
 func (db *CompDB) indexHelper(h *scHelper) {
@@ -240,6 +289,55 @@ func (db *CompDB) GetMethodParams(compType, methodName string) []MethodParam {
 // GetOptionList returns the OptionList for the given key, or nil if not found.
 func (db *CompDB) GetOptionList(key string) *OptionList {
 	return db.optionLists[key]
+}
+
+// HasComponent reports whether compType is a known built-in App Inventor
+// component type.
+func (db *CompDB) HasComponent(compType string) bool {
+	_, ok := db.components[compType]
+	return ok
+}
+
+// IsNonVisible reports whether compType is a known non-visible component.
+func (db *CompDB) IsNonVisible(compType string) bool {
+	if compType == "Form" {
+		return false
+	}
+	comp, ok := db.components[compType]
+	return ok && comp.NonVisible == "true"
+}
+
+// CanContainComponent applies the designer's structural placement rules for
+// built-in components.
+func (db *CompDB) CanContainComponent(parentType, childType string) bool {
+	if parentType == "" || childType == "" {
+		return false
+	}
+	if canvasChildTypes[childType] {
+		return parentType == "Canvas"
+	}
+	if mapChildTypes[childType] {
+		if parentType == "Map" {
+			return true
+		}
+		return parentType == "FeatureCollection" && featureCollectionChildTypes[childType]
+	}
+	if chartChildTypes[childType] {
+		return parentType == "Chart"
+	}
+	if db.IsNonVisible(childType) {
+		return parentType == "Form"
+	}
+	if db.IsNonVisible(parentType) {
+		return false
+	}
+	switch parentType {
+	case "Form":
+		return true
+	case "Canvas", "Map", "FeatureCollection", "Chart":
+		return false
+	}
+	return db.components[parentType].CategoryString == "LAYOUT"
 }
 
 // ValidateProperty checks that propName exists on compType. Returns nil when the

@@ -150,10 +150,7 @@ func (p *AimlParser) parseComponent() (Component, error) {
 	}
 
 	if p.pos >= len(p.source) || p.source[p.pos] != '{' {
-		if comp.Id != "" {
-			return comp, nil
-		}
-		return Component{}, p.parseError("expected '{' after %s", typeName)
+		return comp, nil
 	}
 	p.pos++
 
@@ -267,11 +264,14 @@ func (p *AimlParser) readValue() (string, error) {
 	if p.source[p.pos] == '"' {
 		return p.readString()
 	}
-	// Unquoted value: read until comma, }, or whitespace
+	// Unquoted value: read until comma, newline, }, or a line comment.
 	start := p.pos
 	for p.pos < len(p.source) {
 		c := p.source[p.pos]
-		if c == ',' || c == '}' || c == ' ' || c == '\t' || c == '\n' || c == '\r' {
+		if c == ',' || c == '}' || c == '\n' || c == '\r' {
+			break
+		}
+		if c == '/' && p.pos+1 < len(p.source) && p.source[p.pos+1] == '/' {
 			break
 		}
 		p.pos++
@@ -417,6 +417,11 @@ func (p *AimlParser) skipWhitespace() {
 		c := p.source[p.pos]
 		if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
 			p.pos++
+		} else if c == '/' && p.pos+1 < len(p.source) && p.source[p.pos+1] == '/' {
+			p.pos += 2
+			for p.pos < len(p.source) && p.source[p.pos] != '\n' && p.source[p.pos] != '\r' {
+				p.pos++
+			}
 		} else {
 			break
 		}

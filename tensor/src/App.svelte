@@ -31,28 +31,8 @@
       }
     };
 
-    const onSelectionChange = () => {
-      const activeEl = document.activeElement;
-      if (
-        activeEl?.classList?.contains('code-area')
-        && activeEl.id?.startsWith('code-')
-      ) {
-        doItCellId.set(activeEl.selectionStart !== activeEl.selectionEnd ? activeEl.id.slice(5) : null);
-        return;
-      }
-
-      const sel = window.getSelection();
-      const hasText = sel && sel.toString().length > 0;
-      let selCellId = null;
-      if (hasText && sel.rangeCount) {
-        const node = sel.getRangeAt(0).commonAncestorContainer;
-        const area = node.nodeType === 1
-          ? node.closest('.code-area')
-          : node.parentElement?.closest('.code-area');
-        if (area && area.id.startsWith('code-')) selCellId = area.id.slice(5);
-      }
-      doItCellId.set(selCellId);
-    };
+    // Selection tracking is now handled per-cell in CodeMirror's updateListener.
+    const onSelectionChange = () => {};
 
     document.addEventListener('click', hideCtx);
     document.addEventListener('keydown', onKeyDown);

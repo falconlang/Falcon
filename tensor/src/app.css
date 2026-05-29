@@ -724,90 +724,19 @@ html, body {
   transition: height 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.line-nums {
-  position: relative;
-  z-index: 1;
-  padding: 12px 0;
-  min-width: 40px;
-  text-align: right;
-  background: transparent;
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--text-faint);
-  user-select: none;
-  flex-shrink: 0;
-  line-height: 1.65;
-}
-.line-nums div { padding: 0 10px 0 8px; }
-
-.code-stack {
+/* CodeMirror host */
+.cm-host {
   flex: 1;
   min-width: 0;
-  position: relative;
-  z-index: 1;
-}
-
-.code-highlight,
-.code-area {
-  width: 100%;
-  padding: 12px 16px 12px 4px;
-  font-family: var(--mono);
-  font-size: 13px;
-  line-height: 1.65;
-  tab-size: 2;
-  white-space: pre;
-}
-
-.code-highlight {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-  color: var(--text);
-}
-
-.code-area {
-  position: relative;
-  z-index: 1;
-  display: block;
-  overflow-x: auto;
-  overflow-y: hidden;
-  outline: none;
-  border: none;
-  background: transparent;
-  resize: none;
   min-height: 48px;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  caret-color: var(--text);
 }
-.code-area::selection {
-  background: color-mix(in srgb, var(--accent) 24%, transparent);
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-
-.code-editor.blockly-previewing .line-nums {
+.cm-host.cm-hidden {
   display: none;
 }
 
 .code-editor.blockly-previewing {
   min-height: 0;
   will-change: height;
-}
-
-.code-editor.blockly-previewing .code-stack {
-  height: 100%;
-  min-height: 0;
-}
-
-.code-editor.blockly-previewing .code-highlight,
-.code-editor.blockly-previewing .code-area {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .blockly-preview-pane {
@@ -859,27 +788,40 @@ html, body {
   }
 }
 
-/* Syntax highlight tokens — light */
-.k  { color: #6830CC; }
-.s  { color: #1A6B3A; }
-.n  { color: #B83B0A; }
-.c  { color: #A09B93; font-style: italic; }
-.f  { color: #1A4EC4; }
-.b  { color: #3A3730; font-weight: 500; }
-.t  { color: #521FB0; }
-.o  { color: #6E6960; }
-.p  { color: #3A3730; }
+/* ── CodeMirror debug decorations ── */
+.cm-debug-active-line { background: color-mix(in srgb, var(--warn-soft) 88%, transparent); }
+.cm-debug-error-line-bg { background: color-mix(in srgb, var(--error-soft) 92%, var(--surface)); }
+.debug-error-cell .cm-debug-error-line-bg { background: color-mix(in srgb, var(--error-soft) 94%, var(--bg)); }
 
-/* Syntax highlight tokens — dark */
-[data-theme="dark"] .k { color: #A78BFA; }
-[data-theme="dark"] .s { color: #6EE7B7; }
-[data-theme="dark"] .n { color: #FB923C; }
-[data-theme="dark"] .c { color: #706E68; }
-[data-theme="dark"] .f { color: #93C5FD; }
-[data-theme="dark"] .b { color: #C8C4BC; font-weight: 500; }
-[data-theme="dark"] .t { color: #C4B5FD; }
-[data-theme="dark"] .o { color: #8B8880; }
-[data-theme="dark"] .p { color: #C8C4BC; }
+/* Gutter markers for debug lines */
+.cm-debug-gutter .debug-gutter-current {
+  background: var(--warn);
+  border-radius: 0 1px 1px 0;
+  animation: debug-gutter-pulse 1.6s ease-in-out infinite;
+}
+.cm-debug-gutter .debug-gutter-error {
+  background: var(--error);
+  border-radius: 0 1px 1px 0;
+}
+/* Line-number gutter colours for active/error lines */
+.cm-lineNumbers .cm-gutterElement:has(+ .debug-gutter-current) { color: var(--warn); font-weight: 600; }
+
+/* Inline error block widget (injected after errored line, no line number) */
+.cm-debug-error-widget {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 3px 8px 3px 4px;
+  color: var(--error);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--error-soft) 70%, transparent);
+  border-left: 2px solid var(--error);
+  margin: 0;
+}
+.cm-debug-error-widget svg { flex-shrink: 0; margin-top: 1px; }
+.cm-debug-error-widget-body { white-space: pre-wrap; word-break: break-word; min-width: 0; }
 
 /* ── Markdown Cell ── */
 .md-cell {
@@ -1728,103 +1670,21 @@ input:focus-visible {
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--warn) 28%, transparent);
 }
 
-/* Gutter line numbers — current executing line */
-.line-nums .debug-current-line {
-  color: var(--warn);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--warn-soft) 90%, transparent);
-  position: relative;
-}
+/* CodeMirror gutter — active / error line number colours */
+.cm-lineNumbers .cm-gutterElement.cm-activeLineGutter { color: var(--warn); font-weight: 600; }
 
-.line-nums .debug-current-line::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
+/* Gutter bar markers */
+.cm-debug-gutter .debug-gutter-current,
+.cm-debug-gutter .debug-gutter-error {
   width: 2.5px;
+  height: 100%;
+  display: block;
+}
+.cm-debug-gutter .debug-gutter-current {
   background: var(--warn);
-  border-radius: 0 1px 1px 0;
   animation: debug-gutter-pulse 1.6s ease-in-out infinite;
 }
-
-/* Gutter line numbers — runtime error line */
-.line-nums .debug-error-line {
-  color: var(--error);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--error-soft) 90%, transparent);
-  position: relative;
-}
-
-.line-nums .debug-error-line::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2.5px;
-  background: var(--error);
-  border-radius: 0 1px 1px 0;
-  animation: none;
-}
-
-.debug-line-backdrop {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 21.45px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.debug-line-backdrop--active {
-  background: color-mix(in srgb, var(--warn-soft) 88%, transparent);
-}
-
-.debug-line-backdrop--error {
-  background: color-mix(in srgb, var(--error-soft) 92%, var(--surface));
-  z-index: 0;
-}
-
-.debug-error-cell .debug-line-backdrop--error {
-  background: color-mix(in srgb, var(--error-soft) 94%, var(--bg));
-}
-
-.debug-inline-error {
-  position: absolute;
-  z-index: 3;
-  left: 44px;
-  right: 10px;
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  padding: 4px 8px;
-  background: color-mix(in srgb, var(--error-soft) 92%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--error) 24%, var(--border));
-  border-radius: 5px;
-  color: var(--error);
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1.45;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--error) 10%, transparent);
-  pointer-events: none;
-}
-
-.debug-inline-error-icon {
-  flex: 0 0 auto;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-.debug-inline-error-body {
-  min-width: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.debug-error-result {
-  color: var(--error);
-}
+.cm-debug-gutter .debug-gutter-error { background: var(--error); }
 
 @keyframes debug-gutter-pulse {
   0%, 100% { opacity: 1; }
@@ -1832,9 +1692,7 @@ input:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .line-nums .debug-current-line::before {
-    animation: none;
-  }
+  .cm-debug-gutter .debug-gutter-current { animation: none; }
 }
 
 /* ── Project Properties Dialog ── */
