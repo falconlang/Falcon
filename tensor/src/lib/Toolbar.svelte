@@ -1,10 +1,28 @@
 <script>
   import { onMount } from 'svelte';
-  import { addCodeCell, sidebarVisible, debugCollapsed, screenList, activeScreen, switchScreen, addScreen, removeScreen, projectName } from './stores.js';
+  import {
+    addCodeCell,
+    sidebarVisible,
+    debugCollapsed,
+    debugModeEnabled,
+    companionCommand,
+    screenList,
+    activeScreen,
+    switchScreen,
+    addScreen,
+    removeScreen,
+    projectName,
+    clearDebugLogs,
+  } from './stores.js';
+  import ProjectPropertiesDialog from './ProjectPropertiesDialog.svelte';
+
+  let projectPropsOpen = false;
 
   function toggleSidebar() { sidebarVisible.update(v => !v); }
   function toggleDebugPanel() { debugCollapsed.update(v => !v); }
+  function toggleDebugMode() { companionCommand.set({ type: 'toggle-debug' }); }
   $: debugActive = !$debugCollapsed;
+  $: debugModeActive = $debugModeEnabled;
   $: canRemove = $activeScreen !== 'Screen1';
 
   // ── Custom spinner — position:fixed, same pattern as ctx-menu ──
@@ -30,6 +48,14 @@
   function selectScreen(name) {
     closeSpinner();
     switchScreen(name);
+  }
+
+  function handleSpinnerMenuKey(e) {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      closeSpinner();
+      triggerBtn?.focus();
+    }
   }
 
   onMount(() => {
@@ -106,7 +132,7 @@
     </button>
   </div>
   <div class="tl-sep"></div>
-  <button class="tl-btn" title="Clear outputs">
+  <button class="tl-btn" title="Clear outputs" on:click={clearDebugLogs}>
     <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h10M5 4V2h4v2M11 4l-.8 8H3.8L3 4"/></svg>
     Clear outputs
   </button>
@@ -114,9 +140,20 @@
   <button
     class="tl-btn"
     class:active={debugActive}
-    id="debug-toolbar-btn"
-    title="Toggle debug panel"
+    title="Toggle logger panel"
     on:click={toggleDebugPanel}
+  >
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="11" height="9" rx="1.5"/><path d="M4 6.5l2 1.5-2 1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 9.5h2" stroke-linecap="round"/></svg>
+    Logger
+  </button>
+  <div class="tl-sep"></div>
+  <button
+    class="tl-btn"
+    class:active={debugModeActive}
+    id="debug-toolbar-btn"
+    title="Debug"
+    aria-pressed={debugModeActive}
+    on:click={toggleDebugMode}
   >
     <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="5" r="2.5"/><path d="M4 13c0-1.657 1.343-3 3-3s3 1.343 3 3"/><path d="M1 5h2M11 5h2M7 1v1M7 8v1"/><circle cx="7" cy="5" r="1" fill="currentColor" stroke="none"/></svg>
     Debug
@@ -149,6 +186,10 @@
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" class="screen-spinner-icon"><circle cx="7" cy="7" r="5"/><path d="M4.8 4.8l4.4 4.4M9.2 4.8l-4.4 4.4" stroke-linecap="round"/></svg>
       Remove Screen
     </button>
+    <button class="screen-spinner-btn" title="Project Properties" on:click={() => projectPropsOpen = true}>
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" class="screen-spinner-icon"><circle cx="4.5" cy="4.5" r="1.5"/><path d="M1 4.5h1.5M6 4.5H13" stroke-linecap="round"/><circle cx="9.5" cy="9.5" r="1.5"/><path d="M1 9.5h7M11 9.5H13" stroke-linecap="round"/></svg>
+      Project Properties
+    </button>
 
   </div>
 
@@ -169,18 +210,22 @@
     class="ctx-menu screen-spinner-menu show"
     style="left:{dropdownX}px; top:{dropdownY}px"
     role="listbox"
+    tabindex="-1"
     on:click|stopPropagation
+    on:keydown={handleSpinnerMenuKey}
   >
     {#each $screenList as name}
-      <div
+      <button
+        type="button"
         class="ctx-item"
         class:screen-spinner-active={name === $activeScreen}
         role="option"
         aria-selected={name === $activeScreen}
+        tabindex={name === $activeScreen ? 0 : -1}
         on:click={() => selectScreen(name)}
       >
         {name}
-      </div>
+      </button>
     {/each}
   </div>
 {/if}
@@ -276,3 +321,5 @@
     </div>
   </div>
 {/if}
+
+<ProjectPropertiesDialog bind:open={projectPropsOpen} />

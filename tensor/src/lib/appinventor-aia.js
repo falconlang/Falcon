@@ -2,6 +2,13 @@ import simpleComponents from '../../../lang/code/compdb/simple_components.json';
 import { getProjectSnapshot } from './stores.js';
 import { mistToXml } from './falcon-wasm.js';
 import { componentDefinitionsFromDesigner } from './blockly-preview.js';
+import {
+  actionBarForTheme,
+  applyProjectPropertiesToScmProperties,
+  extractProjectPropertiesFromScmProperties,
+  normalizeProjectProperties,
+  projectPropertiesToAiaProperties,
+} from './project-properties.js';
 
 const YA_VERSION = '233';
 const BLOCKS_LANGUAGE_VERSION = '37';
@@ -14,10 +21,15 @@ const SCM_JSON_SUFFIX = '\n|#';
 let jsZipPromise = null;
 
 const COMPONENT_META = new Map(simpleComponents.map(component => [component.name, component]));
+const KNOWN_COMPONENT_TYPES = new Set([...COMPONENT_META.keys(), 'Screen']);
 const TYPE_ALIASES = {
   Screen: 'Form',
   Form: 'Form',
 };
+const CANVAS_CHILD_TYPES = new Set(['Ball', 'ImageSprite']);
+const MAP_CHILD_TYPES = new Set(['Circle', 'FeatureCollection', 'LineString', 'Marker', 'Polygon', 'Rectangle']);
+const FEATURE_COLLECTION_CHILD_TYPES = new Set(['Circle', 'LineString', 'Marker', 'Polygon', 'Rectangle']);
+const CHART_CHILD_TYPES = new Set(['ChartData2D', 'Trendline']);
 
 function loadScript(src) {
   const existing = document.querySelector(`script[data-tensor-src="${src}"]`);
@@ -28,6 +40,7 @@ function loadScript(src) {
       existing.addEventListener('error', reject, { once: true });
     });
   }
+  if (existing) existing.remove();
 
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
@@ -40,7 +53,12 @@ function loadScript(src) {
       script.dataset.loaded = 'true';
       resolve();
     };
-    script.onerror = () => reject(new Error(`Failed to load ${src}`));
+    script.onerror = () => {
+      script.dataset.loading = 'false';
+      script.dataset.error = 'true';
+      script.remove();
+      reject(new Error(`Failed to load ${src}`));
+    };
     document.head.appendChild(script);
   });
 }
@@ -51,6 +69,9 @@ async function ensureJSZip() {
     jsZipPromise = loadScript('/jszip.min.js').then(() => {
       if (!window.JSZip) throw new Error('JSZip did not initialize');
       return window.JSZip;
+    }).catch(error => {
+      jsZipPromise = null;
+      throw error;
     });
   }
   return jsZipPromise;
@@ -80,6 +101,20 @@ function sanitizeScreenName(name, fallback = 'Screen1') {
   return /^[A-Za-z]/.test(safe) ? safe : `Screen_${safe}`;
 }
 
+function uniqueScreenName(name, usedNames, fallback = 'Screen1') {
+  const clean = sanitizeScreenName(name, fallback);
+  if (!usedNames.has(clean)) return clean;
+  const match = clean.match(/^(.*?)(\d+)$/);
+  const stem = match ? match[1] : clean;
+  let n = match ? Number(match[2]) + 1 : 2;
+  let next = `${stem}${n}`;
+  while (usedNames.has(next)) {
+    n += 1;
+    next = `${stem}${n}`;
+  }
+  return next;
+}
+
 function zipPathForAsset(name) {
   const parts = String(name || '')
     .replace(/\\/g, '/')
@@ -102,33 +137,88 @@ function parseProperties(text) {
   for (const rawLine of String(text || '').split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line || line.startsWith('#') || line.startsWith('!')) continue;
-    const index = line.search(/[:=]/);
+    const index = findPropertySeparator(line);
     const key = index === -1 ? line : line.slice(0, index).trim();
     const value = index === -1 ? '' : line.slice(index + 1).trim();
-    if (key) props[key] = value.replace(/\\:/g, ':').replace(/\\=/g, '=');
+    if (key) props[unescapePropertyText(key)] = unescapePropertyText(value);
   }
   return props;
 }
 
+function findPropertySeparator(line) {
+  let escaped = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch === ':' || ch === '=') return i;
+  }
+  return -1;
+}
+
+function unescapePropertyText(value) {
+  let out = '';
+  const text = String(value ?? '');
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch !== '\\' || i + 1 >= text.length) {
+      out += ch;
+      continue;
+    }
+    const next = text[++i];
+    if (next === 'n') out += '\n';
+    else if (next === 'r') out += '\r';
+    else if (next === 't') out += '\t';
+    else out += next;
+  }
+  return out;
+}
+
+function escapePropertyText(value, { key = false } = {}) {
+  let out = '';
+  const text = String(value ?? '');
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '\\') out += '\\\\';
+    else if (ch === '\n') out += '\\n';
+    else if (ch === '\r') out += '\\r';
+    else if (ch === '\t') out += '\\t';
+    else if (ch === ':' || ch === '=' || ch === '#' || ch === '!' || (key && /\s/.test(ch))) out += `\\${ch}`;
+    else out += ch;
+  }
+  return out;
+}
+
 function projectPropertiesText(project, baseProperties = {}) {
+  const aiaProperties = projectPropertiesToAiaProperties(baseProperties);
+  const theme = aiaProperties.theme || 'AppTheme.Light.DarkActionBar';
+  const actionBar = actionBarForTheme(theme);
   const props = {
-    ...baseProperties,
+    ...aiaProperties,
     main: qualifiedMain(project, 'Screen1'),
     name: project,
     assets: '../assets',
     source: '../src',
     build: '../build',
-    versioncode: baseProperties.versioncode || '1',
-    versionname: baseProperties.versionname || '1.0',
-    useslocation: baseProperties.useslocation || 'False',
-    aname: baseProperties.aname || project,
-    sizing: baseProperties.sizing || 'Responsive',
-    showlistsasjson: baseProperties.showlistsasjson || 'True',
-    actionbar: baseProperties.actionbar || 'False',
-    theme: baseProperties.theme || 'Classic',
-    'color.primary': baseProperties['color.primary'] || '&HFF3F51B5',
-    'color.primary.dark': baseProperties['color.primary.dark'] || '&HFF303F9F',
-    'color.accent': baseProperties['color.accent'] || '&HFFFF4081',
+    versioncode: aiaProperties.versioncode || '1',
+    versionname: aiaProperties.versionname || '1.0',
+    useslocation: aiaProperties.useslocation || 'False',
+    aname: aiaProperties.aname ?? '',
+    sizing: aiaProperties.sizing || 'Responsive',
+    showlistsasjson: aiaProperties.showlistsasjson || 'True',
+    actionbar: actionBar,
+    theme,
+    defaultfilescope: aiaProperties.defaultfilescope || 'App',
+    projectcolors: aiaProperties.projectcolors || '{}',
+    'color.primary': aiaProperties['color.primary'] || '&HFF3F51B5',
+    'color.primary.dark': aiaProperties['color.primary.dark'] || '&HFF303F9F',
+    'color.accent': aiaProperties['color.accent'] || '&HFFFF4081',
   };
 
   const preferredOrder = [
@@ -143,19 +233,31 @@ function projectPropertiesText(project, baseProperties = {}) {
     'aname',
     'sizing',
     'showlistsasjson',
+    'tutorialurl',
+    'subsetjson',
     'actionbar',
     'theme',
+    'defaultfilescope',
     'color.primary',
     'color.primary.dark',
     'color.accent',
+    'aiversioning',
     'lastopened',
+    'buildnumber',
+    'NSBluetoothAlwaysUsageDescription',
+    'NSBluetoothPeripheralUsageDescription',
+    'NSContactsUsageDescription',
+    'NSMicrophoneUsageDescription',
+    'NSCameraUsageDescription',
+    'NSSpeechRecognitionUsageDescription',
+    'NSLocationWhenInUseUsageDescription',
     'projectcolors',
   ];
   const keys = [
     ...preferredOrder.filter(key => key in props),
     ...Object.keys(props).filter(key => !preferredOrder.includes(key)).sort(),
   ];
-  return `${keys.map(key => `${key}=${props[key] ?? ''}`).join('\n')}\n`;
+  return `${keys.map(key => `${escapePropertyText(key, { key: true })}=${escapePropertyText(props[key])}`).join('\n')}\n`;
 }
 
 function textFileBaseName(path) {
@@ -184,10 +286,39 @@ function quoteSchemaString(value) {
     .replace(/"/g, '\\"')}"`;
 }
 
-function schemaValueText(value) {
+function designerEditorTypeToValueKind(editorType) {
+  if (editorType === 'boolean') return 'boolean';
+  if (['color', 'float', 'integer', 'layout_size', 'non_negative_float', 'non_negative_integer'].includes(editorType)) return 'number';
+  if (editorType === 'ListViewAddData') return 'list';
+  return 'text';
+}
+
+function componentPropertyValueKind(componentType, propName) {
+  const component = COMPONENT_META.get(scmType(componentType));
+  const blockProp = component?.blockProperties?.find(prop => prop.name === propName);
+  if (blockProp?.type) return blockProp.type;
+  const designerProp = component?.properties?.find(prop => prop.name === propName);
+  if (designerProp?.editorType) return designerEditorTypeToValueKind(designerProp.editorType);
+  return 'any';
+}
+
+function schemaValueText(value, componentType = '', propName = '') {
   const text = String(value ?? '');
-  if (/^(true|false|True|False|-?\d+(?:\.\d+)?|&H[0-9A-Fa-f]{8})$/.test(text)) {
-    return text;
+  const kind = componentPropertyValueKind(componentType, propName);
+  if (kind === 'boolean') {
+    if (/^(true|1)$/i.test(text)) return 'true';
+    if (/^(false|0)$/i.test(text)) return 'false';
+    return quoteSchemaString(text);
+  }
+  if (kind === 'number') {
+    if (/^-?\d+(?:\.\d+)?$/.test(text) || /^&H[0-9A-Fa-f]{8}$/.test(text)) return text;
+    return quoteSchemaString(text);
+  }
+  if (kind === 'text' || kind === 'list' || kind === 'component') {
+    return quoteSchemaString(text);
+  }
+  if (/^(true|false|-?\d+(?:\.\d+)?|&H[0-9A-Fa-f]{8})$/i.test(text)) {
+    return /^(true|false)$/i.test(text) ? text.toLowerCase() : text;
   }
   return quoteSchemaString(text);
 }
@@ -198,7 +329,7 @@ function scmComponentToSchema(component, depth = 0) {
   const name = component.$Name || type;
   const props = Object.entries(component)
     .filter(([key]) => !key.startsWith('$') && key !== 'Uuid')
-    .map(([key, value]) => `${indent}  ${key}: ${schemaValueText(value)}`);
+    .map(([key, value]) => `${indent}  ${key}: ${schemaValueText(value, type, key)}`);
   const children = (component.$Components || [])
     .map(child => scmComponentToSchema(child, depth + 1));
   const body = [...props, ...children];
@@ -309,6 +440,7 @@ function parseDesignSchema(source) {
     const type = dotIdx === -1 ? ident : ident.slice(0, dotIdx);
     let name = dotIdx === -1 ? '' : ident.slice(dotIdx + 1);
     if (!type) fail('Expected a component type');
+    if (!isKnownComponentType(type)) fail(`Unknown component type "${type}"`);
     if (!name) {
       typeCounts[type] = (typeCounts[type] || 0) + 1;
       name = `${type}${typeCounts[type]}`;
@@ -356,11 +488,66 @@ function parseDesignSchema(source) {
   const root = parseComponent();
   skipWs();
   if (pos < text.length) fail(`Unexpected token "${text[pos]}"`);
+  if (root.type !== 'Screen' && root.type !== 'Form') fail('The root designer component must be Screen');
+  validateDesignTree(root);
+  validateUniqueComponentNames(root);
   return root;
 }
 
 function scmType(type) {
   return TYPE_ALIASES[type] || type;
+}
+
+function isKnownComponentType(type) {
+  return KNOWN_COMPONENT_TYPES.has(type) || KNOWN_COMPONENT_TYPES.has(scmType(type));
+}
+
+function isNonVisibleComponentType(type) {
+  if (type === 'Screen' || type === 'Form') return false;
+  return COMPONENT_META.get(scmType(type))?.nonVisible === 'true';
+}
+
+const CONTAINER_TYPES = new Set([
+  'Screen',
+  'Form',
+  'ScrollHorizontal',
+  'ScrollVertical',
+  ...simpleComponents
+    .filter(component => component.categoryString === 'LAYOUT')
+    .map(component => component.name),
+]);
+
+function canContainComponent(parentType, childType) {
+  const parent = scmType(parentType);
+  const child = scmType(childType);
+  if (!parent || !child) return false;
+  if (CANVAS_CHILD_TYPES.has(child)) return parent === 'Canvas';
+  if (MAP_CHILD_TYPES.has(child)) {
+    if (parent === 'Map') return true;
+    return parent === 'FeatureCollection' && FEATURE_COLLECTION_CHILD_TYPES.has(child);
+  }
+  if (CHART_CHILD_TYPES.has(child)) return parent === 'Chart';
+  if (isNonVisibleComponentType(child)) {
+    return parentType === 'Screen' || parentType === 'Form';
+  }
+  if (isNonVisibleComponentType(parent)) return false;
+  if (parent === 'Canvas' || parent === 'Map' || parent === 'FeatureCollection' || parent === 'Chart') return false;
+  return CONTAINER_TYPES.has(parent);
+}
+
+function validateDesignTree(node, parent = null) {
+  if (parent && !canContainComponent(parent.type, node.type)) {
+    throw new Error(`${node.type}.${node.name} cannot be placed inside ${parent.type}.${parent.name}`);
+  }
+  for (const child of node.children || []) validateDesignTree(child, node);
+}
+
+function validateUniqueComponentNames(node, seen = new Set()) {
+  if (seen.has(node.name)) {
+    throw new Error(`Duplicate component name "${node.name}"`);
+  }
+  seen.add(node.name);
+  for (const child of node.children || []) validateUniqueComponentNames(child, seen);
 }
 
 function componentVersion(type) {
@@ -404,18 +591,27 @@ function nodeToScmProperties(node, path, screenName, project) {
   return props;
 }
 
-function designSchemaToScm(schema, screenName, project) {
+function designSchemaToScm(schema, screenName, project, projectProperties = null) {
   const trimmed = String(schema || '').trim();
   const root = trimmed
     ? parseDesignSchema(trimmed)
     : { type: 'Screen', name: screenName, props: { Title: screenName }, children: [] };
-  const properties = nodeToScmProperties(root, '0', screenName, project);
+  let properties = nodeToScmProperties(root, '0', screenName, project);
+  if (projectProperties && screenName === 'Screen1') {
+    properties = applyProjectPropertiesToScmProperties(properties, projectProperties, project);
+  }
   const scm = {
     authURL: [],
     YaVersion: YA_VERSION,
     Source: 'Form',
     Properties: properties,
   };
+  return `${SCM_JSON_PREFIX}${JSON.stringify(scm)}${SCM_JSON_SUFFIX}`;
+}
+
+function scmTextWithProjectProperties(text, projectProperties, project) {
+  const scm = extractScmJson(text);
+  scm.Properties = applyProjectPropertiesToScmProperties(scm.Properties, projectProperties, project);
   return `${SCM_JSON_PREFIX}${JSON.stringify(scm)}${SCM_JSON_SUFFIX}`;
 }
 
@@ -543,6 +739,8 @@ export async function importAiaFile(file) {
   }
 
   const screens = [];
+  const usedScreenNames = new Set();
+  let screen1ProjectProperties = {};
   for (const [base, record] of screenFiles) {
     if (!record.scm) continue;
     const rawScm = await zip.file(record.scm).async('string');
@@ -555,9 +753,14 @@ export async function importAiaFile(file) {
       const scm = extractScmJson(rawScm);
       screenName = sanitizeScreenName(scm?.Properties?.$Name || fallbackName, fallbackName);
       designCode = scmComponentToSchema(scm.Properties);
+      if (screenName === 'Screen1' && !usedScreenNames.has('Screen1')) {
+        screen1ProjectProperties = extractProjectPropertiesFromScmProperties(scm.Properties);
+      }
     } catch {
       designCode = scmToDesignSchema(rawScm, fallbackName);
     }
+    screenName = uniqueScreenName(screenName, usedScreenNames, fallbackName);
+    usedScreenNames.add(screenName);
 
     screens.push({
       name: screenName,
@@ -590,7 +793,10 @@ export async function importAiaFile(file) {
 
   return {
     projectName: project,
-    projectProperties,
+    projectProperties: normalizeProjectProperties({
+      ...screen1ProjectProperties,
+      ...projectProperties,
+    }),
     activeScreen,
     screens,
     assets,
@@ -604,21 +810,46 @@ export async function exportCurrentProjectToAia() {
   const zip = new JSZip();
   const basePath = sourceBasePath(project);
   const sortedScreens = [...snapshot.screens].sort(screenSort);
+  const normalizedProjectProperties = normalizeProjectProperties(snapshot.projectProperties);
+  const usedScreenNames = new Set();
+  const screenRecords = sortedScreens.map((screen, index) => {
+    const sanitized = sanitizeScreenName(screen.name, `Screen${index + 1}`);
+    const screenName = uniqueScreenName(sanitized, usedScreenNames, `Screen${index + 1}`);
+    usedScreenNames.add(screenName);
+    return { screen, screenName, sanitized };
+  });
+  const activeExportScreen = screenRecords.find(record => record.screen.name === snapshot.activeScreen)?.screenName
+    || screenRecords[0]?.screenName
+    || 'Screen1';
 
   zip.file(PROJECT_PROPERTIES_PATH, projectPropertiesText(project, {
-    ...snapshot.projectProperties,
-    lastopened: snapshot.activeScreen || 'Screen1',
+    ...normalizedProjectProperties,
+    lastopened: activeExportScreen,
   }));
 
-  for (const screen of sortedScreens) {
-    const screenName = sanitizeScreenName(screen.name);
+  for (const { screen, screenName, sanitized } of screenRecords) {
     const screenBase = `${basePath}/${screenName}`;
     const designUnchanged = screen.sourceScm
       && screen.sourceDesignCode
       && screen.designCode === screen.sourceDesignCode;
-    const scm = designUnchanged
-      ? screen.sourceScm
-      : designSchemaToScm(screen.designCode, screenName, project);
+    let scm;
+    if (designUnchanged && screenName === sanitized) {
+      scm = screen.sourceScm;
+      if (screenName === 'Screen1') {
+        try {
+          scm = scmTextWithProjectProperties(scm, normalizedProjectProperties, project);
+        } catch {
+          scm = designSchemaToScm(screen.designCode, screenName, project, normalizedProjectProperties);
+        }
+      }
+    } else {
+      scm = designSchemaToScm(
+        screen.designCode,
+        screenName,
+        project,
+        screenName === 'Screen1' ? normalizedProjectProperties : null
+      );
+    }
     const bky = await blocklyXmlForScreen(screen);
 
     zip.file(`${screenBase}.scm`, scm);

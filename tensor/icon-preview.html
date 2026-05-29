@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Component Icons Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1916;
+    color: #e8e4dc;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 12px;
+    padding: 24px;
+  }
+  h1 {
+    font-size: 15px;
+    font-weight: 500;
+    color: #a09a8e;
+    margin-bottom: 20px;
+    letter-spacing: 0.03em;
+  }
+  .section {
+    margin-bottom: 28px;
+  }
+  .section-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b6560;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #2e2c29;
+  }
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .icon-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 10px 10px;
+    background: #232220;
+    border: 1px solid #2e2c29;
+    border-radius: 8px;
+    width: 88px;
+    cursor: default;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .icon-card:hover {
+    background: #2a2825;
+    border-color: #4a4640;
+  }
+  .icon-card svg {
+    width: 36px;
+    height: 36px;
+    color: #c8c2b8;
+    flex-shrink: 0;
+  }
+  .icon-label {
+    font-size: 10px;
+    color: #7a746e;
+    text-align: center;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+  .icon-card.new svg { color: #8eb8d8; }
+  .icon-card.new { border-color: #2a3a4a; }
+</style>
+</head>
+<body>
+
+<h1>Tensor · Component Icon Preview</h1>
+
+<div class="section">
+  <div class="section-title">Original (pre-existing)</div>
+  <div class="grid">
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="2.5" y="0.5" width="7" height="11" rx="1.5" stroke-width="1.3"/><line x1="4" y1="9.5" x2="8" y2="9.5" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Screen</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="3.5" width="11" height="5" rx="1.5" stroke-width="1.3"/>
+      </svg>
+      <span class="icon-label">Button</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M2 2.5h8M6 2.5v7" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Label</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="3" width="11" height="6" rx="1" stroke-width="1.3"/><line x1="2.5" y1="6" x2="5.5" y2="6" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">TextBox</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="1.5" width="11" height="9" rx="1" stroke-width="1.3"/><line x1="4.5" y1="1.5" x2="4.5" y2="10.5" stroke-width="1.1"/><line x1="8" y1="1.5" x2="8" y2="10.5" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Horizontal­Arrangement</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="1.5" y="0.5" width="9" height="11" rx="1" stroke-width="1.3"/><line x1="1.5" y1="4.5" x2="10.5" y2="4.5" stroke-width="1.1"/><line x1="1.5" y1="8" x2="10.5" y2="8" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Vertical­Arrangement</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><line x1="2.5" y1="3.5" x2="9.5" y2="3.5" stroke-width="1.1"/><line x1="2.5" y1="6" x2="9.5" y2="6" stroke-width="1.1"/><line x1="2.5" y1="8.5" x2="9.5" y2="8.5" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">ListView</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M6 1L11 10H1L6 1z" stroke-width="1.3" stroke-linejoin="round"/><line x1="6" y1="4.5" x2="6" y2="7" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="8.8" r="0.7" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">Notifier</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M1.5 2h9a1 1 0 011 1v5a1 1 0 01-1 1H7l-2 2.5V9H1.5a1 1 0 01-1-1V3a1 1 0 011-1z" stroke-width="1.3"/>
+      </svg>
+      <span class="icon-label">ChatBot</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="1.5" width="11" height="9" rx="1.5" stroke-width="1.3"/><path d="M0.5 8l3-3 2 2 2-3 4 4.5" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Image</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="1" y="1" width="10" height="10" rx="1.5" stroke-width="1.3"/><path d="M3 6l2 2 4-4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">CheckBox</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <circle cx="6" cy="6" r="5" stroke-width="1.3"/><path d="M6 3.5V6l2 1.5" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Clock</span>
+    </div>
+
+    <div class="icon-card">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="1.5" width="11" height="9" rx="1" stroke-width="1.3"/><path d="M0.5 4h11" stroke-width="1.1"/><circle cx="2.5" cy="2.8" r="0.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="2.8" r="0.6" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">WebViewer</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Batch 1 — A</div>
+  <div class="grid">
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><path d="M3 0.5v3M0.5 3h3" stroke-width="1.1" stroke-linecap="round"/><rect x="4" y="4" width="5.5" height="5" rx="0.5" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Absolute­Arrangement</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="3.5" y="3.5" width="5" height="5" rx="1" stroke-width="1.3"/><path d="M6 1v2.5M6 8.5V11M1 6h2.5M8.5 6H11" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Accelero­meterSensor</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M4.5 2H2a1 1 0 00-1 1v7a1 1 0 001 1h8a1 1 0 001-1V7.5" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 1.5h3.5V5M10.5 1.5L6.5 5.5" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Activity­Starter</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <polyline points="1,9 3,7.5 5,7.5 7,3 9,7.5 11,7.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="3" r="1.5" stroke-width="1.2"/>
+      </svg>
+      <span class="icon-label">Anomaly­Detection</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <circle cx="6" cy="6" r="4.5" stroke-width="1.3"/><path d="M4 4c.5-1 1.8-1.5 2.8-1" stroke-width="1" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Ball</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Batch 2 — B</div>
+  <div class="grid">
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <line x1="2" y1="2" x2="2" y2="10" stroke-width="1.5" stroke-linecap="round"/><line x1="3.5" y1="2" x2="3.5" y2="10" stroke-width="0.8" stroke-linecap="round"/><line x1="5" y1="2" x2="5" y2="10" stroke-width="1.5" stroke-linecap="round"/><line x1="6.5" y1="2" x2="6.5" y2="10" stroke-width="0.8" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="10" stroke-width="1.5" stroke-linecap="round"/><line x1="9.5" y1="2" x2="9.5" y2="10" stroke-width="0.8" stroke-linecap="round"/><line x1="0.5" y1="6" x2="11" y2="6" stroke-width="1" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Barcode­Scanner</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M2 9.5 a4 4 0 0 1 8 0" stroke-width="1.3" stroke-linecap="round"/><line x1="2" y1="9.5" x2="10" y2="9.5" stroke-width="1.3" stroke-linecap="round"/><line x1="6" y1="9.5" x2="8.5" y2="6" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="9.5" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">Barometer</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M4 2v8M4 2l3.5 2-3.5 2M4 10l3.5-2-3.5-2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 6h2M10 5.2l1 .8-1 .8" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Bluetooth­Client</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M3 2v8M3 2l3 2-3 2M3 10l3-2-3-2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><rect x="7.5" y="3.5" width="4" height="2" rx="0.4" stroke-width="1.1"/><rect x="7.5" y="6.5" width="4" height="2" rx="0.4" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Bluetooth­Server</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="3" width="7.5" height="6.5" rx="1" stroke-width="1.3"/><path d="M8 5.5l3.5-2v5l-3.5-2z" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="6.25" r="1.5" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Camcorder</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Batch 3 — C (part 1)</div>
+  <div class="grid">
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="3" width="11" height="7.5" rx="1" stroke-width="1.3"/><path d="M4 3V2h4v1" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="6.5" r="2" stroke-width="1.3"/>
+      </svg>
+      <span class="icon-label">Camera</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><path d="M2.5 9l2.5-4 2 2.5 1.5-2.5 2.5 4" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Canvas</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <line x1="1" y1="11" x2="11" y2="11" stroke-width="1.1" stroke-linecap="round"/><rect x="1.5" y="6" width="2" height="5" rx="0.3" stroke-width="1.2"/><rect x="5" y="3.5" width="2" height="7.5" rx="0.3" stroke-width="1.2"/><rect x="8.5" y="5" width="2" height="6" rx="0.3" stroke-width="1.2"/>
+      </svg>
+      <span class="icon-label">Chart</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <line x1="1" y1="11" x2="11" y2="11" stroke-width="1.1" stroke-linecap="round"/><line x1="1" y1="1" x2="1" y2="11" stroke-width="1.1" stroke-linecap="round"/><path d="M2.5 8.5l2.5-3 2.5 1.5 3-4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="2.5" cy="8.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="5" cy="5.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="7.5" cy="7" r="0.8" fill="currentColor" stroke="none"/><circle cx="10.5" cy="3" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">ChartData2D</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <circle cx="6" cy="6" r="4.5" stroke-width="1.3"/><line x1="3" y1="6" x2="9" y2="6" stroke-width="0.8" stroke-linecap="round"/><line x1="6" y1="3" x2="6" y2="9" stroke-width="0.8" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Circle</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Batch 4 — C (part 2) / D</div>
+  <div class="grid">
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M6 1.5 a4.5 4.5 0 1 1 -4.5 4.5" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Circular­Progress</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M1 6.5 Q2 4 3.5 6.5 Q6 1.5 8.5 6.5 Q10 4 11 6.5 H1z" stroke-width="1.3" stroke-linejoin="round"/><line x1="2.5" y1="8.5" x2="9.5" y2="8.5" stroke-width="1.2" stroke-linecap="round"/><line x1="2.5" y1="10.5" x2="8" y2="10.5" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">CloudDB</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <circle cx="5" cy="3.5" r="2" stroke-width="1.3"/><path d="M1 10.5a4 4 0 018 0" stroke-width="1.3" stroke-linecap="round"/><path d="M9.5 7v3.5M8 9l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Contact­Picker</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M2.5 1.5h5L10.5 5v5.5a1 1 0 01-1 1h-7a1 1 0 01-1-1v-8a1 1 0 011-1z" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 1.5V5h3" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="7" x2="8.5" y2="7" stroke-width="1.1" stroke-linecap="round"/><line x1="4" y1="9" x2="7.5" y2="9" stroke-width="1.1" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">DataFile</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="2" width="11" height="9.5" rx="1" stroke-width="1.3"/><line x1="0.5" y1="5.5" x2="11.5" y2="5.5" stroke-width="1.1"/><line x1="3.5" y1="0.5" x2="3.5" y2="3.5" stroke-width="1.3" stroke-linecap="round"/><line x1="8.5" y1="0.5" x2="8.5" y2="3.5" stroke-width="1.3" stroke-linecap="round"/><circle cx="4" cy="8.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="6" cy="8.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="8" cy="8.5" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">DatePicker</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Batch 5 — E (Ev3 part 1)</div>
+  <div class="grid">
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="2.5" width="9" height="7" rx="1" stroke-width="1.3"/><path d="M0.5 3l4.5 3.5 4.5-3.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 7v3.5M9 9l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">Email­Picker</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="2" y="2" width="8" height="8" rx="1.5" stroke-width="1.3"/><circle cx="6" cy="6" r="2" stroke-width="1.2"/><circle cx="6" cy="6" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">Ev3Color­Sensor</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="0.5" width="11" height="11" rx="1.5" stroke-width="1.3"/><path d="M3 4l2.5 2-2.5 2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><line x1="7" y1="8" x2="9.5" y2="8" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Ev3­Commands</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M3 2.5C1.5 3.5 1 5 1.5 6.5c.5 2 2.5 3.5 5 3.5a4 4 0 003.5-6" stroke-width="1.3" stroke-linecap="round"/><path d="M10 4l-1.5-.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">Ev3Gyro­Sensor</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <circle cx="6" cy="6" r="4" stroke-width="1.3"/><circle cx="6" cy="6" r="1.5" stroke-width="1.2"/><line x1="6" y1="2" x2="6" y2="4.5" stroke-width="1.1" stroke-linecap="round"/><line x1="6" y1="7.5" x2="6" y2="10" stroke-width="1.1" stroke-linecap="round"/><line x1="2" y1="6" x2="4.5" y2="6" stroke-width="1.1" stroke-linecap="round"/><line x1="7.5" y1="6" x2="10" y2="6" stroke-width="1.1" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Ev3Motors</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Batch 6 — Ev3 (part 2) / F (part 1)</div>
+  <div class="grid">
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M1.5 4.5h2l3-3v9l-3-3H1.5z" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 4a3 3 0 010 4" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Ev3Sound</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="1.5" y="5" width="9" height="5.5" rx="1" stroke-width="1.3"/><path d="M6 1.5v3.5" stroke-width="1.3" stroke-linecap="round"/><path d="M4.5 3.5l1.5-2 1.5 2" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="7.5" r="1.2" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Ev3Touch­Sensor</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="2" width="11" height="8" rx="1" stroke-width="1.3"/><rect x="1.5" y="3" width="5.5" height="5" rx="0.5" stroke-width="1.1"/><circle cx="9" cy="5" r="0.9" stroke-width="1.1"/><circle cx="9" cy="7.5" r="0.9" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Ev3UI</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <circle cx="2.5" cy="6" r="1.5" stroke-width="1.3"/><path d="M5 5 a2 2 0 0 1 0 2" stroke-width="1.2" stroke-linecap="round"/><path d="M6.5 3.5 a3 3 0 0 1 0 5" stroke-width="1.1" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Ev3Ultrasonic­Sensor</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M1 6L3.5 2.5 6 6 8 4l3 3.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="2.5" cy="9.5" r="1" stroke-width="1.2"/><path d="M5.5 8v3M4 9.5h3" stroke-width="1.1" stroke-linecap="round"/><rect x="8.5" y="8.5" width="3" height="2.5" rx="0.4" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Feature­Collection</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Batch 7 — F (part 2) / G</div>
+  <div class="grid">
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M2.5 1.5h5L10.5 5v5.5a1 1 0 01-1 1h-7a1 1 0 01-1-1v-8a1 1 0 011-1z" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 1.5V5h3" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">File</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M2 1.5h4L8.5 5v5.5a1 1 0 01-1 1H3a1 1 0 01-1-1V2.5a1 1 0 011-1z" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 1.5V5h2.5" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 7.5v3.5M8.5 9.5l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">FilePicker</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <ellipse cx="6" cy="3" rx="4" ry="1.2" stroke-width="1.2"/><path d="M2 3v6M10 3v6" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="6" cy="9" rx="4" ry="1.2" stroke-width="1.2"/><path d="M7 4.5L5 7h2.5L5.5 9.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">FirebaseDB</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="0.5" width="11" height="11" rx="1" stroke-width="1.3"/><line x1="0.5" y1="4" x2="11.5" y2="4" stroke-width="1.1"/><line x1="0.5" y1="7.5" x2="11.5" y2="7.5" stroke-width="1.1"/><line x1="4" y1="0.5" x2="4" y2="11.5" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Fusiontables­Control</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="3.5" width="11" height="6" rx="2" stroke-width="1.3"/><path d="M3.5 5.5v2M2.5 6.5h2" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="9.5" cy="6" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">GameClient</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Batch 8 — G / H / I</div>
+  <div class="grid">
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <circle cx="6" cy="6" r="4.5" stroke-width="1.3"/><ellipse cx="6" cy="6" rx="4.5" ry="1.8" stroke-width="1.1"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">Gyroscope­Sensor</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="1" width="11" height="8.5" rx="1" stroke-width="1.3"/><line x1="4.5" y1="1" x2="4.5" y2="9.5" stroke-width="1.1"/><line x1="8" y1="1" x2="8" y2="9.5" stroke-width="1.1"/><rect x="1" y="10.5" width="5" height="1" rx="0.5" stroke-width="1.1"/>
+      </svg>
+      <span class="icon-label">Horizontal­Scroll­Arrangement</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <path d="M6 1.5C6 1.5 2.5 5.5 2.5 7.5a3.5 3.5 0 007 0C9.5 5.5 6 1.5 6 1.5z" stroke-width="1.3" stroke-linejoin="round"/><path d="M4.5 7.5a1.5 1.5 0 012.5-1" stroke-width="1" stroke-linecap="round"/>
+      </svg>
+      <span class="icon-label">Hygrometer</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="1.5" width="11" height="9" rx="1.5" stroke-width="1.3"/><path d="M0.5 8l3-3 2 2 2-3 4 4.5" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 1l.5 1.5 1.5.5-1.5.5L8.5 5l-.5-1.5L6.5 3l1.5-.5z" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="icon-label">ImageBot</span>
+    </div>
+
+    <div class="icon-card new">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor">
+        <rect x="0.5" y="1.5" width="9" height="8" rx="1.5" stroke-width="1.3"/><path d="M0.5 7l2.5-3 2 2 1.5-2.5 3 4" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 6.5v3.5M9 8.5l1.5 1.5 1.5-1.5" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="icon-label">ImagePicker</span>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:16px; padding-top:16px; border-top:1px solid #2e2c29; color:#4a4640; font-size:10px;">
+  53 icons shown &nbsp;·&nbsp; Blue-tinted = newly designed &nbsp;·&nbsp; Grey = original
+</div>
+
+</body>
+</html>

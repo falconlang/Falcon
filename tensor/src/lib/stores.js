@@ -1,4 +1,11 @@
 import { writable, get } from 'svelte/store';
+import {
+  defaultProjectProperties,
+  normalizeProjectPropertyName,
+  normalizeProjectProperties,
+  withProjectPropertyValue,
+} from './project-properties.js';
+import { isDebugTraceValue, lineMapEntryForUnifiedLine } from './debug-source-map.js';
 
 export const initialDesignCode = `Screen.Screen1 { Title: "Calculator",
   Label { Text: "First number: " }
@@ -70,11 +77,12 @@ export const cells = writable(initialCells);
 export const designCode = writable(initialDesignCode);
 export const designAssets = writable([]);
 export const projectName = writable('falcon_tour');
-export const projectProperties = writable({});
+export const projectProperties = writable(defaultProjectProperties());
 export const activeCellId = writable('c1');
 export const execCounter = writable(6);
 export const ctxMenu = writable({ show: false, x: 0, y: 0, cellId: null });
 export const liveTestOpen = writable(false);
+export const companionCommand = writable(null);
 export const liveTestState = writable({
   status: 'idle',
   code: null,
@@ -82,14 +90,48 @@ export const liveTestState = writable({
   messageCount: 0,
 });
 export const doItCellId = writable(null);
+export const doItResults = writable({});
+export const unifiedSelectionActive = writable(false);
 export const blocklyPreviewRequest = writable(null);
+export const lastRunAt = writable(null);
 export const sidebarVisible = writable(true);
 export const debugCollapsed = writable(true);
 export const notebookMode = writable('cells'); // 'cells' | 'unified'
 export const debugOpenHeight = writable(200);
 export const debugLogs = writable([]);
+export const debugModeEnabled = writable(false);
+export const debugExecutionState = writable({
+  status: 'idle',
+  sessionId: null,
+  startedAt: null,
+});
+export const debugLineMap = writable([]);
+export const debugActiveLocation = writable(null);
+export const debugRuntimeErrors = writable({});
+export const copiedCellAvailable = writable(false);
 
 let blocklyPreviewRequestId = 0;
+let cellIdSeed = Date.now();
+let copiedCell = null;
+
+function nextCellId() {
+  cellIdSeed += 1;
+  return `c${cellIdSeed}`;
+}
+
+function uniqueNameFrom(baseName, existingNames) {
+  const fallback = String(baseName || 'Screen1').trim() || 'Screen1';
+  if (!existingNames.has(fallback)) return fallback;
+  const match = fallback.match(/^(.*?)(\d+)$/);
+  const stem = match ? match[1] : fallback;
+  let n = match ? Number(match[2]) + 1 : 2;
+  let next = `${stem}${n}`;
+  while (existingNames.has(next)) {
+    n += 1;
+    next = `${stem}${n}`;
+  }
+  return next;
+}
 
 export function requestBlocklyPreview(cellId, payload = {}) {
   blocklyPreviewRequest.set({
@@ -138,6 +180,7 @@ function stateForScreen(name, savedStates = get(screenSavedStates)) {
 
 function applyScreenState(state) {
   const nextCells = cloneCells(state?.cells || []);
+  clearDebugRuntimeState();
   cells.set(nextCells);
   designCode.set(state?.designCode || '');
   rawBlocklyXml.set(state?.rawBlocklyXml || '');
@@ -182,6 +225,8 @@ export function addScreen(name) {
     const existing = new Set(list);
     while (existing.has(`Screen${n}`)) n++;
     newName = `Screen${n}`;
+  } else {
+    newName = uniqueNameFrom(newName, new Set(list));
   }
   screenList.update(l => [...l, newName]);
   // Switch to empty new screen
@@ -217,7 +262,7 @@ export function getProjectSnapshot() {
 
   return {
     projectName: get(projectName),
-    projectProperties: { ...get(projectProperties) },
+    projectProperties: normalizeProjectProperties(get(projectProperties)),
     activeScreen: get(activeScreen),
     screens,
     assets: get(designAssets),
@@ -225,10 +270,16 @@ export function getProjectSnapshot() {
 }
 
 export function loadProjectState(project) {
-  const screens = Array.isArray(project?.screens) && project.screens.length
+  const inputScreens = Array.isArray(project?.screens) && project.screens.length
     ? project.screens
     : [{ name: 'Screen1', cells: [], designCode: '' }];
-  const names = screens.map(screen => screen.name || 'Screen1');
+  const usedNames = new Set();
+  const screens = inputScreens.map(screen => {
+    const name = uniqueNameFrom(screen.name || 'Screen1', usedNames);
+    usedNames.add(name);
+    return { ...screen, name };
+  });
+  const names = screens.map(screen => screen.name);
   const active = names.includes(project?.activeScreen) ? project.activeScreen : names[0];
   const saved = {};
 
@@ -244,13 +295,39 @@ export function loadProjectState(project) {
   }
 
   projectName.set(project?.projectName || 'ImportedProject');
-  projectProperties.set(project?.projectProperties || {});
+  projectProperties.set(normalizeProjectProperties(project?.projectProperties || {}));
   screenList.set(names);
   screenSavedStates.set(saved);
   activeScreen.set(active);
   applyScreenState(saved[active]);
   replaceDesignAssets(project?.assets || []);
   execCounter.set(1);
+  lastRunAt.set(null);
+  disableDebugMode();
+  copiedCell = null;
+  copiedCellAvailable.set(false);
+}
+
+export function setProjectProperty(name, value) {
+  let nextValue = null;
+  projectProperties.update(properties => {
+    const next = withProjectPropertyValue(properties, name, value);
+    const propertyName = normalizeProjectPropertyName(name);
+    nextValue = next[propertyName] ?? null;
+    return next;
+  });
+  return nextValue;
+}
+
+export function updateProjectProperties(values) {
+  projectProperties.update(properties => normalizeProjectProperties({
+    ...properties,
+    ...(values || {}),
+  }));
+}
+
+export function resetProjectProperties(values = {}) {
+  projectProperties.set(defaultProjectProperties(values));
 }
 
 let debugLogId = 0;
@@ -286,6 +363,8 @@ export function extractDebugLogsFromCompanionResponse(data) {
 
   return values
     .map(value => {
+      if (isDebugTraceValue(value)) return null;
+
       if (value?.type === 'log') {
         return {
           level: normalizeDebugLevel(value.level),
@@ -338,12 +417,99 @@ export function clearDebugLogs() {
   debugLogs.set([]);
 }
 
+export function enableDebugMode() {
+  debugModeEnabled.set(true);
+  clearDebugRuntimeState();
+}
+
+export function disableDebugMode() {
+  debugModeEnabled.set(false);
+  clearDebugRuntimeState();
+  debugExecutionState.set({ status: 'idle', sessionId: null, startedAt: null });
+  debugLineMap.set([]);
+}
+
+export function startDebugSession({ sessionId, lineMap = [] } = {}) {
+  debugLineMap.set(Array.from(lineMap || []));
+  debugRuntimeErrors.set({});
+  debugActiveLocation.set(null);
+  debugExecutionState.set({
+    status: 'active',
+    sessionId: sessionId || null,
+    startedAt: Date.now(),
+  });
+}
+
+export function clearDebugActiveLocation(sessionId = null) {
+  const current = get(debugExecutionState);
+  if (sessionId && current.sessionId && sessionId !== current.sessionId) return;
+  debugActiveLocation.set(null);
+}
+
+export function clearDebugRuntimeState() {
+  debugActiveLocation.set(null);
+  debugRuntimeErrors.set({});
+}
+
+function normalizedDebugLocation(location) {
+  const mapEntry = location?.unifiedLine != null
+    ? lineMapEntryForUnifiedLine(get(debugLineMap), location.unifiedLine)
+    : null;
+
+  return {
+    sessionId: location?.sessionId || get(debugExecutionState).sessionId || null,
+    traceId: location?.traceId || '',
+    cellId: mapEntry?.cellId ?? location?.cellId ?? null,
+    cellLine: mapEntry?.cellLine ?? location?.cellLine ?? null,
+    unifiedLine: mapEntry?.unifiedLine ?? location?.unifiedLine ?? null,
+  };
+}
+
+export function setDebugTraceLocation(location) {
+  if (!location?.sessionId) return false;
+  const current = get(debugExecutionState);
+  if (current.sessionId && location.sessionId !== current.sessionId) return false;
+
+  const normalized = {
+    ...normalizedDebugLocation(location),
+    timestamp: Date.now(),
+  };
+
+  debugActiveLocation.set(normalized);
+  return true;
+}
+
+export function setDebugRuntimeError(error) {
+  const active = get(debugActiveLocation);
+  const location = normalizedDebugLocation(error?.location || active);
+  if (!location?.cellId) return false;
+
+  const entry = {
+    sessionId: location.sessionId,
+    traceId: location.traceId || '',
+    cellId: location.cellId,
+    cellLine: location.cellLine ?? null,
+    unifiedLine: location.unifiedLine ?? null,
+    message: stringifyDebugValue(error?.message || 'Runtime error'),
+    source: stringifyDebugValue(error?.source || 'Runtime'),
+    status: error?.status || null,
+    timestamp: Date.now(),
+  };
+
+  debugRuntimeErrors.update(errors => ({
+    ...errors,
+    [entry.cellId]: entry,
+  }));
+  debugActiveLocation.set(entry);
+  return true;
+}
+
 export function setActive(id) {
   activeCellId.set(id);
 }
 
 export function addCodeCell() {
-  const id = 'c' + Date.now();
+  const id = nextCellId();
   const activeId = get(activeCellId);
   const currentCells = get(cells);
   const idx = activeId ? currentCells.findIndex(c => c.id === activeId) + 1 : currentCells.length;
@@ -357,7 +523,7 @@ export function addCodeCell() {
 }
 
 export function addMarkdownCell() {
-  const id = 'c' + Date.now();
+  const id = nextCellId();
   const activeId = get(activeCellId);
   const currentCells = get(cells);
   const idx = activeId ? currentCells.findIndex(c => c.id === activeId) + 1 : currentCells.length;
@@ -368,6 +534,33 @@ export function addMarkdownCell() {
   });
   setActive(id);
   return id;
+}
+
+export function copyCellById(id) {
+  const cell = get(cells).find(c => c.id === id);
+  if (!cell) return false;
+  copiedCell = JSON.parse(JSON.stringify(cell));
+  copiedCellAvailable.set(true);
+  return true;
+}
+
+export function pasteCopiedCellBelow(id) {
+  if (!copiedCell) return null;
+  const currentCells = get(cells);
+  const sourceIndex = currentCells.findIndex(c => c.id === id);
+  const insertIndex = sourceIndex === -1 ? currentCells.length : sourceIndex + 1;
+  const pasted = {
+    ...JSON.parse(JSON.stringify(copiedCell)),
+    id: nextCellId(),
+  };
+
+  cells.update(cs => {
+    const next = [...cs];
+    next.splice(insertIndex, 0, pasted);
+    return next;
+  });
+  setActive(pasted.id);
+  return pasted.id;
 }
 
 export function moveCellById(id, dir) {
@@ -384,25 +577,73 @@ export function moveCellById(id, dir) {
 
 export function deleteCellById(id) {
   const currentCells = get(cells);
-  if (currentCells.length <= 1) return;
   const idx = currentCells.findIndex(c => c.id === id);
+  if (idx === -1) return;
   cells.update(cs => cs.filter(c => c.id !== id));
   const nextCells = get(cells);
   const nextActive = nextCells[Math.min(idx, nextCells.length - 1)]?.id || null;
-  if (nextActive) setActive(nextActive);
+  activeCellId.set(nextActive);
 }
 
 export function updateCellExecCount(id) {
   const count = get(execCounter);
   cells.update(cs => cs.map(c => c.id === id ? { ...c, execCount: count } : c));
   execCounter.update(n => n + 1);
+  lastRunAt.set(Date.now());
 }
 
 export function updateCellCode(id, code) {
+  clearDebugRuntimeState();
   cells.update(cs => cs.map(c => c.id === id ? { ...c, code } : c));
 }
 
+export function replaceCodeCells(codeChunks, { activeIndex = 0 } = {}) {
+  clearDebugRuntimeState();
+  const chunks = Array.from(codeChunks || [])
+    .map(code => String(code ?? ''))
+    .filter(code => code.trim().length > 0);
+  let nextActive = null;
+
+  cells.update(current => {
+    const existingCodeCells = current.filter(cell => cell.type === 'code');
+    const nextCodeCells = chunks.map((code, index) => ({
+      id: existingCodeCells[index]?.id || nextCellId(),
+      type: 'code',
+      code,
+      execCount: existingCodeCells[index]?.execCount ?? null,
+    }));
+
+    const next = [];
+    let codeIndex = 0;
+    let lastCodeOutputIndex = -1;
+    for (const cell of current) {
+      if (cell.type !== 'code') {
+        next.push(cell);
+        continue;
+      }
+      if (codeIndex < nextCodeCells.length) {
+        next.push(nextCodeCells[codeIndex]);
+        lastCodeOutputIndex = next.length - 1;
+      }
+      codeIndex += 1;
+    }
+    if (codeIndex === 0) {
+      next.push(...nextCodeCells);
+    } else if (codeIndex < nextCodeCells.length) {
+      next.splice(lastCodeOutputIndex + 1, 0, ...nextCodeCells.slice(codeIndex));
+    }
+
+    const safeActiveIndex = Math.max(0, Math.min(activeIndex, nextCodeCells.length - 1));
+    nextActive = nextCodeCells[safeActiveIndex]?.id || next[0]?.id || null;
+    return next;
+  });
+
+  activeCellId.set(nextActive);
+  return nextActive;
+}
+
 export function updateDesignCode(code) {
+  clearDebugRuntimeState();
   designCode.set(code);
 }
 
@@ -532,6 +773,18 @@ export function getFalconSource() {
 
 export function getDesignSource() {
   return get(designCode);
+}
+
+export function setDoItResult(cellId, lines, ok) {
+  doItResults.update(r => ({ ...r, [cellId]: { lines, ok } }));
+}
+
+export function clearDoItResult(cellId) {
+  doItResults.update(r => {
+    const next = { ...r };
+    delete next[cellId];
+    return next;
+  });
 }
 
 export function showCtx(e, id, toggle = false) {

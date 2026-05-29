@@ -1,6 +1,8 @@
 <script>
   import { onMount, tick } from 'svelte';
   import {
+    activeScreen,
+    designCode,
     initialDesignCode,
     updateDesignCode,
   } from './stores.js';
@@ -86,6 +88,12 @@
 
   function redoDesigner() {
     return restoreDesignerHistory(designerHistoryIndex + 1);
+  }
+
+  function resetDesignerHistory(caret = 0) {
+    designerHistory = [];
+    designerHistoryIndex = -1;
+    pushDesignerHistory(Math.max(0, Math.min(caret, schemaValue.length)));
   }
 
   function insertDesignerText(text) {
@@ -391,7 +399,14 @@
     const main = document.getElementById('main');
     let dragging = false, startX = 0, startWidth = 0;
 
-    resizeHandleEl.addEventListener('mousedown', e => {
+    const resetDrag = () => {
+      dragging = false;
+      resizeHandleEl?.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    const onMouseDown = e => {
       dragging = true;
       startX = e.clientX;
       startWidth = panelEl.offsetWidth;
@@ -399,29 +414,60 @@
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
       e.preventDefault();
-    });
+    };
 
-    document.addEventListener('mousemove', e => {
+    const onMouseMove = e => {
       if (!dragging) return;
       const delta = startX - e.clientX;
-      const maxW = main.offsetWidth - 300;
+      const maxW = (main?.offsetWidth || window.innerWidth) - 300;
       const newW = Math.max(200, Math.min(startWidth + delta, maxW));
       panelEl.style.flex = `0 0 ${newW}px`;
-    });
+    };
 
-    document.addEventListener('mouseup', () => {
+    const onMouseUp = () => {
       if (!dragging) return;
-      dragging = false;
-      resizeHandleEl.classList.remove('dragging');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    });
+      resetDrag();
+    };
+
+    resizeHandleEl.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      resizeHandleEl?.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      if (dragging) resetDrag();
+    };
   }
 
   onMount(() => {
-    updateDesignCode(schemaValue);
-    pushDesignerHistory(0);
-    initResizeHandle();
+    let mountedScreen = null;
+    const unsubscribeDesign = designCode.subscribe(value => {
+      const nextValue = value || '';
+      const firstSync = designerHistoryIndex === -1;
+      if (!firstSync && nextValue === schemaValue) return;
+      schemaValue = nextValue;
+      resetDesignerHistory(0);
+      tick().then(syncDesignerScroll);
+    });
+    const unsubscribeScreen = activeScreen.subscribe(name => {
+      if (mountedScreen === null) {
+        mountedScreen = name;
+        return;
+      }
+      if (name === mountedScreen) return;
+      mountedScreen = name;
+      resetDesignerHistory(0);
+      tick().then(syncDesignerScroll);
+    });
+    const cleanupResize = initResizeHandle();
+
+    return () => {
+      unsubscribeDesign();
+      unsubscribeScreen();
+      cleanupResize?.();
+    };
   });
 
 </script>

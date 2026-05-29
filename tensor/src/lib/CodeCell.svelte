@@ -4,9 +4,13 @@
   import {
     setActive, moveCellById, deleteCellById, showCtx,
     updateCellExecCount, updateCellCode, cells, doItCellId, blocklyPreviewRequest,
+    appendDebugLogs, debugCollapsed, companionCommand, liveTestState,
+    doItResults, setDoItResult, clearDoItResult,
+    debugModeEnabled, debugActiveLocation, debugRuntimeErrors,
   } from './stores.js';
   import { falconTokenize, tokensToHtml } from './tokenizer.js';
   import { falconCellToBlocklyPng, warmBlocklyPreviewRuntime } from './blockly-preview.js';
+  import { runCodeDiagnosticResult } from './falcon-wasm.js';
 
   export let cell;
   export let active = false;
@@ -30,9 +34,12 @@
   let history = [];
   let historyIndex = -1;
   let applyingHistory = false;
+  let localEditPending = false;
 
   const HISTORY_LIMIT = 100;
   const BLOCKLY_HEIGHT_TRANSITION_MS = 180;
+  const CODE_LINE_HEIGHT = 13 * 1.65;
+  const CODE_PAD_TOP = 12;
   const AUTO_PAIRS = {
     '{': '}',
     '(': ')',
@@ -41,8 +48,22 @@
   };
 
   $: isDoItVisible = $doItCellId === cell.id;
-  $: if (!blocklyActive && cell.code !== codeValue) {
-    codeValue = cell.code || '';
+  $: isCompanionConnected = $liveTestState.status === 'connected';
+  $: doItResult = $doItResults[cell.id] ?? null;
+  $: debugActiveLine = $debugModeEnabled && $debugActiveLocation?.cellId === cell.id
+    ? $debugActiveLocation.cellLine
+    : null;
+  $: debugError = $debugModeEnabled ? ($debugRuntimeErrors[cell.id] ?? null) : null;
+  $: debugErrorLines = debugError?.message
+    ? String(debugError.message).split(/\r?\n/)
+    : [];
+  $: if (!blocklyActive) {
+    const incomingCode = cell.code || '';
+    if (localEditPending) {
+      if (incomingCode === codeValue) localEditPending = false;
+    } else if (incomingCode !== codeValue) {
+      codeValue = incomingCode;
+    }
   }
   $: sourceLineCount = Math.max(codeValue.split('\n').length, 1);
   $: previewLineCount = Math.max((blocklySourceSnapshot || codeValue).split('\n').length, 1);
@@ -91,6 +112,7 @@
 
   function renderCode(text, caret = null) {
     codeValue = text;
+    localEditPending = true;
     updateCellCode(cell.id, text);
     if (caret !== null) setSelection(caret);
   }
@@ -373,6 +395,7 @@
 
   function onInput(e) {
     codeValue = e.currentTarget.value;
+    localEditPending = true;
     updateCellCode(cell.id, codeValue);
     pushHistory();
     syncEditorScroll();
@@ -456,6 +479,7 @@
     clearBlocklyPreviewAsset();
     codeValue = restored;
     blocklySourceSnapshot = '';
+    localEditPending = true;
     updateCellCode(cell.id, restored);
     tick().then(() => {
       syncEditorScroll();
@@ -526,20 +550,127 @@
     tick().then(syncEditorScroll);
   }
 
-  function runCell() {
+  function selectedSource() {
+    if (!codeEl) return '';
+    const start = codeEl.selectionStart ?? 0;
+    const end = codeEl.selectionEnd ?? 0;
+    if (start === end) return '';
+    return codeValue.slice(Math.min(start, end), Math.max(start, end));
+  }
+
+  function appendRunOutput(result, sourceLabel) {
+    const entries = [];
+    for (const line of result.output || []) {
+      entries.push({ level: 'info', source: sourceLabel, message: line });
+    }
+
+    if (!result.ok) {
+      const diagnostics = result.diagnostics?.length
+        ? result.diagnostics
+        : [{ message: result.error || 'Falcon execution failed' }];
+      for (const diagnostic of diagnostics) {
+        const location = diagnostic.line
+          ? `:${diagnostic.line}${diagnostic.column ? `:${diagnostic.column}` : ''}`
+          : '';
+        entries.push({
+          level: 'error',
+          source: `${sourceLabel}${location}`,
+          message: diagnostic.message || result.error || 'Falcon execution failed',
+        });
+      }
+    }
+
+    if (entries.length) {
+      appendDebugLogs(entries);
+      debugCollapsed.set(false);
+    }
+  }
+
+  async function runCell(sourceOverride = null, sourceLabel = `Cell ${cell.id}`) {
     if (running) return;
+    const source = typeof sourceOverride === 'string'
+      ? sourceOverride
+      : (blocklyActive ? blocklySourceSnapshot : codeValue);
+    if (!source.trim()) return;
+
     running = true;
     const icon = document.getElementById(`run-icon-${cell.id}`);
     if (icon) {
       icon.innerHTML = `<circle cx="7" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="10" stroke-dashoffset="10" class="running"/>`;
     }
-    setTimeout(() => {
-      running = false;
-      if (icon) icon.innerHTML = `<path d="M2 2l10 5-10 5V2z"/>`;
+
+    try {
+      const result = await runCodeDiagnosticResult(source);
+      appendRunOutput(result, sourceLabel);
       updateCellExecCount(cell.id);
       flashing = true;
       setTimeout(() => { flashing = false; }, 400);
-    }, 600 + Math.random() * 400);
+    } catch (e) {
+      appendRunOutput({
+        ok: false,
+        error: e?.message || String(e),
+        diagnostics: [],
+        output: [],
+      }, sourceLabel);
+    } finally {
+      running = false;
+      if (icon) icon.innerHTML = `<path d="M2 2l10 5-10 5V2z"/>`;
+    }
+  }
+
+  async function runDoIt(source) {
+    if (running) return;
+    running = true;
+    try {
+      const result = await runCodeDiagnosticResult(source);
+      const lines = [];
+      for (const line of result.output || []) lines.push(line);
+      if (!result.ok) {
+        const diagnostics = result.diagnostics?.length
+          ? result.diagnostics
+          : [{ message: result.error || 'Execution failed' }];
+        for (const d of diagnostics) {
+          const loc = d.line ? `:${d.line}${d.column ? `:${d.column}` : ''}` : '';
+          lines.push(`${loc ? loc + ' ' : ''}${d.message}`);
+        }
+      }
+      setDoItResult(cell.id, lines, result.ok);
+      updateCellExecCount(cell.id);
+      flashing = true;
+      setTimeout(() => { flashing = false; }, 400);
+    } catch (e) {
+      setDoItResult(cell.id, [e?.message || String(e)], false);
+    } finally {
+      running = false;
+    }
+  }
+
+  function runSelection() {
+    const source = selectedSource();
+    if (!source.trim()) return;
+    if (isCompanionConnected) {
+      companionCommand.set({
+        type: 'do-it',
+        source,
+        label: `Selection ${cell.id}`,
+        cellId: cell.id,
+      });
+      doItCellId.set(null);
+      return;
+    }
+    runDoIt(source);
+    doItCellId.set(null);
+  }
+
+  function handleDoItMouseDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    runSelection();
+  }
+
+  function handleDoItClick(e) {
+    e.stopPropagation();
+    if (e.detail === 0) runSelection();
   }
 
   function handleCodeKey(e) {
@@ -618,17 +749,38 @@
   });
 
   onDestroy(() => {
+    blocklyPreviewRun += 1;
+    blocklyActive = false;
+    blocklyStatus = 'idle';
     clearBlocklyHeightReleaseTimer();
     clearBlocklyPreviewAsset();
   });
+
+  function activateCellFromKeyboard(e) {
+    if (e.target !== e.currentTarget) return;
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    setActive(cell.id);
+  }
+
+  function debugLineTop(line) {
+    return `${CODE_PAD_TOP + (Math.max(1, Number(line) || 1) - 1) * CODE_LINE_HEIGHT}px`;
+  }
 </script>
 
 <div
   class="cell code-cell"
   class:active
   class:flash={flashing}
+  class:debug-active-cell={Boolean(debugActiveLine)}
+  class:debug-error-cell={Boolean(debugError)}
+  data-debug-active-line={debugActiveLine || undefined}
+  data-debug-error-line={debugError?.cellLine || undefined}
   id="cell-{cell.id}"
+  role="button"
+  tabindex="0"
   on:click={() => setActive(cell.id)}
+  on:keydown={activateCellFromKeyboard}
   on:contextmenu={(e) => showCtx(e, cell.id)}
 >
   <div class="cell-gutter">
@@ -644,7 +796,7 @@
   </div>
 
   <div class="cell-header">
-    <button class="run-btn" title="Run (Shift+Enter)" on:click|stopPropagation={runCell}>
+    <button class="run-btn" title="Run (Shift+Enter)" on:click|stopPropagation={() => runCell()}>
       <svg id="run-icon-{cell.id}" viewBox="0 0 14 14" fill="currentColor">
         <path d="M2 2l10 5-10 5V2z"/>
       </svg>
@@ -653,10 +805,12 @@
     <span class="exec-count">[{cell.execCount ?? ' '}]</span>
     <div class="cell-header-spacer"></div>
     <button
+      type="button"
       class="cell-menu-btn do-it-btn"
       class:visible={isDoItVisible}
       title="Do it"
-      on:click|stopPropagation
+      on:mousedown={handleDoItMouseDown}
+      on:click={handleDoItClick}
     >
       <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h8M7 3l3 3-3 3"/></svg>
       Do it
@@ -684,9 +838,25 @@
     class:blockly-previewing={blocklyActive}
     style={blocklyEditorStyle}
   >
+    {#if !blocklyActive && debugActiveLine !== null}
+      <div
+        class="debug-line-backdrop debug-line-backdrop--active"
+        style:top={debugLineTop(debugActiveLine)}
+      ></div>
+    {/if}
+    {#if !blocklyActive && debugError?.cellLine != null}
+      <div
+        class="debug-line-backdrop debug-line-backdrop--error"
+        style:top={debugLineTop(debugError.cellLine)}
+      ></div>
+    {/if}
     <div class="line-nums" aria-hidden="true">
       {#each lineNumbers as n}
-        <div>{n}</div>
+        <div
+          class:debug-current-line={debugActiveLine === n}
+          class:debug-error-line={debugError?.cellLine === n}
+          data-line={n}
+        >{n}</div>
       {/each}
     </div>
     <div class="code-stack">
@@ -721,4 +891,47 @@
       ></textarea>
     </div>
   </div>
+
+  {#if doItResult}
+    <div class="do-it-result" class:do-it-result--error={!doItResult.ok}>
+      <span class="do-it-result-arrow" aria-hidden="true">{doItResult.ok ? '→' : '✗'}</span>
+      <div class="do-it-result-body">
+        {#if doItResult.lines.length}
+          {#each doItResult.lines as line}
+            <div class="do-it-result-line">{line}</div>
+          {/each}
+        {:else}
+          <div class="do-it-result-line do-it-result-line--empty">ok</div>
+        {/if}
+      </div>
+      <button
+        class="do-it-result-dismiss"
+        title="Dismiss"
+        on:click|stopPropagation={() => clearDoItResult(cell.id)}
+      >×</button>
+    </div>
+  {/if}
+
+  {#if debugError}
+    <div class="do-it-result do-it-result--error debug-error-result">
+      <span class="do-it-result-arrow" aria-hidden="true">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+          <ellipse cx="7" cy="7.5" rx="3" ry="3.5"/>
+          <path d="M7 4V2.5"/>
+          <path d="M4 7.5H2M12 7.5h-2"/>
+          <path d="M4.5 5.2l-1.2-1.2M9.5 5.2l1.2-1.2"/>
+          <path d="M4.5 9.8l-1.2 1.2M9.5 9.8l1.2 1.2"/>
+        </svg>
+      </span>
+      <div class="do-it-result-body">
+        {#if debugErrorLines.length}
+          {#each debugErrorLines as line}
+            <div class="do-it-result-line">{line}</div>
+          {/each}
+        {:else}
+          <div class="do-it-result-line">Runtime error</div>
+        {/if}
+      </div>
+    </div>
+  {/if}
 </div>

@@ -70,12 +70,12 @@
   on:keydown={handleKey}
 >
   <span class="dbg-handle-label">
-    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4">
-      <circle cx="6" cy="4" r="2"/>
-      <path d="M3 11c0-1.657 1.343-3 3-3s3 1.343 3 3"/>
-      <path d="M1 4h1M10 4h1M6 1v1"/>
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4">
+      <rect x="1.5" y="2.5" width="11" height="9" rx="1.5"/>
+      <path d="M4 6.5l2 1.5-2 1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8.5 9.5h2" stroke-linecap="round"/>
     </svg>
-    <span class="dbg-handle-title">Debug</span>
+    <span class="dbg-handle-title">Logger</span>
     <span class="dbg-count">{logStatus}</span>
   </span>
   <div class="dbg-actions">
@@ -83,8 +83,8 @@
       class="dbg-clear-btn"
       on:mousedown|stopPropagation
       on:click|stopPropagation={clearDebugLogs}
-      title="Clear debug logs"
-      aria-label="Clear debug logs"
+      title="Clear logger"
+      aria-label="Clear logger"
       disabled={logCount === 0}
     >
       <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -95,7 +95,7 @@
       class="dbg-toggle-btn"
       on:mousedown|stopPropagation
       on:click|stopPropagation={toggle}
-      title="Toggle debug panel"
+      title="Toggle logger panel"
     >
       <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d={caretPath}/>

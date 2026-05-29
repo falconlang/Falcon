@@ -1,20 +1,65 @@
 <script>
-  import { cells, activeCellId, addCodeCell, notebookMode } from './stores.js';
+  import { cells, activeCellId, addCodeCell, notebookMode, unifiedSelectionActive } from './stores.js';
   import CodeCell from './CodeCell.svelte';
   import MarkdownCell from './MarkdownCell.svelte';
   import UnifiedEditor from './UnifiedEditor.svelte';
 
+  let unifiedEditor;
+  let modeSwitching = false;
+
   $: isUnified = $notebookMode === 'unified';
-  function toggleMode() { notebookMode.update(m => m === 'cells' ? 'unified' : 'cells'); }
+
+  async function showCells() {
+    if (modeSwitching) return;
+    if (!isUnified) {
+      notebookMode.set('cells');
+      return;
+    }
+    modeSwitching = true;
+    try {
+      await unifiedEditor?.commitToCells?.();
+      notebookMode.set('cells');
+    } finally {
+      modeSwitching = false;
+    }
+  }
+
+  function showScript() {
+    if (!modeSwitching) notebookMode.set('unified');
+  }
+
+  function runUnifiedDoItMouseDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    unifiedEditor?.runDoIt();
+  }
+
+  function runUnifiedDoItClick(e) {
+    e.stopPropagation();
+    if (e.detail === 0) unifiedEditor?.runDoIt();
+  }
 </script>
 
 <div class="dsgn-header">
   <span class="dsgn-filename">Functionality</span>
+  {#if isUnified && $unifiedSelectionActive}
+    <button
+      type="button"
+      class="dsgn-do-it-btn"
+      title="Do it"
+      on:mousedown={runUnifiedDoItMouseDown}
+      on:click={runUnifiedDoItClick}
+    >
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h8M7 3l3 3-3 3"/></svg>
+      Do it
+    </button>
+  {/if}
   <div class="dsgn-mode-toggle">
     <button
       class="dsgn-mode-btn"
       class:dsgn-mode-btn--active={!isUnified}
-      on:click={() => notebookMode.set('cells')}
+      disabled={modeSwitching}
+      on:click={showCells}
       title="Cells view"
     >
       <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="1" width="10" height="3.5" rx="0.8"/><rect x="1" y="7.5" width="10" height="3.5" rx="0.8"/></svg>
@@ -23,7 +68,8 @@
     <button
       class="dsgn-mode-btn"
       class:dsgn-mode-btn--active={isUnified}
-      on:click={() => notebookMode.set('unified')}
+      disabled={modeSwitching}
+      on:click={showScript}
       title="Script view"
     >
       <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M1 2h10M1 5h7M1 8h10M1 11h4"/></svg>
@@ -34,7 +80,7 @@
 
 <div id="notebook-wrap">
   {#if $notebookMode === 'unified'}
-    <UnifiedEditor />
+    <UnifiedEditor bind:this={unifiedEditor} />
   {:else}
     <div id="notebook">
       {#each $cells as cell (cell.id)}

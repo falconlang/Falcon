@@ -1,9 +1,15 @@
 <script>
   import { onMount, onDestroy, tick } from 'svelte';
-  import { cells, updateCellCode } from './stores.js';
+  import {
+    activeScreen, cells, replaceCodeCells,
+    liveTestState, companionCommand,
+    doItResults, clearDoItResult, unifiedSelectionActive,
+    debugModeEnabled, debugActiveLocation, debugRuntimeErrors,
+  } from './stores.js';
   import { falconTokenize, tokensToHtml } from './tokenizer.js';
-  import { mistToXmlResult } from './falcon-wasm.js';
+  import { mistToXmlResult, runCodeDiagnosticResult } from './falcon-wasm.js';
   import { blocklyXmlToPng, componentDefinitionsFromDesigner, ensureBlocklyRuntime, copyPngBlobToClipboard, downloadPngBlob } from './blockly-preview.js';
+  import { splitFalconSourceByTopLevelLines } from './cell-splitting.js';
 
   const AUTO_PAIRS = { '{': '}', '(': ')', '[': ']', '"': '"' };
   const HISTORY_LIMIT = 100;
@@ -13,6 +19,10 @@
   let history = [];
   let historyIndex = -1;
   let applyingHistory = false;
+  let syncingToStore = false;
+  let unsubscribeCells = null;
+  let unsubscribeScreen = null;
+  let lastCellsSignature = '';
 
   // ── Blockly callout ──
   // null when hidden, or { x, y, status: 'loading'|'ready'|'error', imgUrl }
@@ -20,20 +30,41 @@
   let calloutRunId = 0;
   let calloutDebounceTimer = null;
 
+  // ── Do it callout ──
+  // null when hidden, or { x, y, startLine, endLine, maxWidth, status: 'running'|'ready', lines, ok }
+  let doItCallout = null;
+  let doItCalloutEl = null;
+  let pendingDoItPos = null;
+
+  $: isCompanionConnected = $liveTestState.status === 'connected';
+  $: debugActiveUnifiedLine = $debugModeEnabled ? ($debugActiveLocation?.unifiedLine ?? null) : null;
+  $: debugErrorEntries = $debugModeEnabled
+    ? Object.values($debugRuntimeErrors || {})
+        .filter(error => error?.unifiedLine)
+        .sort((a, b) => a.unifiedLine - b.unifiedLine)
+    : [];
+  $: debugErrorUnifiedLines = new Set(debugErrorEntries.map(error => error.unifiedLine));
+  $: debugFirstError = debugErrorEntries[0] ?? null;
+  $: debugFirstErrorLine = debugFirstError?.unifiedLine ?? null;
+  $: debugFirstErrorLines = debugFirstError?.message
+    ? String(debugFirstError.message).split(/\r?\n/)
+    : [];
+
+  $: {
+    const result = $doItResults['unified'];
+    if (result && pendingDoItPos) {
+      const pos = doItCalloutPos(pendingDoItPos.startLine, pendingDoItPos.selStart);
+      doItCallout = { ...pos, startLine: pendingDoItPos.startLine, endLine: pendingDoItPos.endLine, selStart: pendingDoItPos.selStart, status: 'ready', lines: result.lines, ok: result.ok };
+      pendingDoItPos = null;
+      clearDoItResult('unified');
+    }
+  }
+
   const CALLOUT_DEBOUNCE_MS = 280;
   const LINE_HEIGHT = 13 * 1.65; // must match .code-area font-size × line-height
   const CODE_PAD_TOP = 12;        // must match .code-area padding-top
   const CALLOUT_GAP = 8;
   const CALLOUT_PADDING = 12; // 6px × 2
-
-  // Parallel arrays: one entry per code cell in order.
-  // cellIds[i]    — the cell's id
-  // cellStarts[i] — character offset in editorValue where cell i's code begins
-  // Cell i's code occupies editorValue.slice(cellStarts[i], cellStarts[i+1] - 2)
-  // The last cell's code occupies editorValue.slice(cellStarts[last])
-  // The 2-char gap between cells is the '\n\n' separator.
-  let cellIds = [];
-  let cellStarts = [];
 
   $: lineCount = Math.max(editorValue.split('\n').length, 1);
   $: lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
@@ -41,42 +72,74 @@
 
   function buildContent(cellList) {
     const codeCells = cellList.filter(c => c.type === 'code');
-    cellIds = codeCells.map(c => c.id);
-    cellStarts = [];
-    let offset = 0;
-    const parts = codeCells.map(c => {
-      cellStarts.push(offset);
-      const code = c.code || '';
-      offset += code.length + 2; // +2 for the '\n\n' separator that join() inserts
-      return code;
-    });
-    return parts.join('\n\n');
+    return codeCells.map(c => c.code || '').join('\n\n');
   }
 
-  function adjustCellStarts(prevContent, nextContent) {
-    const delta = nextContent.length - prevContent.length;
-    if (delta === 0 || cellStarts.length <= 1) return;
-    // Find first differing position
-    let changeAt = 0;
-    const minLen = Math.min(prevContent.length, nextContent.length);
-    while (changeAt < minLen && prevContent[changeAt] === nextContent[changeAt]) changeAt++;
-    // Shift every cell start that lies strictly after the edit point (skip index 0 — always 0)
-    for (let i = 1; i < cellStarts.length; i++) {
-      if (cellStarts[i] > changeAt) {
-        cellStarts[i] = Math.max(cellStarts[i - 1] + 1, cellStarts[i] + delta);
-      }
-    }
+  function codeCellsSignature(cellList) {
+    return JSON.stringify((cellList || [])
+      .filter(c => c.type === 'code')
+      .map(c => [c.id, c.code || '']));
+  }
+
+  function resetHistory(caret = 0) {
+    history = [];
+    historyIndex = -1;
+    pushHistory(Math.max(0, Math.min(caret, editorValue.length)));
+  }
+
+  function syncFromCells(cellList, force = false) {
+    const signature = codeCellsSignature(cellList);
+    if (!force && signature === lastCellsSignature) return;
+    const nextContent = buildContent(cellList || []);
+    lastCellsSignature = signature;
+    editorValue = nextContent;
+    dismissCallout();
+    resetHistory(0);
+    tick().then(syncScroll);
   }
 
   function syncToStore() {
-    const content = editorValue;
-    cellIds.forEach((id, i) => {
-      const start = cellStarts[i] ?? 0;
-      const end = i < cellIds.length - 1
-        ? Math.max(start, (cellStarts[i + 1] ?? content.length) - 2)
-        : content.length;
-      updateCellCode(id, content.slice(start, end));
-    });
+    syncingToStore = true;
+    try {
+      replaceCodeCells(editorValue.trim() ? [editorValue] : []);
+    } finally {
+      syncingToStore = false;
+    }
+  }
+
+  export async function commitToCells() {
+    const source = editorValue;
+    if (!source.trim()) {
+      syncingToStore = true;
+      try {
+        replaceCodeCells([]);
+      } finally {
+        syncingToStore = false;
+      }
+      return true;
+    }
+
+    try {
+      const componentDefinitions = await componentDefinitionsFromDesigner();
+      const result = await mistToXmlResult(source, componentDefinitions);
+      const chunks = splitFalconSourceByTopLevelLines(source, result.lineNumbers);
+      syncingToStore = true;
+      try {
+        replaceCodeCells(chunks);
+      } finally {
+        syncingToStore = false;
+      }
+      return true;
+    } catch (e) {
+      console.warn('[unified-editor] unable to split source by top-level expressions:', e);
+      syncingToStore = true;
+      try {
+        replaceCodeCells([source]);
+      } finally {
+        syncingToStore = false;
+      }
+      return false;
+    }
   }
 
   function selectionRange() {
@@ -98,9 +161,7 @@
   }
 
   function render(text, caret = null) {
-    const prev = editorValue;
     editorValue = text;
-    adjustCellStarts(prev, text);
     syncToStore();
     if (caret !== null) setSelection(caret);
   }
@@ -307,9 +368,7 @@
   }
 
   function onInput(e) {
-    const prev = editorValue;
     editorValue = e.currentTarget.value;
-    adjustCellStarts(prev, editorValue);
     syncToStore();
     dismissCallout();
     pushHistory();
@@ -370,10 +429,55 @@
     return { x: overflowed ? frameRight : rawX, overflowed };
   }
 
+  function doItCalloutPos(startLine, selStart) {
+    if (!codeEl) return { x: 0, y: 0, maxWidth: 280 };
+    const rect = codeEl.getBoundingClientRect();
+
+    // Measure the pixel column of the selection start within its line
+    const lines = editorValue.split('\n');
+    const lineCharStart = lines.slice(0, startLine - 1).reduce((acc, l) => acc + l.length + 1, 0);
+    const textToSel = editorValue.slice(lineCharStart, Math.max(lineCharStart, Math.min(selStart ?? lineCharStart, lineCharStart + (lines[startLine - 1] || '').length)));
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = getComputedStyle(codeEl).font;
+    const colPx = ctx.measureText(textToSel).width;
+
+    // x = left content edge + column offset - horizontal scroll
+    const x = rect.left + 4 + colPx - (codeEl.scrollLeft || 0);
+    const y = rect.top + CODE_PAD_TOP + (startLine - 1) * LINE_HEIGHT - codeEl.scrollTop;
+    const frameRight = wrapEl ? wrapEl.getBoundingClientRect().right : window.innerWidth;
+    const maxWidth = Math.max(120, Math.min(320, frameRight - x - 16));
+    return { x, y, maxWidth };
+  }
+
   function updateCalloutY() {
-    if (!callout || !codeEl || !editorContainerEl) return;
-    const { x, overflowed } = calloutX(callout.startLine, callout.endLine);
-    callout = { ...callout, y: calloutY(callout.startLine, callout.endLine), x, overflowed };
+    if (!codeEl || !editorContainerEl) return;
+    if (callout) {
+      const { x, overflowed } = calloutX(callout.startLine, callout.endLine);
+      callout = { ...callout, y: calloutY(callout.startLine, callout.endLine), x, overflowed };
+    }
+    if (doItCallout) {
+      const pos = doItCalloutPos(doItCallout.startLine, doItCallout.selStart);
+      doItCallout = { ...doItCallout, ...pos };
+    }
+  }
+
+  function dismissDoItCallout() {
+    doItCallout = null;
+  }
+
+  function debugLineTop(line) {
+    return `${CODE_PAD_TOP + (Math.max(1, Number(line) || 1) - 1) * LINE_HEIGHT}px`;
+  }
+
+  function debugMessageTop(line) {
+    return `${CODE_PAD_TOP + Math.max(1, Number(line) || 1) * LINE_HEIGHT + 2}px`;
+  }
+
+  function onWindowPointerDown(e) {
+    if (doItCallout?.status === 'ready' && doItCalloutEl && !doItCalloutEl.contains(e.target)) {
+      dismissDoItCallout();
+    }
   }
 
   function dismissCallout() {
@@ -397,7 +501,8 @@
     if (!codeEl || runId !== calloutRunId) return;
     const selStart = codeEl.selectionStart;
     const selEnd   = codeEl.selectionEnd;
-    if (selStart === selEnd) { dismissCallout(); return; }
+    if (selStart === selEnd) { unifiedSelectionActive.set(false); dismissCallout(); return; }
+    unifiedSelectionActive.set(true);
 
     const { startLine: selectionStartLine, endLine } = selectionLineRange(selStart, selEnd);
 
@@ -439,22 +544,123 @@
   }
 
   onMount(() => {
-    editorValue = buildContent($cells);
-    pushHistory(0);
+    let mountedScreen = null;
+    unsubscribeCells = cells.subscribe(cellList => {
+      const signature = codeCellsSignature(cellList);
+      if (syncingToStore) {
+        lastCellsSignature = signature;
+        return;
+      }
+      syncFromCells(cellList);
+    });
+    unsubscribeScreen = activeScreen.subscribe(name => {
+      if (mountedScreen === null) {
+        mountedScreen = name;
+        return;
+      }
+      if (name === mountedScreen) return;
+      mountedScreen = name;
+      syncFromCells($cells, true);
+    });
     document.addEventListener('selectionchange', onDocumentSelectionChange);
   });
 
+  export async function runDoIt() {
+    if (!codeEl) return;
+    const selStart = codeEl.selectionStart ?? 0;
+    const selEnd = codeEl.selectionEnd ?? 0;
+    if (selStart === selEnd) return;
+    const start = Math.min(selStart, selEnd);
+    const end = Math.max(selStart, selEnd);
+    const source = editorValue.slice(start, end);
+    if (!source.trim()) return;
+
+    const { startLine, endLine } = selectionLineRange(start, end);
+    const pos = doItCalloutPos(startLine, start);
+    pendingDoItPos = { ...pos, startLine, endLine, selStart: start };
+    doItCallout = { ...pendingDoItPos, status: 'running', lines: [], ok: true };
+
+    if (isCompanionConnected) {
+      clearDoItResult('unified');
+      companionCommand.set({ type: 'do-it', source, label: 'Do it (Script)', cellId: 'unified' });
+      return;
+    }
+
+    try {
+      const result = await runCodeDiagnosticResult(source);
+      const lines = [];
+      for (const line of result.output || []) lines.push(line);
+      if (!result.ok) {
+        const diags = result.diagnostics?.length
+          ? result.diagnostics
+          : [{ message: result.error || 'Execution failed' }];
+        for (const d of diags) {
+          const loc = d.line ? `:${d.line}${d.column ? `:${d.column}` : ''}` : '';
+          lines.push(`${loc ? loc + ' ' : ''}${d.message}`);
+        }
+      }
+      doItCallout = { ...doItCalloutPos(pendingDoItPos.startLine, pendingDoItPos.selStart), startLine: pendingDoItPos.startLine, endLine: pendingDoItPos.endLine, selStart: pendingDoItPos.selStart, status: 'ready', lines, ok: result.ok };
+      pendingDoItPos = null;
+    } catch (e) {
+      doItCallout = { ...doItCalloutPos(pendingDoItPos.startLine, pendingDoItPos.selStart), startLine: pendingDoItPos.startLine, endLine: pendingDoItPos.endLine, selStart: pendingDoItPos.selStart, status: 'ready', lines: [e?.message || String(e)], ok: false };
+      pendingDoItPos = null;
+    }
+  }
+
   onDestroy(() => {
+    unsubscribeCells?.();
+    unsubscribeScreen?.();
     document.removeEventListener('selectionchange', onDocumentSelectionChange);
+    unifiedSelectionActive.set(false);
     dismissCallout();
+    dismissDoItCallout();
   });
 </script>
 
-<div class="unified-wrap" bind:this={wrapEl}>
+<div
+  class="unified-wrap"
+  class:debug-active-editor={Boolean(debugActiveUnifiedLine)}
+  class:debug-error-editor={debugFirstErrorLine !== null}
+  data-debug-active-line={debugActiveUnifiedLine || undefined}
+  bind:this={wrapEl}
+>
   <div class="unified-editor" bind:this={editorContainerEl}>
+    {#if debugActiveUnifiedLine !== null}
+      <div
+        class="debug-line-backdrop debug-line-backdrop--active"
+        style:top={debugLineTop(debugActiveUnifiedLine)}
+      ></div>
+    {/if}
+    {#each debugErrorEntries as error (error.cellId)}
+      <div
+        class="debug-line-backdrop debug-line-backdrop--error"
+        style:top={debugLineTop(error.unifiedLine)}
+      ></div>
+    {/each}
+    {#if debugFirstError}
+      <div
+        class="debug-inline-error"
+        style:top={debugMessageTop(debugFirstErrorLine)}
+      >
+        <span class="debug-inline-error-icon" aria-hidden="true">✗</span>
+        <div class="debug-inline-error-body">
+          {#if debugFirstErrorLines.length}
+            {#each debugFirstErrorLines as line}
+              <div>{line}</div>
+            {/each}
+          {:else}
+            <div>Runtime error</div>
+          {/if}
+        </div>
+      </div>
+    {/if}
     <div class="line-nums" aria-hidden="true">
       {#each lineNumbers as n}
-        <div>{n}</div>
+        <div
+          class:debug-current-line={debugActiveUnifiedLine === n}
+          class:debug-error-line={debugErrorUnifiedLines.has(n)}
+          data-line={n}
+        >{n}</div>
       {/each}
     </div>
     <div class="code-stack">
@@ -473,6 +679,7 @@
         on:select={scheduleCalloutCheck}
         on:mouseup={scheduleCalloutCheck}
         on:keyup={scheduleCalloutCheck}
+        on:blur={() => unifiedSelectionActive.set(false)}
       ></textarea>
     </div>
   </div>
@@ -505,6 +712,38 @@
   </div>
 {/if}
 
+<svelte:window on:pointerdown={onWindowPointerDown} />
+
+{#if doItCallout}
+  <div
+    bind:this={doItCalloutEl}
+    class="do-it-callout"
+    class:do-it-callout--ok={doItCallout.ok}
+    class:do-it-callout--error={!doItCallout.ok}
+    class:do-it-callout--running={doItCallout.status === 'running'}
+    style="top:{doItCallout.y}px; left:{doItCallout.x + 8}px; max-width:{doItCallout.maxWidth}px;"
+  >
+    {#if doItCallout.status === 'running'}
+      <svg class="do-it-callout-spinner" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="7" cy="7" r="4.5" stroke-opacity="0.2"/>
+        <path d="M11.5 7A4.5 4.5 0 007 2.5"/>
+      </svg>
+    {:else}
+      <span class="do-it-callout-arrow" aria-hidden="true">{doItCallout.ok ? '→' : '✗'}</span>
+      <div class="do-it-callout-body">
+        {#if doItCallout.lines.length}
+          {#each doItCallout.lines as line}
+            <div class="do-it-callout-line">{line}</div>
+          {/each}
+        {:else}
+          <div class="do-it-callout-line do-it-callout-line--empty">ok</div>
+        {/if}
+      </div>
+      <button class="do-it-callout-dismiss" title="Dismiss" on:click={dismissDoItCallout}>×</button>
+    {/if}
+  </div>
+{/if}
+
 <style>
   .unified-wrap {
     display: flex;
@@ -513,6 +752,7 @@
   }
 
   .unified-editor {
+    position: relative;
     flex: 1;
     display: flex;
     background: var(--surface);
@@ -604,5 +844,117 @@
     width: 12px;
     height: 12px;
     flex-shrink: 0;
+  }
+
+  /* ── Do it callout ── */
+  .do-it-callout {
+    position: fixed;
+    z-index: 80;
+    /* sits above the first selected line with a small gap */
+    transform: translateY(calc(-100% - 6px));
+    border-radius: 10px;
+    padding: 7px 8px 7px 10px;
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    min-width: 60px;
+  }
+
+  /* Arrow pointing down toward the selection */
+  .do-it-callout::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 10px;
+    width: 8px;
+    height: 8px;
+    border-bottom: 1.5px solid var(--accent);
+    border-right: 1.5px solid var(--accent);
+    transform: rotate(45deg);
+    border-radius: 0 0 2px 0;
+  }
+
+  .do-it-callout--ok {
+    background: var(--run-soft);
+    border: 1.5px solid var(--accent);
+    color: var(--text);
+  }
+  .do-it-callout--ok::after {
+    background: var(--run-soft);
+    border-color: var(--accent);
+  }
+
+  .do-it-callout--error {
+    background: var(--error-soft);
+    border: 1.5px solid var(--error);
+    color: var(--error);
+  }
+  .do-it-callout--error::after {
+    background: var(--error-soft);
+    border-color: var(--error);
+  }
+
+  .do-it-callout--running {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    padding: 10px 12px;
+  }
+  .do-it-callout--running::after {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+
+  .do-it-callout-arrow {
+    flex-shrink: 0;
+    font-weight: 600;
+    color: var(--accent);
+    user-select: none;
+    padding-top: 1px;
+  }
+  .do-it-callout--error .do-it-callout-arrow { color: var(--error); }
+
+  .do-it-callout-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .do-it-callout-line {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .do-it-callout-line--empty {
+    color: var(--text-faint);
+    font-style: italic;
+  }
+  .do-it-callout--error .do-it-callout-line { color: var(--error); }
+
+  .do-it-callout-dismiss {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-faint);
+    font-size: 14px;
+    line-height: 1;
+    padding: 1px 3px;
+    border-radius: 3px;
+    transition: background 0.1s, color 0.1s;
+    margin-top: 1px;
+  }
+  .do-it-callout-dismiss:hover {
+    background: var(--border-soft);
+    color: var(--text-muted);
+  }
+
+  .do-it-callout-spinner {
+    display: block;
+    width: 16px;
+    height: 16px;
+    animation: callout-spin 0.9s linear infinite;
+    color: var(--text-faint);
   }
 </style>
