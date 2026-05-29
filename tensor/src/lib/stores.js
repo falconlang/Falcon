@@ -69,6 +69,8 @@ const initialCells = [
 export const cells = writable(initialCells);
 export const designCode = writable(initialDesignCode);
 export const designAssets = writable([]);
+export const projectName = writable('falcon_tour');
+export const projectProperties = writable({});
 export const activeCellId = writable('c1');
 export const execCounter = writable(6);
 export const ctxMenu = writable({ show: false, x: 0, y: 0, cellId: null });
@@ -100,21 +102,68 @@ export function requestBlocklyPreview(cellId, payload = {}) {
 // ── Screen management ──
 export const screenList = writable(['Screen1']);
 export const activeScreen = writable('Screen1');
-// Saved state for non-active screens: { [screenName]: { cells, designCode } }
+export const rawBlocklyXml = writable('');
+export const sourceScm = writable('');
+export const sourceDesignCode = writable('');
+// Saved state for non-active screens:
+// { [screenName]: { cells, designCode, rawBlocklyXml, sourceScm, sourceDesignCode } }
 const screenSavedStates = writable({});
+
+function cloneCells(cellList) {
+  return JSON.parse(JSON.stringify(cellList || []));
+}
+
+function currentScreenState() {
+  return {
+    cells: cloneCells(get(cells)),
+    designCode: get(designCode),
+    rawBlocklyXml: get(rawBlocklyXml),
+    sourceScm: get(sourceScm),
+    sourceDesignCode: get(sourceDesignCode),
+  };
+}
+
+function stateForScreen(name, savedStates = get(screenSavedStates)) {
+  const curr = get(activeScreen);
+  if (name === curr) return currentScreenState();
+  const saved = savedStates[name];
+  return {
+    cells: cloneCells(saved?.cells || []),
+    designCode: saved?.designCode || '',
+    rawBlocklyXml: saved?.rawBlocklyXml || '',
+    sourceScm: saved?.sourceScm || '',
+    sourceDesignCode: saved?.sourceDesignCode || '',
+  };
+}
+
+function applyScreenState(state) {
+  const nextCells = cloneCells(state?.cells || []);
+  cells.set(nextCells);
+  designCode.set(state?.designCode || '');
+  rawBlocklyXml.set(state?.rawBlocklyXml || '');
+  sourceScm.set(state?.sourceScm || '');
+  sourceDesignCode.set(state?.sourceDesignCode || '');
+  activeCellId.set(nextCells[0]?.id || null);
+}
+
+function replaceDesignAssets(nextAssets) {
+  for (const asset of get(designAssets)) {
+    if (typeof asset !== 'string' && asset.url && typeof URL !== 'undefined') {
+      URL.revokeObjectURL(asset.url);
+    }
+  }
+  designAssets.set(nextAssets || []);
+}
 
 export function switchScreen(name) {
   const curr = get(activeScreen);
   if (name === curr) return;
   screenSavedStates.update(s => ({
     ...s,
-    [curr]: { cells: get(cells), designCode: get(designCode) },
+    [curr]: currentScreenState(),
   }));
   const saved = get(screenSavedStates)[name];
-  const nextCells = saved ? saved.cells : [];
-  cells.set(nextCells);
-  designCode.set(saved ? saved.designCode : '');
-  activeCellId.set(nextCells.length > 0 ? nextCells[0].id : null);
+  applyScreenState(saved || {});
   activeScreen.set(name);
 }
 
@@ -124,7 +173,7 @@ export function addScreen(name) {
   // Save current state
   screenSavedStates.update(s => ({
     ...s,
-    [curr]: { cells: get(cells), designCode: get(designCode) },
+    [curr]: currentScreenState(),
   }));
   // Use provided name or find unique default
   let newName = name;
@@ -136,9 +185,7 @@ export function addScreen(name) {
   }
   screenList.update(l => [...l, newName]);
   // Switch to empty new screen
-  cells.set([]);
-  designCode.set('');
-  activeCellId.set(null);
+  applyScreenState({});
   activeScreen.set(newName);
 }
 
@@ -153,12 +200,57 @@ export function removeScreen(name) {
   });
   if (curr === name) {
     const saved = get(screenSavedStates)['Screen1'];
-    const nextCells = saved ? saved.cells : get(cells);
-    cells.set(nextCells);
-    designCode.set(saved ? saved.designCode : get(designCode));
-    activeCellId.set(nextCells.length > 0 ? nextCells[0].id : null);
+    applyScreenState(saved || currentScreenState());
     activeScreen.set('Screen1');
   }
+}
+
+export function getProjectSnapshot() {
+  const saved = {
+    ...get(screenSavedStates),
+    [get(activeScreen)]: currentScreenState(),
+  };
+  const screens = get(screenList).map(name => ({
+    name,
+    ...stateForScreen(name, saved),
+  }));
+
+  return {
+    projectName: get(projectName),
+    projectProperties: { ...get(projectProperties) },
+    activeScreen: get(activeScreen),
+    screens,
+    assets: get(designAssets),
+  };
+}
+
+export function loadProjectState(project) {
+  const screens = Array.isArray(project?.screens) && project.screens.length
+    ? project.screens
+    : [{ name: 'Screen1', cells: [], designCode: '' }];
+  const names = screens.map(screen => screen.name || 'Screen1');
+  const active = names.includes(project?.activeScreen) ? project.activeScreen : names[0];
+  const saved = {};
+
+  for (const screen of screens) {
+    const name = screen.name || 'Screen1';
+    saved[name] = {
+      cells: cloneCells(screen.cells || []),
+      designCode: screen.designCode || '',
+      rawBlocklyXml: screen.rawBlocklyXml || '',
+      sourceScm: screen.sourceScm || '',
+      sourceDesignCode: screen.sourceDesignCode || '',
+    };
+  }
+
+  projectName.set(project?.projectName || 'ImportedProject');
+  projectProperties.set(project?.projectProperties || {});
+  screenList.set(names);
+  screenSavedStates.set(saved);
+  activeScreen.set(active);
+  applyScreenState(saved[active]);
+  replaceDesignAssets(project?.assets || []);
+  execCounter.set(1);
 }
 
 let debugLogId = 0;
@@ -358,6 +450,7 @@ function createAssetRecord(fileOrName, name, existingAssets) {
     name: cleanName,
     size: isFile ? fileOrName.size : 0,
     type: isFile ? fileOrName.type : '',
+    blob: isFile ? fileOrName : null,
     url: '',
   };
   if (isFile && typeof URL !== 'undefined') {
@@ -381,7 +474,7 @@ export function addDesignAsset(fileOrName) {
         return assets.map((asset, index) => index === existingIndex ? added : asset);
       }
       added = typeof existing === 'string'
-        ? { id: existing, name: existing, size: 0, type: '', url: '' }
+        ? { id: existing, name: existing, size: 0, type: '', blob: null, url: '' }
         : existing;
       return assets;
     }
@@ -400,7 +493,7 @@ export function renameDesignAsset(assetId, nextName) {
       const id = typeof asset === 'string' ? asset : asset.id;
       if (id !== assetId && assetNameFrom(asset) !== assetId) return asset;
       renamed = typeof asset === 'string'
-        ? { id: clean, name: clean, size: 0, type: '', url: '' }
+        ? { id: clean, name: clean, size: 0, type: '', blob: null, url: '' }
         : { ...asset, name: clean };
       return renamed;
     });
@@ -426,7 +519,7 @@ export function deleteDesignAsset(assetId) {
     return next;
   });
   return typeof removed === 'string'
-    ? { id: removed, name: removed, size: 0, type: '', url: '' }
+    ? { id: removed, name: removed, size: 0, type: '', blob: null, url: '' }
     : removed;
 }
 

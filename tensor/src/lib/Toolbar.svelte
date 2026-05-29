@@ -1,14 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { addCodeCell, sidebarVisible, debugCollapsed, screenList, activeScreen, switchScreen, addScreen, removeScreen, liveTestOpen, liveTestState } from './stores.js';
-
-  const LIVE_TEST_LABELS = { idle: 'Live test', polling: 'Waiting...', connecting: 'Connecting...', connected: 'Connected', error: 'Error' };
-  const LIVE_TEST_TITLES = { idle: 'Connect Companion', polling: 'Waiting for Companion', connecting: 'Negotiating connection', connected: 'Companion connected', error: 'Companion error' };
-
-  $: liveTestStatus = $liveTestState.status || 'idle';
-  $: liveTestLabel = LIVE_TEST_LABELS[liveTestStatus] || LIVE_TEST_LABELS.idle;
-  $: liveTestTitle = LIVE_TEST_TITLES[liveTestStatus] || LIVE_TEST_TITLES.idle;
-  function openLiveTest() { liveTestOpen.set(true); }
+  import { addCodeCell, sidebarVisible, debugCollapsed, screenList, activeScreen, switchScreen, addScreen, removeScreen, projectName } from './stores.js';
 
   function toggleSidebar() { sidebarVisible.update(v => !v); }
   function toggleDebugPanel() { debugCollapsed.update(v => !v); }
@@ -38,16 +30,6 @@
   function selectScreen(name) {
     closeSpinner();
     switchScreen(name);
-  }
-
-  function spinnerAddScreen() {
-    closeSpinner();
-    openAddDialog();
-  }
-
-  function spinnerRemoveScreen() {
-    closeSpinner();
-    openRemoveDialog();
   }
 
   onMount(() => {
@@ -116,6 +98,7 @@
 </script>
 
 <div id="toolbar">
+  <span class="toolbar-project-title">{$projectName}</span>
   <div class="add-btns">
     <button class="add-btn" on:click={addCodeCell}>
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 1v12M1 7h12"/></svg>
@@ -126,26 +109,6 @@
   <button class="tl-btn" title="Clear outputs">
     <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h10M5 4V2h4v2M11 4l-.8 8H3.8L3 4"/></svg>
     Clear outputs
-  </button>
-  <div class="tl-sep"></div>
-  <button
-    class="tl-btn live-test-chip live-test-chip--{liveTestStatus}"
-    title={liveTestTitle}
-    aria-label={liveTestTitle}
-    on:click={openLiveTest}
-  >
-    {#if liveTestStatus === 'connected'}
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l2.5 2.5L11 4"/></svg>
-    {:else if liveTestStatus === 'connecting'}
-      <svg class="live-test-spin" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5" stroke-opacity="0.25"/><path d="M11.5 7A4.5 4.5 0 007 2.5"/></svg>
-    {:else if liveTestStatus === 'polling'}
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M7 4.5V7l1.8 1.3"/></svg>
-    {:else if liveTestStatus === 'error'}
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2l5 9H2l5-9z"/><path d="M7 5.4v2.4M7 10h.01"/></svg>
-    {:else}
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="1" width="8" height="12" rx="1.5"/><path d="M5 10.5h4"/><path d="M7 1V0M4 0h6"/></svg>
-    {/if}
-    {liveTestLabel}
   </button>
   <div class="tl-sep"></div>
   <button
@@ -177,6 +140,14 @@
       <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" class="screen-spinner-icon"><rect x="2.5" y="0.5" width="7" height="11" rx="1.5" stroke-width="1.3"/><line x1="4" y1="9.5" x2="8" y2="9.5" stroke-width="1.3" stroke-linecap="round"/></svg>
       <span class="screen-spinner-label">{$activeScreen}</span>
       <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" class="screen-spinner-chevron" class:rotated={spinnerOpen}><path d="M2 3.5l3 3 3-3"/></svg>
+    </button>
+    <button class="screen-spinner-btn" title="Add Screen" on:click={openAddDialog}>
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" class="screen-spinner-icon"><path d="M7 2v10M2 7h10"/></svg>
+      Add Screen
+    </button>
+    <button class="screen-spinner-btn" title="Remove Screen" disabled={!canRemove} on:click={openRemoveDialog}>
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" class="screen-spinner-icon"><circle cx="7" cy="7" r="5"/><path d="M4.8 4.8l4.4 4.4M9.2 4.8l-4.4 4.4" stroke-linecap="round"/></svg>
+      Remove Screen
     </button>
 
   </div>
@@ -211,15 +182,6 @@
         {name}
       </div>
     {/each}
-    <div class="ctx-sep"></div>
-    <div class="ctx-item" on:click={spinnerAddScreen}>
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg>
-      Add Screen
-    </div>
-    <div class="ctx-item" class:ctx-item-disabled={!canRemove} on:click={canRemove ? spinnerRemoveScreen : null}>
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7h10"/></svg>
-      Remove Screen
-    </div>
   </div>
 {/if}
 
