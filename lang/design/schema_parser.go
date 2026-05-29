@@ -1,9 +1,8 @@
 package design
 
 import (
+	"Falcon/code/jsonutil"
 	"bytes"
-	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"strconv"
 )
@@ -31,7 +30,8 @@ func (p *SchemaParser) ConvertSchemaToXml() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	root.XMLName = xml.Name{Local: "Screen"}
+	// XMLName is only used for the type field in WriteXML, which uses c.Type
+	root.Type = "Screen"
 
 	var buf bytes.Buffer
 	err = root.WriteXML(&buf, 0)
@@ -39,9 +39,13 @@ func (p *SchemaParser) ConvertSchemaToXml() (string, error) {
 }
 
 func (p *SchemaParser) parseSchemaRoot() (Component, error) {
-	var jsonStruct map[string]interface{}
-	if err := json.Unmarshal([]byte(p.schemaJson), &jsonStruct); err != nil {
+	raw, err := jsonutil.ParseAny([]byte(p.schemaJson))
+	if err != nil {
 		return Component{}, err
+	}
+	jsonStruct, ok := raw.(map[string]interface{})
+	if !ok {
+		return Component{}, errors.New("schema must be a JSON object")
 	}
 	if source, ok := jsonStruct["Source"]; ok {
 		sourceText, ok := source.(string)
@@ -102,7 +106,6 @@ func schemaComponentToXml(schemaJson map[string]interface{}) (Component, error) 
 	xmlChildren = append(xmlChildren, children...)
 
 	return Component{
-		XMLName:    xml.Name{Local: compType},
 		Id:         name,
 		Type:       compType,
 		Properties: properties,

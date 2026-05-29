@@ -1,8 +1,7 @@
 package design
 
 import (
-	"encoding/json"
-	"encoding/xml"
+	"Falcon/code/jsonutil"
 	"errors"
 	"strconv"
 )
@@ -17,8 +16,8 @@ func NewXmlParser(xmlContent string) *XmlParser {
 }
 
 func (p *XmlParser) ConvertXmlToSchema() (string, error) {
-	var screen Component
-	if err := xml.Unmarshal([]byte(p.xmlContent), &screen); err != nil {
+	screen, err := ParseDesignXML(p.xmlContent)
+	if err != nil {
 		return "", err
 	}
 	if screen.Type != "Screen" {
@@ -35,7 +34,6 @@ func (p *XmlParser) ConvertXmlToSchema() (string, error) {
 		"$Version":    appInventorComponentVersion("Screen"),
 		"$Components": components,
 	}
-	// add Screen's properties here
 	for k, v := range screen.Properties {
 		props[k] = v
 	}
@@ -46,7 +44,7 @@ func (p *XmlParser) ConvertXmlToSchema() (string, error) {
 		"Source":     "Form",
 		"Properties": props,
 	}
-	jsonBytes, err := json.MarshalIndent(schema, "", "  ")
+	jsonBytes, err := jsonutil.MarshalIndent(schema, "", "  ")
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +58,6 @@ func (p *XmlParser) componentToJson(component Component) interface{} {
 	}
 	compId := component.Id
 	if compId == "" {
-		// dynamically generate an Id
 		compId = component.Type + strconv.Itoa(p.autoIdCount[component.Type]+1)
 		p.autoIdCount[component.Type]++
 	}

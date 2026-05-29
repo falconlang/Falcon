@@ -16,9 +16,8 @@ import (
 	blocklyYail "Falcon/code/parsers/blocklytoyail"
 	"Falcon/code/parsers/mistparser"
 	"Falcon/code/runtime"
+	"Falcon/code/jsonutil"
 	"Falcon/design"
-	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"strings"
 	"syscall/js"
@@ -158,9 +157,7 @@ func compileMistToXml(sourceCode string, componentDefinitions js.Value, strict b
 			Blocks: []ast.Block{expression.Blockly(true)},
 			XMLNS:  "https://developers.google.com/blockly/xml",
 		}
-		bytes, _ := xml.MarshalIndent(xmlBlock, "", "  ")
-
-		xmlCode.WriteString(string(bytes))
+		xmlCode.Write(xmlBlock.MarshalIndent("", "  "))
 		xmlCode.WriteByte(0)
 	}
 
@@ -484,7 +481,11 @@ func describeComponent(this js.Value, p []js.Value) any {
 func listComponents(this js.Value, p []js.Value) any {
 	return safeExec(func() js.Value {
 		names := compdb.GlobalDB.ListComponentNames()
-		data, err := json.Marshal(names)
+		namesAny := make([]interface{}, len(names))
+		for i, n := range names {
+			namesAny[i] = n
+		}
+		data, err := jsonutil.Marshal(namesAny)
 		if err != nil {
 			return js.ValueOf("[]")
 		}
@@ -494,9 +495,19 @@ func listComponents(this js.Value, p []js.Value) any {
 
 func falconCompletionCatalog(this js.Value, p []js.Value) any {
 	return safeExec(func() js.Value {
-		data, err := json.Marshal(map[string]any{
-			"functions": astcommon.ListFunctionCompletions(),
-			"methods":   astmethod.ListMethodCompletions(),
+		fns := astcommon.ListFunctionCompletions()
+		ms := astmethod.ListMethodCompletions()
+		fnsAny := make([]interface{}, len(fns))
+		for i, v := range fns {
+			fnsAny[i] = v
+		}
+		msAny := make([]interface{}, len(ms))
+		for i, v := range ms {
+			msAny[i] = v
+		}
+		data, err := jsonutil.Marshal(map[string]interface{}{
+			"functions": fnsAny,
+			"methods":   msAny,
 		})
 		if err != nil {
 			return js.ValueOf(`{"functions":[],"methods":[]}`)

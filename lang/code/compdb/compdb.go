@@ -1,8 +1,8 @@
 package compdb
 
 import (
+	"Falcon/code/jsonutil"
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -14,74 +14,74 @@ var simpleComponentsJSON []byte
 // ── JSON types ────────────────────────────────────────────────────────────────
 
 type scComponent struct {
-	Name            string               `json:"name"`
-	Type            string               `json:"type"`
-	Version         string               `json:"version"`
-	CategoryString  string               `json:"categoryString"`
-	NonVisible      string               `json:"nonVisible"`
-	HelpString      string               `json:"helpString"`
-	ShowOnPalette   string               `json:"showOnPalette"`
-	BlockProperties []scProperty         `json:"blockProperties"`
-	Properties      []scDesignerProperty `json:"properties"`
-	Methods         []scMethod           `json:"methods"`
-	Events          []scEvent            `json:"events"`
+	Name            string
+	Type            string
+	Version         string
+	CategoryString  string
+	NonVisible      string
+	HelpString      string
+	ShowOnPalette   string
+	BlockProperties []scProperty
+	Properties      []scDesignerProperty
+	Methods         []scMethod
+	Events          []scEvent
 }
 
 type scProperty struct {
-	Name        string    `json:"name"`
-	Type        string    `json:"type"`
-	RW          string    `json:"rw"`
-	Deprecated  string    `json:"deprecated"`
-	Description string    `json:"description"`
-	Category    string    `json:"category"`
-	Helper      *scHelper `json:"helper,omitempty"`
+	Name        string
+	Type        string
+	RW          string
+	Deprecated  string
+	Description string
+	Category    string
+	Helper      *scHelper
 }
 
 type scDesignerProperty struct {
-	Name         string `json:"name"`
-	EditorType   string `json:"editorType"`
-	DefaultValue string `json:"defaultValue"`
+	Name         string
+	EditorType   string
+	DefaultValue string
 }
 
 type scMethod struct {
-	Name         string    `json:"name"`
-	Deprecated   string    `json:"deprecated"`
-	Description  string    `json:"description"`
-	Continuation bool      `json:"continuation,omitempty"`
-	ReturnType   string    `json:"returnType,omitempty"`
-	Params       []scParam `json:"params"`
-	Helper       *scHelper `json:"helper,omitempty"`
+	Name         string
+	Deprecated   string
+	Description  string
+	Continuation bool
+	ReturnType   string
+	Params       []scParam
+	Helper       *scHelper
 }
 
 type scEvent struct {
-	Name        string    `json:"name"`
-	Deprecated  string    `json:"deprecated"`
-	Description string    `json:"description"`
-	Params      []scParam `json:"params"`
+	Name        string
+	Deprecated  string
+	Description string
+	Params      []scParam
 }
 
 type scParam struct {
-	Name        string    `json:"name"`
-	Type        string    `json:"type"`
-	Description string    `json:"description,omitempty"`
-	Helper      *scHelper `json:"helper,omitempty"`
+	Name        string
+	Type        string
+	Description string
+	Helper      *scHelper
 }
 
 type scHelper struct {
-	Type string       `json:"type"`
-	Data scHelperData `json:"data"`
+	Type string
+	Data scHelperData
 }
 
 type scHelperData struct {
-	ClassName      string     `json:"className"`
-	Key            string     `json:"key"`
-	UnderlyingType string     `json:"underlyingType"`
-	Options        []scOption `json:"options"`
+	ClassName      string
+	Key            string
+	UnderlyingType string
+	Options        []scOption
 }
 
 type scOption struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
+	Name  string
+	Value string
 }
 
 // ── OptionList ────────────────────────────────────────────────────────────────
@@ -100,8 +100,7 @@ type EventDef struct {
 	Params []string
 }
 
-// MethodParam holds the canonical name and YAIL type for a component method
-// parameter.
+// MethodParam holds the canonical name and YAIL type for a component method parameter.
 type MethodParam struct {
 	Name string
 	Type string
@@ -110,21 +109,26 @@ type MethodParam struct {
 // ── CompDB ────────────────────────────────────────────────────────────────────
 
 type CompDB struct {
-	fqcn               map[string]string            // shortName → FQCN
-	propType           map[string]map[string]string // shortName → propName → YAIL type
-	methodContinuation map[string]bool              // "CompName.MethodName" → true
-	optionLists        map[string]*OptionList       // option list key → OptionList
-	events             map[string]EventDef          // "CompName.EventName" → EventDef
-	components         map[string]scComponent       // shortName → full component data
+	fqcn               map[string]string
+	propType           map[string]map[string]string
+	methodContinuation map[string]bool
+	optionLists        map[string]*OptionList
+	events             map[string]EventDef
+	components         map[string]scComponent
+	rawJSON            map[string][]byte // cached serialised JSON per component for DescribeComponent
 }
 
 // GlobalDB is the singleton component database, initialized once at package load.
 var GlobalDB = initCompDB()
 
 func initCompDB() *CompDB {
-	var components []scComponent
-	if err := json.Unmarshal(simpleComponentsJSON, &components); err != nil {
+	parsed, err := jsonutil.ParseAny(simpleComponentsJSON)
+	if err != nil {
 		panic("compdb: failed to parse simple_components.json: " + err.Error())
+	}
+	arr, ok := parsed.([]interface{})
+	if !ok {
+		panic("compdb: simple_components.json must be a JSON array")
 	}
 
 	db := &CompDB{
@@ -133,10 +137,17 @@ func initCompDB() *CompDB {
 		methodContinuation: make(map[string]bool),
 		optionLists:        make(map[string]*OptionList),
 		events:             make(map[string]EventDef),
-		components:         make(map[string]scComponent, len(components)),
+		components:         make(map[string]scComponent, len(arr)),
+		rawJSON:            make(map[string][]byte, len(arr)),
 	}
 
-	for _, comp := range components {
+	for _, item := range arr {
+		obj, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		comp := parseScComponent(obj)
+
 		db.fqcn[comp.Name] = comp.Type
 
 		pm := make(map[string]string, len(comp.BlockProperties))
@@ -171,9 +182,142 @@ func initCompDB() *CompDB {
 		}
 
 		db.components[comp.Name] = comp
+
+		// Cache serialised JSON for DescribeComponent
+		if raw, err := jsonutil.Marshal(obj); err == nil {
+			db.rawJSON[comp.Name] = raw
+		}
 	}
 
 	return db
+}
+
+// ── JSON parsing helpers ──────────────────────────────────────────────────────
+
+func parseScComponent(obj map[string]interface{}) scComponent {
+	c := scComponent{
+		Name:           jsonutil.GetString(obj, "name"),
+		Type:           jsonutil.GetString(obj, "type"),
+		Version:        jsonutil.GetString(obj, "version"),
+		CategoryString: jsonutil.GetString(obj, "categoryString"),
+		NonVisible:     jsonutil.GetString(obj, "nonVisible"),
+		HelpString:     jsonutil.GetString(obj, "helpString"),
+		ShowOnPalette:  jsonutil.GetString(obj, "showOnPalette"),
+	}
+	for _, v := range jsonutil.GetArray(obj, "blockProperties") {
+		if o, ok := v.(map[string]interface{}); ok {
+			c.BlockProperties = append(c.BlockProperties, parseScProperty(o))
+		}
+	}
+	for _, v := range jsonutil.GetArray(obj, "properties") {
+		if o, ok := v.(map[string]interface{}); ok {
+			c.Properties = append(c.Properties, parseScDesignerProperty(o))
+		}
+	}
+	for _, v := range jsonutil.GetArray(obj, "methods") {
+		if o, ok := v.(map[string]interface{}); ok {
+			c.Methods = append(c.Methods, parseScMethod(o))
+		}
+	}
+	for _, v := range jsonutil.GetArray(obj, "events") {
+		if o, ok := v.(map[string]interface{}); ok {
+			c.Events = append(c.Events, parseScEvent(o))
+		}
+	}
+	return c
+}
+
+func parseScProperty(obj map[string]interface{}) scProperty {
+	p := scProperty{
+		Name:        jsonutil.GetString(obj, "name"),
+		Type:        jsonutil.GetString(obj, "type"),
+		RW:          jsonutil.GetString(obj, "rw"),
+		Deprecated:  jsonutil.GetString(obj, "deprecated"),
+		Description: jsonutil.GetString(obj, "description"),
+		Category:    jsonutil.GetString(obj, "category"),
+	}
+	if h := jsonutil.GetObject(obj, "helper"); h != nil {
+		helper := parseScHelper(h)
+		p.Helper = &helper
+	}
+	return p
+}
+
+func parseScDesignerProperty(obj map[string]interface{}) scDesignerProperty {
+	return scDesignerProperty{
+		Name:         jsonutil.GetString(obj, "name"),
+		EditorType:   jsonutil.GetString(obj, "editorType"),
+		DefaultValue: jsonutil.GetString(obj, "defaultValue"),
+	}
+}
+
+func parseScMethod(obj map[string]interface{}) scMethod {
+	m := scMethod{
+		Name:         jsonutil.GetString(obj, "name"),
+		Deprecated:   jsonutil.GetString(obj, "deprecated"),
+		Description:  jsonutil.GetString(obj, "description"),
+		Continuation: jsonutil.GetBool(obj, "continuation"),
+		ReturnType:   jsonutil.GetString(obj, "returnType"),
+	}
+	for _, v := range jsonutil.GetArray(obj, "params") {
+		if o, ok := v.(map[string]interface{}); ok {
+			m.Params = append(m.Params, parseScParam(o))
+		}
+	}
+	if h := jsonutil.GetObject(obj, "helper"); h != nil {
+		helper := parseScHelper(h)
+		m.Helper = &helper
+	}
+	return m
+}
+
+func parseScEvent(obj map[string]interface{}) scEvent {
+	e := scEvent{
+		Name:        jsonutil.GetString(obj, "name"),
+		Deprecated:  jsonutil.GetString(obj, "deprecated"),
+		Description: jsonutil.GetString(obj, "description"),
+	}
+	for _, v := range jsonutil.GetArray(obj, "params") {
+		if o, ok := v.(map[string]interface{}); ok {
+			e.Params = append(e.Params, parseScParam(o))
+		}
+	}
+	return e
+}
+
+func parseScParam(obj map[string]interface{}) scParam {
+	p := scParam{
+		Name:        jsonutil.GetString(obj, "name"),
+		Type:        jsonutil.GetString(obj, "type"),
+		Description: jsonutil.GetString(obj, "description"),
+	}
+	if h := jsonutil.GetObject(obj, "helper"); h != nil {
+		helper := parseScHelper(h)
+		p.Helper = &helper
+	}
+	return p
+}
+
+func parseScHelper(obj map[string]interface{}) scHelper {
+	h := scHelper{
+		Type: jsonutil.GetString(obj, "type"),
+	}
+	if d := jsonutil.GetObject(obj, "data"); d != nil {
+		h.Data = scHelperData{
+			ClassName:      jsonutil.GetString(d, "className"),
+			Key:            jsonutil.GetString(d, "key"),
+			UnderlyingType: jsonutil.GetString(d, "underlyingType"),
+		}
+		for _, v := range jsonutil.GetArray(d, "options") {
+			if o, ok := v.(map[string]interface{}); ok {
+				h.Data.Options = append(h.Data.Options, scOption{
+					Name:  jsonutil.GetString(o, "name"),
+					Value: jsonutil.GetString(o, "value"),
+				})
+			}
+		}
+	}
+	return h
 }
 
 func (db *CompDB) indexHelper(h *scHelper) {
@@ -197,8 +341,7 @@ func (db *CompDB) indexHelper(h *scHelper) {
 
 // ── Lookup methods ────────────────────────────────────────────────────────────
 
-// GetFQCN returns the fully-qualified class name for a component short name,
-// falling back to the short name itself if not found.
+// GetFQCN returns the fully-qualified class name for a component short name.
 func (db *CompDB) GetFQCN(shortName string) string {
 	if fqcn := db.fqcn[shortName]; fqcn != "" {
 		return fqcn
@@ -206,15 +349,13 @@ func (db *CompDB) GetFQCN(shortName string) string {
 	return shortName
 }
 
-// IsKnownComponent reports whether the component database has metadata for the
-// short component name.
+// IsKnownComponent reports whether the component database has metadata for the short name.
 func (db *CompDB) IsKnownComponent(shortName string) bool {
 	_, ok := db.components[shortName]
 	return ok
 }
 
-// ComponentVersion returns the current App Inventor component version, falling
-// back to "1" for unknown extension types.
+// ComponentVersion returns the current App Inventor component version.
 func (db *CompDB) ComponentVersion(shortName string) string {
 	if comp, ok := db.components[shortName]; ok && comp.Version != "" {
 		return comp.Version
@@ -222,8 +363,7 @@ func (db *CompDB) ComponentVersion(shortName string) string {
 	return "1"
 }
 
-// IsNonVisible reports whether the component is marked non-visible in the
-// component database.
+// IsNonVisible reports whether the component is marked non-visible.
 func (db *CompDB) IsNonVisible(shortName string) bool {
 	return db.components[shortName].NonVisible == "true"
 }
@@ -247,8 +387,7 @@ func (db *CompDB) DesignerPropertyDefault(compType, propName string) (string, bo
 	return "", false
 }
 
-// GetPropType returns the YAIL type for a component property (e.g. "number",
-// "text", "boolean"), falling back to "any".
+// GetPropType returns the YAIL type for a component property.
 func (db *CompDB) GetPropType(compType, propName string) string {
 	if pm := db.propType[compType]; pm != nil {
 		if t := pm[propName]; t != "" {
@@ -263,8 +402,7 @@ func (db *CompDB) IsContinuation(compType, methodName string) bool {
 	return db.methodContinuation[compType+"."+methodName]
 }
 
-// GetMethodParams returns the parameters for a component method, or nil if the
-// component or method is unknown.
+// GetMethodParams returns the parameters for a component method.
 func (db *CompDB) GetMethodParams(compType, methodName string) []MethodParam {
 	comp, ok := db.components[compType]
 	if !ok {
@@ -292,13 +430,11 @@ func (db *CompDB) GetOptionList(key string) *OptionList {
 	return db.optionLists[key]
 }
 
-// ValidateProperty checks that propName exists on compType. Returns nil when the
-// component type is unknown (can't validate extensions). When the property is not
-// found, the error includes a "did you mean" hint if a case-insensitive match exists.
+// ValidateProperty checks that propName exists on compType.
 func (db *CompDB) ValidateProperty(compType, propName string) error {
 	comp, known := db.components[compType]
 	if !known {
-		return nil // unknown component — extension or unmapped type
+		return nil
 	}
 	pm := db.propType[compType]
 	if pm[propName] != "" {
@@ -323,18 +459,13 @@ func (db *CompDB) ValidateProperty(compType, propName string) error {
 	return errors.New(compType + ": unknown property " + strconv.Quote(propName))
 }
 
-// DescribeComponent returns the JSON-encoded description of a component
-// (properties, methods, events with full metadata), or ("", false) if unknown.
+// DescribeComponent returns the JSON-encoded description of a component.
 func (db *CompDB) DescribeComponent(name string) (string, bool) {
-	comp, ok := db.components[name]
+	raw, ok := db.rawJSON[name]
 	if !ok {
 		return "", false
 	}
-	data, err := json.Marshal(comp)
-	if err != nil {
-		return "", false
-	}
-	return string(data), true
+	return string(raw), true
 }
 
 // ListComponentNames returns the names of all known component types.
@@ -346,9 +477,7 @@ func (db *CompDB) ListComponentNames() []string {
 	return names
 }
 
-// ValidateEvent checks that the given event exists on the component type and
-// that the number of declared parameters matches. Returns a descriptive error
-// including the canonical parameter names if either check fails.
+// ValidateEvent checks that the given event exists on the component type.
 func (db *CompDB) ValidateEvent(compType, eventName string, params []string) error {
 	def, ok := db.events[compType+"."+eventName]
 	if !ok {

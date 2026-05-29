@@ -1,67 +1,50 @@
 package design
 
 import (
-	"bytes"
-	"encoding/xml"
+	"Falcon/code/xmlutil"
 	"io"
 	"sort"
 	"strconv"
 	"strings"
 )
 
-type XmlRoot struct {
-	XMLName xml.Name  `xml:"xml"`
-	XMLNS   string    `xml:"xmlns,attr"`
-	Screen  Component `xml:"Screen"`
-}
-
 type Component struct {
-	XMLName    xml.Name          `xml:""`
-	Id         string            `xml:"id,attr,omitempty"`
-	Type       string            `xml:"-"`
-	Properties map[string]string `xml:"-"`
-	Children   []Component       `xml:",any"`
+	Id         string
+	Type       string
+	Properties map[string]string
+	Children   []Component
 
+	// source position tracking for annotated design parser diagnostics
 	typePosition      int
 	idPosition        int
 	propertyPositions map[string]int
 	propertyLengths   map[string]int
 }
 
-func (c *Component) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	c.XMLName = start.Name
-	c.Type = start.Name.Local
-	c.Properties = make(map[string]string)
+// ParseDesignXML parses an App Inventor design XML string into a Component tree.
+func ParseDesignXML(src string) (Component, error) {
+	doc, err := xmlutil.ParseDocument(src)
+	if err != nil {
+		return Component{}, err
+	}
+	return elementToComponent(doc), nil
+}
 
-	for _, attr := range start.Attr {
-		if attr.Name.Local == "id" {
-			c.Id = attr.Value
-		} else {
-			c.Properties[attr.Name.Local] = attr.Value
+func elementToComponent(e *xmlutil.Element) Component {
+	c := Component{
+		Type:       e.Name,
+		Id:         e.AttrVal("id"),
+		Properties: make(map[string]string),
+	}
+	for _, attr := range e.Attrs {
+		if attr.Name != "id" {
+			c.Properties[attr.Name] = attr.Value
 		}
 	}
-	for {
-		tok, err := d.Token()
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			return err
-		}
-		switch tok := tok.(type) {
-		case xml.StartElement:
-			var child Component
-			if err := d.DecodeElement(&child, &tok); err != nil {
-				return err
-			}
-			c.Children = append(c.Children, child)
-		case xml.EndElement:
-			if tok.Name.Local == start.Name.Local {
-				return nil
-			}
-		}
+	for _, child := range e.Children {
+		c.Children = append(c.Children, elementToComponent(child))
 	}
-	return nil
+	return c
 }
 
 // WriteAiml converts a Component to the Component.Id { key: value } format.
@@ -159,20 +142,13 @@ func aimlEscapeString(s string) string {
 	return sb.String()
 }
 
-// WriteXML manually converts Component structure to XML, a workaround for now, since
-// Go lang does not support self-closing tags
+// WriteXML converts Component structure to XML.
 func (c *Component) WriteXML(w io.Writer, indent int) error {
 	indentStr := strings.Repeat("  ", indent)
 
-	// Start tag
 	tag := indentStr + "<" + c.Type
 	if c.Id != "" {
-		var buf bytes.Buffer
-		err := xml.EscapeText(&buf, []byte(c.Id))
-		if err != nil {
-			return err
-		}
-		tag += ` id="` + buf.String() + `"`
+		tag += ` id="` + xmlutil.EscapeText(c.Id) + `"`
 	}
 
 	keys := make([]string, 0, len(c.Properties))
@@ -185,12 +161,7 @@ func (c *Component) WriteXML(w io.Writer, indent int) error {
 		if k == "id" || k == "type" {
 			continue
 		}
-		var buf bytes.Buffer
-		err := xml.EscapeText(&buf, []byte(v))
-		if err != nil {
-			return err
-		}
-		tag += ` ` + k + `="` + buf.String() + `"`
+		tag += ` ` + k + `="` + xmlutil.EscapeText(v) + `"`
 	}
 
 	if len(c.Children) == 0 {
@@ -199,20 +170,17 @@ func (c *Component) WriteXML(w io.Writer, indent int) error {
 		return err
 	}
 
-	// Open tag
 	tag += ">\n"
 	if _, err := w.Write([]byte(tag)); err != nil {
 		return err
 	}
 
-	// Recursively write children
 	for _, child := range c.Children {
 		if err := child.WriteXML(w, indent+1); err != nil {
 			return err
 		}
 	}
 
-	// Close tag
 	_, err := w.Write([]byte(indentStr + "</" + c.Type + ">\n"))
 	return err
 }

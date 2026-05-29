@@ -12,7 +12,6 @@ package blocklytoyail
 
 import (
 	"Falcon/code/ast"
-	"encoding/xml"
 	"errors"
 	"strconv"
 	"strings"
@@ -68,11 +67,8 @@ func recoveredError(r any) error {
 }
 
 func (p *Parser) decodeXML() []ast.Block {
-	decoder := xml.NewDecoder(strings.NewReader(p.xmlContent))
-	decoder.Strict = false
-	decoder.DefaultSpace = ""
-	var root ast.XmlRoot
-	if err := decoder.Decode(&root); err != nil {
+	root, err := ast.ParseBlocklyXML(p.xmlContent)
+	if err != nil {
 		panic(err)
 	}
 	return root.Blocks

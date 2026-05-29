@@ -1,7 +1,7 @@
 package design
 
 import (
-	"encoding/json"
+	"Falcon/code/jsonutil"
 	"strconv"
 	"strings"
 	"unicode"
@@ -73,7 +73,7 @@ func (p *AimlParser) ConvertAimlToSchema() (string, error) {
 		"Source":     "Form",
 		"Properties": props,
 	}
-	jsonBytes, err := json.MarshalIndent(schema, "", "  ")
+	jsonBytes, err := jsonutil.MarshalIndent(schema, "", "  ")
 	if err != nil {
 		return "", err
 	}
@@ -223,7 +223,7 @@ func (p *AimlParser) parseComponent() (Component, error) {
 
 		if key == "id" {
 			if comp.Id != "" {
-				return Component{}, p.parseError("duplicate id for %s", typeName)
+				return Component{}, p.parseError("duplicate id for " + typeName)
 			}
 			comp.Id = value
 			comp.idPosition = keyStart
