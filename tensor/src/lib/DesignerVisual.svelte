@@ -1305,7 +1305,7 @@
   function compIcon(type) {
     switch (type) {
       case 'Screen':              return '<rect x="2.5" y="0.5" width="7" height="11" rx="1.5" stroke-width="1.3"/><line x1="4" y1="9.5" x2="8" y2="9.5" stroke-width="1.3" stroke-linecap="round"/>';
-      case 'Button':              return '<rect x="0.5" y="3.5" width="11" height="5" rx="1.5" stroke-width="1.3"/>';
+      case 'Button':              return '<rect x="0.5" y="3.5" width="11" height="5" rx="2" stroke-width="1.3"/><line x1="3.5" y1="6" x2="8.5" y2="6" stroke-width="1.5" stroke-linecap="round"/>';
       case 'Label':               return '<path d="M2 2.5h8M6 2.5v7" stroke-width="1.5" stroke-linecap="round"/>';
       case 'TextBox':             return '<rect x="0.5" y="3" width="11" height="6" rx="1" stroke-width="1.3"/><line x1="2.5" y1="6" x2="5.5" y2="6" stroke-width="1.3" stroke-linecap="round"/>';
       case 'HorizontalArrangement': return '<rect x="0.5" y="1.5" width="11" height="9" rx="1" stroke-width="1.3"/><line x1="4.5" y1="1.5" x2="4.5" y2="10.5" stroke-width="1.1"/><line x1="8" y1="1.5" x2="8" y2="10.5" stroke-width="1.1"/>';

@@ -4,7 +4,7 @@
     addCodeCell,
     sidebarVisible,
     debugCollapsed,
-    debugModeEnabled,
+    debugUserEnabled,
     companionCommand,
     screenList,
     activeScreen,
@@ -22,7 +22,7 @@
   function toggleDebugPanel() { debugCollapsed.update(v => !v); }
   function toggleDebugMode() { companionCommand.set({ type: 'toggle-debug' }); }
   $: debugActive = !$debugCollapsed;
-  $: debugModeActive = $debugModeEnabled;
+  $: debugModeActive = $debugUserEnabled;
   $: canRemove = $activeScreen !== 'Screen1';
 
   // ── Custom spinner — position:fixed, same pattern as ctx-menu ──

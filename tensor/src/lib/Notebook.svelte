@@ -1,5 +1,5 @@
 <script>
-  import { cells, activeCellId, addCodeCell, notebookMode, unifiedSelectionActive } from './stores.js';
+  import { cells, activeCellId, addCodeCell, notebookMode, unifiedSelectionActive, debugExecutionState, companionCommand } from './stores.js';
   import CodeCell from './CodeCell.svelte';
   import MarkdownCell from './MarkdownCell.svelte';
   import UnifiedEditor from './UnifiedEditor.svelte';
@@ -38,10 +38,27 @@
     e.stopPropagation();
     if (e.detail === 0) unifiedEditor?.runDoIt();
   }
+
+  $: isPaused = $debugExecutionState.status === 'paused';
+
+  function continueDebug() {
+    companionCommand.set({ type: 'debug-continue', hitId: $debugExecutionState.hitId });
+  }
 </script>
 
 <div class="dsgn-header">
   <span class="dsgn-filename">Functionality</span>
+  {#if isPaused}
+    <button
+      type="button"
+      class="dsgn-continue-btn"
+      title="Continue execution"
+      on:click={continueDebug}
+    >
+      <svg viewBox="0 0 14 14" fill="currentColor"><path d="M2 2l6 5-6 5V2z"/><path d="M8 2l5 5-5 5V2z"/></svg>
+      Continue
+    </button>
+  {/if}
   {#if isUnified && $unifiedSelectionActive}
     <button
       type="button"

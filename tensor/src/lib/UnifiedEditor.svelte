@@ -1,13 +1,18 @@
 <script>
   import { onMount, onDestroy, tick } from 'svelte';
+  import { get } from 'svelte/store';
   import {
     activeScreen, cells, replaceCodeCells,
     liveTestState, companionCommand,
     doItResults, clearDoItResult, unifiedSelectionActive,
-    debugModeEnabled, debugActiveLocation, debugRuntimeErrors, debugAnnotationActive,
+    debugBreakpoints, toggleDebugBreakpoint,
+    debugExecutionState, debugPausedFrame,
+    debugModeEnabled, debugUserEnabled, debugActiveLocation, debugRuntimeErrors, debugAnnotationActive,
+    debugExpressionCatalog, debugExpressionValues,
   } from './stores.js';
   import { falconTokenize, tokensToHtml, escHtml } from './tokenizer.js';
   import { mistToXmlResult, runCodeDiagnosticResult } from './falcon-wasm.js';
+  import { buildFalconSourceMap } from './debug-source-map.js';
   import { blocklyXmlToPng, componentDefinitionsFromDesigner, ensureBlocklyRuntime, copyPngBlobToClipboard, downloadPngBlob } from './blockly-preview.js';
   import { splitFalconSourceByTopLevelLines } from './cell-splitting.js';
 
@@ -36,10 +41,17 @@
   let doItCallout = null;
   let doItCalloutEl = null;
   let pendingDoItPos = null;
+  let debugInspectCallout = null;
+  let debugExprOutline = null;
+  let _exprCanvasUnified = null;
 
   $: isCompanionConnected = $liveTestState.status === 'connected';
-  $: debugActiveUnifiedLine = $debugModeEnabled ? ($debugActiveLocation?.unifiedLine ?? null) : null;
-  $: debugErrorEntries = $debugModeEnabled
+  $: currentLineMap = buildFalconSourceMap($cells).entries;
+  $: debugActiveUnifiedLine = $debugUserEnabled ? ($debugActiveLocation?.unifiedLine ?? null) : null;
+  $: debugPausedUnifiedLine = $debugUserEnabled && $debugExecutionState.status === 'paused'
+    ? ($debugPausedFrame?.unifiedLine ?? null)
+    : null;
+  $: debugErrorEntries = $debugUserEnabled
     ? Object.values($debugRuntimeErrors || {})
         .filter(error => error?.unifiedLine)
         .sort((a, b) => a.unifiedLine - b.unifiedLine)
@@ -611,6 +623,8 @@
     dismissCallout();
     pushHistory();
     syncScroll();
+    debugExprOutline = null;
+    debugInspectCallout = null;
   }
 
   function onBeforeInput(e) {
@@ -719,10 +733,23 @@
       const pos = doItCalloutPos(doItCallout.startLine, doItCallout.selStart);
       doItCallout = { ...doItCallout, ...pos };
     }
+    if (debugInspectCallout) {
+      const pos = doItCalloutPos(debugInspectCallout.startLine, debugInspectCallout.selStart);
+      debugInspectCallout = { ...debugInspectCallout, ...pos };
+    }
+    if (debugExprOutline?.entry) {
+      const r = computeExprOutlineRectUnified(debugExprOutline.entry);
+      if (r) debugExprOutline = { ...debugExprOutline, ...r };
+      else debugExprOutline = null;
+    }
   }
 
   function dismissDoItCallout() {
     doItCallout = null;
+  }
+
+  function dismissDebugInspectCallout() {
+    debugInspectCallout = null;
   }
 
   function debugLineTop(line) {
@@ -754,9 +781,204 @@
   }
 
   function scheduleCalloutCheck() {
+    if ($debugExecutionState.status === 'paused') {
+      syncExprOutlineUnified();
+    }
     const runId = ++calloutRunId;
     clearTimeout(calloutDebounceTimer);
     calloutDebounceTimer = setTimeout(() => runCalloutCheck(runId), CALLOUT_DEBOUNCE_MS);
+  }
+
+  function breakpointEntryForViewLine(viewLine) {
+    const unifiedLine = viewLineToSourceLine(viewLine);
+    if (!unifiedLine) return null;
+    return currentLineMap.find(entry => entry.unifiedLine === unifiedLine) || null;
+  }
+
+  function breakpointKeyForViewLine(viewLine) {
+    const entry = breakpointEntryForViewLine(viewLine);
+    return entry ? `${$activeScreen}:${entry.cellId}:${entry.cellLine}` : '';
+  }
+
+  function toggleUnifiedBreakpoint(e, viewLine) {
+    e.preventDefault();
+    e.stopPropagation();
+    const entry = breakpointEntryForViewLine(viewLine);
+    if (!entry) return;
+    toggleDebugBreakpoint({
+      screen: $activeScreen,
+      cellId: entry.cellId,
+      cellLine: entry.cellLine,
+      unifiedLine: entry.unifiedLine,
+    });
+    if (!$debugModeEnabled) companionCommand.set({ type: 'debug-enable' });
+  }
+
+  function continueDebug(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    companionCommand.set({ type: 'debug-continue', hitId: $debugExecutionState.hitId });
+  }
+
+  function columnToPxUnified(lineText, col) {
+    if (!codeEl || typeof document === 'undefined') return 0;
+    if (!_exprCanvasUnified) _exprCanvasUnified = document.createElement('canvas');
+    const ctx = _exprCanvasUnified.getContext('2d');
+    ctx.font = getComputedStyle(codeEl).font;
+    return ctx.measureText(String(lineText ?? '').slice(0, Math.max(0, Number(col) || 0))).width;
+  }
+
+  function pxToColumnUnified(targetPx, lineText) {
+    if (!codeEl || !lineText) return 0;
+    if (!_exprCanvasUnified) _exprCanvasUnified = document.createElement('canvas');
+    const ctx = _exprCanvasUnified.getContext('2d');
+    ctx.font = getComputedStyle(codeEl).font;
+    let lo = 0, hi = lineText.length;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi + 1) / 2);
+      if (ctx.measureText(lineText.slice(0, mid)).width <= targetPx) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo;
+  }
+
+  function findExprAtMouseUnified(e) {
+    if (!$debugUserEnabled || $debugExecutionState.status !== 'paused' || !$debugPausedFrame || !codeEl) return null;
+    const catalog = $debugExpressionCatalog;
+    if (!catalog?.length) return null;
+    const rect = codeEl.getBoundingClientRect();
+    const relY = e.clientY - rect.top - CODE_PAD_TOP + (codeEl.scrollTop || 0);
+    const relX = e.clientX - rect.left - 4 + (codeEl.scrollLeft || 0);
+    if (relY < 0) return null;
+    const lineIdx = Math.floor(relY / LINE_HEIGHT);
+    const lines = editorValue.split('\n');
+    if (lineIdx >= lines.length) return null;
+    const lineText = lines[lineIdx];
+    const col = pxToColumnUnified(relX, lineText);
+    const viewLine = lineIdx + 1;
+    const sourceLine = viewLineToSourceLine(viewLine);
+    if (!sourceLine) return null;
+    const candidates = catalog.filter(entry =>
+      entry.unifiedLine === sourceLine &&
+      entry.startColumn <= col &&
+      col <= entry.endColumn
+    );
+    if (!candidates.length) return null;
+    return candidates.reduce((best, curr) =>
+      (curr.endColumn - curr.startColumn) < (best.endColumn - best.startColumn) ? curr : best
+    );
+  }
+
+  function handleCodeMouseMoveUnified(e) {
+    const entry = findExprAtMouseUnified(e);
+    if (!entry) {
+      if (debugExprOutline !== null) debugExprOutline = null;
+      return;
+    }
+    if (debugExprOutline?.entry?.exprId === entry.exprId) return;
+    const outlineRect = computeExprOutlineRectUnified(entry);
+    if (!outlineRect) { debugExprOutline = null; return; }
+    debugExprOutline = { entry, ...outlineRect };
+    debugInspectCallout = null;
+  }
+
+  function handleCodeMouseLeaveUnified() {
+    if (!debugInspectCallout) debugExprOutline = null;
+  }
+
+  function computeExprOutlineRectUnified(entry) {
+    if (!codeEl || !entry) return null;
+    const rect = codeEl.getBoundingClientRect();
+    const viewLine = sourceLineToViewLine(entry.unifiedLine);
+    const lines = editorValue.split('\n');
+    const lineIdx = viewLine - 1;
+    const lineText = lines[lineIdx] || '';
+    const startPx = columnToPxUnified(lineText, entry.startColumn);
+    const endPx = columnToPxUnified(lineText, entry.endColumn);
+    const x = rect.left + 4 + startPx - (codeEl.scrollLeft || 0);
+    const y = rect.top + CODE_PAD_TOP + lineIdx * LINE_HEIGHT - (codeEl.scrollTop || 0);
+    return { x, y, width: Math.max(4, endPx - startPx), height: LINE_HEIGHT };
+  }
+
+  function findExprAtCursorUnified(cursorOffset) {
+    if (!$debugUserEnabled || $debugExecutionState.status !== 'paused' || !$debugPausedFrame) return null;
+    const catalog = $debugExpressionCatalog;
+    if (!catalog?.length) return null;
+    const value = String(editorValue ?? '');
+    const removalRange = injectedLineRemovalRange(value);
+    const sourceOffset = viewOffsetToSourceOffset(cursorOffset, value, removalRange);
+    const source = getUnifiedEditorCode();
+    const safeSrcOffset = Math.max(0, Math.min(sourceOffset, source.length));
+    const before = source.slice(0, safeSrcOffset);
+    const linesList = before.split('\n');
+    const unifiedLine = linesList.length;
+    const column = linesList[linesList.length - 1].length;
+    const candidates = catalog.filter(entry =>
+      entry.unifiedLine === unifiedLine &&
+      entry.startColumn <= column &&
+      column <= entry.endColumn
+    );
+    if (!candidates.length) return null;
+    return candidates.reduce((best, curr) =>
+      (curr.endColumn - curr.startColumn) < (best.endColumn - best.startColumn) ? curr : best
+    );
+  }
+
+  function syncExprOutlineUnified() {
+    if (!$debugUserEnabled || $debugExecutionState.status !== 'paused' || !$debugPausedFrame || !codeEl) {
+      debugExprOutline = null;
+      debugInspectCallout = null;
+      return;
+    }
+    const cursor = codeEl.selectionStart ?? 0;
+    const entry = findExprAtCursorUnified(cursor);
+    if (!entry) {
+      debugExprOutline = null;
+      debugInspectCallout = null;
+      return;
+    }
+    const outlineRect = computeExprOutlineRectUnified(entry);
+    if (!outlineRect) {
+      debugExprOutline = null;
+      debugInspectCallout = null;
+      return;
+    }
+    const sameExpr = debugExprOutline?.entry?.exprId === entry.exprId;
+    debugExprOutline = { entry, ...outlineRect };
+    if (!sameExpr) debugInspectCallout = null;
+  }
+
+  function showExprCalloutForEntryUnified(entry) {
+    if (!entry || !codeEl) return;
+    const values = $debugPausedFrame?.values ?? get(debugExpressionValues);
+    const captured = values?.[entry.exprId];
+    const lines = captured ? [String(captured.value)] : ['not evaluated'];
+    const ok = Boolean(captured);
+    const outlineRect = computeExprOutlineRectUnified(entry);
+    if (!outlineRect) return;
+    const frameRight = wrapEl ? wrapEl.getBoundingClientRect().right : window.innerWidth;
+    const maxWidth = Math.max(120, Math.min(320, frameRight - outlineRect.x - 16));
+    debugInspectCallout = {
+      x: outlineRect.x,
+      y: outlineRect.y,
+      maxWidth,
+      startLine: entry.unifiedLine,
+      selStart: entry.startColumn,
+      ok,
+      lines,
+      status: captured ? 'ready' : 'not-evaluated',
+    };
+  }
+
+  function handleCodeClickUnified() {
+    if (debugExprOutline) {
+      showExprCalloutForEntryUnified(debugExprOutline.entry);
+    }
+  }
+
+  function syncPausedInspection() {
+    syncExprOutlineUnified();
+    return Boolean(debugExprOutline);
   }
 
   function onDocumentSelectionChange() {
@@ -767,6 +989,13 @@
     if (!codeEl || runId !== calloutRunId) return;
     const selStart = codeEl.selectionStart;
     const selEnd   = codeEl.selectionEnd;
+    if ($debugExecutionState.status === 'paused') {
+      unifiedSelectionActive.set(selStart !== selEnd);
+      dismissCallout();
+      syncPausedInspection();
+      return;
+    }
+    dismissDebugInspectCallout();
     if (selStart === selEnd) { unifiedSelectionActive.set(false); dismissCallout(); return; }
     const source = getUnifiedEditorCode();
     const selectedSource = getUnifiedEditorCode({ start: selStart, end: selEnd });
@@ -887,6 +1116,7 @@
     unifiedSelectionActive.set(false);
     dismissCallout();
     dismissDoItCallout();
+    dismissDebugInspectCallout();
   });
 </script>
 
@@ -910,13 +1140,34 @@
         style:top={debugLineTop(sourceLineToViewLine(error.unifiedLine))}
       ></div>
     {/each}
-    <div class="line-nums" aria-hidden="true">
+    <div class="line-nums">
       {#each lineNumbers as n}
         <div
           class:debug-current-line={debugActiveUnifiedLine === viewLineToSourceLine(n)}
+          class:debug-paused-line={debugPausedUnifiedLine === viewLineToSourceLine(n)}
           class:debug-error-line={debugErrorUnifiedLines.has(viewLineToSourceLine(n))}
+          class:debug-breakpoint-line={Boolean($debugBreakpoints[breakpointKeyForViewLine(n)])}
           data-line={viewLineToSourceLine(n) ?? undefined}
-        >{lineNumberLabel(n)}</div>
+          role="button"
+          tabindex={viewLineToSourceLine(n) ? '0' : '-1'}
+          aria-label={viewLineToSourceLine(n)
+            ? ($debugBreakpoints[breakpointKeyForViewLine(n)] ? `Remove breakpoint on line ${lineNumberLabel(n)}` : `Add breakpoint on line ${lineNumberLabel(n)}`)
+            : undefined}
+          on:click={(e) => viewLineToSourceLine(n) && toggleUnifiedBreakpoint(e, n)}
+          on:keydown={(e) => { if (viewLineToSourceLine(n) && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleUnifiedBreakpoint(e, n); } }}
+        >
+          <span>{lineNumberLabel(n)}</span>
+          {#if viewLineToSourceLine(n)}
+            <button
+              type="button"
+              tabindex="-1"
+              class="debug-breakpoint-dot"
+              class:debug-breakpoint-dot--active={Boolean($debugBreakpoints[breakpointKeyForViewLine(n)])}
+              aria-hidden="true"
+              on:click={(e) => toggleUnifiedBreakpoint(e, n)}
+            ></button>
+          {/if}
+        </div>
       {/each}
     </div>
     <div class="code-stack">
@@ -936,7 +1187,10 @@
         on:select={scheduleCalloutCheck}
         on:mouseup={scheduleCalloutCheck}
         on:keyup={scheduleCalloutCheck}
-        on:blur={() => unifiedSelectionActive.set(false)}
+        on:mousemove={handleCodeMouseMoveUnified}
+        on:mouseleave={handleCodeMouseLeaveUnified}
+        on:click={handleCodeClickUnified}
+        on:blur={() => { unifiedSelectionActive.set(false); debugExprOutline = null; }}
       ></textarea>
     </div>
   </div>
@@ -966,6 +1220,32 @@
         </button>
       </div>
     {/if}
+  </div>
+{/if}
+
+{#if debugExprOutline}
+  <div
+    class="debug-expr-outline"
+    aria-hidden="true"
+    style="left:{debugExprOutline.x}px; top:{debugExprOutline.y}px; width:{debugExprOutline.width}px; height:{debugExprOutline.height}px;"
+  ></div>
+{/if}
+
+{#if debugInspectCallout}
+  <div
+    class="debug-inspect-callout"
+    class:debug-inspect-callout--ok={debugInspectCallout.ok}
+    class:debug-inspect-callout--muted={!debugInspectCallout.ok}
+    style="top:{debugInspectCallout.y}px; left:{debugInspectCallout.x + 8}px; max-width:{debugInspectCallout.maxWidth}px;"
+  >
+    <span class="debug-inspect-arrow" aria-hidden="true">
+      <svg viewBox="0 0 10 10" width="10" height="10"><circle cx="5" cy="5" r="4.5" fill="currentColor"/></svg>
+    </span>
+    <div class="debug-inspect-body">
+      {#each debugInspectCallout.lines as line}
+        <div class="debug-inspect-line">{line}</div>
+      {/each}
+    </div>
   </div>
 {/if}
 

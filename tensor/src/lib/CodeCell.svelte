@@ -6,7 +6,11 @@
     updateCellExecCount, updateCellCode, cells, doItCellId, blocklyPreviewRequest,
     appendDebugLogs, debugCollapsed, companionCommand, liveTestState,
     doItResults, setDoItResult, clearDoItResult,
-    debugModeEnabled, debugActiveLocation, debugRuntimeErrors,
+    activeScreen,
+    debugBreakpoints, toggleDebugBreakpoint,
+    debugExecutionState, debugPausedFrame,
+    debugModeEnabled, debugUserEnabled, debugActiveLocation, debugRuntimeErrors,
+    debugExpressionCatalog, debugExpressionValues,
   } from './stores.js';
   import { falconTokenize, tokensToHtml } from './tokenizer.js';
   import { falconCellToBlocklyPng, warmBlocklyPreviewRuntime } from './blockly-preview.js';
@@ -36,6 +40,9 @@
   let historyIndex = -1;
   let applyingHistory = false;
   let localEditPending = false;
+  let debugInspectCallout = null;
+  let debugExprOutline = null;
+  let _exprCanvas = null;
 
   const HISTORY_LIMIT = 100;
   const BLOCKLY_HEIGHT_TRANSITION_MS = 180;
@@ -52,9 +59,12 @@
   $: isCompanionConnected = $liveTestState.status === 'connected';
   $: doItResult = $doItResults[cell.id] ?? null;
   $: currentDebugLineMap = $debugModeEnabled ? buildFalconSourceMap($cells).entries : [];
-  $: debugActiveLocationForCell = $debugModeEnabled ? remapDebugLocationForCell($debugActiveLocation) : null;
+  $: debugActiveLocationForCell = $debugUserEnabled ? remapDebugLocationForCell($debugActiveLocation) : null;
   $: debugActiveLine = debugActiveLocationForCell?.cellLine ?? null;
-  $: debugErrorEntries = $debugModeEnabled ? Object.values($debugRuntimeErrors || {}) : [];
+  $: debugPausedLine = $debugUserEnabled && $debugExecutionState.status === 'paused'
+    ? remapDebugLocationForCell($debugPausedFrame)?.cellLine ?? null
+    : null;
+  $: debugErrorEntries = $debugUserEnabled ? Object.values($debugRuntimeErrors || {}) : [];
   $: debugError = debugErrorEntries
     .map(entry => remapDebugLocationForCell(entry))
     .find(Boolean) ?? null;
@@ -423,17 +433,29 @@
     updateCellCode(cell.id, codeValue);
     pushHistory();
     syncEditorScroll();
+    debugExprOutline = null;
+    debugInspectCallout = null;
   }
 
   function syncDoItSelection() {
     if (!codeEl) return;
     doItCellId.set(codeEl.selectionStart !== codeEl.selectionEnd ? cell.id : null);
+    syncExprOutline();
   }
 
   function syncEditorScroll() {
     if (!codeEl || !highlightEl) return;
     highlightEl.scrollLeft = codeEl.scrollLeft;
     highlightEl.scrollTop = codeEl.scrollTop;
+    if (debugInspectCallout) {
+      const pos = selectionCalloutPos(debugInspectCallout.startLine, debugInspectCallout.selStart);
+      debugInspectCallout = { ...debugInspectCallout, ...pos };
+    }
+    if (debugExprOutline?.entry) {
+      const r = computeExprOutlineRect(debugExprOutline.entry);
+      if (r) debugExprOutline = { ...debugExprOutline, ...r };
+      else debugExprOutline = null;
+    }
   }
 
   function clearBlocklyPreviewAsset() {
@@ -790,6 +812,200 @@
   function debugLineTop(line) {
     return `${CODE_PAD_TOP + (Math.max(1, Number(line) || 1) - 1) * CODE_LINE_HEIGHT}px`;
   }
+
+  function breakpointKey(line) {
+    return `${$activeScreen}:${cell.id}:${line}`;
+  }
+
+  function toggleLineBreakpoint(e, line) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleDebugBreakpoint({
+      screen: $activeScreen,
+      cellId: cell.id,
+      cellLine: line,
+    });
+    if (!$debugModeEnabled) companionCommand.set({ type: 'debug-enable' });
+  }
+
+  function continueDebug(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    companionCommand.set({ type: 'debug-continue', hitId: $debugExecutionState.hitId });
+  }
+
+  function lineOfOffset(text, offset) {
+    return (String(text ?? '').slice(0, Math.max(0, Math.min(offset, String(text ?? '').length))).match(/\n/g) || []).length + 1;
+  }
+
+  function selectionCalloutPos(startLine, selStart) {
+    if (!codeEl) return { x: 0, y: 0, maxWidth: 280 };
+    const rect = codeEl.getBoundingClientRect();
+    const lines = codeValue.split('\n');
+    const lineCharStart = lines.slice(0, startLine - 1).reduce((acc, l) => acc + l.length + 1, 0);
+    const textToSel = codeValue.slice(lineCharStart, Math.max(lineCharStart, Math.min(selStart ?? lineCharStart, lineCharStart + (lines[startLine - 1] || '').length)));
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = getComputedStyle(codeEl).font;
+    const colPx = ctx.measureText(textToSel).width;
+    const x = rect.left + 4 + colPx - (codeEl.scrollLeft || 0);
+    const y = rect.top + CODE_PAD_TOP + (startLine - 1) * CODE_LINE_HEIGHT - codeEl.scrollTop;
+    const frameRight = editorEl ? editorEl.getBoundingClientRect().right : window.innerWidth;
+    const maxWidth = Math.max(120, Math.min(320, frameRight - x - 16));
+    return { x, y, maxWidth };
+  }
+
+  function columnToPx(lineText, col) {
+    if (!codeEl || typeof document === 'undefined') return 0;
+    if (!_exprCanvas) _exprCanvas = document.createElement('canvas');
+    const ctx = _exprCanvas.getContext('2d');
+    ctx.font = getComputedStyle(codeEl).font;
+    return ctx.measureText(String(lineText ?? '').slice(0, Math.max(0, Number(col) || 0))).width;
+  }
+
+  function pxToColumn(targetPx, lineText) {
+    if (!codeEl || !lineText) return 0;
+    if (!_exprCanvas) _exprCanvas = document.createElement('canvas');
+    const ctx = _exprCanvas.getContext('2d');
+    ctx.font = getComputedStyle(codeEl).font;
+    let lo = 0, hi = lineText.length;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi + 1) / 2);
+      if (ctx.measureText(lineText.slice(0, mid)).width <= targetPx) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo;
+  }
+
+  function findExprAtMouse(e) {
+    if (!$debugUserEnabled || $debugExecutionState.status !== 'paused' || !$debugPausedFrame || !codeEl) return null;
+    const catalog = $debugExpressionCatalog;
+    if (!catalog?.length) return null;
+    const rect = codeEl.getBoundingClientRect();
+    const relY = e.clientY - rect.top - CODE_PAD_TOP + (codeEl.scrollTop || 0);
+    const relX = e.clientX - rect.left - 4 + (codeEl.scrollLeft || 0);
+    if (relY < 0) return null;
+    const lineIdx = Math.floor(relY / CODE_LINE_HEIGHT);
+    const lines = codeValue.split('\n');
+    if (lineIdx >= lines.length) return null;
+    const lineText = lines[lineIdx];
+    const col = pxToColumn(relX, lineText);
+    const lineNumber = lineIdx + 1;
+    const candidates = catalog.filter(entry =>
+      entry.cellId === cell.id &&
+      entry.cellLine === lineNumber &&
+      entry.startColumn <= col &&
+      col <= entry.endColumn
+    );
+    if (!candidates.length) return null;
+    return candidates.reduce((best, curr) =>
+      (curr.endColumn - curr.startColumn) < (best.endColumn - best.startColumn) ? curr : best
+    );
+  }
+
+  function handleCodeMouseMove(e) {
+    const entry = findExprAtMouse(e);
+    if (!entry) {
+      if (debugExprOutline !== null) debugExprOutline = null;
+      return;
+    }
+    if (debugExprOutline?.entry?.exprId === entry.exprId) return;
+    const outlineRect = computeExprOutlineRect(entry);
+    if (!outlineRect) { debugExprOutline = null; return; }
+    debugExprOutline = { entry, ...outlineRect };
+    debugInspectCallout = null;
+  }
+
+  function handleCodeMouseLeave() {
+    if (!debugInspectCallout) debugExprOutline = null;
+  }
+
+  function computeExprOutlineRect(entry) {
+    if (!codeEl || !entry) return null;
+    const rect = codeEl.getBoundingClientRect();
+    const lines = codeValue.split('\n');
+    const lineIdx = entry.cellLine - 1;
+    const lineText = lines[lineIdx] || '';
+    const startPx = columnToPx(lineText, entry.startColumn);
+    const endPx = columnToPx(lineText, entry.endColumn);
+    const x = rect.left + 4 + startPx - (codeEl.scrollLeft || 0);
+    const y = rect.top + CODE_PAD_TOP + lineIdx * CODE_LINE_HEIGHT - (codeEl.scrollTop || 0);
+    return { x, y, width: Math.max(4, endPx - startPx), height: CODE_LINE_HEIGHT };
+  }
+
+  function findExprAtCursor(cursorOffset) {
+    if (!$debugUserEnabled || $debugExecutionState.status !== 'paused' || !$debugPausedFrame) return null;
+    const catalog = $debugExpressionCatalog;
+    if (!catalog?.length) return null;
+    const value = String(codeValue ?? '');
+    const offset = Math.max(0, Math.min(Number(cursorOffset) || 0, value.length));
+    const before = value.slice(0, offset);
+    const linesList = before.split('\n');
+    const line = linesList.length;
+    const column = linesList[linesList.length - 1].length;
+    const candidates = catalog.filter(entry =>
+      entry.cellId === cell.id &&
+      entry.cellLine === line &&
+      entry.startColumn <= column &&
+      column <= entry.endColumn
+    );
+    if (!candidates.length) return null;
+    return candidates.reduce((best, curr) =>
+      (curr.endColumn - curr.startColumn) < (best.endColumn - best.startColumn) ? curr : best
+    );
+  }
+
+  function syncExprOutline() {
+    if (!$debugUserEnabled || $debugExecutionState.status !== 'paused' || !$debugPausedFrame || !codeEl) {
+      debugExprOutline = null;
+      debugInspectCallout = null;
+      return;
+    }
+    const cursor = codeEl.selectionStart ?? 0;
+    const entry = findExprAtCursor(cursor);
+    if (!entry) {
+      debugExprOutline = null;
+      debugInspectCallout = null;
+      return;
+    }
+    const outlineRect = computeExprOutlineRect(entry);
+    if (!outlineRect) {
+      debugExprOutline = null;
+      debugInspectCallout = null;
+      return;
+    }
+    const sameExpr = debugExprOutline?.entry?.exprId === entry.exprId;
+    debugExprOutline = { entry, ...outlineRect };
+    if (!sameExpr) debugInspectCallout = null;
+  }
+
+  function showExprCalloutForEntry(entry) {
+    if (!entry || !codeEl) return;
+    const values = $debugPausedFrame?.values ?? get(debugExpressionValues);
+    const captured = values?.[entry.exprId];
+    const lines = captured ? [String(captured.value)] : ['not evaluated'];
+    const ok = Boolean(captured);
+    const outlineRect = computeExprOutlineRect(entry);
+    if (!outlineRect) return;
+    const frameRight = editorEl ? editorEl.getBoundingClientRect().right : window.innerWidth;
+    const maxWidth = Math.max(120, Math.min(320, frameRight - outlineRect.x - 16));
+    debugInspectCallout = {
+      x: outlineRect.x,
+      y: outlineRect.y,
+      maxWidth,
+      startLine: entry.cellLine,
+      selStart: entry.startColumn,
+      ok,
+      lines,
+      status: captured ? 'ready' : 'not-evaluated',
+    };
+  }
+
+  function handleCodeClick() {
+    if (debugExprOutline) {
+      showExprCalloutForEntry(debugExprOutline.entry);
+    }
+  }
 </script>
 
 <div
@@ -874,13 +1090,30 @@
         style:top={debugLineTop(debugError.cellLine)}
       ></div>
     {/if}
-    <div class="line-nums" aria-hidden="true">
+    <div class="line-nums">
       {#each lineNumbers as n}
         <div
           class:debug-current-line={debugActiveLine === n}
+          class:debug-paused-line={debugPausedLine === n}
           class:debug-error-line={debugError?.cellLine === n}
+          class:debug-breakpoint-line={Boolean($debugBreakpoints[breakpointKey(n)])}
           data-line={n}
-        >{n}</div>
+          role="button"
+          tabindex="0"
+          aria-label={$debugBreakpoints[breakpointKey(n)] ? `Remove breakpoint on line ${n}` : `Add breakpoint on line ${n}`}
+          on:click={(e) => toggleLineBreakpoint(e, n)}
+          on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleLineBreakpoint(e, n); } }}
+        >
+          <span>{n}</span>
+          <button
+            type="button"
+            tabindex="-1"
+            class="debug-breakpoint-dot"
+            class:debug-breakpoint-dot--active={Boolean($debugBreakpoints[breakpointKey(n)])}
+            aria-hidden="true"
+            on:click={(e) => toggleLineBreakpoint(e, n)}
+          ></button>
+        </div>
       {/each}
     </div>
     <div class="code-stack">
@@ -912,6 +1145,9 @@
         on:select={syncDoItSelection}
         on:keyup={syncDoItSelection}
         on:mouseup={syncDoItSelection}
+        on:mousemove={handleCodeMouseMove}
+        on:mouseleave={handleCodeMouseLeave}
+        on:click={handleCodeClick}
       ></textarea>
     </div>
   </div>
@@ -958,4 +1194,31 @@
       </div>
     </div>
   {/if}
+
 </div>
+
+{#if debugExprOutline}
+  <div
+    class="debug-expr-outline"
+    aria-hidden="true"
+    style="left:{debugExprOutline.x}px; top:{debugExprOutline.y}px; width:{debugExprOutline.width}px; height:{debugExprOutline.height}px;"
+  ></div>
+{/if}
+
+{#if debugInspectCallout}
+  <div
+    class="debug-inspect-callout"
+    class:debug-inspect-callout--ok={debugInspectCallout.ok}
+    class:debug-inspect-callout--muted={!debugInspectCallout.ok}
+    style="top:{debugInspectCallout.y}px; left:{debugInspectCallout.x + 8}px; max-width:{debugInspectCallout.maxWidth}px;"
+  >
+    <span class="debug-inspect-arrow" aria-hidden="true">
+      <svg viewBox="0 0 10 10" width="10" height="10"><circle cx="5" cy="5" r="4.5" fill="currentColor"/></svg>
+    </span>
+    <div class="debug-inspect-body">
+      {#each debugInspectCallout.lines as line}
+        <div class="debug-inspect-line">{line}</div>
+      {/each}
+    </div>
+  </div>
+{/if}

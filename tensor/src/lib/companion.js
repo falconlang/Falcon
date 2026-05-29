@@ -7,6 +7,7 @@ import {
   listComponents,
 } from './falcon-wasm.js'
 import {
+  DEBUG_CONTINUE_GLOBAL,
   createDebugSessionId,
   ensureDebugNotifierDesignSource,
   instrumentFalconSourceForDebug,
@@ -289,6 +290,7 @@ export async function compileForCompanion(mistSource, annSource, { screenName = 
     const instrumented = instrumentFalconSourceForDebug(mistSource, debug.lineMap || [], {
       sessionId,
       notifierName: debugNotifierName,
+      breakpoints: debug.breakpoints || [],
     })
     compileSource = instrumented.source
     debugInfo = {
@@ -296,6 +298,8 @@ export async function compileForCompanion(mistSource, annSource, { screenName = 
       notifierName: instrumented.notifierName,
       lineMap: instrumented.lineMap,
       tracePoints: instrumented.tracePoints,
+      breakpointPoints: instrumented.breakpointPoints,
+      expressionCatalog: instrumented.expressionCatalog,
     }
   }
 
@@ -376,6 +380,10 @@ export async function compileSnippetForCompanion(mistSnippet, annSource, { scree
   }
   const replPayload = await compileSnippet(mistSnippet, componentDefs)
   return { componentDefs, replPayload }
+}
+
+export function debugContinueReplPayload() {
+  return wrapSnippet(`(set-var! g$${DEBUG_CONTINUE_GLOBAL} #t)`)
 }
 
 async function sha1Hex(text) {

@@ -1,7 +1,8 @@
 import { get } from 'svelte/store';
 import simpleComponentsJsonText from '../../../lang/code/compdb/simple_components.json?raw';
-import { listComponents, mistToXml } from './falcon-wasm.js';
+import { listComponents, mistToXmlResult } from './falcon-wasm.js';
 import { cells, designCode } from './stores.js';
+import { injectFalconCommentsIntoBlocklyXml } from './blockly-comments.js';
 
 const BLOCKLY_CORE_SCRIPTS = [
   '/compiled_blockly/messages.js',
@@ -595,7 +596,8 @@ export async function falconCodeToBlocklyPng(sourceCode, componentDefinitions = 
   if (!source) throw new Error('No Falcon code to convert');
   const runtimeReady = runtimeLoadError(ensureBlocklyRuntime());
   const defs = componentDefinitions ?? await componentDefinitionsFromDesigner();
-  const xml = await mistToXml(source, defs);
+  const result = await mistToXmlResult(source, defs);
+  const xml = injectFalconCommentsIntoBlocklyXml(result.xml, source, result.lineNumbers);
   const runtimeError = await runtimeReady;
   if (runtimeError) throw runtimeError;
   return blocklyXmlToPng(xml, defs);
@@ -613,7 +615,8 @@ export async function falconCellToBlocklyPng(cellId, targetSource = null, compon
 
   const runtimeReady = runtimeLoadError(ensureBlocklyRuntime());
   const defs = componentDefinitions ?? await componentDefinitionsFromDesigner();
-  const fullXml = await mistToXml(source, defs);
+  const xmlResult = await mistToXmlResult(source, defs);
+  const fullXml = injectFalconCommentsIntoBlocklyXml(xmlResult.xml, source, xmlResult.lineNumbers);
   const chunks = xmlChunks(fullXml);
   const targetXml = chunks.length ? chunks[chunks.length - 1] : lastBlocklyXmlChunk(fullXml);
   const contextXml = chunks.slice(0, -1).join('\0');

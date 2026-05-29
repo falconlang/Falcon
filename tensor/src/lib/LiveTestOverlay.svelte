@@ -11,20 +11,30 @@
     companionCommand,
     projectName,
     setDoItResult,
+    debugBreakpoints,
     debugModeEnabled,
+    debugUserEnabled,
+    runtimeErrorNotice,
     enableDebugMode,
     disableDebugMode,
+    dismissRuntimeErrorNotice,
+    debugBreakpointsForCompile,
     startDebugSession,
     clearDebugActiveLocation,
     clearDebugRuntimeState,
     setDebugTraceLocation,
+    setDebugExpressionValue,
+    setDebugBreakpointHit,
+    continueDebugExecution,
     setDebugRuntimeError,
     debugAnnotationActive,
+    debugExecutionState,
   } from './stores.js';
   import {
     compileForCompanion,
     compileSnippetForCompanion,
     connectCompanion,
+    debugContinueReplPayload,
     generateCompanionCode,
     pollRendezvous,
     sendCompanionMessage,
@@ -32,7 +42,7 @@
   import {
     DEBUG_IDLE_CLEAR_MS,
     buildFalconSourceMap,
-    parseDebugTraceValue,
+    parseDebugRuntimeEvent,
   } from './debug-source-map.js';
   import {
     exportCurrentProjectToAia,
@@ -75,30 +85,36 @@
 
   function companionSourceKey() {
     const { source } = currentFalconSourceMap();
-    return `${$activeScreen}\0${source}\0${getDesignSource()}\0debug:${$debugModeEnabled ? '1' : '0'}`;
+    // Only include user breakpoints when debug mode is user-enabled; debug instrumentation is always active
+    const userBreakpoints = $debugUserEnabled ? debugBreakpointsForCompile($activeScreen) : [];
+    const breakpointKey = JSON.stringify(userBreakpoints);
+    return `${$activeScreen}\0${source}\0${getDesignSource()}\0breakpoints:${breakpointKey}`;
   }
 
   function debugCompileOptions(sourceMap) {
-    if (!$debugModeEnabled) return null;
+    // Always compile with debug instrumentation so runtime errors can be located
     return {
       enabled: true,
       lineMap: sourceMap.entries,
+      breakpoints: $debugUserEnabled ? debugBreakpointsForCompile($activeScreen) : [],
     };
   }
 
   async function compileCurrentForCompanion() {
     const sourceMap = currentFalconSourceMap();
-    if ($debugModeEnabled) clearDebugRuntimeState();
+    clearDebugRuntimeState();
     const result = await compileForCompanion(sourceMap.source, getDesignSource(), {
       screenName: $activeScreen,
       debug: debugCompileOptions(sourceMap),
     });
 
-    if ($debugModeEnabled && result.debug) {
+    if (result.debug) {
       startDebugSession({
         sessionId: result.debug.sessionId,
         lineMap: result.debug.lineMap,
+        expressionCatalog: result.debug.expressionCatalog,
       });
+      debugModeEnabled.set(true);
     }
 
     return result;
@@ -206,24 +222,46 @@
     });
   }
 
-  function applyDebugTrace(value) {
-    const trace = parseDebugTraceValue(value);
-    if (!trace || !$debugModeEnabled) return false;
-    if (setDebugTraceLocation(trace)) {
-      scheduleDebugIdleClear(trace.sessionId);
-      return true;
+  function applyDebugRuntimeEvent(value) {
+    const event = parseDebugRuntimeEvent(value);
+    if (!event) return false;
+
+    if (event.type === 'value') {
+      return setDebugExpressionValue(event);
+    }
+
+    if (event.type === 'breakpoint-hit') {
+      clearDebugIdleTimer();
+      return setDebugBreakpointHit(event);
+    }
+
+    if (event.type === 'trace') {
+      if (setDebugTraceLocation(event)) {
+        if ($debugExecutionState.status !== 'paused') scheduleDebugIdleClear(event.sessionId);
+        return true;
+      }
     }
     return false;
   }
 
   function applyDebugRuntimeError(value, source = 'Runtime') {
-    if (!$debugModeEnabled || pendingDoItCellId) return false;
+    if (pendingDoItCellId) return false;
     clearDebugIdleTimer();
-    return setDebugRuntimeError({
+    const stored = setDebugRuntimeError({
       message: value?.value ?? value?.item ?? value?.message ?? 'Runtime error',
       source: value?.blockid || source,
       status: value?.status || null,
     });
+    if (stored && !$debugUserEnabled) {
+      runtimeErrorNotice.set({
+        show: true,
+        error: {
+          message: value?.value ?? value?.item ?? value?.message ?? 'Runtime error',
+          source: value?.blockid || source,
+        },
+      });
+    }
+    return stored;
   }
 
   function handleCompanionResponse(data) {
@@ -238,7 +276,7 @@
       appendDebugLogsFromCompanionResponse(resp);
       for (const value of resp.values ?? []) {
         if (value.type === 'log') {
-          applyDebugTrace(value);
+          applyDebugRuntimeEvent(value);
           continue;
         }
         if (value.type === 'startCache') {
@@ -341,12 +379,22 @@
     closeTransport();
     clearDebugIdleTimer();
     clearDebugRuntimeState();
+    runtimeErrorNotice.set({ show: false, error: null });
     liveCode = null;
     qrSvg = '';
     status = 'idle';
     error = null;
     messageCount = 0;
     resetConnectionLogs();
+  }
+
+  function locateRuntimeError() {
+    runtimeErrorNotice.set({ show: false, error: null });
+    debugUserEnabled.set(true);
+  }
+
+  function dismissRuntimeError() {
+    dismissRuntimeErrorNotice();
   }
 
   async function resetConnection() {
@@ -427,6 +475,7 @@
 
   function scheduleRefresh() {
     if (status !== 'connected') return;
+    if ($debugExecutionState.status === 'paused') return;
     if ($debugAnnotationActive) return;
     const sourceKey = companionSourceKey();
     if (sourceKey === lastSentSourceKey || sourceKey === lastFailedSourceKey) return;
@@ -625,17 +674,47 @@
     }
   }
 
+  async function continueDebugCompanion(hitId = null) {
+    if (status !== 'connected' || !channel || channel.readyState !== 'open') {
+      error = 'Companion is not connected';
+      addConnectionLog('Continue: Companion is not connected', 'warn');
+      liveTestOpen.set(true);
+      return;
+    }
+
+    const activeChannel = channel;
+    try {
+      const payload = debugContinueReplPayload();
+      if (channel !== activeChannel || activeChannel.readyState !== 'open') {
+        throw new Error('Companion disconnected before continue could be sent');
+      }
+      sendCompanionMessage(activeChannel, payload);
+      continueDebugExecution(hitId);
+      addConnectionLog('Continue: breakpoint resumed', 'info');
+      error = null;
+      scheduleRefresh();
+    } catch (e) {
+      error = e.message || String(e);
+      addConnectionLog(`Continue: ${error}`, 'error');
+      console.error('[companion] continue failed:', e);
+    }
+  }
+
   async function setCompanionDebugMode(enabled) {
     if (enabled) {
       enableDebugMode();
-      if (status === 'connected') {
+      // Re-compile only if breakpoints need to be activated
+      if (status === 'connected' && debugBreakpointsForCompile($activeScreen).length > 0) {
         await refreshCompanion({ force: true, label: 'debug enabled' });
       }
       return;
     }
 
-    disableDebugMode();
-    if (status === 'connected') {
+    debugUserEnabled.set(false);
+    clearDebugRuntimeState();
+    runtimeErrorNotice.set({ show: false, error: null });
+    // Re-compile if breakpoints need to be deactivated
+    if (status === 'connected' && debugBreakpointsForCompile($activeScreen).length > 0) {
       await refreshCompanion({ force: true, label: 'debug disabled' });
     }
   }
@@ -644,8 +723,10 @@
     const action = typeof cmd === 'string' ? cmd : cmd?.type || cmd?.action;
     if (action === 'do-it') {
       await doItCompanion(cmd?.source || '', cmd?.label || 'Do it', cmd?.cellId || null);
+    } else if (action === 'debug-continue') {
+      await continueDebugCompanion(cmd?.hitId || null);
     } else if (action === 'toggle-debug') {
-      await setCompanionDebugMode(!$debugModeEnabled);
+      await setCompanionDebugMode(!$debugUserEnabled);
     } else if (action === 'debug-enable') {
       await setCompanionDebugMode(true);
     } else if (action === 'debug-disable') {
@@ -674,12 +755,14 @@
   onMount(() => {
     const unsubCells = cells.subscribe(() => scheduleRefresh());
     const unsubDesign = designCode.subscribe(() => scheduleRefresh());
-    const unsubDebug = debugModeEnabled.subscribe(() => scheduleRefresh());
+    const unsubDebug = debugUserEnabled.subscribe(() => scheduleRefresh());
+    const unsubBreakpoints = debugBreakpoints.subscribe(() => scheduleRefresh());
 
     return () => {
       unsubCells();
       unsubDesign();
       unsubDebug();
+      unsubBreakpoints();
       clearDebugIdleTimer();
       resetDisconnected();
     };
@@ -782,3 +865,48 @@
     {/if}
   </div>
 </div>
+
+{#if $runtimeErrorNotice.show}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="re-backdrop" role="dialog" aria-modal="true" on:click|self={dismissRuntimeError}>
+    <div class="re-card">
+
+      <div class="re-header">
+        <div class="re-header-icon" aria-hidden="true">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 1.5L11 10H1L6 1.5z"/>
+            <path d="M6 5v2.2"/>
+            <circle cx="6" cy="9" r="0.55" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <span class="re-title">Runtime Error</span>
+        <button class="lt-close-btn" on:click={dismissRuntimeError} title="Dismiss">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M2 2l6 6M8 2l-6 6"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="re-body">
+        {#if $runtimeErrorNotice.error?.message}
+          <div class="re-message">{$runtimeErrorNotice.error.message}</div>
+        {:else}
+          <div class="re-message re-message--fallback">An unexpected error occurred at runtime.</div>
+        {/if}
+        {#if $runtimeErrorNotice.error?.source && $runtimeErrorNotice.error.source !== 'Runtime'}
+          <div class="re-source">from {$runtimeErrorNotice.error.source}</div>
+        {/if}
+      </div>
+
+      <div class="re-footer">
+        <button class="lt-btn lt-btn--re-locate" on:click={locateRuntimeError}>
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="5" r="2.5"/><path d="M4 13c0-1.657 1.343-3 3-3s3 1.343 3 3"/><path d="M1 5h2M11 5h2M7 1v1M7 8v1"/><circle cx="7" cy="5" r="1" fill="currentColor" stroke="none"/></svg>
+          Debug error
+        </button>
+        <button class="lt-btn" on:click={dismissRuntimeError}>Dismiss</button>
+      </div>
+
+    </div>
+  </div>
+{/if}

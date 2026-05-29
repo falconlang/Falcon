@@ -1,7 +1,12 @@
 import simpleComponents from '../../../lang/code/compdb/simple_components.json';
 import { getProjectSnapshot } from './stores.js';
-import { mistToXml } from './falcon-wasm.js';
+import { mistToXmlResult, xmlToMist } from './falcon-wasm.js';
 import { componentDefinitionsFromDesigner } from './blockly-preview.js';
+import {
+  blocklyXmlHasBlockComments,
+  blocklyXmlToFalconCodeWithComments,
+  injectFalconCommentsIntoBlocklyXml,
+} from './blockly-comments.js';
 import {
   actionBarForTheme,
   applyProjectPropertiesToScmProperties,
@@ -682,7 +687,8 @@ async function blocklyXmlForScreen(screen) {
   }
 
   const defs = await componentDefinitionsFromDesigner(screen.designCode || '');
-  const xml = await mistToXml(source, defs);
+  const result = await mistToXmlResult(source, defs);
+  const xml = injectFalconCommentsIntoBlocklyXml(result.xml, source, result.lineNumbers);
   return generatedBlocklyXml(xml);
 }
 
@@ -708,8 +714,23 @@ function normalizedAssetRecord(name, blob) {
   };
 }
 
-function importedBlocksCell(screenName, rawBlocklyXml) {
+async function importedBlocksCell(screenName, rawBlocklyXml) {
   if (!String(rawBlocklyXml || '').trim()) return [];
+  if (blocklyXmlHasBlockComments(rawBlocklyXml)) {
+    try {
+      const code = await blocklyXmlToFalconCodeWithComments(rawBlocklyXml, xmlToMist);
+      if (code.trim()) {
+        return [{
+          id: `imported-code-${screenName}-${Date.now()}`,
+          type: 'code',
+          code,
+          execCount: null,
+        }];
+      }
+    } catch (error) {
+      console.debug('[aia-import-blocks]', error);
+    }
+  }
   return [{
     id: `imported-${screenName}-${Date.now()}`,
     type: 'markdown',
@@ -764,7 +785,7 @@ export async function importAiaFile(file) {
 
     screens.push({
       name: screenName,
-      cells: importedBlocksCell(screenName, rawBlocklyXml),
+      cells: await importedBlocksCell(screenName, rawBlocklyXml),
       designCode,
       rawBlocklyXml,
       sourceScm: rawScm,

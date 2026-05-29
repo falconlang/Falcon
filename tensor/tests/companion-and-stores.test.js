@@ -4,7 +4,14 @@ import { test } from 'node:test';
 import { get } from 'svelte/store';
 import { extractComponentDefs, generateCompanionCode, normalizeCompanionDesignSource } from '../src/lib/companion.js';
 import { splitFalconSourceByTopLevelLines } from '../src/lib/cell-splitting.js';
-import { DEBUG_TRACE_PREFIX, buildFalconSourceMap, parseDebugTraceValue } from '../src/lib/debug-source-map.js';
+import {
+  DEBUG_BREAK_PREFIX,
+  DEBUG_TRACE_PREFIX,
+  DEBUG_VALUE_PREFIX,
+  buildFalconSourceMap,
+  parseDebugRuntimeEvent,
+  parseDebugTraceValue,
+} from '../src/lib/debug-source-map.js';
 import { ensureDebugNotifierDesignSource, instrumentFalconSourceForDebug } from '../src/lib/debug-instrumentation.js';
 import { createQrSvg } from '../src/lib/qr-code.js';
 import {
@@ -177,6 +184,58 @@ test('instrumentFalconSourceForDebug preserves cell-local line numbers across ce
       ['b', 2, 6],
       ['b', 3, 7],
     ],
+  );
+});
+
+test('instrumentFalconSourceForDebug emits breakpoint probes and expression catalog entries', () => {
+  const source = `func checkTextBoxes() = {
+  local firstIsNumb = firstNumberTextBox.Text ? number
+  local secondIsNumb = secondNumberTextBox.Text ? number
+  local eitherIsInvalid = !firstIsNumb || !secondIsNumb
+  if (eitherIsInvalid) {
+    Notifier1.ShowAlert("Please enter numeric values in the textbox!")
+  }
+}`;
+  const map = buildFalconSourceMap([{ id: 'c1', type: 'code', code: source }]);
+  const result = instrumentFalconSourceForDebug(source, map.entries, {
+    sessionId: 'dbg-break',
+    notifierName: 'TensorDebugNotifier',
+    breakpoints: [{ cellId: 'c1', cellLine: 6 }],
+  });
+
+  assert.match(result.source, /global tensorDebugContinueFlag = false/);
+  assert.match(result.source, /tensorDebugBreak\(/);
+  assert.match(result.source, /tensorDebugValue\("dbg-break:expr:expression:4:\d+", !firstIsNumb\)/);
+  assert.deepEqual(result.breakpointPoints.map(point => [point.cellId, point.cellLine, point.unifiedLine]), [
+    ['c1', 6, 6],
+  ]);
+  assert.ok(result.expressionCatalog.some(entry => entry.sourceText === 'firstIsNumb'));
+  assert.ok(result.expressionCatalog.some(entry => entry.sourceText === '!firstIsNumb'));
+});
+
+test('parseDebugRuntimeEvent handles value captures and breakpoint hits', () => {
+  const value = parseDebugRuntimeEvent({
+    type: 'log',
+    item: `${DEBUG_VALUE_PREFIX}expr-1\ttrue`,
+  });
+  assert.deepEqual(
+    { type: value.type, exprId: value.exprId, value: value.value },
+    { type: 'value', exprId: 'expr-1', value: 'true' },
+  );
+
+  const hit = parseDebugRuntimeEvent({
+    type: 'log',
+    item: DEBUG_BREAK_PREFIX + JSON.stringify({
+      sessionId: 'dbg',
+      hitId: 'hit-1',
+      cellId: 'c1',
+      cellLine: 3,
+      unifiedLine: 7,
+    }),
+  });
+  assert.deepEqual(
+    { type: hit.type, sessionId: hit.sessionId, hitId: hit.hitId, cellLine: hit.cellLine, unifiedLine: hit.unifiedLine },
+    { type: 'breakpoint-hit', sessionId: 'dbg', hitId: 'hit-1', cellLine: 3, unifiedLine: 7 },
   );
 });
 
