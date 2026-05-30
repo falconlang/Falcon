@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { get } from 'svelte/store';
-import { extractComponentDefs, generateCompanionCode, normalizeCompanionDesignSource } from '../src/lib/companion.js';
+import {
+  __companionInternalsForTests,
+  extractComponentDefs,
+  generateCompanionCode,
+  normalizeCompanionDesignSource,
+} from '../src/lib/companion.js';
 import { splitFalconSourceByTopLevelLines } from '../src/lib/cell-splitting.js';
 import {
   DEBUG_BREAK_PREFIX,
@@ -529,6 +534,61 @@ test('legacy SCM upgrader applies App Inventor component renames and property mi
   assert.equal(children[2].MultiLine, 'True');
   assert.equal(children[3].DefaultScope, 'Legacy');
   assert.equal('LegacyMode' in children[3], false);
+});
+
+test('legacy SCM upgrader keeps unhandled component upgrades marked for App Inventor', () => {
+  const upgraded = upgradeLegacyScmText(JSON.stringify({
+    YaVersion: '10',
+    Source: 'Form',
+    Properties: {
+      $Name: 'Screen1',
+      $Type: 'Form',
+      $Version: '31',
+      $Components: [
+        {
+          $Name: 'Starter1',
+          $Type: 'ActivityStarter',
+          $Version: '1',
+          LegacyCustomProperty: 'keep-me',
+        },
+      ],
+    },
+  }));
+
+  const child = upgraded.scm.Properties.$Components[0];
+  assert.notEqual(upgraded.scm.YaVersion, CURRENT_YA_VERSION);
+  assert.equal(upgraded.needsAppInventorUpgrade, true);
+  assert.equal(child.$Version, '1');
+  assert.equal(child.LegacyCustomProperty, 'keep-me');
+  assert.deepEqual(upgraded.warnings.map(warning => [warning.type, warning.name]), [
+    ['ActivityStarter', 'Starter1'],
+  ]);
+});
+
+test('companion event validation reads mutation attributes independent of order', () => {
+  const xml = `<xml>
+    <block type="component_event">
+      <mutation event_name="Click" component_type="Button" instance_name="Button1"></mutation>
+    </block>
+  </xml>`;
+
+  const defs = __companionInternalsForTests.extractEventDefs(xml);
+  assert.deepEqual(defs, [{ component: 'Button1', event: 'Click' }]);
+  assert.deepEqual(
+    __companionInternalsForTests.findMissingEvents(defs, '(define-event Button1 Click (lambda () #!null))'),
+    []
+  );
+});
+
+test('companion screen validation does not accept substring matches', () => {
+  assert.deepEqual(
+    __companionInternalsForTests.findMissingScreens({ Screen: ['Screen1'] }, '(define-form Screen10)'),
+    ['Screen1']
+  );
+  assert.deepEqual(
+    __companionInternalsForTests.findMissingScreens({ Screen: ['Screen1'] }, '(define-form Screen1)'),
+    []
+  );
 });
 
 test('setProjectProperty updates canonical store values including hidden BlocksToolkit backend', () => {

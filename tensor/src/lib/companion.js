@@ -218,21 +218,45 @@ export function extractComponentDefs(annSource, knownTypes = KNOWN_COMPONENT_TYP
 
 function findMissingScreens(componentDefs, yail) {
   const screenIds = componentDefs.Screen ?? []
-  return screenIds.filter(id => !yail.includes(id))
+  return screenIds.filter(id => !yailHasToken(yail, id))
 }
 
 function extractEventDefs(blocklyXml) {
   const defs = []
-  const re = /<mutation\b[^>]*\binstance_name="([^"]+)"[^>]*\bevent_name="([^"]+)"/g
+  const mutationRe = /<mutation\b[^>]*>/g
+  const attrRe = /\b([A-Za-z_][\w:-]*)\s*=\s*"([^"]*)"/g
   let m
-  while ((m = re.exec(blocklyXml)) !== null) {
-    defs.push({ component: m[1], event: m[2] })
+  while ((m = mutationRe.exec(blocklyXml)) !== null) {
+    const attrs = {}
+    let attr
+    while ((attr = attrRe.exec(m[0])) !== null) attrs[attr[1]] = attr[2]
+    if (attrs.instance_name && attrs.event_name) {
+      defs.push({ component: attrs.instance_name, event: attrs.event_name })
+    }
   }
   return defs
 }
 
 function findMissingEvents(eventDefs, yail) {
-  return eventDefs.filter(({ component, event }) => !yail.includes(`(define-event ${component} ${event}`))
+  return eventDefs.filter(({ component, event }) => !yailHasDefineEvent(yail, component, event))
+}
+
+function escapeRegex(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function yailHasToken(yail, token) {
+  return new RegExp(`(^|[^A-Za-z0-9_.$-])${escapeRegex(token)}([^A-Za-z0-9_.$-]|$)`).test(String(yail || ''))
+}
+
+function yailHasDefineEvent(yail, component, event) {
+  return new RegExp(`\\(define-event\\s+${escapeRegex(component)}\\s+${escapeRegex(event)}(?:\\s|\\))`).test(String(yail || ''))
+}
+
+export const __companionInternalsForTests = {
+  extractEventDefs,
+  findMissingEvents,
+  findMissingScreens,
 }
 
 function wrapForRepl(yail) {

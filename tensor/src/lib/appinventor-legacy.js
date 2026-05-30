@@ -20,6 +20,30 @@ const TYPE_RENAMES = [
   { beforeYa: 228, from: 'LineOfBestFit', to: 'Trendline' },
 ];
 
+const COMPONENTS_WITH_LOCAL_UPGRADE_STRATEGIES = new Set([
+  'Form',
+  'Button',
+  'Camera',
+  'Canvas',
+  'CheckBox',
+  'ContactPicker',
+  'EmailPicker',
+  'File',
+  'ImagePicker',
+  'ImageSprite',
+  'Label',
+  'ListPicker',
+  'ListView',
+  'Marker',
+  'Notifier',
+  'OrientationSensor',
+  'PasswordTextBox',
+  'PhoneNumberPicker',
+  'Player',
+  'TextBox',
+  'Texting',
+]);
+
 const PROPERTY_RENAMES = {
   Button: [{ before: 2, from: 'Alignment', to: 'TextAlignment' }],
   CheckBox: [{ before: 2, from: 'Value', to: 'Checked' }],
@@ -54,6 +78,11 @@ function currentComponentVersion(type) {
 function numericVersion(value, fallback = 0) {
   const version = Number.parseInt(String(value ?? ''), 10);
   return Number.isFinite(version) ? version : fallback;
+}
+
+function componentNeedsUnhandledUpgrade(type, sourceVersion, currentVersion) {
+  if (!currentVersion || !type || COMPONENTS_WITH_LOCAL_UPGRADE_STRATEGIES.has(type)) return false;
+  return numericVersion(sourceVersion, 0) < numericVersion(currentVersion, 0);
 }
 
 function stableUuid(seed) {
@@ -202,7 +231,7 @@ function applySpecialPropertyUpgrades(properties, type, version) {
   }
 }
 
-function upgradeComponent(properties, srcYaVersion, path = '0') {
+function upgradeComponent(properties, srcYaVersion, path = '0', context = { warnings: [] }) {
   if (!properties || typeof properties !== 'object') return;
 
   let type = scmType(properties.$Type || '');
@@ -217,8 +246,17 @@ function upgradeComponent(properties, srcYaVersion, path = '0') {
   const currentVersion = currentComponentVersion(type);
   const sourceVersion = numericVersion(properties.$Version, 0);
   const effectiveVersion = sourceVersion === 0 ? 1 : sourceVersion;
+  const needsUnhandledUpgrade = componentNeedsUnhandledUpgrade(type, effectiveVersion, currentVersion);
 
-  if (currentVersion) {
+  if (needsUnhandledUpgrade) {
+    context.warnings.push({
+      path,
+      name: String(properties.$Name || type),
+      type,
+      sourceVersion: String(properties.$Version || '1'),
+      currentVersion: String(currentVersion),
+    });
+  } else if (currentVersion) {
     applySpecialPropertyUpgrades(properties, type, effectiveVersion);
   }
   if (srcYaVersion < 26) {
@@ -226,15 +264,15 @@ function upgradeComponent(properties, srcYaVersion, path = '0') {
   }
 
   if (!properties.$Name && path === '0') properties.$Name = 'Screen1';
-  if (currentVersion) properties.$Version = String(currentVersion);
+  if (currentVersion && !needsUnhandledUpgrade) properties.$Version = String(currentVersion);
   if (!Object.prototype.hasOwnProperty.call(properties, 'Uuid')) {
     properties.Uuid = path === '0' ? '0' : stableUuid(`${path}:${type}:${properties.$Name || type}`);
   }
 
-  pruneUnsupportedKnownProperties(properties, type);
+  if (!needsUnhandledUpgrade) pruneUnsupportedKnownProperties(properties, type);
 
   for (const [index, child] of (properties.$Components || []).entries()) {
-    upgradeComponent(child, srcYaVersion, `${path}-${index}`);
+    upgradeComponent(child, srcYaVersion, `${path}-${index}`, context);
   }
 }
 
@@ -267,17 +305,20 @@ export function upgradeLegacyScmObject(input, { host = '' } = {}) {
 
   const before = JSON.stringify(scm);
   const srcYaVersion = numericVersion(scm.YaVersion, 0);
+  const context = { warnings: [] };
   if (!scm.Source) scm.Source = 'Form';
   addLegacyAuthUrlTags(scm, srcYaVersion, host);
   if (srcYaVersion <= numericVersion(CURRENT_YA_VERSION)) {
-    upgradeComponent(scm.Properties, srcYaVersion);
-    scm.YaVersion = CURRENT_YA_VERSION;
+    upgradeComponent(scm.Properties, srcYaVersion, '0', context);
+    if (!context.warnings.length) scm.YaVersion = CURRENT_YA_VERSION;
   }
 
   return {
     scm,
     upgraded: before !== JSON.stringify(scm),
     sourceYaVersion: srcYaVersion,
+    warnings: context.warnings,
+    needsAppInventorUpgrade: context.warnings.length > 0,
   };
 }
 

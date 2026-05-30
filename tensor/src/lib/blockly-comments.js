@@ -106,6 +106,10 @@ function xmlForSingleBlock(block) {
   return new XMLSerializer().serializeToString(doc);
 }
 
+function blockType(block) {
+  return block?.getAttribute?.('type') || block?.tagName || 'unknown';
+}
+
 function falconCommentLines(commentText) {
   const lines = normalizeLineEndings(commentText).split('\n');
   return lines.map(line => (line ? `// ${line}` : '//')).join('\n');
@@ -157,7 +161,9 @@ export async function blocklyXmlToFalconCodeWithComments(xmlText, xmlToMist) {
   for (const topBlock of documentRootBlocks(doc)) {
     for (let block = topBlock; block; block = nextBlock(block)) {
       const code = String(await xmlToMist(xmlForSingleBlock(block)) || '').trim();
-      if (!code) continue;
+      if (!code) {
+        throw new Error(`Blockly block "${blockType(block)}" could not be converted to Falcon code`);
+      }
       const comment = blockCommentText(block);
       chunks.push(comment.trim()
         ? `${falconCommentLines(comment)}\n${code}`

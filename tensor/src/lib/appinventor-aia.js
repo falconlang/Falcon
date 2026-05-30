@@ -741,6 +741,7 @@ export async function importAiaFile(file) {
       componentDefinitions = componentDefinitionsFromScmProperties(scm.Properties);
       designCode = scmComponentToSchema(scm.Properties);
       sourceScm = serializeScmJson(scm);
+      record.sourceScmUpgradeWarnings = upgraded.warnings || [];
       if (screenName === 'Screen1' && !usedScreenNames.has('Screen1')) {
         screen1ProjectProperties = extractProjectPropertiesFromScmProperties(scm.Properties);
       }
@@ -759,6 +760,7 @@ export async function importAiaFile(file) {
       componentDefinitions,
       sourceScm,
       sourceDesignCode: designCode,
+      sourceScmUpgradeWarnings: record.sourceScmUpgradeWarnings || [],
     });
   }
 
@@ -784,6 +786,7 @@ export async function importAiaFile(file) {
         );
       } catch (error) {
         console.debug('[aia-import-block-upgrade]', error);
+        throw new Error(`Unable to upgrade blocks for ${record.name}: ${error?.message || error}`);
       }
     }
     screens.push({
@@ -793,6 +796,7 @@ export async function importAiaFile(file) {
       rawBlocklyXml,
       sourceScm: record.sourceScm,
       sourceDesignCode: record.sourceDesignCode,
+      sourceScmUpgradeWarnings: record.sourceScmUpgradeWarnings || [],
     });
   }
 
@@ -856,6 +860,12 @@ export async function exportCurrentProjectToAia() {
     const designUnchanged = screen.sourceScm
       && screen.sourceDesignCode
       && screen.designCode === screen.sourceDesignCode;
+    if (!designUnchanged && screen.sourceScmUpgradeWarnings?.length) {
+      const details = screen.sourceScmUpgradeWarnings
+        .map(warning => `${warning.type}.${warning.name} (${warning.sourceVersion} -> ${warning.currentVersion})`)
+        .join(', ');
+      throw new Error(`Cannot safely export edited legacy designer for ${screen.name}. App Inventor must upgrade these components first: ${details}`);
+    }
     let scm;
     if (designUnchanged && screenName === sanitized) {
       scm = screen.sourceScm;

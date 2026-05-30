@@ -160,8 +160,9 @@ export const activeScreen = writable('Screen1');
 export const rawBlocklyXml = writable('');
 export const sourceScm = writable('');
 export const sourceDesignCode = writable('');
+export const sourceScmUpgradeWarnings = writable([]);
 // Saved state for non-active screens:
-// { [screenName]: { cells, designCode, rawBlocklyXml, sourceScm, sourceDesignCode } }
+// { [screenName]: { cells, designCode, rawBlocklyXml, sourceScm, sourceDesignCode, sourceScmUpgradeWarnings } }
 const screenSavedStates = writable({});
 
 function cloneCells(cellList) {
@@ -175,6 +176,7 @@ function currentScreenState() {
     rawBlocklyXml: get(rawBlocklyXml),
     sourceScm: get(sourceScm),
     sourceDesignCode: get(sourceDesignCode),
+    sourceScmUpgradeWarnings: Array.from(get(sourceScmUpgradeWarnings) || []),
   };
 }
 
@@ -188,6 +190,7 @@ function stateForScreen(name, savedStates = get(screenSavedStates)) {
     rawBlocklyXml: saved?.rawBlocklyXml || '',
     sourceScm: saved?.sourceScm || '',
     sourceDesignCode: saved?.sourceDesignCode || '',
+    sourceScmUpgradeWarnings: Array.from(saved?.sourceScmUpgradeWarnings || []),
   };
 }
 
@@ -199,6 +202,7 @@ function applyScreenState(state) {
   rawBlocklyXml.set(state?.rawBlocklyXml || '');
   sourceScm.set(state?.sourceScm || '');
   sourceDesignCode.set(state?.sourceDesignCode || '');
+  sourceScmUpgradeWarnings.set(Array.from(state?.sourceScmUpgradeWarnings || []));
   activeCellId.set(nextCells[0]?.id || null);
 }
 
@@ -304,6 +308,7 @@ export function loadProjectState(project) {
       rawBlocklyXml: screen.rawBlocklyXml || '',
       sourceScm: screen.sourceScm || '',
       sourceDesignCode: screen.sourceDesignCode || '',
+      sourceScmUpgradeWarnings: Array.from(screen.sourceScmUpgradeWarnings || []),
     };
   }
 
