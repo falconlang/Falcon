@@ -279,6 +279,9 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 	case *astmatrix.SetCell:
 		i.lastToken = e.Where
 		return i.evalMatrixSetCell(e)
+	case *astmatrix.Create:
+		i.lastToken = e.Where
+		return i.evalMatrixCreate(e)
 	case *astlist.Transformer:
 		i.lastToken = e.Where
 		return i.evalTransformer(e)

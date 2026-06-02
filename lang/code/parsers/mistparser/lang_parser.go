@@ -987,12 +987,54 @@ func (p *LangParser) term() ast.Expr {
 	case l.WalkAll:
 		return &fundamentals.WalkAll{}
 	default:
+		if p.isMatrixLiteralStart(token) {
+			return p.matrixLiteral(token)
+		}
 		if token.HasFlag(l.Value) {
 			return p.checkCall(token)
 		}
 		token.Error("Unexpected! %", token.String())
 		panic("") // unreachable
 	}
+}
+
+func (p *LangParser) isMatrixLiteralStart(token *l.Token) bool {
+	return token.Type == l.Name &&
+		token.Content != nil &&
+		*token.Content == "matrix" &&
+		p.currIndex+1 < p.tokenSize &&
+		p.Tokens[p.currIndex].Type == l.OpenSquare &&
+		p.Tokens[p.currIndex+1].Type == l.OpenSquare &&
+		p.Tokens[p.currIndex].Column == token.Column
+}
+
+func (p *LangParser) matrixLiteral(where *l.Token) ast.Expr {
+	p.expect(l.OpenSquare)
+	var rows [][]ast.Expr
+	for p.notEOF() {
+		p.expect(l.OpenSquare)
+		rows = append(rows, p.matrixLiteralRow())
+		if !p.consume(l.Comma) {
+			break
+		}
+	}
+	p.expect(l.CloseSquare)
+	return &astmatrix.Create{Where: where, Rows: rows}
+}
+
+func (p *LangParser) matrixLiteralRow() []ast.Expr {
+	if p.isNext(l.CloseSquare) {
+		p.peek().Error("Matrix literal rows require at least one cell")
+	}
+	var row []ast.Expr
+	for p.notEOF() {
+		row = append(row, p.expr(0))
+		if !p.consume(l.Comma) {
+			break
+		}
+	}
+	p.expect(l.CloseSquare)
+	return row
 }
 
 func (p *LangParser) smartBody() ast.Expr {

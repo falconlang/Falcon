@@ -5,6 +5,22 @@ import (
 	"strconv"
 )
 
+func (i *Interpreter) evalMatrixCreate(e *astmatrix.Create) Value {
+	rows := make([]Value, len(e.Rows))
+	for rowIndex, row := range e.Rows {
+		cells := make([]Value, len(row))
+		for colIndex, cell := range row {
+			value := i.Eval(cell)
+			if value.Type() != Number {
+				panic("matrix cell " + strconv.Itoa(rowIndex+1) + "," + strconv.Itoa(colIndex+1) + " must be a number, got " + value.errorStr())
+			}
+			cells[colIndex] = value
+		}
+		rows[rowIndex] = ListVal(cells)
+	}
+	return ListVal(rows)
+}
+
 func (i *Interpreter) evalMatrixGetCell(e *astmatrix.GetCell) Value {
 	curr := i.Eval(e.Matrix)
 	for dimIndex, dim := range e.Dims {

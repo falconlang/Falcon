@@ -28,6 +28,13 @@ func TestMatrixCellRuntimeSet(t *testing.T) {
 	}
 }
 
+func TestMatrixCreateRuntime(t *testing.T) {
+	got := evalMatrixTestSource(t, "matrix[[1, 2], [3, 4]]")
+	if got.String() != "[[1, 2], [3, 4]]" {
+		t.Fatalf("matrix create = %q, want [[1, 2], [3, 4]]", got.String())
+	}
+}
+
 func evalMatrixTestSource(t *testing.T, src string) Value {
 	t.Helper()
 	ctx := &context.CodeContext{SourceCode: &src, FileName: "matrix_test.mist"}

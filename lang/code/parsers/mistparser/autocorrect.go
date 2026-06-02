@@ -193,6 +193,12 @@ func (p *LangParser) walkAndCorrect(expr ast.Expr) {
 			p.walkAndCorrect(dim)
 		}
 		p.walkAndCorrect(e.Value)
+	case *astmatrix.Create:
+		for _, row := range e.Rows {
+			for _, cell := range row {
+				p.walkAndCorrect(cell)
+			}
+		}
 
 	// Fundamentals that can contain sub-expressions
 	case *fundamentals.SmartBody:

@@ -1088,15 +1088,15 @@ func (p *Parser) matricesCreate(block ast.Block) ast.Expr {
 	if err != nil {
 		panic(err)
 	}
-	matrix := make([]ast.Expr, numRows)
+	matrix := make([][]ast.Expr, numRows)
 	for i := range matrix {
 		row := make([]ast.Expr, numCols)
 		for j := range row {
 			row[j] = &fundamentals.Number{Content: pFields["MATRIX_"+strconv.Itoa(i)+"_"+strconv.Itoa(j)]}
 		}
-		matrix[i] = &fundamentals.List{Elements: row}
+		matrix[i] = row
 	}
-	return &fundamentals.List{Elements: matrix}
+	return &astmatrix.Create{Where: lex.MakeFakeToken(lex.Name), Rows: matrix}
 }
 
 func (p *Parser) mathConvertAngles(block ast.Block) ast.Expr {

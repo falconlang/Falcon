@@ -148,6 +148,38 @@ func TestParenthesizedListIndexStaysListIndex(t *testing.T) {
 	}
 }
 
+func TestMatrixCreateSyntaxGeneratesMatrixCreateBlock(t *testing.T) {
+	src := "matrix[[1, 2], [3, 4]]"
+	ctx := &context.CodeContext{SourceCode: &src, FileName: "test.mist"}
+	parser := NewLangParser(false, lex.NewLexer(ctx).Lex())
+
+	exprs := parser.ParseAll()
+	if len(exprs) != 1 {
+		t.Fatalf("ParseAll() expressions = %d, want 1", len(exprs))
+	}
+	block := exprs[0].Blockly(false)
+	if block.Type != "matrices_create" {
+		t.Fatalf("Blockly type = %q, want matrices_create", block.Type)
+	}
+	if got := exprs[0].String(); got != src {
+		t.Fatalf("source = %q, want %q", got, src)
+	}
+}
+
+func TestNestedListLiteralStaysListBlock(t *testing.T) {
+	src := "[[1, 2], [3, 4]]"
+	ctx := &context.CodeContext{SourceCode: &src, FileName: "test.mist"}
+	parser := NewLangParser(false, lex.NewLexer(ctx).Lex())
+
+	exprs := parser.ParseAll()
+	if len(exprs) != 1 {
+		t.Fatalf("ParseAll() expressions = %d, want 1", len(exprs))
+	}
+	if got := exprs[0].Blockly(false).Type; got != "lists_create_with" {
+		t.Fatalf("Blockly type = %q, want lists_create_with", got)
+	}
+}
+
 func TestScreenInitializeEventValidatesAgainstFormMetadata(t *testing.T) {
 	source := strings.Join([]string{
 		"@Screen { Screen1 }",

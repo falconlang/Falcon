@@ -127,6 +127,34 @@ func TestMatrixCellBlocksUseDoubleSquareCoordinates(t *testing.T) {
 	}
 }
 
+func TestMatrixCreateBlockUsesMatrixLiteral(t *testing.T) {
+	xml := `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="matrices_create">
+    <mutation rows="2" cols="2" matrix="[[1,2],[3,4]]"></mutation>
+    <field name="ROWS">2</field>
+    <field name="COLS">2</field>
+    <field name="MATRIX_0_0">1</field>
+    <field name="MATRIX_0_1">2</field>
+    <field name="MATRIX_1_0">3</field>
+    <field name="MATRIX_1_1">4</field>
+  </block>
+</xml>`
+
+	exprs, err := NewParser(xml).TryGenerateAST()
+	if err != nil {
+		t.Fatalf("TryGenerateAST() error = %v", err)
+	}
+	if len(exprs) != 1 {
+		t.Fatalf("TryGenerateAST() produced %d expressions, want 1", len(exprs))
+	}
+	if got := exprs[0].String(); got != "matrix[[1, 2], [3, 4]]" {
+		t.Fatalf("source = %q, want matrix literal", got)
+	}
+	if got := exprs[0].Blockly(false).Type; got != "matrices_create" {
+		t.Fatalf("round-trip block type = %q, want matrices_create", got)
+	}
+}
+
 func matrixArithmeticXML(blockType, aName, bName string) string {
 	return `<xml xmlns="https://developers.google.com/blockly/xml">
   <block type="` + blockType + `">
