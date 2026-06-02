@@ -72,13 +72,28 @@ export function isValidAppInventorAssetName(name) {
   return encodeURIComponent(text) === text;
 }
 
-export function appInventorAssetNameError(name) {
+export function isValidAppInventorArchiveAssetName(name) {
+  const text = String(name || '');
+  if (!text || text.length > MAX_ASSET_FILENAME_LENGTH) return false;
+  if (text.includes("'") || /[/:\\]/.test(text)) return false;
+  if (/%(?![0-9A-Fa-f]{2})/.test(text)) return false;
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (code < 0x20 || code > 0x7e) return false;
+  }
+  return true;
+}
+
+export function appInventorAssetNameError(name, { archive = false } = {}) {
   const text = String(name || '');
   if (!text) return 'Name is required.';
   if (text.length > MAX_ASSET_FILENAME_LENGTH) {
     return `Asset names must be ${MAX_ASSET_FILENAME_LENGTH} characters or fewer.`;
   }
-  if (!isValidAppInventorAssetName(text)) {
+  const valid = archive
+    ? isValidAppInventorArchiveAssetName(text)
+    : isValidAppInventorAssetName(text);
+  if (!valid) {
     return 'Use printable ASCII only and avoid path, quote, or URL-reserved characters.';
   }
   return '';

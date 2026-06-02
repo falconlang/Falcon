@@ -51,6 +51,9 @@ import {
   projectPropertiesText,
 } from '../src/lib/aia-project-properties.js';
 import {
+  appInventorAssetNameError,
+} from '../src/lib/appinventor-validation.js';
+import {
   CURRENT_YA_VERSION,
   componentDefinitionsFromScmProperties,
   formJsonForBlockUpgrade,
@@ -683,6 +686,13 @@ test('AIA project.properties parser and writer follow Java properties escaping',
   assert.match(text, /^color\.primary=&HFF3F51B5$/m);
   assert.match(text, /^color\.primary\.dark=&HFF303F9F$/m);
   assert.match(text, /^color\.accent=&HFFFF4081$/m);
+});
+
+test('AIA import accepts archived asset names with URL escapes', () => {
+  assert.equal(appInventorAssetNameError('music-note%201.png', { archive: true }), '');
+  assert.equal(appInventorAssetNameError('music-note%201.png') !== '', true);
+  assert.equal(appInventorAssetNameError('music-note%ZZ1.png', { archive: true }) !== '', true);
+  assert.equal(appInventorAssetNameError('../music-note%201.png', { archive: true }) !== '', true);
 });
 
 test('legacy App Inventor SCM is upgraded to the current Tensor import shape', () => {

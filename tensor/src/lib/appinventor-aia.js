@@ -3,7 +3,6 @@ import { getProjectSnapshot } from './stores.js';
 import { mistToXmlResult, xmlToMist } from './falcon-wasm.js';
 import { componentDefinitionsFromDesigner, upgradeBlocklyXml } from './blockly-preview.js';
 import {
-  blocklyXmlHasBlockComments,
   blocklyXmlToFalconCodeWithComments,
   injectFalconCommentsIntoBlocklyXml,
 } from './blockly-comments.js';
@@ -145,11 +144,11 @@ function uniqueScreenName(name, usedNames, fallback = 'Screen1') {
 }
 
 function zipPathForAsset(name) {
-  const parts = assetPathParts(name);
+  const parts = assetPathParts(name, { archive: true });
   return `assets/${parts.join('/')}`;
 }
 
-function assetPathParts(name) {
+function assetPathParts(name, { archive = false } = {}) {
   const parts = String(name || '')
     .replace(/\\/g, '/')
     .split('/')
@@ -157,14 +156,14 @@ function assetPathParts(name) {
     .filter(part => part && part !== '.' && part !== '..');
   if (!parts.length) throw new Error(`Invalid App Inventor asset name "${name}": Name is required.`);
   for (const part of parts) {
-    const error = appInventorAssetNameError(part);
+    const error = appInventorAssetNameError(part, { archive });
     if (error) throw new Error(`Invalid App Inventor asset name "${name}": ${error}`);
   }
   return parts;
 }
 
 function assetNameForImport(pathName, usedNames = null) {
-  const clean = assetPathParts(pathName).join('/');
+  const clean = assetPathParts(pathName, { archive: true }).join('/');
   if (!usedNames) return clean;
 
   const dot = clean.lastIndexOf('.');
@@ -579,26 +578,23 @@ function normalizedAssetRecord(name, blob) {
 async function importedBlocksCell(screenName, rawBlocklyXml) {
   if (!String(rawBlocklyXml || '').trim()) return [];
   if (!blocklyXmlHasUserBlocks(rawBlocklyXml)) return [];
-  if (blocklyXmlHasBlockComments(rawBlocklyXml)) {
-    try {
-      const code = await blocklyXmlToFalconCodeWithComments(rawBlocklyXml, xmlToMist);
-      if (code.trim()) {
-        return splitFalconSourceByTopLevelLines(code).map((chunk, index) => ({
-          id: `imported-code-${screenName}-${Date.now()}-${index}`,
-          type: 'code',
-          code: chunk,
-          execCount: null,
-        }));
-      }
-    } catch (error) {
-      console.debug('[aia-import-blocks]', error);
+
+  try {
+    const code = await blocklyXmlToFalconCodeWithComments(rawBlocklyXml, xmlToMist);
+    if (code.trim()) {
+      return splitFalconSourceByTopLevelLines(code).map((chunk, index) => ({
+        id: `imported-code-${screenName}-${Date.now()}-${index}`,
+        type: 'code',
+        code: chunk,
+        execCount: null,
+      }));
     }
+  } catch (error) {
+    console.debug('[aia-import-blocks]', error);
+    throw new Error(`Unable to convert imported blocks for ${screenName} into editable Falcon code: ${error?.message || error}`);
   }
-  return [{
-    id: `imported-${screenName}-${Date.now()}`,
-    type: 'markdown',
-    content: `<div class="md-p" ${PRESERVED_BLOCKS_MARKER}="true">Imported App Inventor blocks are preserved for export. Falcon code added to this screen will be appended as new blocks.</div>`,
-  }];
+
+  return [];
 }
 
 function blocklyXmlHasUserBlocks(xmlText) {
@@ -611,6 +607,14 @@ function blocklyXmlHasUserBlocks(xmlText) {
   } catch {
     return true;
   }
+}
+
+function isRecoverableBlockUpgradeError(error) {
+  const message = String(error?.message || error || '');
+  return /componentInfo/.test(message)
+    || /getType\(.+\) is undefined/.test(message)
+    || /hasType is not a function/.test(message)
+    || /unknown component/i.test(message);
 }
 
 export async function importAiaFile(file) {
@@ -720,7 +724,10 @@ export async function importAiaFile(file) {
         );
       } catch (error) {
         console.debug('[aia-import-block-upgrade]', error);
-        throw new Error(`Unable to upgrade blocks for ${record.name}: ${error?.message || error}`);
+        if (!isRecoverableBlockUpgradeError(error)) {
+          throw new Error(`Unable to upgrade blocks for ${record.name}: ${error?.message || error}`);
+        }
+        rawBlocklyXml = record.rawBlocks;
       }
     }
     screens.push({
@@ -841,12 +848,12 @@ function validateExportAssets(assets, projectProperties) {
   const assetNames = new Set();
   for (const asset of assets) {
     const name = typeof asset === 'string' ? asset : asset?.name;
-    assetNames.add(assetPathParts(name).join('/'));
+    assetNames.add(assetPathParts(name, { archive: true }).join('/'));
   }
 
   const icon = String(projectProperties?.Icon || '').trim();
   if (!icon) return;
-  const iconPath = assetPathParts(icon).join('/');
+  const iconPath = assetPathParts(icon, { archive: true }).join('/');
   if (!assetNames.has(iconPath)) throw new Error(`Project icon "${icon}" is not present in Media assets.`);
 }
 
