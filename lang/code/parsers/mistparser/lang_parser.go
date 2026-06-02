@@ -184,6 +184,16 @@ func (p *LangParser) predeclareProcedureAt(index int) {
 	p.Resolver.Procedures[name] = &Procedure{Name: name, Parameters: parameters, Returning: returning}
 }
 
+func (p *LangParser) isAnonymousProcedureStart() bool {
+	return p.currIndex+1 < p.tokenSize && p.Tokens[p.currIndex+1].Type == l.OpenCurve
+}
+
+func (p *LangParser) isProcedureDropdownStart() bool {
+	return p.currIndex+2 < p.tokenSize &&
+		p.Tokens[p.currIndex+1].Type == l.Dot &&
+		p.Tokens[p.currIndex+2].Type == l.Name
+}
+
 func (p *LangParser) predeclareGlobalAt(index int) {
 	if index+1 >= p.tokenSize {
 		return
@@ -354,6 +364,9 @@ func (p *LangParser) parse() ast.Expr {
 	case l.Global:
 		return p.globalSmt()
 	case l.Func:
+		if p.isAnonymousProcedureStart() || p.isProcedureDropdownStart() {
+			return p.expr(0)
+		}
 		return p.funcSmt()
 	case l.When:
 		p.skip()
@@ -455,6 +468,34 @@ func (p *LangParser) funcSmt() ast.Expr {
 		return p.retProcedure(where, name, parameters)
 	}
 	return p.voidProcedure(name, parameters)
+}
+
+func (p *LangParser) anonProcedure() ast.Expr {
+	where := p.next()
+	parameters := p.parameters()
+	returning := p.consume(l.Assign)
+	if returning {
+		p.ScopeCursor.Enter(where, ScopeRetProc)
+		for _, parameter := range parameters {
+			p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
+		}
+		var result ast.Expr
+		if p.consume(l.OpenCurly) {
+			yieldParser := &YieldParser{Exprs: p.bodyUntilCurly()}
+			result = &fundamentals.SmartBody{Body: yieldParser.ParseYield()}
+			p.expect(l.CloseCurly)
+		} else {
+			result = p.parse()
+		}
+		p.ScopeCursor.Exit(ScopeRetProc)
+		return &procedures.AnonProcedure{Parameters: parameters, Result: result, Returning: true}
+	}
+	vars := make([]ScopeVar, len(parameters))
+	for i, param := range parameters {
+		vars[i] = scopeVar(param, ast.SignAny)
+	}
+	body := p.body(ScopeProc, vars...)
+	return &procedures.AnonProcedure{Parameters: parameters, Body: body}
 }
 
 func (p *LangParser) retProcedure(where *l.Token, name string, parameters []string) ast.Expr {
@@ -787,6 +828,12 @@ func (p *LangParser) element() ast.Expr {
 		case l.DoubleColon:
 			// constant value transformer
 			left = &common.Transform{Where: p.next(), On: left, Name: p.name()}
+		case l.OpenCurve:
+			if p.isOnNewLine() {
+				break
+			}
+			left = &procedures.AnonCall{Procedure: left, Arguments: p.arguments()}
+			continue
 		case l.OpenSquare:
 			if p.isOnNewLine() {
 				break // '[' is on a new line — new statement, not index access
@@ -889,6 +936,14 @@ func (p *LangParser) objectCall(object ast.Expr) ast.Expr {
 }
 
 func (p *LangParser) parseMethodCall(object ast.Expr, where *l.Token, name string, args []ast.Expr) ast.Expr {
+	if name == "call" && len(args) == 1 {
+		p.aggregator.MarkResolved(where)
+		return &procedures.AnonCallInputList{Procedure: object, InputList: args[0]}
+	}
+	if name == "numArgs" && len(args) == 0 {
+		p.aggregator.MarkResolved(where)
+		return &procedures.NumArgs{Procedure: object}
+	}
 	call := &method.Call{Where: where, On: object, Name: name, Args: args}
 	errorMessage, signature := method.TestSignature(name, len(args))
 	if signature == nil {
@@ -986,6 +1041,13 @@ func (p *LangParser) term() ast.Expr {
 		return p.ifSmt()
 	case l.WalkAll:
 		return &fundamentals.WalkAll{}
+	case l.Func:
+		if p.isNext(l.Dot) {
+			p.expect(l.Dot)
+			return &procedures.GetWithDropdown{Name: p.name()}
+		}
+		p.back()
+		return p.anonProcedure()
 	default:
 		if p.isMatrixLiteralStart(token) {
 			return p.matrixLiteral(token)
@@ -1056,6 +1118,10 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 	value := p.value(token)
 	if nameExpr, ok := value.(*variables.Get); ok && !nameExpr.Global && p.isNext(l.OpenCurve) && !p.isOnNewLine() {
 		arguments := p.arguments()
+		if nameExpr.Name == "getFunc" && len(arguments) == 1 {
+			p.aggregator.MarkResolved(nameExpr.Where)
+			return &procedures.GetWithName{Name: arguments[0]}
+		}
 		// check for in-built function call
 		errorMessage, funcCallSignature := common.TestSignature(nameExpr.Name, len(arguments))
 		if funcCallSignature != nil {
@@ -1066,6 +1132,10 @@ func (p *LangParser) checkCall(token *l.Token) ast.Expr {
 			fc := &common.FuncCall{Where: nameExpr.Where, Name: nameExpr.Name, Args: arguments}
 			p.aggregator.EnqueueError(nameExpr.Where, fc, errorMessage)
 			return fc
+		}
+		if len(nameExpr.ValueSignature) > 0 {
+			p.aggregator.MarkResolved(nameExpr.Where)
+			return &procedures.AnonCall{Procedure: nameExpr, Arguments: arguments}
 		}
 		// check for a user defined procedure
 		procedureErrorMessage, procedureSignature := p.Resolver.ResolveProcedure(nameExpr.Name, len(arguments))

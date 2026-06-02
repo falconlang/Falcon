@@ -1,6 +1,7 @@
 package mistparser
 
 import (
+	"Falcon/code/ast"
 	"Falcon/code/ast/common"
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
@@ -11,6 +12,17 @@ import (
 	"strings"
 	"testing"
 )
+
+func parseOneForTest(t *testing.T, src string) ast.Expr {
+	t.Helper()
+	ctx := &context.CodeContext{SourceCode: &src, FileName: "test.mist"}
+	parser := NewLangParser(false, lex.NewLexer(ctx).Lex())
+	exprs := parser.ParseAll()
+	if len(exprs) != 1 {
+		t.Fatalf("ParseAll() expressions = %d, want 1", len(exprs))
+	}
+	return exprs[0]
+}
 
 func TestParseAllWithLineNumbersTracksTopLevelExpressionStarts(t *testing.T) {
 	source := strings.Join([]string{
@@ -93,6 +105,100 @@ func TestNumericPowerStillGeneratesMathPower(t *testing.T) {
 	got := exprs[0].Blockly(false).Type
 	if got != "math_power" {
 		t.Fatalf("Blockly type = %q, want math_power", got)
+	}
+}
+
+func TestAnonymousProcedureDefinitionsGenerateProcedureBlocks(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{
+			name: "void",
+			src:  `func(x) { println(x) }`,
+			want: "procedures_defanonnoreturn",
+		},
+		{
+			name: "returning",
+			src:  `func(r) = { 3.14 * r ^ 2 }`,
+			want: "procedures_defanonreturn",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseOneForTest(t, tt.src).Blockly(false)
+			if got.Type != tt.want {
+				t.Fatalf("Blockly type = %q, want %q", got.Type, tt.want)
+			}
+			if len(got.Mutation.Args) != 1 || got.Mutation.Args[0].Name == "" {
+				t.Fatalf("mutation args = %#v, want one named argument", got.Mutation.Args)
+			}
+		})
+	}
+}
+
+func TestAnonymousProcedureCallsChooseBlockByConsumption(t *testing.T) {
+	statementCall := parseOneForTest(t, `(func(x) { println(x) })("Melon")`).Blockly(true)
+	if statementCall.Type != "procedures_callanonnoreturn" {
+		t.Fatalf("statement call block = %q, want procedures_callanonnoreturn", statementCall.Type)
+	}
+	if statementCall.Mutation.ItemCount != 1 {
+		t.Fatalf("statement call item count = %d, want 1", statementCall.Mutation.ItemCount)
+	}
+
+	printCall := parseOneForTest(t, `println((func(x) = x)(5))`).(*common.FuncCall)
+	valueBlock := printCall.Args[0].Blockly(false)
+	if valueBlock.Type != "procedures_callanonreturn" {
+		t.Fatalf("value call block = %q, want procedures_callanonreturn", valueBlock.Type)
+	}
+}
+
+func TestAnonymousProcedureInputListCallsChooseBlockByConsumption(t *testing.T) {
+	statementCall := parseOneForTest(t, `(func(x) { println(x) }).call(["Melon"])`).Blockly(true)
+	if statementCall.Type != "procedures_callanonnoreturn_inputlist" {
+		t.Fatalf("statement input-list call block = %q, want procedures_callanonnoreturn_inputlist", statementCall.Type)
+	}
+
+	printCall := parseOneForTest(t, `println((func(x) = x).call([5]))`).(*common.FuncCall)
+	valueBlock := printCall.Args[0].Blockly(false)
+	if valueBlock.Type != "procedures_callanonreturn_inputlist" {
+		t.Fatalf("value input-list call block = %q, want procedures_callanonreturn_inputlist", valueBlock.Type)
+	}
+}
+
+func TestAnonymousProcedureHelperBlocks(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{
+			name: "num args",
+			src:  `println((func(x) { println(x) }).numArgs())`,
+			want: "procedures_numArgs",
+		},
+		{
+			name: "get with name",
+			src:  `println(getFunc("sayHello"))`,
+			want: "procedures_getWithName",
+		},
+		{
+			name: "get with dropdown",
+			src:  `println(func.sayHello)`,
+			want: "procedures_getWithDropdown",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			printCall := parseOneForTest(t, tt.src).(*common.FuncCall)
+			got := printCall.Args[0].Blockly(false)
+			if got.Type != tt.want {
+				t.Fatalf("helper block = %q, want %q", got.Type, tt.want)
+			}
+		})
 	}
 }
 

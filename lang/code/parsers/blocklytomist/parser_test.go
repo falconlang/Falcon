@@ -98,6 +98,145 @@ func TestMatrixPowerBlockRoundTripsAsMatrixPower(t *testing.T) {
 	}
 }
 
+func TestAnonymousProcedureBlocksRoundTripToMist(t *testing.T) {
+	tests := []struct {
+		name string
+		xml  string
+		want string
+	}{
+		{
+			name: "void definition",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_defanonnoreturn">
+    <mutation><arg name="x"></arg></mutation>
+    <statement name="STACK">
+      <block type="procedures_callanonnoreturn">
+        <mutation items="1"></mutation>
+        <value name="PROCEDURE"><block type="lexical_variable_get"><field name="VAR">greet</field></block></value>
+        <value name="ARG0"><block type="text"><field name="TEXT">Melon</field></block></value>
+      </block>
+    </statement>
+  </block>
+</xml>`,
+			want: "func(x) {\n  greet(\"Melon\")\n}",
+		},
+		{
+			name: "returning definition",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_defanonreturn">
+    <mutation><arg name="r"></arg></mutation>
+    <value name="RETURN"><block type="math_number"><field name="NUM">5</field></block></value>
+  </block>
+</xml>`,
+			want: "func(r) =\n  5\n",
+		},
+		{
+			name: "input list call",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_callanonreturn_inputlist">
+    <value name="PROCEDURE"><block type="lexical_variable_get"><field name="VAR">greet</field></block></value>
+    <value name="INPUTLIST">
+      <block type="lists_create_with">
+        <mutation items="1"></mutation>
+        <value name="ADD0"><block type="text"><field name="TEXT">Melon</field></block></value>
+      </block>
+    </value>
+  </block>
+</xml>`,
+			want: "greet.call([\"Melon\"])",
+		},
+		{
+			name: "num args",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_numArgs">
+    <value name="PROCEDURE"><block type="lexical_variable_get"><field name="VAR">greet</field></block></value>
+  </block>
+</xml>`,
+			want: "greet.numArgs()",
+		},
+		{
+			name: "get with name",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_getWithName">
+    <value name="PROCEDURENAME"><block type="text"><field name="TEXT">sayHello</field></block></value>
+  </block>
+</xml>`,
+			want: "getFunc(\"sayHello\")",
+		},
+		{
+			name: "get with dropdown",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_getWithDropdown">
+    <field name="PROCNAME">sayHello</field>
+  </block>
+</xml>`,
+			want: "func.sayHello",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exprs, err := NewParser(tt.xml).TryGenerateAST()
+			if err != nil {
+				t.Fatalf("TryGenerateAST() error = %v", err)
+			}
+			if len(exprs) != 1 {
+				t.Fatalf("TryGenerateAST() produced %d expressions, want 1", len(exprs))
+			}
+			if got := exprs[0].String(); got != tt.want {
+				t.Fatalf("source = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcedureCategoryAliasesRoundTripToMist(t *testing.T) {
+	tests := []struct {
+		name string
+		xml  string
+		want string
+	}{
+		{
+			name: "procedure lexical getter",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedure_lexical_variable_get">
+    <field name="VAR">x</field>
+  </block>
+</xml>`,
+			want: "x",
+		},
+		{
+			name: "procedure do then return",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_do_then_return">
+    <statement name="STM">
+      <block type="procedures_callanonnoreturn">
+        <value name="PROCEDURE"><block type="lexical_variable_get"><field name="VAR">greet</field></block></value>
+      </block>
+    </statement>
+    <value name="VALUE"><block type="math_number"><field name="NUM">5</field></block></value>
+  </block>
+</xml>`,
+			want: "greet()\n5",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exprs, err := NewParser(tt.xml).TryGenerateAST()
+			if err != nil {
+				t.Fatalf("TryGenerateAST() error = %v", err)
+			}
+			if len(exprs) != 1 {
+				t.Fatalf("TryGenerateAST() produced %d expressions, want 1", len(exprs))
+			}
+			if got := exprs[0].String(); got != tt.want {
+				t.Fatalf("source = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestMatrixCellBlocksUseDoubleSquareCoordinates(t *testing.T) {
 	tests := []struct {
 		name  string

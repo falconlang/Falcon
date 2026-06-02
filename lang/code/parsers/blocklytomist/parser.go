@@ -134,7 +134,7 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 			Body:      p.optSingleBody(block)}
 	case "controls_choose":
 		return p.ctrlChoose(block)
-	case "controls_do_then_return":
+	case "controls_do_then_return", "procedures_do_then_return":
 		return &control.Do{Body: p.optSingleBody(block), Result: p.singleExpr(block)}
 	case "controls_eval_but_ignore":
 		return common.MakeFuncCall("println", p.singleExpr(block))
@@ -408,7 +408,7 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 
 	case "global_declaration":
 		return &variables.Global{Name: block.SingleField(), Value: p.singleExpr(block)}
-	case "lexical_variable_get":
+	case "lexical_variable_get", "procedure_lexical_variable_get":
 		return p.variableGet(block)
 	case "lexical_variable_set":
 		return p.variableSet(block)
@@ -419,8 +419,24 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return p.voidProcedure(block)
 	case "procedures_defreturn":
 		return p.returnProcedure(block)
+	case "procedures_defanonnoreturn":
+		return p.anonVoidProcedure(block)
+	case "procedures_defanonreturn":
+		return p.anonReturnProcedure(block)
 	case "procedures_callnoreturn", "procedures_callreturn":
 		return p.procedureCall(block)
+	case "procedures_callanonnoreturn", "procedures_callanonreturn":
+		return p.anonProcedureCall(block)
+	case "procedures_callanonnoreturn_inputlist", "procedures_callanonreturn_inputlist":
+		return p.anonProcedureCallInputList(block)
+	case "procedures_numArgs":
+		pVals := p.makeValueMap(block.Values)
+		return &procedures.NumArgs{Procedure: pVals.get("PROCEDURE")}
+	case "procedures_getWithName":
+		pVals := p.makeValueMap(block.Values)
+		return &procedures.GetWithName{Name: pVals.get("PROCEDURENAME")}
+	case "procedures_getWithDropdown":
+		return &procedures.GetWithDropdown{Name: p.makeFieldMap(block.Fields)["PROCNAME"]}
 
 	case "helpers_assets":
 		return &fundamentals.Text{Content: block.SingleField()}
@@ -624,6 +640,22 @@ func (p *Parser) procedureCall(block ast.Block) ast.Expr {
 	}
 }
 
+func (p *Parser) anonProcedureCall(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return &procedures.AnonCall{
+		Procedure: pVals.get("PROCEDURE"),
+		Arguments: p.prefixedValues(pVals, block, "ARG"),
+	}
+}
+
+func (p *Parser) anonProcedureCallInputList(block ast.Block) ast.Expr {
+	pVals := p.makeValueMap(block.Values)
+	return &procedures.AnonCallInputList{
+		Procedure: pVals.get("PROCEDURE"),
+		InputList: pVals.get("INPUTLIST"),
+	}
+}
+
 func (p *Parser) returnProcedure(block ast.Block) ast.Expr {
 	procedureName := p.makeFieldMap(block.Fields)["NAME"]
 	var mutArgs []ast.Arg
@@ -641,6 +673,22 @@ func (p *Parser) returnProcedure(block ast.Block) ast.Expr {
 	}
 }
 
+func (p *Parser) anonReturnProcedure(block ast.Block) ast.Expr {
+	var mutArgs []ast.Arg
+	if block.Mutation != nil {
+		mutArgs = block.Mutation.Args
+	}
+	paramNames := make([]string, len(mutArgs))
+	for i := range mutArgs {
+		paramNames[i] = mutArgs[i].Name
+	}
+	return &procedures.AnonProcedure{
+		Parameters: paramNames,
+		Result:     p.singleExpr(block),
+		Returning:  true,
+	}
+}
+
 func (p *Parser) voidProcedure(block ast.Block) ast.Expr {
 	procedureName := p.makeFieldMap(block.Fields)["NAME"]
 	var mutArgs []ast.Arg
@@ -653,6 +701,21 @@ func (p *Parser) voidProcedure(block ast.Block) ast.Expr {
 	}
 	return &procedures.VoidProcedure{
 		Name:       procedureName,
+		Parameters: paramNames,
+		Body:       p.optSingleBody(block),
+	}
+}
+
+func (p *Parser) anonVoidProcedure(block ast.Block) ast.Expr {
+	var mutArgs []ast.Arg
+	if block.Mutation != nil {
+		mutArgs = block.Mutation.Args
+	}
+	paramNames := make([]string, len(mutArgs))
+	for i := range mutArgs {
+		paramNames[i] = mutArgs[i].Name
+	}
+	return &procedures.AnonProcedure{
 		Parameters: paramNames,
 		Body:       p.optSingleBody(block),
 	}
@@ -1341,6 +1404,24 @@ func (p *Parser) fromVals(allValues []ast.Value) []ast.Expr {
 		arrBlocks[i] = p.parseValue(allValues[i])
 	}
 	return arrBlocks
+}
+
+func (p *Parser) prefixedValues(values ValueMap, block ast.Block, prefix string) []ast.Expr {
+	count := 0
+	if block.Mutation != nil {
+		count = block.Mutation.ItemCount
+	}
+	for i := count; ; i++ {
+		if values.getUnsafe(prefix+strconv.Itoa(i)) == nil {
+			break
+		}
+		count = i + 1
+	}
+	exprs := make([]ast.Expr, 0, count)
+	for i := 0; i < count; i++ {
+		exprs = append(exprs, values.get(prefix+strconv.Itoa(i)))
+	}
+	return exprs
 }
 
 func (p *Parser) fromMinVals(allValues []ast.Value, minCount int) []ast.Expr {
