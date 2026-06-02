@@ -15,10 +15,11 @@ type BinaryExpr struct {
 
 func (b *BinaryExpr) String() string {
 	myPrecedence := lex.PrecedenceOf(b.Where.Flags[0])
-	// For non-left-associative operators, right operands at the same precedence need parens
-	// to avoid changing semantics: e.g. 10-(3-2) must not become 10-3-2.
-	rightNeedsParensAtSamePrec := b.Operator == lex.Dash || b.Operator == lex.Slash || b.Operator == lex.Power ||
-		b.Operator == lex.MatrixDash || b.Operator == lex.MatrixPower
+	// Preserve grouping where same-precedence nesting would otherwise print with
+	// different semantics: e.g. 10-(3-2) and (2^3)^2.
+	rightNeedsParensAtSamePrec := b.Operator == lex.Dash || b.Operator == lex.Slash ||
+		b.Operator == lex.MatrixDash
+	leftNeedsParensAtSamePrec := b.Operator == lex.Power || b.Operator == lex.MatrixPower
 	stringified := make([]string, len(b.Operands))
 	for i, operand := range b.Operands {
 		operandStr := operand.String()
@@ -27,6 +28,8 @@ func (b *BinaryExpr) String() string {
 		if binExpr, ok := operand.(*BinaryExpr); ok {
 			opPrec := lex.PrecedenceOf(binExpr.Where.Flags[0])
 			if opPrec < myPrecedence {
+				needsParens = true
+			} else if i == 0 && leftNeedsParensAtSamePrec && opPrec == myPrecedence {
 				needsParens = true
 			} else if i > 0 && rightNeedsParensAtSamePrec && opPrec == myPrecedence {
 				needsParens = true

@@ -48,24 +48,49 @@ Falcon is a language designed for App Inventor to enable syntax-based programmin
     - `[*]` performs matrix multiplication, or scalar multiplication when one operand is a number.
     - `[^]` raises a square matrix to a non-negative integer power.
 
-Operator precedence
-The precedence of an operator dictates its parse order. E.g. `*` and `/` is parsed before `+` and `-`.
+### Operator precedence
 
-It is similar to that of Java. Below is a ranking from the lowest to the highest precedence.
+Precedence controls which operators group first. Higher-precedence operators are parsed before lower-precedence operators. For example, `3.14 * r ^ 2` is parsed as `3.14 * (r ^ 2)`, because power has higher precedence than multiplication.
 
-1. Assignment `=`
-2. Pair `:`
-3. TextJoin `_`
-4. LogicOr `||`
-5. LogicAnd `&&`
-6. BitwiseOr `|`
-7. BitwiseAnd `&`
-8. BitwiseXor `~`
-9. Equality `==`, `!=`, `===`, and `!==`
-10. Relational `<`, `<=`, `>`, `>=`, `<<`, and `>>`
-11. Binary `+`, `-`, `[+]`, and `[-]`
-12. BinaryL1 `*`, `/`, `%`, and `[*]`
-13. BinaryL2 `^` and `[^]`
+The table below is ordered from lowest precedence to highest precedence.
+
+| Level | Operators | Meaning | Associativity |
+| --- | --- | --- | --- |
+| 1 | `=` | Assignment | Special |
+| 2 | `:` | Pair creation | Left |
+| 3 | `_` | Text join | Left |
+| 4 | <code>||</code> | Logical OR | Left |
+| 5 | `&&` | Logical AND | Left |
+| 6 | <code>|</code> | Bitwise OR | Left |
+| 7 | `&` | Bitwise AND | Left |
+| 8 | `~` | Bitwise XOR | Left |
+| 9 | `==`, `!=`, `===`, `!==` | Equality and text equality | Left |
+| 10 | `<`, `<=`, `>`, `>=`, `<<`, `>>` | Numeric and text comparison | Left |
+| 11 | `+`, `-`, `[+]`, `[-]` | Addition, subtraction, matrix addition, matrix subtraction | Left |
+| 12 | `*`, `/`, `%`, `[*]` | Multiplication, division, remainder, matrix multiplication | Left |
+| 13 | unary `-`, `!` | Numeric negation and logical NOT | Prefix |
+| 14 | `^`, `[^]` | Numeric power and matrix power | Right |
+
+Power follows the usual mathematical convention:
+
+```
+2 ^ 3 ^ 2 == 2 ^ (3 ^ 2) == 512
+(2 ^ 3) ^ 2 == 64
+```
+
+Unary negation has lower precedence than power, so:
+
+```
+-2 ^ 2 == -(2 ^ 2) == -4
+(-2) ^ 2 == 4
+```
+
+Matrix power follows the same precedence and associativity rule as numeric power:
+
+```
+A [*] B [^] 2 == A [*] (B [^] 2)
+M [^] 2 ^ 3 == M [^] (2 ^ 3)
+```
 
 
 ## Variables

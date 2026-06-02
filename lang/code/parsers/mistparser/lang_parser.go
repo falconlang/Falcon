@@ -746,7 +746,11 @@ func (p *LangParser) expr(minPrecedence int) ast.Expr {
 			left = p.compoundOperator(opToken, left)
 			break
 		}
-		right := p.expr(precedence + 1)
+		rightMinPrecedence := precedence + 1
+		if isRightAssociativeOperator(opToken.Type) {
+			rightMinPrecedence = precedence
+		}
+		right := p.expr(rightMinPrecedence)
 		lBinExpr, leftRepeats := left.(*common.BinaryExpr)
 		leftRepeats = leftRepeats && lBinExpr.CanRepeat(opToken.Type)
 		rBinExpr, rightRepeats := right.(*common.BinaryExpr)
@@ -766,6 +770,10 @@ func (p *LangParser) expr(minPrecedence int) ast.Expr {
 		}
 	}
 	return left
+}
+
+func isRightAssociativeOperator(operator l.Type) bool {
+	return operator == l.Power || operator == l.MatrixPower
 }
 
 func (p *LangParser) compoundOperator(opToken *l.Token, left ast.Expr) ast.Expr {
@@ -1043,7 +1051,7 @@ func (p *LangParser) term() ast.Expr {
 	case l.Not:
 		return &fundamentals.Not{Expr: p.element()}
 	case l.Dash:
-		return common.MakeFuncCall("neg", p.element())
+		return common.MakeFuncCall("neg", p.expr(l.PrecedenceOf(l.BinaryL2)))
 	case l.If:
 		p.back()
 		return p.ifSmt()
