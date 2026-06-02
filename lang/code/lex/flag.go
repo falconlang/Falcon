@@ -42,9 +42,9 @@ func PrecedenceOf(flag Flag) int {
 		return 4
 	case BBitwiseOr:
 		return 5
-	case BBitwiseAnd:
-		return 6
 	case BBitwiseXor:
+		return 6
+	case BBitwiseAnd:
 		return 7
 	case Equality:
 		return 8
