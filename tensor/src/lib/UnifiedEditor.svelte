@@ -13,7 +13,8 @@
   import { falconTokenize, tokensToHtml, escHtml } from './tokenizer.js';
   import { mistToXmlDiagnosticResult, mistToXmlResult, runCodeDiagnosticResult } from './falcon-wasm.js';
   import { buildFalconSourceMap } from './debug-source-map.js';
-  import { blocklyTargetXmlWithContext, blocklyXmlToPng, componentDefinitionsFromDesigner, ensureBlocklyRuntime, copyPngBlobToClipboard, downloadPngBlob } from './blockly-preview.js';
+  import { blocklyTargetXmlWithContext, blocklyXmlToPng, composePngBlobsVertically, componentDefinitionsFromDesigner, ensureBlocklyRuntime, copyPngBlobToClipboard, downloadPngBlob } from './blockly-preview.js';
+  import { topLevelIndexesFullyContainedInLineRange } from './blockly-preview-selection.js';
   import { splitFalconSourceIntoCells } from './cell-splitting.js';
 
   const AUTO_PAIRS = { '{': '}', '(': ')', '[': ']', '"': '"' };
@@ -34,6 +35,7 @@
   let callout = null;
   let calloutRunId = 0;
   let calloutDebounceTimer = null;
+  let lastCalloutSelectionKey = '';
   let injectedReflowTimer = null;
   let parseCheckTimer = null;
   let parseCheckRunId = 0;
@@ -759,22 +761,6 @@
     return selectionLineRangeInText(source, sourceStart, sourceEnd);
   }
 
-  function firstCodeLineInSelection(source, startLine, endLine) {
-    const lines = String(source ?? '').split('\n');
-    for (let line = startLine; line <= endLine; line += 1) {
-      const trimmed = (lines[line - 1] || '').trim();
-      if (!trimmed || trimmed.startsWith('//')) continue;
-      return line;
-    }
-    return null;
-  }
-
-  function topLevelIndexForSelection(source, lineNumbers, startLine, endLine) {
-    const firstCodeLine = firstCodeLineInSelection(source, startLine, endLine);
-    if (firstCodeLine === null) return -1;
-    return lineNumbers.findIndex(ln => ln === firstCodeLine);
-  }
-
   function calloutY(startLine, endLine) {
     if (!codeEl || !editorContainerEl) return 0;
     const rect = codeEl.getBoundingClientRect();
@@ -883,12 +869,38 @@
     clearTimeout(calloutDebounceTimer);
     if (callout?.imgUrl) URL.revokeObjectURL(callout.imgUrl);
     callout = null;
+    lastCalloutSelectionKey = '';
+  }
+
+  function calloutSelectionKey() {
+    if (!codeEl) return '';
+    return `${codeEl.selectionStart}:${codeEl.selectionEnd}:${stringHash(editorValue)}`;
+  }
+
+  function stringHash(value) {
+    let hash = 0;
+    const text = String(value ?? '');
+    for (let i = 0; i < text.length; i += 1) {
+      hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
+    }
+    return (hash >>> 0).toString(36);
+  }
+
+  function calloutTargetKey(source, lineNumbers, targetIndexes) {
+    return [
+      stringHash(source),
+      (lineNumbers || []).join(','),
+      (targetIndexes || []).join(','),
+    ].join('|');
   }
 
   function scheduleCalloutCheck() {
     if ($debugExecutionState.status === 'paused') {
       syncExprOutlineUnified();
     }
+    const selectionKey = calloutSelectionKey();
+    if (selectionKey && callout && selectionKey === lastCalloutSelectionKey) return;
+    lastCalloutSelectionKey = selectionKey;
     const runId = ++calloutRunId;
     clearTimeout(calloutDebounceTimer);
     calloutDebounceTimer = setTimeout(() => runCalloutCheck(runId), CALLOUT_DEBOUNCE_MS);
@@ -1122,25 +1134,38 @@
     } catch { return; }
 
     const { xml, lineNumbers } = xmlResult;
-    const idx = topLevelIndexForSelection(source, lineNumbers, selectionStartLine, selectionEndLine);
-    if (idx === -1) { if (runId === calloutRunId) callout = null; return; }
-    const sourceStartLine = lineNumbers[idx];
+    const targetIndexes = topLevelIndexesFullyContainedInLineRange(
+      source,
+      lineNumbers,
+      selectionStartLine,
+      selectionEndLine,
+    );
+    if (!targetIndexes.length) { if (runId === calloutRunId) callout = null; return; }
+    const targetKey = calloutTargetKey(source, lineNumbers, targetIndexes);
+    if (callout?.targetKey === targetKey && callout.status === 'ready') return;
+    const sourceStartLine = lineNumbers[targetIndexes[0]];
     const startLine = sourceLineToViewLine(sourceStartLine);
     const endLine = Math.max(startLine, viewEndLine);
-
-    const { targetXml: xmlChunk, contextXml } = blocklyTargetXmlWithContext(xml, idx);
-    if (!xmlChunk) { callout = null; return; }
 
     const imgHeight = Math.round((endLine - startLine + 1) * LINE_HEIGHT);
     const { x: cx, overflowed } = calloutX(startLine, endLine);
     const maxWidth = Math.max(80, window.innerWidth - cx - CALLOUT_GAP - CALLOUT_PADDING);
     if (callout?.imgUrl) URL.revokeObjectURL(callout.imgUrl);
-    callout = { x: cx, y: calloutY(startLine, endLine), startLine, endLine, imgHeight, maxWidth, overflowed, status: 'loading', imgUrl: null };
+    callout = { x: cx, y: calloutY(startLine, endLine), startLine, endLine, imgHeight, maxWidth, overflowed, status: 'loading', imgUrl: null, targetKey };
 
     try {
-      const result = await blocklyXmlToPng(xmlChunk, componentDefinitions, { contextXml });
+      const blobs = [];
+      for (const targetIndex of targetIndexes) {
+        if (runId !== calloutRunId) return;
+        const { targetXml: xmlChunk, contextXml } = blocklyTargetXmlWithContext(xml, targetIndex);
+        if (!xmlChunk) continue;
+        const result = await blocklyXmlToPng(xmlChunk, componentDefinitions, { contextXml });
+        blobs.push(result.blob);
+      }
+      if (!blobs.length) { if (runId === calloutRunId) callout = null; return; }
+      const blob = await composePngBlobsVertically(blobs, { gap: 12 });
       if (runId !== calloutRunId) return;
-      callout = { ...callout, status: 'ready', blob: result.blob, imgUrl: URL.createObjectURL(result.blob) };
+      callout = { ...callout, status: 'ready', blob, imgUrl: URL.createObjectURL(blob), targetKey };
     } catch {
       if (runId !== calloutRunId) return;
       callout = null;

@@ -4,6 +4,11 @@ import { listComponents, mistToXmlResult } from './falcon-wasm.js';
 import { cells, designCode } from './stores.js';
 import { injectFalconCommentsIntoBlocklyXml } from './blockly-comments.js';
 import { CURRENT_BLOCKS_LANGUAGE_VERSION, CURRENT_YA_VERSION } from './appinventor-legacy.js';
+import {
+  blocklyTargetXmlWithContextParts,
+  blocklyTargetXmlsWithContextParts,
+  xmlChunks,
+} from './blockly-preview-selection.js';
 
 const BLOCKLY_CORE_SCRIPTS = [
   '/compiled_blockly/messages.js',
@@ -26,26 +31,12 @@ function runtimeLoadError(promise) {
   return promise.then(() => null, error => error);
 }
 
-function xmlChunks(xml) {
-  return String(xml || '')
-    .split('\0')
-    .map(chunk => chunk.trim())
-    .filter(Boolean);
+export function blocklyTargetXmlWithContext(xml, targetIndex = -1) {
+  return blocklyTargetXmlWithContextParts(xml, targetIndex);
 }
 
-export function blocklyTargetXmlWithContext(xml, targetIndex = -1) {
-  const chunks = xmlChunks(xml);
-  if (!chunks.length) throw new Error('No Blockly XML was generated');
-
-  const index = Number.isInteger(targetIndex) && targetIndex >= 0 && targetIndex < chunks.length
-    ? targetIndex
-    : chunks.length - 1;
-
-  return {
-    targetXml: chunks[index],
-    contextXml: chunks.filter((_, chunkIndex) => chunkIndex !== index).join('\0'),
-    targetIndex: index,
-  };
+export function blocklyTargetXmlsWithContext(xml, targetIndexes = []) {
+  return blocklyTargetXmlsWithContextParts(xml, targetIndexes);
 }
 
 function componentTypeAliases() {
@@ -626,6 +617,72 @@ function dataUriToBlob(dataUri) {
     bytes[i] = binary.charCodeAt(i);
   }
   return new Blob([bytes], { type: mime });
+}
+
+function blobToImageBitmap(blob) {
+  if (typeof createImageBitmap === 'function') {
+    return createImageBitmap(blob);
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load Blockly PNG'));
+    };
+    img.src = url;
+  });
+}
+
+function canvasToPngBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(blob => {
+      if (blob) resolve(blob);
+      else reject(new Error('Failed to compose Blockly PNG'));
+    }, 'image/png');
+  });
+}
+
+export async function composePngBlobsVertically(blobs, options = {}) {
+  const sourceBlobs = (blobs || []).filter(Boolean);
+  if (!sourceBlobs.length) {
+    throw new Error('No Blockly PNGs were generated');
+  }
+  if (sourceBlobs.length === 1) {
+    return sourceBlobs[0];
+  }
+
+  const images = [];
+  for (const blob of sourceBlobs) {
+    images.push(await blobToImageBitmap(blob));
+  }
+
+  const gap = Math.max(0, Math.trunc(Number(options.gap) || 0));
+  const padding = Math.max(0, Math.trunc(Number(options.padding) || 0));
+  const width = images.reduce((max, image) => Math.max(max, image.width || 0), 0) + padding * 2;
+  const height = images.reduce((sum, image) => sum + (image.height || 0), 0)
+    + gap * (images.length - 1)
+    + padding * 2;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, width);
+  canvas.height = Math.max(1, height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas rendering is unavailable');
+
+  let y = padding;
+  for (const image of images) {
+    ctx.drawImage(image, padding, y);
+    y += image.height + gap;
+    image.close?.();
+  }
+
+  return canvasToPngBlob(canvas);
 }
 
 function workspaceToPngBlob(workspace, blocks) {
