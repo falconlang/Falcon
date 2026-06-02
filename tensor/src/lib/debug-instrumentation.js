@@ -142,33 +142,72 @@ function traceLine(notifierName, payload, indent) {
   return `${indent}${notifierName}.LogInfo(${falconString(DEBUG_TRACE_PREFIX + JSON.stringify(payload))})`;
 }
 
-function debugPrelude(notifierName) {
-  return `global ${DEBUG_CONTINUE_GLOBAL} = false
+function identifierSuffix(sessionId) {
+  const clean = String(sessionId || '')
+    .replace(/[^A-Za-z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return clean || 'session';
+}
 
-func ${DEBUG_VALUE_FUNC}(tensorDebugExprId, tensorDebugCapturedValue) = {
+function sourceIdentifiers(source) {
+  const identifiers = new Set();
+  const searchable = String(source ?? '').split('\n').map(stripLineComment).join('\n');
+  const re = /\b[A-Za-z_][A-Za-z0-9_]*\b/g;
+  let match;
+  while ((match = re.exec(searchable)) !== null) identifiers.add(match[0]);
+  return identifiers;
+}
+
+function uniqueIdentifier(base, used) {
+  if (!used.has(base)) {
+    used.add(base);
+    return base;
+  }
+  let index = 2;
+  while (used.has(`${base}_${index}`)) index += 1;
+  const next = `${base}_${index}`;
+  used.add(next);
+  return next;
+}
+
+function debugHelperNames(source, sessionId) {
+  const used = sourceIdentifiers(source);
+  const suffix = identifierSuffix(sessionId);
+  return {
+    continueGlobal: uniqueIdentifier(`${DEBUG_CONTINUE_GLOBAL}_${suffix}`, used),
+    valueFunc: uniqueIdentifier(`${DEBUG_VALUE_FUNC}_${suffix}`, used),
+    breakFunc: uniqueIdentifier(`${DEBUG_BREAK_FUNC}_${suffix}`, used),
+  };
+}
+
+function debugPrelude(notifierName, helpers) {
+  return `global ${helpers.continueGlobal} = false
+
+func ${helpers.valueFunc}(tensorDebugExprId, tensorDebugCapturedValue) = {
   ${notifierName}.LogInfo(${falconString(DEBUG_VALUE_PREFIX)} _ tensorDebugExprId _ ${falconString('\t')} _ tensorDebugCapturedValue)
   tensorDebugCapturedValue
 }
 
-func ${DEBUG_BREAK_FUNC}(tensorDebugHitPayload) {
-  this.${DEBUG_CONTINUE_GLOBAL} = false
+func ${helpers.breakFunc}(tensorDebugHitPayload) {
+  this.${helpers.continueGlobal} = false
   ${notifierName}.LogInfo(${falconString(DEBUG_BREAK_PREFIX)} _ tensorDebugHitPayload)
-  while (!this.${DEBUG_CONTINUE_GLOBAL}) {
+  while (!this.${helpers.continueGlobal}) {
   }
-  this.${DEBUG_CONTINUE_GLOBAL} = false
+  this.${helpers.continueGlobal} = false
 }`;
 }
 
-function captureExpression(exprId, expression) {
-  return `${DEBUG_VALUE_FUNC}(${falconString(exprId)}, ${expression})`;
+function captureExpression(helperName, exprId, expression) {
+  return `${helperName}(${falconString(exprId)}, ${expression})`;
 }
 
 function captureValueLine(notifierName, exprId, expression, indent) {
   return `${indent}${notifierName}.LogInfo(${falconString(DEBUG_VALUE_PREFIX)} _ ${falconString(exprId)} _ ${falconString('\t')} _ ${expression})`;
 }
 
-function breakpointLine(payload, indent) {
-  return `${indent}${DEBUG_BREAK_FUNC}(${falconString(JSON.stringify(payload))})`;
+function breakpointLine(helperName, payload, indent) {
+  return `${indent}${helperName}(${falconString(JSON.stringify(payload))})`;
 }
 
 function isTraceableExecutionLine(trimmed) {
@@ -279,7 +318,7 @@ function scanVariableOccurrences(line, entry, catalog) {
   }
 }
 
-function wrapNotExpressions(line, entry, catalog, startOffset = 0) {
+function wrapNotExpressions(line, entry, catalog, helperName, startOffset = 0) {
   if (!entry) return line;
   const masked = maskIgnoredSpans(line);
   const ranges = [];
@@ -303,12 +342,12 @@ function wrapNotExpressions(line, entry, catalog, startOffset = 0) {
   for (let i = ranges.length - 1; i >= 0; i -= 1) {
     const range = ranges[i];
     const sourceText = next.slice(range.start, range.end);
-    next = `${next.slice(0, range.start)}${captureExpression(range.exprId, sourceText)}${next.slice(range.end)}`;
+    next = `${next.slice(0, range.start)}${captureExpression(helperName, range.exprId, sourceText)}${next.slice(range.end)}`;
   }
   return next;
 }
 
-function instrumentLocalLine(line, entry, catalog, notifierName) {
+function instrumentLocalLine(line, entry, catalog, notifierName, helperName) {
   const { code, comment } = splitLineComment(line);
   const match = code.match(/^(\s*local\s+)([A-Za-z][A-Za-z0-9]*)(\s*=\s*)(.+?)\s*$/);
   if (!entry || !match) return { line, after: [] };
@@ -320,7 +359,7 @@ function instrumentLocalLine(line, entry, catalog, notifierName) {
   const varExprId = catalog.declareVar(entry, name, nameStart, nameEnd);
   const rhsExprId = catalog.add(entry, rhs, rhsStart, rhsStart + rhs.length, 'expression');
   const wrappedRhs = rhsExprId
-    ? captureExpression(rhsExprId, wrapNotExpressions(rhs, entry, catalog, rhsStart))
+    ? captureExpression(helperName, rhsExprId, wrapNotExpressions(rhs, entry, catalog, helperName, rhsStart))
     : rhs;
   const indent = line.match(/^\s*/)?.[0] || '';
   return {
@@ -329,14 +368,14 @@ function instrumentLocalLine(line, entry, catalog, notifierName) {
   };
 }
 
-function instrumentConditionLine(line, entry, catalog) {
+function instrumentConditionLine(line, entry, catalog, helperName) {
   if (!entry) return line;
   const match = line.match(/^(\s*(?:if|while)\s*\()(.+)(\)\s*\{?\s*(?:(?:\/\/.*)?)$)/);
-  if (!match) return wrapNotExpressions(line, entry, catalog, 0);
+  if (!match) return wrapNotExpressions(line, entry, catalog, helperName, 0);
 
   const [, prefix, condition, suffix] = match;
   const conditionStart = prefix.length;
-  const wrappedCondition = wrapNotExpressions(condition, entry, catalog, conditionStart);
+  const wrappedCondition = wrapNotExpressions(condition, entry, catalog, helperName, conditionStart);
   const conditionExprId = catalog.add(
     entry,
     condition,
@@ -345,14 +384,14 @@ function instrumentConditionLine(line, entry, catalog) {
     'condition',
   );
 
-  return `${prefix}${conditionExprId ? captureExpression(conditionExprId, wrappedCondition) : wrappedCondition}${suffix}`;
+  return `${prefix}${conditionExprId ? captureExpression(helperName, conditionExprId, wrappedCondition) : wrappedCondition}${suffix}`;
 }
 
-function instrumentLineExpressions(line, entry, catalog, notifierName) {
+function instrumentLineExpressions(line, entry, catalog, notifierName, helpers) {
   scanVariableOccurrences(line, entry, catalog);
-  const local = instrumentLocalLine(line, entry, catalog, notifierName);
+  const local = instrumentLocalLine(line, entry, catalog, notifierName, helpers.valueFunc);
   if (local.after.length) return local;
-  return { line: instrumentConditionLine(line, entry, catalog), after: [] };
+  return { line: instrumentConditionLine(line, entry, catalog, helpers.valueFunc), after: [] };
 }
 
 function nextExecutableEntry(lines, entryByLine, startIndex) {
@@ -420,13 +459,14 @@ export function ensureDebugNotifierDesignSource(annSource, preferredName = DEFAU
 export function instrumentFalconSourceForDebug(source, lineMapEntries = [], options = {}) {
   const sessionId = options.sessionId || createDebugSessionId();
   const notifierName = options.notifierName || DEFAULT_DEBUG_NOTIFIER;
+  const helpers = debugHelperNames(source, sessionId);
   const breakpointSet = breakpointSetFrom(options);
   const mapEntries = lineMapEntries.length
     ? lineMapEntries
     : buildFalconSourceMap([{ id: 'source', type: 'code', code: source }]).entries;
   const entryByLine = new Map(mapEntries.map(entry => [entry.unifiedLine, entry]));
   const lines = String(source ?? '').split('\n');
-  const instrumented = [debugPrelude(notifierName), ''];
+  const instrumented = [debugPrelude(notifierName, helpers), ''];
   const tracePoints = [];
   const breakpointPoints = [];
   const earlyTracedLines = new Set();
@@ -455,12 +495,12 @@ export function instrumentFalconSourceForDebug(source, lineMapEntries = [], opti
       tracePoints.push(trace);
       if (shouldBreak) {
         const breakpoint = breakpointPayload(sessionId, entry, unifiedLine);
-        instrumented.push(breakpointLine(breakpoint, indent));
+        instrumented.push(breakpointLine(helpers.breakFunc, breakpoint, indent));
         breakpointPoints.push(breakpoint);
       }
     }
 
-    const expressionLine = instrumentLineExpressions(line, entry, catalog, notifierName);
+    const expressionLine = instrumentLineExpressions(line, entry, catalog, notifierName, helpers);
     instrumented.push(expressionLine.line);
     instrumented.push(...expressionLine.after);
 
@@ -486,6 +526,7 @@ export function instrumentFalconSourceForDebug(source, lineMapEntries = [], opti
     breakpointPoints,
     expressionCatalog: catalog.entries,
     lineMap: mapEntries,
+    helpers,
   };
 }
 

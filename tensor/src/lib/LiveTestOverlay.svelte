@@ -70,6 +70,7 @@
   let commandRunning = false;
   let pendingDoItCellId = null;
   let debugIdleTimer = null;
+  let debugContinueGlobal = null;
   const COMPANION_DEBUG = Boolean(import.meta.env?.DEV);
 
   $: liveTestState.set({
@@ -114,6 +115,7 @@
         lineMap: result.debug.lineMap,
         expressionCatalog: result.debug.expressionCatalog,
       });
+      debugContinueGlobal = result.debug.helpers?.continueGlobal || null;
       debugModeEnabled.set(true);
     }
 
@@ -349,6 +351,7 @@
     peer = null;
     lastSentSourceKey = null;
     lastFailedSourceKey = null;
+    debugContinueGlobal = null;
 
     if (localChannel) {
       localChannel.onmessage = null;
@@ -684,7 +687,7 @@
 
     const activeChannel = channel;
     try {
-      const payload = debugContinueReplPayload();
+      const payload = debugContinueReplPayload(debugContinueGlobal);
       if (channel !== activeChannel || activeChannel.readyState !== 'open') {
         throw new Error('Companion disconnected before continue could be sent');
       }

@@ -219,14 +219,44 @@ test('instrumentFalconSourceForDebug emits breakpoint probes and expression cata
     breakpoints: [{ cellId: 'c1', cellLine: 6 }],
   });
 
-  assert.match(result.source, /global tensorDebugContinueFlag = false/);
-  assert.match(result.source, /tensorDebugBreak\(/);
-  assert.match(result.source, /tensorDebugValue\("dbg-break:expr:expression:4:\d+", !firstIsNumb\)/);
+  assert.match(result.source, /global tensorDebugContinueFlag_dbg_break = false/);
+  assert.match(result.source, /tensorDebugBreak_dbg_break\(/);
+  assert.match(result.source, /tensorDebugValue_dbg_break\("dbg-break:expr:expression:4:\d+", !firstIsNumb\)/);
   assert.deepEqual(result.breakpointPoints.map(point => [point.cellId, point.cellLine, point.unifiedLine]), [
     ['c1', 6, 6],
   ]);
   assert.ok(result.expressionCatalog.some(entry => entry.sourceText === 'firstIsNumb'));
   assert.ok(result.expressionCatalog.some(entry => entry.sourceText === '!firstIsNumb'));
+});
+
+test('instrumentFalconSourceForDebug avoids user-defined helper identifier collisions', () => {
+  const source = `func tensorDebugValue_dbg_collision(a, b) = {
+  999
+}
+
+func tensorDebugBreak_dbg_collision(payload) {
+}
+
+global tensorDebugContinueFlag_dbg_collision = true
+
+func foo() = {
+  local x = 1
+  x
+}`;
+  const map = buildFalconSourceMap([{ id: 'c1', type: 'code', code: source }]);
+  const result = instrumentFalconSourceForDebug(source, map.entries, {
+    sessionId: 'dbg-collision',
+    notifierName: 'TensorDebugNotifier',
+  });
+
+  assert.deepEqual(result.helpers, {
+    continueGlobal: 'tensorDebugContinueFlag_dbg_collision_2',
+    valueFunc: 'tensorDebugValue_dbg_collision_2',
+    breakFunc: 'tensorDebugBreak_dbg_collision_2',
+  });
+  assert.match(result.source, /func tensorDebugValue_dbg_collision_2\(/);
+  assert.match(result.source, /local x = tensorDebugValue_dbg_collision_2\(/);
+  assert.match(result.source, /func tensorDebugValue_dbg_collision\(a, b\)/);
 });
 
 test('parseDebugRuntimeEvent handles value captures and breakpoint hits', () => {
@@ -293,9 +323,49 @@ when Button1.Click {
 }`;
 
   assert.deepEqual(splitFalconSourceByTopLevelLines(source, [3, 7]), [
-    '// prelude',
-    'func helper() = {\n  1\n}',
+    '// prelude\n\nfunc helper() = {\n  1\n}',
     'when Button1.Click {\n  helper()\n}',
+  ]);
+});
+
+test('splitFalconSourceByTopLevelLines groups globals into the first cell', () => {
+  const source = `// score state
+global score = 0
+
+when Button1.Click {
+  globalScore()
+}
+
+// player state
+global player = "Ada"
+
+func globalScore() = score`;
+
+  assert.deepEqual(splitFalconSourceByTopLevelLines(source, [2, 4, 9, 11]), [
+    '// score state\nglobal score = 0\n\n// player state\nglobal player = "Ada"',
+    'when Button1.Click {\n  globalScore()\n}',
+    'func globalScore() = score',
+  ]);
+});
+
+test('splitFalconSourceByTopLevelLines infers top-level cells without parser line starts', () => {
+  const source = `global names = [
+  "Ada",
+  "Grace"
+]
+
+func greet() = {
+  println("hi")
+}
+
+when Button1.Click {
+  greet()
+}`;
+
+  assert.deepEqual(splitFalconSourceByTopLevelLines(source), [
+    'global names = [\n  "Ada",\n  "Grace"\n]',
+    'func greet() = {\n  println("hi")\n}',
+    'when Button1.Click {\n  greet()\n}',
   ]);
 });
 

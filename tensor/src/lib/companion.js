@@ -324,6 +324,7 @@ export async function compileForCompanion(mistSource, annSource, { screenName = 
       tracePoints: instrumented.tracePoints,
       breakpointPoints: instrumented.breakpointPoints,
       expressionCatalog: instrumented.expressionCatalog,
+      helpers: instrumented.helpers,
     }
   }
 
@@ -406,8 +407,8 @@ export async function compileSnippetForCompanion(mistSnippet, annSource, { scree
   return { componentDefs, replPayload }
 }
 
-export function debugContinueReplPayload() {
-  return wrapSnippet(`(set-var! g$${DEBUG_CONTINUE_GLOBAL} #t)`)
+export function debugContinueReplPayload(continueGlobal = DEBUG_CONTINUE_GLOBAL) {
+  return wrapSnippet(`(set-var! g$${continueGlobal || DEBUG_CONTINUE_GLOBAL} #t)`)
 }
 
 async function sha1Hex(text) {

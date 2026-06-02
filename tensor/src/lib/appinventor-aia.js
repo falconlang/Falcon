@@ -34,6 +34,7 @@ import {
   isValidComponentName,
   isValidScreenName,
 } from './appinventor-validation.js';
+import { splitFalconSourceByTopLevelLines } from './cell-splitting.js';
 
 const DEFAULT_PROJECT = 'TensorProject';
 const PROJECT_PROPERTIES_PATH = 'youngandroidproject/project.properties';
@@ -649,12 +650,12 @@ async function importedBlocksCell(screenName, rawBlocklyXml) {
     try {
       const code = await blocklyXmlToFalconCodeWithComments(rawBlocklyXml, xmlToMist);
       if (code.trim()) {
-        return [{
-          id: `imported-code-${screenName}-${Date.now()}`,
+        return splitFalconSourceByTopLevelLines(code).map((chunk, index) => ({
+          id: `imported-code-${screenName}-${Date.now()}-${index}`,
           type: 'code',
-          code,
+          code: chunk,
           execCount: null,
-        }];
+        }));
       }
     } catch (error) {
       console.debug('[aia-import-blocks]', error);

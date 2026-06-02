@@ -46,6 +46,31 @@ func TestParseAnnReadsDotIds(t *testing.T) {
 	}
 }
 
+func TestParseAnnSkipsLineComments(t *testing.T) {
+	source := `// screen comment
+Screen.Screen1 {
+  Title: "Calculator // not a comment",
+  // button comment
+  Button.AddButton {
+    Text: "+"
+  }
+}`
+
+	screen, err := ParseAnn(source)
+	if err != nil {
+		t.Fatalf("ParseAnn() error = %v", err)
+	}
+	if screen.Id != "Screen1" {
+		t.Fatalf("screen.Id = %q, want Screen1", screen.Id)
+	}
+	if got := screen.Properties["Title"]; got != "Calculator // not a comment" {
+		t.Fatalf("screen Title = %q, want string content preserved", got)
+	}
+	if len(screen.Children) != 1 || screen.Children[0].Id != "AddButton" {
+		t.Fatalf("screen.Children = %#v, want AddButton", screen.Children)
+	}
+}
+
 func TestParseAnnNormalizesColorLiterals(t *testing.T) {
 	source := `Screen.Screen1 {
 	  BackgroundColor: &HFF446A98,
