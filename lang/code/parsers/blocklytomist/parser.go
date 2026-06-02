@@ -245,20 +245,20 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 	case "math_convert_angles":
 		return p.mathConvertAngles(block)
 
-	case "matrices_create": // todo: we need to be able to form the matrix block from syntax (currently can't!, only lists)
+	case "matrices_create":
 		return p.matricesCreate(block)
 	case "matrices_create_multidim":
 		return p.matricesNdArray(block)
 	case "matrices_get_cell":
-		return p.matricesGetCell(block) // todo: same, we need to preserve matrix reconversion at the end using comment blocks
+		return p.matricesGetCell(block)
 	case "matrices_set_cell":
-		return p.matricesSetCell(block) // todo: same thing
+		return p.matricesSetCell(block)
 	case "matrices_get_row":
-		return p.matricesGetRow(block) // we are done
+		return p.matricesGetRow(block)
 	case "matrices_get_column":
-		return p.matricesGetColumn(block) // we are done
+		return p.matricesGetColumn(block)
 	case "matrices_get_dims":
-		return p.matricesGetDimension(block) // we are done
+		return p.matricesGetDimension(block)
 	case "matrices_is_matrix":
 		return p.makeQuestion(lex.OpenSquare, block, "matrix")
 	case "matrices_add":
@@ -271,7 +271,7 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return p.makeBinary("[^]", p.fromMinVals(block.Values, 2))
 
 	case "matrices_operations":
-		return p.matricesOperations(block) // we are done
+		return p.matricesOperations(block)
 
 	case "lists_create_with":
 		return &fundamentals.List{Elements: p.fromMinVals(block.Values, 0)}

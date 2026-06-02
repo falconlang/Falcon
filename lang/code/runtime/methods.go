@@ -186,6 +186,10 @@ func (i *Interpreter) methodCall(e *astmethod.Call) Value {
 		}
 		return StrVal(result)
 
+	// ============ Matrix methods ============
+	case "row", "col", "dimension", "inverse", "transpose", "rotateLeft", "rotateRight":
+		return i.evalMatrixMethod(e.Name, on, args)
+
 	// ============ List methods ============
 	case "listLen":
 		return NumVal(float64(len(*on.AsList())))

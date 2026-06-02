@@ -141,6 +141,8 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 			panic("copyDict requires a dict, got " + args[0].TypeName())
 		}
 		return deepCopyValue(args[0])
+	case "makeNdArray":
+		return i.evalMatrixCreateND(args[0], args[1])
 
 	// --- Color (numops.go) ---
 	case "makeColor":

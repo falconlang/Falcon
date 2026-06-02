@@ -384,6 +384,8 @@ func (i *Interpreter) binary(e *common.BinaryExpr) Value {
 		return NumVal(math.Mod(a, b))
 	case lex.Power:
 		return NumVal(math.Pow(vals[0].AsNum(), vals[1].AsNum()))
+	case lex.MatrixPlus, lex.MatrixDash, lex.MatrixTimes, lex.MatrixPower:
+		return i.evalMatrixBinary(e.Operator, vals)
 
 	case lex.BitwiseAnd:
 		result := int64(vals[0].AsNum())
@@ -459,6 +461,8 @@ func (i *Interpreter) question(e *common.Question) Value {
 		return BoolVal(v.Type() == List)
 	case "dict":
 		return BoolVal(v.Type() == Dict)
+	case "matrix":
+		return BoolVal(isMatrixValue(v))
 	case "emptyText":
 		return BoolVal(v.Type() == String && v.strVal == "")
 	case "emptyList":
