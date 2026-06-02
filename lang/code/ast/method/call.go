@@ -122,6 +122,14 @@ var signatures = map[string]*CallSignature{
 	"keys":        makeSignature("dict", "dictionaries_getters", 0, "", true, ast.SignList),
 	"values":      makeSignature("dict", "dictionaries_getters", 0, "", true, ast.SignList),
 	"toPairs":     makeSignature("dict", "dictionaries_dict_to_alist", 0, "", true, ast.SignList),
+
+	"row":         makeSignatureTyped("matrix", "matrices_get_row", 1, "row", true, ast.SignAny, []ast.Signature{ast.SignNumb}),
+	"col":         makeSignatureTyped("matrix", "matrices_get_column", 1, "column", true, ast.SignAny, []ast.Signature{ast.SignNumb}),
+	"dimension":   makeSignature("matrix", "matrices_get_dims", 0, "", true, ast.SignList),
+	"inverse":     makeSignature("matrix", "matrices_operations", 0, "", true, ast.SignList),
+	"transpose":   makeSignature("matrix", "matrices_operations", 0, "", true, ast.SignList),
+	"rotateLeft":  makeSignature("matrix", "matrices_operations", 0, "", true, ast.SignList),
+	"rotateRight": makeSignature("matrix", "matrices_operations", 0, "", true, ast.SignList),
 }
 
 // sigString returns a display string like ".get(key, notFound)" for error messages.
@@ -172,6 +180,7 @@ func deriveAllowedModules(onSigs []ast.Signature) []string {
 	}
 	if ast.HasSignature(onSigs, ast.SignList) {
 		modules = append(modules, "list")
+		modules = append(modules, "matrix")
 	}
 	if ast.HasSignature(onSigs, ast.SignDict) {
 		modules = append(modules, "dict")
@@ -297,6 +306,8 @@ func (c *Call) Blockly(flags ...bool) ast.Block {
 		return c.listMethods(signature)
 	case "dict":
 		return c.dictMethods(signature)
+	case "matrix":
+		return c.matrixMethods(signature)
 	default:
 		c.Where.Error("Unknown method module: %", signature.Module)
 		panic("")
@@ -343,6 +354,10 @@ func (c *Call) Signature() []ast.Signature {
 	case "dict":
 		if !ast.HasSignature(onSigs, ast.SignDict) {
 			c.Where.TypeError(".%() operates on dictionaries, not %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs), &intendedOutput), c.Name, ast.FormatSignatures(onSigs))
+		}
+	case "matrix":
+		if !ast.HasSignature(onSigs, ast.SignList) {
+			c.Where.TypeError(".%() operates on matrices, not %"+methodSuggestions(c.Name, deriveAllowedModules(onSigs), &intendedOutput), c.Name, ast.FormatSignatures(onSigs))
 		}
 	}
 	return []ast.Signature{signature.Signature}
