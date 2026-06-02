@@ -23,6 +23,7 @@ Falcon is a language designed for App Inventor to enable syntax-based programmin
 4. List `[1, 2, 3, 4]`
 5. Dictionary `{"Animal": "Tiger", "Scientific Name": "Panthera tigris"}`
 6. Colour `#FFFFFF`
+7. Matrix `matrix[[1, 2], [3, 4]]`
 
 ## Operators
 
@@ -36,12 +37,16 @@ Falcon is a language designed for App Inventor to enable syntax-based programmin
 8. Join: `"Hello " _ "World!"`
 9. Pair: `"Fruit": "Mango"`
 10. Question (`?`):
-    - To check a value for a specific type (`text`, `number`, `list`, `dict`)
+    - To check a value for a specific type (`text`, `number`, `list`, `dict`, `matrix`)
         - E.g.,"Hello" ? text`
     - Check for a number type (`number`, `base10`, `hexa`, `bin`)
         - E.g. `"1010" ? bin` is a true expression.
     - Check for empty text (`emptyText`) or an empty list (`emptyList`)
         - E.g. `[] ? emptyList` or `"Cat" ? emptyText`
+11. Matrix arithmetic: `[+]`, `[-]`, `[*]`, `[^]`
+    - `[+]` and `[-]` perform element-wise matrix addition and subtraction.
+    - `[*]` performs matrix multiplication, or scalar multiplication when one operand is a number.
+    - `[^]` raises a square matrix to a non-negative integer power.
 
 Operator precedence
 The precedence of an operator dictates its parse order. E.g. `*` and `/` is parsed before `+` and `-`.
@@ -58,9 +63,9 @@ It is similar to that of Java. Below is a ranking from the lowest to the highest
 8. BitwiseXor `~`
 9. Equality `==`, `!=`, `===`, and `!==`
 10. Relational `<`, `<=`, `>`, `>=`, `<<`, and `>>`
-11. Binary `+`, and `-`
-12. BinaryL1 `*`, `/`, and `%`
-13. BinaryL2 `^`
+11. Binary `+`, `-`, `[+]`, and `[-]`
+12. BinaryL1 `*`, `/`, `%`, and `[*]`
+13. BinaryL2 `^` and `[^]`
 
 
 ## Variables
@@ -273,6 +278,7 @@ func safe_div(a, b) = {
 
 - `copyList(list)`
 - `copyDict(dict)`
+- `makeNdArray(dimensions list, initial number)`
 - `makeColor(rgb list)`
 - `splitColor(number)`
 
@@ -339,6 +345,16 @@ e.g. `"Hello  ".trim()`
 - `values()`
 - `toPairs()`
 
+### Matrix
+
+- `row(row number)`
+- `col(column number)`
+- `dimension()`
+- `inverse()`
+- `transpose()`
+- `rotateLeft()`
+- `rotateRight()`
+
 ## List access
 
 ```
@@ -355,6 +371,41 @@ numbers[1] = 8
 local animalInfo = { "Animal": "Tiger", "Scientific Name": "Panthera tigris" }
 // Get a value by key
 println(animalInfo.get("Scientific Name", "Not found"))
+```
+
+## Matrix access
+
+Matrices compile to App Inventor Matrices blocks. They use rectangular numeric lists, and Falcon follows 1-based indexing for matrix cells, rows, and columns.
+
+```falcon
+local a = matrix[[1, 2], [3, 4]]
+local b = matrix[[5, 6], [7, 8]]
+
+// Get and set cells with double square brackets.
+println(a[[2, 1]])  // Output: 3
+a[[1, 2]] = 9
+
+// Create an N-dimensional matrix filled with an initial number.
+local zeros = makeNdArray([2, 3], 0)
+
+// Matrix arithmetic.
+println(a [+] b)  // Element-wise addition
+println(b [-] a)  // Element-wise subtraction
+println(a [*] b)  // Matrix multiplication
+println(a [*] 2)  // Scalar multiplication
+println(matrix[[1, 1], [1, 0]] [^] 5)
+
+// Matrix methods.
+println(a.row(1))
+println(a.col(2))
+println(a.dimension())
+println(a.transpose())
+println(a.rotateLeft())
+println(a.rotateRight())
+println(matrix[[4, 7], [2, 6]].inverse())
+
+// Type check.
+println(a ? matrix)
 ```
 
 ## List lambdas
