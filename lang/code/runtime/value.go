@@ -14,6 +14,7 @@ const (
 	Number
 	String
 	List
+	Matrix
 	Dict
 	Color
 	ProcedureType
@@ -48,6 +49,12 @@ func ListVal(elems []Value) Value {
 	return Value{vtype: List, listVal: &cp}
 }
 
+func MatrixVal(elems []Value) Value {
+	cp := make([]Value, len(elems))
+	copy(cp, elems)
+	return Value{vtype: Matrix, listVal: &cp}
+}
+
 func EmptyList() Value {
 	elems := make([]Value, 0)
 	return Value{vtype: List, listVal: &elems}
@@ -78,6 +85,8 @@ func (v Value) TypeName() string {
 		return "text"
 	case List:
 		return "list"
+	case Matrix:
+		return "matrix"
 	case Dict:
 		return "dict"
 	case Color:
@@ -104,6 +113,8 @@ func (v Value) errorStr() string {
 		return "text \"" + s + "\""
 	case List:
 		return "list (length " + strconv.Itoa(len(*v.listVal)) + ")"
+	case Matrix:
+		return "matrix " + v.String()
 	case Dict:
 		return "dict (length " + strconv.Itoa(v.dictVal.Len()) + ")"
 	case Null:
@@ -165,7 +176,7 @@ func (v Value) AsStr() string {
 		return "false"
 	case Null:
 		return ""
-	case List:
+	case List, Matrix:
 		return v.String()
 	case Dict:
 		return v.String()
@@ -180,7 +191,7 @@ func (v Value) AsList() *[]Value {
 	if v.vtype == NonConsumable {
 		panic("expected a list value but got a statement result (void)")
 	}
-	if v.vtype != List {
+	if v.vtype != List && v.vtype != Matrix {
 		panic("expected a list value but got " + v.errorStr())
 	}
 	return v.listVal
@@ -258,7 +269,7 @@ func (v Value) stringDepth(depth int) string {
 		return v.strVal
 	case ProcedureType:
 		return v.procVal.DisplayName()
-	case List:
+	case List, Matrix:
 		parts := make([]string, len(*v.listVal))
 		for i, e := range *v.listVal {
 			parts[i] = e.stringDepth(depth + 1)
@@ -298,9 +309,9 @@ func deepCopyValue(v Value) Value {
 
 func deepCopyValueMemo(v Value, lists map[*[]Value]*[]Value, dicts map[*OrderedDict]*OrderedDict) Value {
 	switch v.vtype {
-	case List:
+	case List, Matrix:
 		if cp, ok := lists[v.listVal]; ok {
-			return Value{vtype: List, listVal: cp}
+			return Value{vtype: v.vtype, listVal: cp}
 		}
 		src := *v.listVal
 		cp := make([]Value, len(src))
@@ -308,7 +319,7 @@ func deepCopyValueMemo(v Value, lists map[*[]Value]*[]Value, dicts map[*OrderedD
 		for i, elem := range src {
 			cp[i] = deepCopyValueMemo(elem, lists, dicts)
 		}
-		return Value{vtype: List, listVal: &cp}
+		return Value{vtype: v.vtype, listVal: &cp}
 	case Dict:
 		if nd, ok := dicts[v.dictVal]; ok {
 			return DictVal(nd)
@@ -339,7 +350,7 @@ type equalPair struct {
 }
 
 func deepEqualMemo(a, b Value, seen map[equalPair]bool) bool {
-	if a.vtype != b.vtype {
+	if a.vtype != b.vtype && !(isListLikeType(a.vtype) && isListLikeType(b.vtype)) {
 		return false
 	}
 	switch a.vtype {
@@ -353,7 +364,7 @@ func deepEqualMemo(a, b Value, seen map[equalPair]bool) bool {
 		return a.strVal == b.strVal
 	case ProcedureType:
 		return a.procVal == b.procVal
-	case List:
+	case List, Matrix:
 		if a.listVal == b.listVal {
 			return true // same pointer — same list (handles self-referential equality)
 		}
@@ -396,6 +407,10 @@ func deepEqualMemo(a, b Value, seen map[equalPair]bool) bool {
 		return true
 	}
 	return false
+}
+
+func isListLikeType(t ValueType) bool {
+	return t == List || t == Matrix
 }
 
 // --- OrderedDict ---

@@ -13,6 +13,7 @@ import (
 	"Falcon/code/ast/variables"
 	"Falcon/code/compdb"
 	"Falcon/code/lex"
+	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -1108,8 +1109,8 @@ func (p *Parser) matricesGetColumn(block ast.Block) ast.Expr {
 }
 
 func (p *Parser) matricesSetCell(block ast.Block) ast.Expr {
-	numItems := block.Mutation.ItemCount
 	pVals := p.makeValueMap(block.Values)
+	numItems := matrixCellDimCount(block, pVals)
 	dims := make([]ast.Expr, numItems)
 	for i := range dims {
 		dims[i] = pVals.get("DIM" + strconv.Itoa(i))
@@ -1123,8 +1124,8 @@ func (p *Parser) matricesSetCell(block ast.Block) ast.Expr {
 }
 
 func (p *Parser) matricesGetCell(block ast.Block) ast.Expr {
-	numItems := block.Mutation.ItemCount
 	pVals := p.makeValueMap(block.Values)
+	numItems := matrixCellDimCount(block, pVals)
 	dims := make([]ast.Expr, numItems)
 	for i := range dims {
 		dims[i] = pVals.get("DIM" + strconv.Itoa(i))
@@ -1143,23 +1144,89 @@ func (p *Parser) matricesNdArray(block ast.Block) ast.Expr {
 
 func (p *Parser) matricesCreate(block ast.Block) ast.Expr {
 	pFields := p.makeFieldMap(block.Fields)
-	numRows, err := strconv.Atoi(pFields["ROWS"])
-	if err != nil {
-		panic(err)
-	}
-	numCols, err := strconv.Atoi(pFields["COLS"])
-	if err != nil {
-		panic(err)
-	}
+	mutationValues := matrixMutationValues(block)
+	numRows := matrixCreateDimension(block, pFields, mutationValues, "ROWS", 2)
+	numCols := matrixCreateDimension(block, pFields, mutationValues, "COLS", 2)
 	matrix := make([][]ast.Expr, numRows)
 	for i := range matrix {
 		row := make([]ast.Expr, numCols)
 		for j := range row {
-			row[j] = &fundamentals.Number{Content: pFields["MATRIX_"+strconv.Itoa(i)+"_"+strconv.Itoa(j)]}
+			row[j] = &fundamentals.Number{Content: matrixCreateCell(pFields, mutationValues, i, j)}
 		}
 		matrix[i] = row
 	}
 	return &astmatrix.Create{Where: lex.MakeFakeToken(lex.Name), Rows: matrix}
+}
+
+func matrixCellDimCount(block ast.Block, values ValueMap) int {
+	if block.Mutation != nil && block.Mutation.ItemCount > 0 {
+		return block.Mutation.ItemCount
+	}
+	count := 0
+	for ; values.getUnsafe("DIM"+strconv.Itoa(count)) != nil; count++ {
+	}
+	if count > 0 {
+		return count
+	}
+	return 2
+}
+
+func matrixCreateDimension(block ast.Block, fields map[string]string, mutationValues [][]string, name string, def int) int {
+	if n, err := strconv.Atoi(fields[name]); err == nil && n > 0 {
+		return n
+	}
+	if block.Mutation != nil {
+		switch name {
+		case "ROWS":
+			if block.Mutation.Rows > 0 {
+				return block.Mutation.Rows
+			}
+		case "COLS":
+			if block.Mutation.Cols > 0 {
+				return block.Mutation.Cols
+			}
+		}
+	}
+	if len(mutationValues) > 0 {
+		if name == "ROWS" {
+			return len(mutationValues)
+		}
+		if len(mutationValues[0]) > 0 {
+			return len(mutationValues[0])
+		}
+	}
+	return def
+}
+
+func matrixCreateCell(fields map[string]string, mutationValues [][]string, row, col int) string {
+	name := "MATRIX_" + strconv.Itoa(row) + "_" + strconv.Itoa(col)
+	if value, ok := fields[name]; ok && value != "" {
+		return value
+	}
+	if row < len(mutationValues) && col < len(mutationValues[row]) {
+		return mutationValues[row][col]
+	}
+	return "0"
+}
+
+func matrixMutationValues(block ast.Block) [][]string {
+	if block.Mutation == nil || block.Mutation.Matrix == "" {
+		return nil
+	}
+	dec := json.NewDecoder(strings.NewReader(block.Mutation.Matrix))
+	dec.UseNumber()
+	var raw [][]json.Number
+	if err := dec.Decode(&raw); err != nil {
+		return nil
+	}
+	values := make([][]string, len(raw))
+	for i, row := range raw {
+		values[i] = make([]string, len(row))
+		for j, value := range row {
+			values[i][j] = value.String()
+		}
+	}
+	return values
 }
 
 func (p *Parser) mathConvertAngles(block ast.Block) ast.Expr {

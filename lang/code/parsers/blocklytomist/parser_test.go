@@ -294,6 +294,46 @@ func TestMatrixCreateBlockUsesMatrixLiteral(t *testing.T) {
 	}
 }
 
+func TestMatrixCreateBlockFallsBackToMutationMatrix(t *testing.T) {
+	xml := `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="matrices_create">
+    <mutation rows="2" cols="2" matrix="[[1.5,-2],[3,4]]"></mutation>
+  </block>
+</xml>`
+
+	exprs, err := NewParser(xml).TryGenerateAST()
+	if err != nil {
+		t.Fatalf("TryGenerateAST() error = %v", err)
+	}
+	if len(exprs) != 1 {
+		t.Fatalf("TryGenerateAST() produced %d expressions, want 1", len(exprs))
+	}
+	if got := exprs[0].String(); got != "matrix[[1.5, -2], [3, 4]]" {
+		t.Fatalf("source = %q, want mutation-backed matrix literal", got)
+	}
+}
+
+func TestMatrixCellBlocksInferDimensionsWithoutMutation(t *testing.T) {
+	xml := `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="matrices_get_cell">
+    <value name="MATRIX"><block type="math_number"><field name="NUM">1</field></block></value>
+    <value name="DIM0"><block type="math_number"><field name="NUM">2</field></block></value>
+    <value name="DIM1"><block type="math_number"><field name="NUM">3</field></block></value>
+  </block>
+</xml>`
+
+	exprs, err := NewParser(xml).TryGenerateAST()
+	if err != nil {
+		t.Fatalf("TryGenerateAST() error = %v", err)
+	}
+	if len(exprs) != 1 {
+		t.Fatalf("TryGenerateAST() produced %d expressions, want 1", len(exprs))
+	}
+	if got := exprs[0].String(); got != "1[[2, 3]]" {
+		t.Fatalf("source = %q, want inferred matrix cell coordinates", got)
+	}
+}
+
 func matrixArithmeticXML(blockType, aName, bName string) string {
 	return `<xml xmlns="https://developers.google.com/blockly/xml">
   <block type="` + blockType + `">

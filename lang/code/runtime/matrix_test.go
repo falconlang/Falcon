@@ -145,6 +145,8 @@ func TestMatrixQuestionRuntime(t *testing.T) {
 		want string
 	}{
 		{name: "matrix", src: "matrix[[1, 2], [3, 4]] ? matrix", want: "true"},
+		{name: "multidim", src: "makeNdArray([2, 2], 0) ? matrix", want: "true"},
+		{name: "plain list", src: "[[1, 2], [3, 4]] ? matrix", want: "false"},
 		{name: "ragged", src: "[[1], [2, 3]] ? matrix", want: "false"},
 		{name: "non numeric", src: `[[1], ["x"]] ? matrix`, want: "false"},
 	}

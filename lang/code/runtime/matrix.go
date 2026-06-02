@@ -20,7 +20,7 @@ func (i *Interpreter) evalMatrixCreate(e *astmatrix.Create) Value {
 		}
 		rows[rowIndex] = ListVal(cells)
 	}
-	return ListVal(rows)
+	return MatrixVal(rows)
 }
 
 func (i *Interpreter) evalMatrixCreateND(dimsValue Value, initial Value) Value {
@@ -39,7 +39,7 @@ func (i *Interpreter) evalMatrixCreateND(dimsValue Value, initial Value) Value {
 		}
 		dims[idx] = n
 	}
-	return buildMatrixND(dims, initial)
+	return matrixFromNestedList(buildMatrixND(dims, initial))
 }
 
 func buildMatrixND(dims []int, initial Value) Value {
@@ -51,6 +51,13 @@ func buildMatrixND(dims []int, initial Value) Value {
 		values[idx] = buildMatrixND(dims[1:], initial)
 	}
 	return ListVal(values)
+}
+
+func matrixFromNestedList(v Value) Value {
+	if v.Type() == Matrix {
+		return v
+	}
+	return MatrixVal(*v.AsList())
 }
 
 func (i *Interpreter) evalMatrixGetCell(e *astmatrix.GetCell) Value {
@@ -157,12 +164,11 @@ func (i *Interpreter) evalMatrixMethod(name string, on Value, args []Value) Valu
 }
 
 func isMatrixValue(v Value) bool {
-	_, ok := matrixDimensions(v)
-	return ok
+	return v.Type() == Matrix
 }
 
 func matrixDimensions(v Value) ([]int, bool) {
-	if v.Type() != List {
+	if v.Type() != List && v.Type() != Matrix {
 		return nil, false
 	}
 	list := *v.AsList()
@@ -217,7 +223,7 @@ func matrixElementwise(a, b Value, opName string, op func(float64, float64) floa
 	if !sameDims(aDims, bDims) {
 		panic("matrix " + opName + " requires matching dimensions, got " + formatDims(aDims) + " and " + formatDims(bDims))
 	}
-	return matrixElementwiseSameShape(a, b, op)
+	return matrixFromNestedList(matrixElementwiseSameShape(a, b, op))
 }
 
 func matrixElementwiseSameShape(a, b Value, op func(float64, float64) float64) Value {
@@ -255,6 +261,9 @@ func matrixScalarMultiply(matrix Value, scalar float64) Value {
 	for idx, elem := range values {
 		result[idx] = matrixScalarMultiply(elem, scalar)
 	}
+	if matrix.Type() == Matrix {
+		return MatrixVal(result)
+	}
 	return ListVal(result)
 }
 
@@ -276,7 +285,7 @@ func matrixMatMul(a, b Value) Value {
 		}
 		result[row] = ListVal(cells)
 	}
-	return ListVal(result)
+	return MatrixVal(result)
 }
 
 func matrixPower(matrix Value, exponent Value) Value {
@@ -315,7 +324,7 @@ func matrixIdentity(size int) Value {
 		}
 		rows[row] = ListVal(cells)
 	}
-	return ListVal(rows)
+	return MatrixVal(rows)
 }
 
 func matrixRow(matrix Value, rowValue Value) Value {
@@ -354,7 +363,7 @@ func matrixTranspose(matrix Value) Value {
 		}
 		result[col] = ListVal(cells)
 	}
-	return ListVal(result)
+	return MatrixVal(result)
 }
 
 func matrixRotateLeft(matrix Value) Value {
@@ -367,7 +376,7 @@ func matrixRotateLeft(matrix Value) Value {
 		}
 		result[cols-1-col] = ListVal(cells)
 	}
-	return ListVal(result)
+	return MatrixVal(result)
 }
 
 func matrixRotateRight(matrix Value) Value {
@@ -380,7 +389,7 @@ func matrixRotateRight(matrix Value) Value {
 		}
 		result[col] = ListVal(cells)
 	}
-	return ListVal(result)
+	return MatrixVal(result)
 }
 
 func matrixInverse(matrix Value) Value {
@@ -431,7 +440,7 @@ func matrixInverse(matrix Value) Value {
 		}
 		result[row] = ListVal(cells)
 	}
-	return ListVal(result)
+	return MatrixVal(result)
 }
 
 func matrix2DNumbers(matrix Value, context string) ([][]float64, int, int) {
