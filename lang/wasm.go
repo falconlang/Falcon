@@ -11,12 +11,12 @@ import (
 	astmethod "Falcon/code/ast/method"
 	"Falcon/code/compdb"
 	"Falcon/code/context"
+	"Falcon/code/jsonutil"
 	"Falcon/code/lex"
 	blocklyParser "Falcon/code/parsers/blocklytomist"
 	blocklyYail "Falcon/code/parsers/blocklytoyail"
 	"Falcon/code/parsers/mistparser"
 	"Falcon/code/runtime"
-	"Falcon/code/jsonutil"
 	"Falcon/design"
 	"errors"
 	"strings"
@@ -139,15 +139,22 @@ func componentDefinitionsFromJS(obj js.Value) (map[string][]string, map[string]s
 	return componentContextMap, reverseComponentMap
 }
 
+func newWasmLangParser(strict bool, tokens []*lex.Token) *mistparser.LangParser {
+	langParser := mistparser.NewLangParser(strict, tokens)
+	langParser.SetEventValidator(compdb.GlobalDB.ValidateEvent)
+	langParser.SetPropertyValidator(compdb.GlobalDB.ValidateProperty)
+	langParser.SetMethodValidator(compdb.GlobalDB.ValidateMethod)
+	return langParser
+}
+
 func compileMistToXml(sourceCode string, componentDefinitions js.Value, strict bool) (string, []int) {
 	componentContextMap, reverseComponentMap := componentDefinitionsFromJS(componentDefinitions)
 
 	codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "appinventor.live"}
 
 	tokens := lex.NewLexer(codeContext).Lex()
-	langParser := mistparser.NewLangParser(strict, tokens)
+	langParser := newWasmLangParser(strict, tokens)
 	langParser.SetComponentDefinitions(componentContextMap, reverseComponentMap)
-	langParser.SetEventValidator(compdb.GlobalDB.ValidateEvent)
 	expressions, lineNumbers := langParser.ParseTopLevel()
 
 	var xmlCode strings.Builder
@@ -544,7 +551,7 @@ func runCode(this js.Value, p []js.Value) any {
 
 	codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "wasm"}
 	tokens := lex.NewLexer(codeContext).Lex()
-	langParser := mistparser.NewLangParser(false, tokens)
+	langParser := newWasmLangParser(true, tokens)
 	expressions := langParser.ParseAll()
 
 	interp = runtime.NewInterpreterWithOutput(func(line string) {
@@ -580,7 +587,7 @@ func runCodeWithDiagnostics(this js.Value, p []js.Value) any {
 
 		codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: "wasm"}
 		tokens := lex.NewLexer(codeContext).Lex()
-		langParser := mistparser.NewLangParser(false, tokens)
+		langParser := newWasmLangParser(true, tokens)
 		expressions := langParser.ParseAll()
 
 		interp = runtime.NewInterpreterWithOutput(func(line string) {

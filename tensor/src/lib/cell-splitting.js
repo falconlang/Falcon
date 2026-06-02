@@ -148,3 +148,11 @@ export function splitFalconSourceByTopLevelLines(sourceCode, lineNumbers = []) {
 
   return chunks.length ? groupGlobalChunksFirst(chunks) : [source.trim()];
 }
+
+export function splitFalconSourceIntoCells(sourceCode, lineNumbers = []) {
+  const parserChunks = splitFalconSourceByTopLevelLines(sourceCode, lineNumbers);
+  if (parserChunks.length !== 1) return parserChunks;
+
+  const inferredChunks = splitFalconSourceByTopLevelLines(sourceCode);
+  return inferredChunks.length > parserChunks.length ? inferredChunks : parserChunks;
+}

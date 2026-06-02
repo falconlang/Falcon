@@ -24,6 +24,10 @@
       warmTimer = window.setTimeout(warmBlockly, 800);
     }
 
+    const narrowMq = window.matchMedia('(max-width: 1024px)');
+    const onMqChange = (e) => { sidebarVisible.set(!e.matches); };
+    narrowMq.addEventListener('change', onMqChange);
+
     const onKeyDown = e => {
       if (e.key === 'Escape') {
         hideCtx();
@@ -59,6 +63,7 @@
     document.addEventListener('selectionchange', onSelectionChange);
 
     return () => {
+      narrowMq.removeEventListener('change', onMqChange);
       document.removeEventListener('click', hideCtx);
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('selectionchange', onSelectionChange);
@@ -79,8 +84,10 @@
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div class="sidebar-backdrop" on:click={closeSidebar}></div>
     {/if}
-    <div id="notebook-col">
-      <Notebook />
+    <div id="notebook-debug-col">
+      <div id="notebook-col">
+        <Notebook />
+      </div>
       <DebugPanel />
     </div>
     <DesignerPanel />

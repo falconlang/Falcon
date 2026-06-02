@@ -8,7 +8,7 @@ import {
   generateCompanionCode,
   normalizeCompanionDesignSource,
 } from '../src/lib/companion.js';
-import { splitFalconSourceByTopLevelLines } from '../src/lib/cell-splitting.js';
+import { splitFalconSourceByTopLevelLines, splitFalconSourceIntoCells } from '../src/lib/cell-splitting.js';
 import {
   DEBUG_BREAK_PREFIX,
   DEBUG_TRACE_PREFIX,
@@ -19,6 +19,7 @@ import {
 } from '../src/lib/debug-source-map.js';
 import { ensureDebugNotifierDesignSource, instrumentFalconSourceForDebug } from '../src/lib/debug-instrumentation.js';
 import { createQrSvg } from '../src/lib/qr-code.js';
+import { collectFalconSymbols } from '../src/lib/source-symbols.js';
 import {
   activeCellId,
   appendDebugLogsFromCompanionResponse,
@@ -133,6 +134,61 @@ test('createQrSvg enforces 5 character uppercase alphanumeric companion codes', 
   assert.throws(() => createQrSvg('abc12'), /5 uppercase alphanumeric/);
 });
 
+test('collectFalconSymbols finds real declarations across code cells', () => {
+  const symbols = collectFalconSymbols([
+    {
+      id: 'a',
+      type: 'code',
+      code: [
+        'global greeting = "hello"',
+        'local fruits = ["apple"]',
+        'func clamp(value, minValue, maxValue) = {',
+        '  value',
+        '}',
+      ].join('\n'),
+    },
+    { id: 'm', type: 'markdown', content: 'global ignored = true' },
+    { id: 'b', type: 'code', code: 'local total = 42\nfunc notify(message) {\n  println(message)\n}' },
+  ]);
+
+  assert.deepEqual(
+    symbols.map(symbol => [symbol.name, symbol.kind, symbol.cellId, symbol.line]),
+    [
+      ['greeting', 'text', 'a', 1],
+      ['fruits', 'list', 'a', 2],
+      ['clamp', 'returning', 'a', 3],
+      ['value', 'param', 'a', 3],
+      ['minValue', 'param', 'a', 3],
+      ['maxValue', 'param', 'a', 3],
+      ['total', 'number', 'b', 1],
+      ['notify', 'void', 'b', 2],
+      ['message', 'param', 'b', 2],
+    ],
+  );
+});
+
+test('collectFalconSymbols ignores comments and strings that look like declarations', () => {
+  const symbols = collectFalconSymbols([
+    {
+      id: 'a',
+      type: 'code',
+      code: [
+        '// global skipped = 1',
+        'local note = "func fake() // local fake = 2"',
+        'local visible = true // global notReal = false',
+      ].join('\n'),
+    },
+  ]);
+
+  assert.deepEqual(
+    symbols.map(symbol => [symbol.name, symbol.kind, symbol.line]),
+    [
+      ['note', 'text', 2],
+      ['visible', 'bool', 3],
+    ],
+  );
+});
+
 test('buildFalconSourceMap maps cells to unified editor lines', () => {
   const result = buildFalconSourceMap([
     { id: 'a', type: 'code', code: 'first()\nsecond()' },
@@ -181,6 +237,25 @@ test('instrumentFalconSourceForDebug emits hidden trace calls for executable lin
   });
   assert.equal(trace.sessionId, 'dbg-test');
   assert.equal(trace.cellId, 'c1');
+});
+
+test('instrumentFalconSourceForDebug wraps unary component property chains as one expression', () => {
+  const source = `when lipConnect.BeforePicking() {
+  if (!BluetoothClient1.Enabled) {
+    Notifier1.ShowAlert("Please enable Bluetooth")
+  }
+}`;
+  const map = buildFalconSourceMap([{ id: 'c1', type: 'code', code: source }]);
+  const result = instrumentFalconSourceForDebug(source, map.entries, {
+    sessionId: 'dbg-chain',
+    notifierName: 'TensorDebugNotifier',
+  });
+
+  assert.match(
+    result.source,
+    /tensorDebugValue_dbg_chain\("dbg-chain:expr:condition:2:\d+", tensorDebugValue_dbg_chain\("dbg-chain:expr:expression:2:\d+", !BluetoothClient1\.Enabled\)\)/,
+  );
+  assert.doesNotMatch(result.source, /!tensorDebugValue_dbg_chain\([^)]*BluetoothClient1\)\.Enabled/);
 });
 
 test('instrumentFalconSourceForDebug preserves cell-local line numbers across cells', () => {
@@ -366,6 +441,36 @@ when Button1.Click {
     'global names = [\n  "Ada",\n  "Grace"\n]',
     'func greet() = {\n  println("hi")\n}',
     'when Button1.Click {\n  greet()\n}',
+  ]);
+});
+
+test('splitFalconSourceIntoCells falls back when parser line starts collapse the script', () => {
+  const source = `func helper() = {
+  1
+}
+
+when Button1.Click {
+  helper()
+}`;
+
+  assert.deepEqual(splitFalconSourceIntoCells(source, [1]), [
+    'func helper() = {\n  1\n}',
+    'when Button1.Click {\n  helper()\n}',
+  ]);
+});
+
+test('splitFalconSourceIntoCells infers cells when parser splitting is unavailable', () => {
+  const source = `when AddButton.Click {
+  updateTotal()
+}
+
+when ClearButton.Click {
+  resetTotal()
+}`;
+
+  assert.deepEqual(splitFalconSourceIntoCells(source), [
+    'when AddButton.Click {\n  updateTotal()\n}',
+    'when ClearButton.Click {\n  resetTotal()\n}',
   ]);
 });
 

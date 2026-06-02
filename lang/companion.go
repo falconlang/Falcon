@@ -7,7 +7,6 @@ import (
 	"Falcon/code/context"
 	"Falcon/code/lex"
 	yailParser "Falcon/code/parsers/blocklytoyail"
-	mistParser "Falcon/code/parsers/mistparser"
 	"Falcon/design"
 	"encoding/json"
 	"encoding/xml"
@@ -42,7 +41,7 @@ func wrapForRepl(yail string) string {
 func compileMistToYail(source, fileName string, typeMap map[string][]string, reverseMap map[string]string) string {
 	codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
 	tokens := lex.NewLexer(codeContext).Lex()
-	lp := mistParser.NewLangParser(true, tokens)
+	lp := newLangParser(true, tokens)
 	lp.SetComponentDefinitions(typeMap, reverseMap)
 	exprs := lp.ParseAll()
 	blocks := make([]ast.Block, len(exprs))

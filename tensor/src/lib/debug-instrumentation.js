@@ -318,24 +318,88 @@ function scanVariableOccurrences(line, entry, catalog) {
   }
 }
 
+function readIdentifier(source, start) {
+  if (!/[A-Za-z_]/.test(source[start] || '')) return start;
+  let index = start + 1;
+  while (index < source.length && /[A-Za-z0-9_]/.test(source[index])) index += 1;
+  return index;
+}
+
+function skipInlineWhitespace(source, start) {
+  let index = start;
+  while (index < source.length && /[ \t]/.test(source[index])) index += 1;
+  return index;
+}
+
+function readBalancedParens(source, start) {
+  if (source[start] !== '(') return start;
+  let depth = 0;
+  for (let index = start; index < source.length; index += 1) {
+    const ch = source[index];
+    if (ch === '(') depth += 1;
+    else if (ch === ')') {
+      depth -= 1;
+      if (depth === 0) return index + 1;
+    }
+  }
+  return start;
+}
+
+function readNotOperandEnd(source, start) {
+  let end = start;
+  if (source[end] === '(') {
+    end = readBalancedParens(source, end);
+    if (end === start) return start;
+  } else {
+    end = readIdentifier(source, end);
+    if (end === start) return start;
+    const callStart = skipInlineWhitespace(source, end);
+    if (source[callStart] === '(') {
+      const callEnd = readBalancedParens(source, callStart);
+      if (callEnd !== callStart) end = callEnd;
+    }
+  }
+
+  for (;;) {
+    const dot = skipInlineWhitespace(source, end);
+    if (source[dot] !== '.') break;
+    const nameStart = skipInlineWhitespace(source, dot + 1);
+    const nameEnd = readIdentifier(source, nameStart);
+    if (nameEnd === nameStart) break;
+    end = nameEnd;
+    const callStart = skipInlineWhitespace(source, end);
+    if (source[callStart] === '(') {
+      const callEnd = readBalancedParens(source, callStart);
+      if (callEnd === callStart) break;
+      end = callEnd;
+    }
+  }
+
+  return end;
+}
+
 function wrapNotExpressions(line, entry, catalog, helperName, startOffset = 0) {
   if (!entry) return line;
   const masked = maskIgnoredSpans(line);
   const ranges = [];
-  const re = /!\s*([A-Za-z][A-Za-z0-9]*)\b/g;
+  const re = /!/g;
   let match;
   while ((match = re.exec(masked)) !== null) {
     const prev = masked[match.index - 1] || '';
     if (prev === '=' || prev === '!') continue;
-    const sourceText = line.slice(match.index, match.index + match[0].length);
+    const operandStart = skipInlineWhitespace(masked, match.index + 1);
+    const operandEnd = readNotOperandEnd(masked, operandStart);
+    if (operandEnd === operandStart) continue;
+    const sourceText = line.slice(match.index, operandEnd);
     const exprId = catalog.add(
       entry,
       sourceText,
       startOffset + match.index,
-      startOffset + match.index + match[0].length,
+      startOffset + operandEnd,
       'expression',
     );
-    if (exprId) ranges.push({ start: match.index, end: match.index + match[0].length, exprId });
+    if (exprId) ranges.push({ start: match.index, end: operandEnd, exprId });
+    re.lastIndex = operandEnd;
   }
 
   let next = line;

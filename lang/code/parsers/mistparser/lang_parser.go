@@ -23,6 +23,12 @@ import (
 // the event-name token.
 type EventValidator func(compType, eventName string, params []string) error
 
+// PropertyValidator is called during component property get/set parsing.
+type PropertyValidator func(compType, propName string) error
+
+// MethodValidator is called during component method-call parsing.
+type MethodValidator func(compType, methodName string, argsCount int) error
+
 type LangParser struct {
 	Tokens    []*l.Token
 	currIndex int
@@ -31,11 +37,13 @@ type LangParser struct {
 	strict      bool
 	autoCorrect bool
 
-	Resolver       *NameResolver
-	ScopeCursor    *ScopeCursor
-	aggregator     *ErrorAggregator
-	patches        []SourcePatch
-	eventValidator EventValidator
+	Resolver          *NameResolver
+	ScopeCursor       *ScopeCursor
+	aggregator        *ErrorAggregator
+	patches           []SourcePatch
+	eventValidator    EventValidator
+	propertyValidator PropertyValidator
+	methodValidator   MethodValidator
 }
 
 // EnableAutoCorrect turns on the auto-correction pass. Disabled by default.
@@ -71,6 +79,10 @@ func NewLangParser(strict bool, tokens []*l.Token) *LangParser {
 // simple_components.json.
 func (p *LangParser) SetEventValidator(v EventValidator) { p.eventValidator = v }
 
+func (p *LangParser) SetPropertyValidator(v PropertyValidator) { p.propertyValidator = v }
+
+func (p *LangParser) SetMethodValidator(v MethodValidator) { p.methodValidator = v }
+
 func (p *LangParser) SetComponentDefinitions(definitions map[string][]string, reverseDefinitions map[string]string) {
 	p.Resolver.ComponentNameMap = definitions
 	p.Resolver.ComponentTypesMap = reverseDefinitions
@@ -101,6 +113,7 @@ func (p *LangParser) ParseTopLevel() ([]ast.Expr, []int) {
 	var lineNumbers []int
 	if p.notEOF() {
 		p.defineStatements()
+		p.predeclareTopLevelSymbols()
 	}
 	for p.notEOF() {
 		lineNumbers = append(lineNumbers, p.peek().Column)
@@ -115,6 +128,70 @@ func (p *LangParser) ParseTopLevel() ([]ast.Expr, []int) {
 		e.Signature()
 	}
 	return expressions, lineNumbers
+}
+
+func (p *LangParser) predeclareTopLevelSymbols() {
+	curlyDepth := 0
+	for i := p.currIndex; i < p.tokenSize; i++ {
+		tok := p.Tokens[i]
+		switch tok.Type {
+		case l.OpenCurly:
+			curlyDepth++
+		case l.CloseCurly:
+			if curlyDepth > 0 {
+				curlyDepth--
+			}
+		case l.Func:
+			if curlyDepth == 0 {
+				p.predeclareProcedureAt(i)
+			}
+		case l.Global:
+			if curlyDepth == 0 {
+				p.predeclareGlobalAt(i)
+			}
+		}
+	}
+}
+
+func (p *LangParser) predeclareProcedureAt(index int) {
+	if index+2 >= p.tokenSize {
+		return
+	}
+	nameTok := p.Tokens[index+1]
+	if nameTok.Type != l.Name || nameTok.Content == nil || p.Tokens[index+2].Type != l.OpenCurve {
+		return
+	}
+
+	var parameters []string
+	closeIndex := -1
+	for i := index + 3; i < p.tokenSize; i++ {
+		tok := p.Tokens[i]
+		if tok.Type == l.CloseCurve {
+			closeIndex = i
+			break
+		}
+		if tok.Type == l.Name && tok.Content != nil {
+			parameters = append(parameters, *tok.Content)
+		}
+	}
+	if closeIndex == -1 {
+		return
+	}
+
+	returning := closeIndex+1 < p.tokenSize && p.Tokens[closeIndex+1].Type == l.Assign
+	name := *nameTok.Content
+	p.Resolver.Procedures[name] = &Procedure{Name: name, Parameters: parameters, Returning: returning}
+}
+
+func (p *LangParser) predeclareGlobalAt(index int) {
+	if index+1 >= p.tokenSize {
+		return
+	}
+	nameTok := p.Tokens[index+1]
+	if nameTok.Type != l.Name || nameTok.Content == nil {
+		return
+	}
+	p.ScopeCursor.DefineGlobalVariable(*nameTok.Content, []ast.Signature{ast.SignAny})
 }
 
 func (p *LangParser) checkPendingSymbols() {
@@ -724,21 +801,38 @@ func (p *LangParser) element() ast.Expr {
 
 func (p *LangParser) componentCall(compName string, compType string) ast.Expr {
 	p.expect(l.Dot)
+	resourceTok := p.peek()
 	resource := p.name()
 	if p.isNext(l.OpenCurve) {
+		args := p.arguments()
+		if p.methodValidator != nil {
+			if err := p.methodValidator(compType, resource, len(args)); err != nil {
+				resourceTok.Error("%", err.Error())
+			}
+		}
 		return &components.MethodCall{
 			ComponentName: compName,
 			ComponentType: compType,
 			Method:        resource,
-			Args:          p.arguments(),
+			Args:          args,
 		}
 	} else if p.consume(l.Assign) {
+		if p.propertyValidator != nil {
+			if err := p.propertyValidator(compType, resource); err != nil {
+				resourceTok.Error("%", err.Error())
+			}
+		}
 		assignment := p.expr(0)
 		return &components.PropertySet{
 			ComponentName: compName,
 			ComponentType: compType,
 			Property:      resource,
 			Value:         assignment,
+		}
+	}
+	if p.propertyValidator != nil {
+		if err := p.propertyValidator(compType, resource); err != nil {
+			resourceTok.Error("%", err.Error())
 		}
 	}
 	return &components.PropertyGet{ComponentName: compName, ComponentType: compType, Property: resource}

@@ -17,8 +17,8 @@
     }
     modeSwitching = true;
     try {
-      await unifiedEditor?.commitToCells?.();
-      notebookMode.set('cells');
+      const committed = await unifiedEditor?.commitToCells?.();
+      if (committed !== false) notebookMode.set('cells');
     } finally {
       modeSwitching = false;
     }

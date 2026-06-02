@@ -4,6 +4,7 @@ package main
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/compdb"
 	"Falcon/code/context"
 	"Falcon/code/lex"
 	blocklyParser "Falcon/code/parsers/blocklytomist"
@@ -115,6 +116,33 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  refresh")
 }
 
+func newLangParser(strict bool, tokens []*lex.Token) *mistParser.LangParser {
+	langParser := mistParser.NewLangParser(strict, tokens)
+	langParser.SetEventValidator(compdb.GlobalDB.ValidateEvent)
+	langParser.SetPropertyValidator(compdb.GlobalDB.ValidateProperty)
+	langParser.SetMethodValidator(compdb.GlobalDB.ValidateMethod)
+	return langParser
+}
+
+func formatExecutionError(interp *runtime.Interpreter, r any) string {
+	switch err := r.(type) {
+	case *context.DiagnosticError:
+		return err.Error()
+	case *context.DiagnosticListError:
+		return err.Error()
+	}
+	if interp != nil {
+		return interp.FormatRuntimeError(r)
+	}
+	if err, ok := r.(error); ok {
+		return err.Error()
+	}
+	if msg, ok := r.(string); ok {
+		return msg
+	}
+	return "unknown error"
+}
+
 func reformatStdin() {
 	codeBytes, err := io.ReadAll(os.Stdin)
 	if err != nil {
@@ -130,7 +158,7 @@ func reformatStdin() {
 	}()
 	codeContext := &context.CodeContext{SourceCode: &source, FileName: "<reformat>"}
 	tokens := lex.NewLexer(codeContext).Lex()
-	langParser := mistParser.NewLangParser(false, tokens)
+	langParser := newLangParser(true, tokens)
 	exprs := langParser.ParseAll()
 	blocks := make([]ast.Block, len(exprs))
 	for i, expr := range exprs {
@@ -177,7 +205,7 @@ func roundtripFile(path string) {
 		}()
 		codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
 		tokens := lex.NewLexer(codeContext).Lex()
-		exprs = mistParser.NewLangParser(false, tokens).ParseAll()
+		exprs = newLangParser(true, tokens).ParseAll()
 	}()
 
 	// Stage 2: AST → Blockly XML
@@ -235,7 +263,7 @@ func formatStdin() {
 	}()
 	codeContext := &context.CodeContext{SourceCode: &source, FileName: "<format>"}
 	tokens := lex.NewLexer(codeContext).Lex()
-	langParser := mistParser.NewLangParser(false, tokens)
+	langParser := newLangParser(true, tokens)
 	exprs := langParser.ParseAll()
 	var out strings.Builder
 	for i, expr := range exprs {
@@ -258,7 +286,7 @@ func runFile(path string) {
 	interp := runtime.NewInterpreter()
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Fprintln(os.Stderr, interp.FormatRuntimeError(r))
+			fmt.Fprintln(os.Stderr, formatExecutionError(interp, r))
 			//fmt.Fprintln(os.Stderr, "\n--- Go stack trace ---")
 			//fmt.Fprintln(os.Stderr, string(debug.Stack()))
 			os.Exit(1)
@@ -266,7 +294,7 @@ func runFile(path string) {
 	}()
 	codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
 	tokens := lex.NewLexer(codeContext).Lex()
-	langParser := mistParser.NewLangParser(false, tokens)
+	langParser := newLangParser(true, tokens)
 	exprs := langParser.ParseAll()
 	//fmt.Println("--- corrected source ---")
 	//fmt.Println(langParser.ReconstructedSource())
@@ -291,13 +319,13 @@ func execFile(path string) {
 	interp := runtime.NewInterpreter()
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Fprintln(os.Stderr, interp.FormatRuntimeError(r))
+			fmt.Fprintln(os.Stderr, formatExecutionError(interp, r))
 			os.Exit(1)
 		}
 	}()
 	codeContext := &context.CodeContext{SourceCode: &source, FileName: fileName}
 	tokens := lex.NewLexer(codeContext).Lex()
-	langParser := mistParser.NewLangParser(false, tokens)
+	langParser := newLangParser(true, tokens)
 	exprs := langParser.ParseAll()
 	interp.Run(exprs)
 }
@@ -401,7 +429,7 @@ func repl() {
 			}()
 			codeContext := &context.CodeContext{SourceCode: &source, FileName: "<repl>"}
 			tokens := lex.NewLexer(codeContext).Lex()
-			langParser := mistParser.NewLangParser(false, tokens)
+			langParser := newLangParser(true, tokens)
 			exprs := langParser.ParseAll()
 			for _, e := range exprs {
 				e.Blockly()
@@ -425,13 +453,13 @@ func runProgram() {
 	codeContext := &context.CodeContext{SourceCode: &sourceCode, FileName: fileName}
 
 	tokens := lex.NewLexer(codeContext).Lex()
-	langParser := mistParser.NewLangParser(false, tokens)
+	langParser := newLangParser(true, tokens)
 	exprs := langParser.ParseAll()
 
 	interp := runtime.NewInterpreter()
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Fprintln(os.Stderr, interp.FormatRuntimeError(r))
+			fmt.Fprintln(os.Stderr, formatExecutionError(interp, r))
 			os.Exit(1)
 		}
 	}()
@@ -510,7 +538,7 @@ func analyzeSyntax() {
 	println("\n=== AST ===\n")
 
 	// conversion of Falcon -> Blockly XML
-	langParser := mistParser.NewLangParser(true, tokens)
+	langParser := newLangParser(true, tokens)
 	expressions := langParser.ParseAll()
 	println(langParser.GetComponentDefinitionsCode())
 	for _, expression := range expressions {

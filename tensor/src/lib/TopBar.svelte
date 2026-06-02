@@ -67,8 +67,14 @@
   let fileMenuBtn;
   let fileInput;
   let fileBusy = false;
-  let fileMenuStatus = '';
-  let fileMenuError = '';
+  let toast = null; // { message, type: 'success'|'error' }
+  let toastTimer = null;
+
+  function showToast(message, type = 'success') {
+    clearTimeout(toastTimer);
+    toast = { message, type };
+    toastTimer = setTimeout(() => { toast = null; }, 3500);
+  }
 
   function positionFileMenu() {
     const rect = fileMenuBtn?.getBoundingClientRect();
@@ -89,8 +95,6 @@
   }
 
   function openImportPicker() {
-    fileMenuError = '';
-    fileMenuStatus = '';
     fileInput?.click();
   }
 
@@ -100,17 +104,14 @@
     if (!file) return;
 
     fileBusy = true;
-    fileMenuOpen = true;
-    fileMenuError = '';
-    fileMenuStatus = 'Importing...';
+    fileMenuOpen = false;
 
     try {
       const project = await importAiaFile(file);
       loadProjectState(project);
-      fileMenuStatus = `Loaded ${project.projectName}`;
+      showToast(`Loaded “${project.projectName}”`);
     } catch (error) {
-      fileMenuError = error?.message || String(error);
-      fileMenuStatus = '';
+      showToast(error?.message || String(error), 'error');
       console.error('[aia-import]', error);
     } finally {
       fileBusy = false;
@@ -119,18 +120,15 @@
 
   async function exportProject() {
     fileBusy = true;
-    fileMenuOpen = true;
-    fileMenuError = '';
-    fileMenuStatus = 'Exporting...';
+    fileMenuOpen = false;
 
     try {
       const blob = await exportCurrentProjectToAia();
       const safeName = sanitizeProjectName($projectName);
       downloadBlob(blob, `${safeName}.aia`);
-      fileMenuStatus = `Exported ${safeName}.aia`;
+      showToast(`Exported ${safeName}.aia`);
     } catch (error) {
-      fileMenuError = error?.message || String(error);
-      fileMenuStatus = '';
+      showToast(error?.message || String(error), 'error');
       console.error('[aia-export]', error);
     } finally {
       fileBusy = false;
@@ -240,12 +238,6 @@
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="8.5" width="11" height="4" rx="1"/><path d="M7 8V2" stroke-linecap="round"/><path d="M4.5 4L7 1.5 9.5 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Export selected project (.aia) to my computer
     </button>
-    {#if fileMenuStatus || fileMenuError}
-      <div class="ctx-sep"></div>
-      <div class:error={fileMenuError} class="file-menu-status">
-        {fileMenuError || fileMenuStatus}
-      </div>
-    {/if}
   </div>
 {/if}
 
@@ -280,5 +272,16 @@
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.5" y="1" width="7" height="12" rx="1.5"/><path d="M7 9V5M5 7l2-2 2 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Save Project to Companion
     </button>
+  </div>
+{/if}
+
+{#if toast}
+  <div class="toast toast--{toast.type}" role="status" aria-live="polite">
+    {#if toast.type === 'success'}
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7l3 3 6-6"/></svg>
+    {:else}
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v5"/><circle cx="7" cy="11" r=".8" fill="currentColor" stroke="none"/></svg>
+    {/if}
+    {toast.message}
   </div>
 {/if}

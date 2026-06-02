@@ -33,10 +33,19 @@ function xmlChunks(xml) {
     .filter(Boolean);
 }
 
-function lastBlocklyXmlChunk(xml) {
+export function blocklyTargetXmlWithContext(xml, targetIndex = -1) {
   const chunks = xmlChunks(xml);
   if (!chunks.length) throw new Error('No Blockly XML was generated');
-  return chunks[chunks.length - 1];
+
+  const index = Number.isInteger(targetIndex) && targetIndex >= 0 && targetIndex < chunks.length
+    ? targetIndex
+    : chunks.length - 1;
+
+  return {
+    targetXml: chunks[index],
+    contextXml: chunks.filter((_, chunkIndex) => chunkIndex !== index).join('\0'),
+    targetIndex: index,
+  };
 }
 
 function componentTypeAliases() {
@@ -175,20 +184,24 @@ function registerWorkspaceComponentInstances(workspace, componentDefinitions, xm
   }
 }
 
-export function joinedFalconCodeThroughCell(cellId, targetSource = null) {
+export function joinedFalconCodeForCellPreview(cellId, targetSource = null) {
   const notebookCells = get(cells);
   const targetIndex = notebookCells.findIndex(cell => cell.id === cellId);
   if (targetIndex === -1) {
     return String(targetSource || '').trim();
   }
 
-  return notebookCells
-    .slice(0, targetIndex + 1)
-    .filter(cell => cell.type === 'code')
-    .map(cell => {
-      if (cell.id === cellId && targetSource !== null) return String(targetSource || '');
-      return String(cell.code || '');
-    })
+  const targetCell = notebookCells[targetIndex];
+  const previewCells = [
+    ...notebookCells.filter(cell => cell.type === 'code' && cell.id !== cellId),
+    targetCell,
+  ];
+
+  return previewCells
+    .filter(cell => cell?.type === 'code')
+    .map(cell => (cell.id === cellId && targetSource !== null)
+      ? String(targetSource || '')
+      : String(cell.code || ''))
     .join('\n\n')
     .trim();
 }
@@ -693,16 +706,14 @@ export async function falconCellToBlocklyPng(cellId, targetSource = null, compon
     throw new Error('No Falcon code to convert');
   }
 
-  const source = joinedFalconCodeThroughCell(cellId, currentTargetSource);
+  const source = joinedFalconCodeForCellPreview(cellId, currentTargetSource);
   if (!source) throw new Error('No Falcon code to convert');
 
   const runtimeReady = runtimeLoadError(ensureBlocklyRuntime());
   const defs = componentDefinitions ?? await componentDefinitionsFromDesigner();
   const xmlResult = await mistToXmlResult(source, defs);
   const fullXml = injectFalconCommentsIntoBlocklyXml(xmlResult.xml, source, xmlResult.lineNumbers);
-  const chunks = xmlChunks(fullXml);
-  const targetXml = chunks.length ? chunks[chunks.length - 1] : lastBlocklyXmlChunk(fullXml);
-  const contextXml = chunks.slice(0, -1).join('\0');
+  const { targetXml, contextXml } = blocklyTargetXmlWithContext(fullXml);
   const runtimeError = await runtimeReady;
   if (runtimeError) throw runtimeError;
   const result = await blocklyXmlToPng(targetXml, defs, { contextXml });

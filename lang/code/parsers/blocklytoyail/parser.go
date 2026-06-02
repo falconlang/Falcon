@@ -1164,6 +1164,19 @@ func (p *Parser) genComponentEvent(b ast.Block) string {
 	for i, a := range mut.Args {
 		params[i] = "$" + a.Name
 	}
+	if len(params) == 0 {
+		params = globalDB.GetEventParams(mut.ComponentType, mut.EventName)
+		for i, param := range params {
+			params[i] = "$" + param
+		}
+	}
+	validateParams := make([]string, len(params))
+	for i, param := range params {
+		validateParams[i] = strings.TrimPrefix(param, "$")
+	}
+	if err := globalDB.ValidateEvent(mut.ComponentType, mut.EventName, validateParams); err != nil {
+		panic(err)
+	}
 	paramStr := strings.Join(params, " ")
 	body := p.ss(b.Statements, "DO", yailNull)
 	if mut.IsGeneric {

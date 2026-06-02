@@ -10,6 +10,7 @@ import (
 	"Falcon/code/ast/method"
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
+	"Falcon/code/compdb"
 	"Falcon/code/lex"
 	"errors"
 	"strconv"
@@ -448,13 +449,20 @@ func (p *Parser) componentMethod(block ast.Block) ast.Expr {
 }
 
 func (p *Parser) componentEvent(block ast.Block) ast.Expr {
-	var mutArgsNames []ast.Arg
-	if block.Mutation != nil {
-		mutArgsNames = block.Mutation.Args
+	if block.Mutation == nil {
+		return &common.EmptySocket{}
 	}
+	var mutArgsNames []ast.Arg
+	mutArgsNames = block.Mutation.Args
 	paramNames := make([]string, len(mutArgsNames))
 	for i := range mutArgsNames {
 		paramNames[i] = mutArgsNames[i].Name
+	}
+	if len(paramNames) == 0 {
+		paramNames = compdb.GlobalDB.GetEventParams(block.Mutation.ComponentType, block.Mutation.EventName)
+	}
+	if err := compdb.GlobalDB.ValidateEvent(block.Mutation.ComponentType, block.Mutation.EventName, paramNames); err != nil {
+		panic(err)
 	}
 	if block.Mutation.IsGeneric {
 		return &components.GenericEvent{

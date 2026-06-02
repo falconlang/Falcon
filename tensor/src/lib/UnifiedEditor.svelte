@@ -11,10 +11,10 @@
     debugExpressionCatalog, debugExpressionValues,
   } from './stores.js';
   import { falconTokenize, tokensToHtml, escHtml } from './tokenizer.js';
-  import { mistToXmlResult, runCodeDiagnosticResult } from './falcon-wasm.js';
+  import { mistToXmlDiagnosticResult, mistToXmlResult, runCodeDiagnosticResult } from './falcon-wasm.js';
   import { buildFalconSourceMap } from './debug-source-map.js';
-  import { blocklyXmlToPng, componentDefinitionsFromDesigner, ensureBlocklyRuntime, copyPngBlobToClipboard, downloadPngBlob } from './blockly-preview.js';
-  import { splitFalconSourceByTopLevelLines } from './cell-splitting.js';
+  import { blocklyTargetXmlWithContext, blocklyXmlToPng, componentDefinitionsFromDesigner, ensureBlocklyRuntime, copyPngBlobToClipboard, downloadPngBlob } from './blockly-preview.js';
+  import { splitFalconSourceIntoCells } from './cell-splitting.js';
 
   const AUTO_PAIRS = { '{': '}', '(': ')', '[': ']', '"': '"' };
   const HISTORY_LIMIT = 100;
@@ -35,6 +35,9 @@
   let calloutRunId = 0;
   let calloutDebounceTimer = null;
   let injectedReflowTimer = null;
+  let parseCheckTimer = null;
+  let parseCheckRunId = 0;
+  let parseDiagnostic = null;
 
   // ── Do it callout ──
   // null when hidden, or { x, y, startLine, endLine, maxWidth, status: 'running'|'ready', lines, ok }
@@ -63,7 +66,8 @@
     ? String(debugFirstError.message).split(/\r?\n/)
     : [];
 
-  let lastInjectedErrorLine = null;
+  let injectedAnnotationKey = '';
+  let pendingInjectedAnnotationKey = '';
   let injectedLineNumber = null;
   let injectedLineTexts = [];
 
@@ -174,7 +178,8 @@
     const sourceEnd = viewOffsetToSourceOffset(end, value);
     injectedLineNumber = null;
     injectedLineTexts = [];
-    lastInjectedErrorLine = null;
+    injectedAnnotationKey = '';
+    pendingInjectedAnnotationKey = '';
     editorValue = source;
     if (immediate && codeEl) {
       codeEl.value = source;
@@ -188,12 +193,22 @@
   }
 
   $: {
-    if (debugFirstErrorLine === null) {
+    const parseLine = Number(parseDiagnostic?.line);
+    const parseMessage = parseDiagnostic?.message || '';
+    const desiredKey = debugFirstErrorLine !== null
+      ? `debug:${debugFirstErrorLine}:${debugFirstErrorLines[0] || ''}`
+      : parseDiagnostic && Number.isFinite(parseLine) && parseLine > 0
+        ? `parse:${Math.trunc(parseLine)}:${parseMessage}`
+        : '';
+
+    if (!desiredKey) {
       if (injectedLineNumber !== null) clearInjectedAnnotationFromView();
-      else lastInjectedErrorLine = null;
-    } else if (debugFirstErrorLine !== lastInjectedErrorLine) {
-      lastInjectedErrorLine = debugFirstErrorLine;
-      tick().then(() => injectMewAtLine(debugFirstErrorLine));
+    } else if (desiredKey !== injectedAnnotationKey && desiredKey !== pendingInjectedAnnotationKey) {
+      pendingInjectedAnnotationKey = desiredKey;
+      const line = debugFirstErrorLine !== null ? debugFirstErrorLine : Math.trunc(parseLine);
+      const message = debugFirstErrorLine !== null ? (debugFirstErrorLines[0] || 'Runtime error') : (parseMessage || 'Parse error');
+      const prefix = debugFirstErrorLine !== null ? DEBUG_ERROR_PREFIX : PARSE_ERROR_PREFIX;
+      tick().then(() => injectAnnotationAtLine(line, message, prefix, desiredKey));
     }
   }
 
@@ -251,23 +266,25 @@
     return lines.length ? lines : [`${firstPrefix}${message}`];
   }
 
-  function injectedErrorLines(indent, errorText) {
-    const message = `${DEBUG_ERROR_PREFIX}${errorText || 'Runtime error'}`;
-    const continuationPrefix = `${indent}${' '.repeat(Array.from(DEBUG_ERROR_PREFIX).length)}`;
+  function injectedErrorLines(indent, errorText, prefix = DEBUG_ERROR_PREFIX) {
+    const message = `${prefix}${errorText || 'Runtime error'}`;
+    const continuationPrefix = `${indent}${' '.repeat(Array.from(prefix).length)}`;
     return wrapTextForEditorLine(message, indent, continuationPrefix, injectedLineMaxWidth());
   }
 
-  function injectMewAtLine(unifiedLine) {
+  function injectAnnotationAtLine(unifiedLine, message, prefix, key) {
+    if (pendingInjectedAnnotationKey && key !== pendingInjectedAnnotationKey) return;
     const lineNum = Number(unifiedLine);
     if (!Number.isFinite(lineNum) || lineNum < 1) return;
     const lines = getUnifiedEditorCode().split('\n');
     const errorLine = lines[lineNum - 1] ?? '';
     const indent = errorLine.match(/^\s*/)[0];
-    const errorText = debugFirstErrorLines[0] || 'Runtime error';
-    const annotationLines = injectedErrorLines(indent, errorText);
+    const annotationLines = injectedErrorLines(indent, message, prefix);
     injectedLineTexts = annotationLines;
     lines.splice(lineNum, 0, ...annotationLines);
     injectedLineNumber = lineNum + 1;
+    injectedAnnotationKey = key;
+    pendingInjectedAnnotationKey = '';
     debugAnnotationActive.set(true);
     editorValue = lines.join('\n');
     tick().then(syncScroll);
@@ -290,12 +307,15 @@
   const CALLOUT_GAP = 8;
   const CALLOUT_PADDING = 12; // 6px × 2
   const DEBUG_ERROR_PREFIX = '🐛 ';
+  const PARSE_ERROR_PREFIX = 'error: ';
+  const PARSE_CHECK_DEBOUNCE_MS = 450;
 
+  $: parseDiagnosticLine = Number.isFinite(Number(parseDiagnostic?.line)) ? Math.trunc(Number(parseDiagnostic.line)) : null;
   $: lineCount = Math.max(editorValue.split('\n').length, 1);
   $: lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
   $: highlightedCode = tokensToHtml(falconTokenize(editorValue));
   $: highlightedCodeFinal = (() => {
-    if (injectedLineNumber === null || !debugFirstError || !injectedLineCount) return highlightedCode;
+    if (injectedLineNumber === null || !injectedLineCount) return highlightedCode;
     const lines = highlightedCode.split('\n');
     const editorLines = editorValue.split('\n');
     const startIdx = injectedLineNumber - 1;
@@ -332,6 +352,7 @@
     editorValue = nextContent;
     dismissCallout();
     resetHistory(0);
+    scheduleParseCheck();
     tick().then(syncScroll);
   }
 
@@ -343,11 +364,79 @@
     } finally {
       syncingToStore = false;
     }
+    clearParseDiagnostic();
+    scheduleParseCheck();
+  }
+
+  function firstDiagnosticFromResult(result, fallbackMessage = 'Falcon compilation failed') {
+    const diagnostic = result?.diagnostics?.find(d => d?.severity !== 'hint') || result?.diagnostics?.[0];
+    if (diagnostic) {
+      return {
+        ...diagnostic,
+        line: Number.isFinite(Number(diagnostic.line)) && Number(diagnostic.line) > 0 ? Math.trunc(Number(diagnostic.line)) : 1,
+        message: diagnostic.message || result?.error || fallbackMessage,
+      };
+    }
+    return {
+      line: 1,
+      column: 1,
+      length: 1,
+      message: result?.error || fallbackMessage,
+      severity: 'error',
+      phase: 'compile',
+    };
+  }
+
+  function setParseDiagnosticFromResult(result) {
+    parseDiagnostic = firstDiagnosticFromResult(result, 'Falcon compilation failed');
+    return parseDiagnostic;
+  }
+
+  function clearParseDiagnostic() {
+    parseDiagnostic = null;
+  }
+
+  function scheduleParseCheck() {
+    const runId = ++parseCheckRunId;
+    clearTimeout(parseCheckTimer);
+    parseCheckTimer = setTimeout(() => runParseCheck(runId), PARSE_CHECK_DEBOUNCE_MS);
+  }
+
+  async function runParseCheck(runId = ++parseCheckRunId) {
+    const source = getUnifiedEditorCode();
+    if (!source.trim()) {
+      clearParseDiagnostic();
+      return { ok: true, error: '', diagnostics: [], xml: '', lineNumbers: [] };
+    }
+
+    try {
+      const componentDefinitions = await componentDefinitionsFromDesigner();
+      if (runId !== parseCheckRunId) return null;
+      const result = await mistToXmlDiagnosticResult(source, componentDefinitions);
+      if (runId !== parseCheckRunId) return null;
+      if (result.ok) clearParseDiagnostic();
+      else setParseDiagnosticFromResult(result);
+      return result;
+    } catch (e) {
+      if (runId !== parseCheckRunId) return null;
+      const result = {
+        ok: false,
+        error: e?.message || String(e),
+        diagnostics: e?.diagnostics || [],
+        xml: '',
+        lineNumbers: [],
+      };
+      setParseDiagnosticFromResult(result);
+      return result;
+    }
   }
 
   export async function commitToCells() {
+    const runId = ++parseCheckRunId;
+    clearTimeout(parseCheckTimer);
     const source = getUnifiedEditorCode();
     if (!source.trim()) {
+      clearParseDiagnostic();
       syncingToStore = true;
       try {
         replaceCodeCells([]);
@@ -359,8 +448,13 @@
 
     try {
       const componentDefinitions = await componentDefinitionsFromDesigner();
-      const result = await mistToXmlResult(source, componentDefinitions);
-      const chunks = splitFalconSourceByTopLevelLines(source, result.lineNumbers);
+      const result = await mistToXmlDiagnosticResult(source, componentDefinitions);
+      if (!result.ok) {
+        setParseDiagnosticFromResult(result);
+        return false;
+      }
+      const chunks = splitFalconSourceIntoCells(source, result.lineNumbers);
+      clearParseDiagnostic();
       syncingToStore = true;
       try {
         replaceCodeCells(chunks);
@@ -370,13 +464,14 @@
       return true;
     } catch (e) {
       console.warn('[unified-editor] unable to split source by top-level expressions:', e);
-      syncingToStore = true;
-      try {
-        replaceCodeCells([source]);
-      } finally {
-        syncingToStore = false;
-      }
+      setParseDiagnosticFromResult({
+        ok: false,
+        error: e?.message || String(e),
+        diagnostics: e?.diagnostics || [],
+      });
       return false;
+    } finally {
+      if (runId === parseCheckRunId) parseCheckRunId += 1;
     }
   }
 
@@ -758,11 +853,21 @@
 
   function scheduleInjectedAnnotationReflow() {
     updateCalloutY();
-    if (debugFirstErrorLine === null || injectedLineNumber === null) return;
+    if (injectedLineNumber === null || !injectedAnnotationKey) return;
+    const key = injectedAnnotationKey;
+    const parseLine = Number(parseDiagnostic?.line);
+    const line = debugFirstErrorLine !== null ? debugFirstErrorLine : Math.trunc(parseLine);
+    if (!Number.isFinite(line) || line < 1) return;
+    const message = debugFirstErrorLine !== null
+      ? (debugFirstErrorLines[0] || 'Runtime error')
+      : (parseDiagnostic?.message || 'Parse error');
+    const prefix = debugFirstErrorLine !== null ? DEBUG_ERROR_PREFIX : PARSE_ERROR_PREFIX;
     clearTimeout(injectedReflowTimer);
     injectedReflowTimer = setTimeout(() => {
       injectedReflowTimer = null;
-      if (debugFirstErrorLine !== null) injectMewAtLine(debugFirstErrorLine);
+      clearInjectedAnnotationFromView();
+      pendingInjectedAnnotationKey = key;
+      tick().then(() => injectAnnotationAtLine(line, message, prefix, key));
     }, 80);
   }
 
@@ -1023,10 +1128,8 @@
     const startLine = sourceLineToViewLine(sourceStartLine);
     const endLine = Math.max(startLine, viewEndLine);
 
-    const chunks = String(xml || '').split('\0').map(s => s.trim()).filter(Boolean);
-    const xmlChunk = chunks[idx];
+    const { targetXml: xmlChunk, contextXml } = blocklyTargetXmlWithContext(xml, idx);
     if (!xmlChunk) { callout = null; return; }
-    const contextXml = chunks.slice(0, idx).join('\0');
 
     const imgHeight = Math.round((endLine - startLine + 1) * LINE_HEIGHT);
     const { x: cx, overflowed } = calloutX(startLine, endLine);
@@ -1110,6 +1213,8 @@
 
   onDestroy(() => {
     clearTimeout(injectedReflowTimer);
+    clearTimeout(parseCheckTimer);
+    parseCheckRunId += 1;
     unsubscribeCells?.();
     unsubscribeScreen?.();
     document.removeEventListener('selectionchange', onDocumentSelectionChange);
@@ -1123,7 +1228,7 @@
 <div
   class="unified-wrap"
   class:debug-active-editor={Boolean(debugActiveUnifiedLine)}
-  class:debug-error-editor={debugFirstErrorLine !== null}
+  class:debug-error-editor={debugFirstErrorLine !== null || parseDiagnosticLine !== null}
   data-debug-active-line={debugActiveUnifiedLine || undefined}
   bind:this={wrapEl}
 >
@@ -1140,12 +1245,18 @@
         style:top={debugLineTop(sourceLineToViewLine(error.unifiedLine))}
       ></div>
     {/each}
+    {#if parseDiagnosticLine !== null}
+      <div
+        class="debug-line-backdrop debug-line-backdrop--error"
+        style:top={debugLineTop(sourceLineToViewLine(parseDiagnosticLine))}
+      ></div>
+    {/if}
     <div class="line-nums">
       {#each lineNumbers as n}
         <div
           class:debug-current-line={debugActiveUnifiedLine === viewLineToSourceLine(n)}
           class:debug-paused-line={debugPausedUnifiedLine === viewLineToSourceLine(n)}
-          class:debug-error-line={debugErrorUnifiedLines.has(viewLineToSourceLine(n))}
+          class:debug-error-line={debugErrorUnifiedLines.has(viewLineToSourceLine(n)) || parseDiagnosticLine === viewLineToSourceLine(n)}
           class:debug-breakpoint-line={Boolean($debugBreakpoints[breakpointKeyForViewLine(n)])}
           data-line={viewLineToSourceLine(n) ?? undefined}
           role="button"

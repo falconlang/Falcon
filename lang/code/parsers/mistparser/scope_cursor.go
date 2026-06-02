@@ -68,6 +68,10 @@ func (s *ScopeCursor) DefineVariable(name string, signature []ast.Signature) {
 	s.currScope.DefineVariable(name, signature)
 }
 
+func (s *ScopeCursor) DefineGlobalVariable(name string, signature []ast.Signature) {
+	s.headScope.DefineVariable(name, signature)
+}
+
 func (s *ScopeCursor) ReferVariable(name string) ([]ast.Signature, bool) {
 	return s.currScope.ReferVariable(name)
 }

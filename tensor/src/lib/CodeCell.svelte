@@ -11,6 +11,7 @@
     debugExecutionState, debugPausedFrame,
     debugModeEnabled, debugUserEnabled, debugActiveLocation, debugRuntimeErrors,
     debugExpressionCatalog, debugExpressionValues,
+    sourceNavigationHighlight,
   } from './stores.js';
   import { falconTokenize, tokensToHtml } from './tokenizer.js';
   import { falconCellToBlocklyPng, warmBlocklyPreviewRuntime } from './blockly-preview.js';
@@ -43,6 +44,7 @@
   let debugInspectCallout = null;
   let debugExprOutline = null;
   let _exprCanvas = null;
+  let handledSourceHighlightToken = null;
 
   const HISTORY_LIMIT = 100;
   const BLOCKLY_HEIGHT_TRANSITION_MS = 180;
@@ -71,6 +73,16 @@
   $: debugErrorLines = debugError?.message
     ? String(debugError.message).split(/\r?\n/)
     : [];
+  $: sourceHighlightLine = $sourceNavigationHighlight?.cellId === cell.id
+    ? $sourceNavigationHighlight.line
+    : null;
+  $: if (
+    sourceHighlightLine !== null
+    && $sourceNavigationHighlight?.token !== handledSourceHighlightToken
+  ) {
+    handledSourceHighlightToken = $sourceNavigationHighlight.token;
+    revealSourceLine(sourceHighlightLine);
+  }
   $: if (!blocklyActive) {
     const incomingCode = cell.code || '';
     if (localEditPending) {
@@ -813,6 +825,21 @@
     return `${CODE_PAD_TOP + (Math.max(1, Number(line) || 1) - 1) * CODE_LINE_HEIGHT}px`;
   }
 
+  async function revealSourceLine(line) {
+    blocklyActive = false;
+    await tick();
+    const targetLine = Math.max(1, Math.trunc(Number(line) || 1));
+    document.getElementById(`cell-${cell.id}`)?.scrollIntoView({
+      block: 'center',
+      behavior: 'smooth',
+    });
+    if (codeEl) {
+      codeEl.scrollTop = Math.max(0, (targetLine - 1) * CODE_LINE_HEIGHT - CODE_LINE_HEIGHT * 2);
+      codeEl.focus({ preventScroll: true });
+    }
+    syncEditorScroll();
+  }
+
   function breakpointKey(line) {
     return `${$activeScreen}:${cell.id}:${line}`;
   }
@@ -1088,6 +1115,12 @@
       <div
         class="debug-line-backdrop debug-line-backdrop--error"
         style:top={debugLineTop(debugError.cellLine)}
+      ></div>
+    {/if}
+    {#if !blocklyActive && sourceHighlightLine !== null}
+      <div
+        class="debug-line-backdrop debug-line-backdrop--source-nav"
+        style:top={debugLineTop(sourceHighlightLine)}
       ></div>
     {/if}
     <div class="line-nums">

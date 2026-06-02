@@ -98,7 +98,7 @@ export const doItResults = writable({});
 export const unifiedSelectionActive = writable(false);
 export const blocklyPreviewRequest = writable(null);
 export const lastRunAt = writable(null);
-export const sidebarVisible = writable(true);
+export const sidebarVisible = writable(typeof window !== 'undefined' ? window.innerWidth > 1024 : true);
 export const debugCollapsed = writable(true);
 export const notebookMode = writable('cells'); // 'cells' | 'unified'
 export const debugOpenHeight = writable(200);
@@ -122,10 +122,13 @@ export const debugPausedFrame = writable(null);
 export const debugExpressionCatalog = writable([]);
 export const debugExpressionValues = writable({});
 export const copiedCellAvailable = writable(false);
+export const sourceNavigationHighlight = writable(null);
 
 let blocklyPreviewRequestId = 0;
 let cellIdSeed = Date.now();
 let copiedCell = null;
+let sourceNavigationHighlightTimer = null;
+let sourceNavigationHighlightId = 0;
 
 function nextCellId() {
   cellIdSeed += 1;
@@ -709,6 +712,24 @@ export function setDebugRuntimeError(error) {
 
 export function setActive(id) {
   activeCellId.set(id);
+}
+
+export function navigateToCellLine(cellId, line = 1) {
+  const targetCell = get(cells).find(cell => cell?.id === cellId);
+  if (!targetCell) return false;
+  const targetLine = Math.max(1, Math.trunc(Number(line) || 1));
+  const token = ++sourceNavigationHighlightId;
+  notebookMode.set('cells');
+  setActive(cellId);
+  sourceNavigationHighlight.set({ cellId, line: targetLine, token });
+  if (sourceNavigationHighlightTimer) clearTimeout(sourceNavigationHighlightTimer);
+  sourceNavigationHighlightTimer = setTimeout(() => {
+    sourceNavigationHighlight.update(current => (
+      current?.token === token ? null : current
+    ));
+    sourceNavigationHighlightTimer = null;
+  }, 2800);
+  return true;
 }
 
 export function addCodeCell() {

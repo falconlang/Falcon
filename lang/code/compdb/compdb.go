@@ -106,6 +106,12 @@ type MethodParam struct {
 	Type string
 }
 
+// MethodDef holds the resolved metadata needed to validate a component method.
+type MethodDef struct {
+	Params     []MethodParam
+	ReturnType string
+}
+
 // ── CompDB ────────────────────────────────────────────────────────────────────
 
 type CompDB struct {
@@ -341,8 +347,16 @@ func (db *CompDB) indexHelper(h *scHelper) {
 
 // ── Lookup methods ────────────────────────────────────────────────────────────
 
+func normalizeComponentType(shortName string) string {
+	if shortName == "Screen" {
+		return "Form"
+	}
+	return shortName
+}
+
 // GetFQCN returns the fully-qualified class name for a component short name.
 func (db *CompDB) GetFQCN(shortName string) string {
+	shortName = normalizeComponentType(shortName)
 	if fqcn := db.fqcn[shortName]; fqcn != "" {
 		return fqcn
 	}
@@ -351,12 +365,14 @@ func (db *CompDB) GetFQCN(shortName string) string {
 
 // IsKnownComponent reports whether the component database has metadata for the short name.
 func (db *CompDB) IsKnownComponent(shortName string) bool {
+	shortName = normalizeComponentType(shortName)
 	_, ok := db.components[shortName]
 	return ok
 }
 
 // ComponentVersion returns the current App Inventor component version.
 func (db *CompDB) ComponentVersion(shortName string) string {
+	shortName = normalizeComponentType(shortName)
 	if comp, ok := db.components[shortName]; ok && comp.Version != "" {
 		return comp.Version
 	}
@@ -365,16 +381,19 @@ func (db *CompDB) ComponentVersion(shortName string) string {
 
 // IsNonVisible reports whether the component is marked non-visible.
 func (db *CompDB) IsNonVisible(shortName string) bool {
+	shortName = normalizeComponentType(shortName)
 	return db.components[shortName].NonVisible == "true"
 }
 
 // CategoryString returns the App Inventor palette category for a component.
 func (db *CompDB) CategoryString(shortName string) string {
+	shortName = normalizeComponentType(shortName)
 	return db.components[shortName].CategoryString
 }
 
 // DesignerPropertyDefault returns a designer property's default value.
 func (db *CompDB) DesignerPropertyDefault(compType, propName string) (string, bool) {
+	compType = normalizeComponentType(compType)
 	comp, ok := db.components[compType]
 	if !ok {
 		return "", false
@@ -389,6 +408,7 @@ func (db *CompDB) DesignerPropertyDefault(compType, propName string) (string, bo
 
 // GetPropType returns the YAIL type for a component property.
 func (db *CompDB) GetPropType(compType, propName string) string {
+	compType = normalizeComponentType(compType)
 	if pm := db.propType[compType]; pm != nil {
 		if t := pm[propName]; t != "" {
 			return t
@@ -399,11 +419,25 @@ func (db *CompDB) GetPropType(compType, propName string) string {
 
 // IsContinuation reports whether a component method uses blocking-continuation.
 func (db *CompDB) IsContinuation(compType, methodName string) bool {
+	compType = normalizeComponentType(compType)
 	return db.methodContinuation[compType+"."+methodName]
+}
+
+// GetEventParams returns the canonical parameter names for a component event.
+func (db *CompDB) GetEventParams(compType, eventName string) []string {
+	compType = normalizeComponentType(compType)
+	def, ok := db.events[compType+"."+eventName]
+	if !ok {
+		return nil
+	}
+	params := make([]string, len(def.Params))
+	copy(params, def.Params)
+	return params
 }
 
 // GetMethodParams returns the parameters for a component method.
 func (db *CompDB) GetMethodParams(compType, methodName string) []MethodParam {
+	compType = normalizeComponentType(compType)
 	comp, ok := db.components[compType]
 	if !ok {
 		return nil
@@ -425,6 +459,29 @@ func (db *CompDB) GetMethodParams(compType, methodName string) []MethodParam {
 	return nil
 }
 
+func (db *CompDB) getMethodDef(compType, methodName string) (MethodDef, bool) {
+	compType = normalizeComponentType(compType)
+	comp, ok := db.components[compType]
+	if !ok {
+		return MethodDef{}, false
+	}
+	for _, method := range comp.Methods {
+		if method.Name != methodName {
+			continue
+		}
+		params := make([]MethodParam, len(method.Params))
+		for i, param := range method.Params {
+			paramType := param.Type
+			if paramType == "" {
+				paramType = "any"
+			}
+			params[i] = MethodParam{Name: param.Name, Type: paramType}
+		}
+		return MethodDef{Params: params, ReturnType: method.ReturnType}, true
+	}
+	return MethodDef{}, false
+}
+
 // GetOptionList returns the OptionList for the given key, or nil if not found.
 func (db *CompDB) GetOptionList(key string) *OptionList {
 	return db.optionLists[key]
@@ -432,6 +489,7 @@ func (db *CompDB) GetOptionList(key string) *OptionList {
 
 // ValidateProperty checks that propName exists on compType.
 func (db *CompDB) ValidateProperty(compType, propName string) error {
+	compType = normalizeComponentType(compType)
 	comp, known := db.components[compType]
 	if !known {
 		return nil
@@ -459,8 +517,40 @@ func (db *CompDB) ValidateProperty(compType, propName string) error {
 	return errors.New(compType + ": unknown property " + strconv.Quote(propName))
 }
 
+// ValidateMethod checks that methodName exists on compType and receives the
+// right number of arguments.
+func (db *CompDB) ValidateMethod(compType, methodName string, argsCount int) error {
+	compType = normalizeComponentType(compType)
+	comp, known := db.components[compType]
+	if !known {
+		return nil
+	}
+	def, ok := db.getMethodDef(compType, methodName)
+	if !ok {
+		lower := strings.ToLower(methodName)
+		for _, method := range comp.Methods {
+			if strings.ToLower(method.Name) == lower {
+				return errors.New(compType + ": unknown method " + strconv.Quote(methodName) + ", did you mean " + strconv.Quote(method.Name) + "?")
+			}
+		}
+		return errors.New(compType + ": unknown method " + strconv.Quote(methodName))
+	}
+	if len(def.Params) != argsCount {
+		if len(def.Params) == 0 {
+			return errors.New("method " + compType + "." + methodName + " takes no arguments")
+		}
+		names := make([]string, len(def.Params))
+		for i, param := range def.Params {
+			names[i] = param.Name
+		}
+		return errors.New("method " + compType + "." + methodName + " expects " + strconv.Itoa(len(def.Params)) + " argument(s) (" + strings.Join(names, ", ") + ") but got " + strconv.Itoa(argsCount))
+	}
+	return nil
+}
+
 // DescribeComponent returns the JSON-encoded description of a component.
 func (db *CompDB) DescribeComponent(name string) (string, bool) {
+	name = normalizeComponentType(name)
 	raw, ok := db.rawJSON[name]
 	if !ok {
 		return "", false
@@ -479,6 +569,7 @@ func (db *CompDB) ListComponentNames() []string {
 
 // ValidateEvent checks that the given event exists on the component type.
 func (db *CompDB) ValidateEvent(compType, eventName string, params []string) error {
+	compType = normalizeComponentType(compType)
 	def, ok := db.events[compType+"."+eventName]
 	if !ok {
 		return errors.New("component " + compType + " has no event " + eventName)
@@ -488,6 +579,11 @@ func (db *CompDB) ValidateEvent(compType, eventName string, params []string) err
 			return errors.New("event " + compType + "." + eventName + " takes no parameters")
 		}
 		return errors.New("event " + compType + "." + eventName + " expects " + strconv.Itoa(len(def.Params)) + " parameter(s) (" + strings.Join(def.Params, ", ") + ") but got " + strconv.Itoa(len(params)))
+	}
+	for i, param := range params {
+		if param != def.Params[i] {
+			return errors.New("event " + compType + "." + eventName + " parameter " + strconv.Itoa(i+1) + " must be " + strconv.Quote(def.Params[i]) + ", got " + strconv.Quote(param))
+		}
 	}
 	return nil
 }
