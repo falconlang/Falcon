@@ -141,21 +141,21 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "controls_if":
 		return p.genControlsIf(b)
 	case "controls_forRange":
-		loopVar := "$" + fieldByName(b, "VAR")
+		loopVar := yailLocalName(fieldByName(b, "VAR"))
 		start := p.vs(b.Values, "START", "0")
 		end := p.vs(b.Values, "END", "0")
 		step := p.vs(b.Values, "STEP", "0")
 		body := p.ss(b.Statements, "DO", "#f")
 		return "(forrange " + loopVar + " (begin " + body + ") " + start + " " + end + " " + step + ")"
 	case "controls_forEach":
-		loopVar := "$" + fieldByName(b, "VAR")
+		loopVar := yailLocalName(fieldByName(b, "VAR"))
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		body := p.ss(b.Statements, "DO", "#f")
 		return "(foreach " + loopVar + " (begin " + body + ") " + list + ")"
 	case "controls_for_each_dict":
 		loopVar := "$item"
-		keyVar := "$" + fieldByName(b, "KEY")
-		valVar := "$" + fieldByName(b, "VALUE")
+		keyVar := yailLocalName(fieldByName(b, "KEY"))
+		valVar := yailLocalName(fieldByName(b, "VALUE"))
 		dict := p.vs(b.Values, "DICT", yailEmptyDict)
 		body := p.ss(b.Statements, "DO", "#f")
 		getKey := callPrimitive("yail-list-get-item",
@@ -186,13 +186,9 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "controls_nothing":
 		return "*the-null-value*"
 	case "controls_run_in_background":
-		proc := p.vs(b.Values, "PROCEDURE", yailNull)
-		cb := p.vs(b.Values, "CALLBACK", yailNull)
-		return callPrimitive("run-in-background", []string{proc, cb}, []string{"any", "any"}, "run in background")
+		panic(unsupportedIOSBlock(b.Type, "the iOS runtime does not define run-in-background"))
 	case "controls_run_after_period":
-		millis := p.vs(b.Values, "MILLIS", yailNull)
-		proc := p.vs(b.Values, "PROCEDURE", yailNull)
-		return callPrimitive("run-after-period", []string{millis, proc}, []string{"any", "any"}, "run after period")
+		panic(unsupportedIOSBlock(b.Type, "the iOS runtime does not define run-after-period"))
 	case "controls_openAnotherScreen":
 		name := p.vs(b.Values, "SCREEN", "null")
 		return callPrimitive("open-another-screen", []string{name}, []string{"text"}, "open another screen")
@@ -406,6 +402,10 @@ func (p *Parser) genBlock(b ast.Block) string {
 			return callPrimitive(">=", []string{a, bv}, []string{"number", "number"}, ">=")
 		}
 		return callPrimitive("=", []string{a, bv}, []string{"number", "number"}, "=")
+	case "math_arithmetic":
+		return p.genMathArithmetic(b)
+	case "math_arithmetic_list":
+		return p.genMathArithmeticList(b)
 	case "math_add":
 		n := mutItemCountOr(b, 2)
 		args := make([]string, n)
@@ -578,10 +578,7 @@ func (p *Parser) genBlock(b ast.Block) string {
 	case "matrices_create":
 		return p.genMatrixCreate(b)
 	case "matrices_create_multidim":
-		dims := p.vs(b.Values, "DIM", yailNull)
-		initial := p.vs(b.Values, "INITIAL", "0")
-		return callPrimitive("make-yail-matrix-multidim", []string{dims, initial},
-			[]string{"list", "number"}, "create multidimensional matrix")
+		panic(unsupportedIOSBlock(b.Type, "the iOS runtime only supports two-dimensional YailMatrix values"))
 	case "matrices_get_row":
 		matrix := p.vs(b.Values, "MATRIX", yailNull)
 		row := p.vs(b.Values, "ROW", "1")
@@ -602,6 +599,10 @@ func (p *Parser) genBlock(b ast.Block) string {
 			[]string{"matrix"}, "get matrix dimensions")
 	case "matrices_operations", "matrices_transpose", "matrices_rotate_left", "matrices_rotate_right":
 		return p.genMatrixOperation(b)
+	case "matrices_arithmetic":
+		return p.genMatrixArithmetic(b, matrixArithmeticMode(b, "MINUS"))
+	case "matrices_arithmetic_list":
+		return p.genMatrixArithmeticList(b, matrixArithmeticMode(b, "ADD"))
 	case "matrices_subtract":
 		return p.genMatrixArithmetic(b, "MINUS")
 	case "matrices_power":
@@ -722,47 +723,47 @@ func (p *Parser) genBlock(b ast.Block) string {
 		list2 := p.vs(b.Values, "LIST1", yailEmptyListCode)
 		return callPrimitive("yail-list-append!", []string{list1, list2}, []string{"list", "list"}, "append to list")
 	case "lists_map":
-		loopVar := "$" + field(b)
+		loopVar := yailLocalName(field(b))
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		to := p.vs(b.Values, "TO", "#f")
 		return "(map_nondest " + loopVar + " " + to + " " + list + ")"
 	case "lists_filter":
-		loopVar := "$" + field(b)
+		loopVar := yailLocalName(field(b))
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		test := p.vs(b.Values, "TEST", "#f")
 		return "(filter_nondest " + loopVar + " " + test + " " + list + ")"
 	case "lists_reduce":
 		fm := fieldMap(b)
-		var1 := "$" + fm["VAR1"]
-		var2 := "$" + fm["VAR2"]
+		var1 := yailLocalName(fm["VAR1"])
+		var2 := yailLocalName(fm["VAR2"])
 		init := p.genValueSlot(b.Values, "INITANSWER")
 		combine := p.vs(b.Values, "COMBINE", "#f")
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		return "(reduceovereach " + init + " " + var2 + " " + var1 + " " + combine + " " + list + ")"
 	case "lists_sort_comparator":
 		fm := fieldMap(b)
-		var1 := "$" + fm["VAR1"]
-		var2 := "$" + fm["VAR2"]
+		var1 := yailLocalName(fm["VAR1"])
+		var2 := yailLocalName(fm["VAR2"])
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		cmp := p.vs(b.Values, "COMPARE", "#f")
 		return "(sortcomparator_nondest " + var1 + " " + var2 + " " + cmp + " " + list + ")"
 	case "lists_sort_key":
-		loopVar := "$" + field(b)
+		loopVar := yailLocalName(field(b))
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		key := p.vs(b.Values, "KEY", "#f")
 		return "(sortkey_nondest " + loopVar + " " + key + " " + list + ")"
 	case "lists_minimum_value":
 		fm := fieldMap(b)
-		var1 := "$" + fm["VAR1"]
-		var2 := "$" + fm["VAR2"]
+		var1 := yailLocalName(fm["VAR1"])
+		var2 := yailLocalName(fm["VAR2"])
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		defaultCmp := callPrimitive("<", []string{"(lexical-value " + var1 + ")", "(lexical-value " + var2 + ")"}, []string{"number", "number"}, "<")
 		cmp := p.vs(b.Values, "COMPARE", defaultCmp)
 		return "(mincomparator-nondest " + var1 + " " + var2 + " " + cmp + " " + list + ")"
 	case "lists_maximum_value":
 		fm := fieldMap(b)
-		var1 := "$" + fm["VAR1"]
-		var2 := "$" + fm["VAR2"]
+		var1 := yailLocalName(fm["VAR1"])
+		var2 := yailLocalName(fm["VAR2"])
 		list := p.vs(b.Values, "LIST", yailEmptyListCode)
 		defaultCmp := callPrimitive("<", []string{"(lexical-value " + var1 + ")", "(lexical-value " + var2 + ")"}, []string{"number", "number"}, "<")
 		cmp := p.vs(b.Values, "COMPARE", defaultCmp)
@@ -982,21 +983,40 @@ func (p *Parser) genMatrixCreate(b ast.Block) string {
 	return callPrimitive("make-yail-matrix", args, repeatStr("number", len(args)), "create a matrix")
 }
 
+func (p *Parser) genMathArithmetic(b ast.Block) string {
+	a := p.vs(b.Values, "A", "0")
+	bv := p.vs(b.Values, "B", "0")
+	operator := mathArithmeticOperator(fieldByName(b, "OP"))
+	return callPrimitive(operator, []string{a, bv}, []string{"number", "number"}, operator)
+}
+
+func (p *Parser) genMathArithmeticList(b ast.Block) string {
+	mode := fieldByName(b, "OP")
+	operator := mathArithmeticOperator(mode)
+	n := mutItemCountOr(b, 2)
+	args := make([]string, n)
+	for i := 0; i < n; i++ {
+		args[i] = p.vs(b.Values, "NUM"+strconv.Itoa(i), "0")
+	}
+	return callPrimitive(operator, args, repeatStr("number", n), operator)
+}
+
 func (p *Parser) genMatrixCell(b ast.Block, set bool) string {
 	matrix := p.vs(b.Values, "MATRIX", yailNull)
 	dimCount := mutItemCountOrValues(b, "DIM", 2)
+	if dimCount != 2 {
+		panic(unsupportedIOSBlock(b.Type, "the iOS runtime defines matrix cell access as matrix row column"))
+	}
 
 	args := []string{matrix}
 	types := []string{"matrix"}
-	if set {
-		args = append(args, p.vs(b.Values, "VALUE", "1"))
-		types = append(types, "number")
-	}
 	for i := 0; i < dimCount; i++ {
 		args = append(args, p.vs(b.Values, "DIM"+strconv.Itoa(i), "1"))
 		types = append(types, "number")
 	}
 	if set {
+		args = append(args, p.vs(b.Values, "VALUE", "1"))
+		types = append(types, "number")
 		return callPrimitive("yail-matrix-set-cell!", args, types, "set matrix cell")
 	}
 	return callPrimitive("yail-matrix-get-cell", args, types, "get matrix cell")
@@ -1103,9 +1123,9 @@ func (p *Parser) genLocalDecl(b ast.Block, isExpr bool) string {
 		if i > 0 {
 			sb.WriteByte(' ')
 		}
-		varName := fieldByName(b, "VAR"+strconv.Itoa(i))
+		varName := yailLocalName(fieldByName(b, "VAR"+strconv.Itoa(i)))
 		decl := p.vs(b.Values, "DECL"+strconv.Itoa(i), "0")
-		sb.WriteString("($" + varName + " " + decl + ")")
+		sb.WriteString("(" + varName + " " + decl + ")")
 	}
 	if isExpr {
 		return "(let (" + sb.String() + ") " + p.vs(b.Values, "RETURN", "0") + ")"
@@ -1118,7 +1138,7 @@ func (p *Parser) genProcDef(b ast.Block, hasReturn bool) string {
 	params := make([]string, 0)
 	if b.Mutation != nil {
 		for _, a := range b.Mutation.Args {
-			params = append(params, "$"+a.Name)
+			params = append(params, yailLocalName(a.Name))
 		}
 	}
 	sig := "(" + name + " " + strings.Join(params, " ") + ")"
@@ -1131,7 +1151,7 @@ func (p *Parser) genProcDef(b ast.Block, hasReturn bool) string {
 func (p *Parser) genAnonProcDef(b ast.Block, hasReturn bool) string {
 	params := anonProcParams(b)
 	for i, param := range params {
-		params[i] = "$" + param
+		params[i] = yailLocalName(param)
 	}
 	body := p.ss(b.Statements, "STACK", "#f")
 	if hasReturn {
@@ -1245,8 +1265,7 @@ func (p *Parser) genComponentMethod(b ast.Block) string {
 		}
 		fqcn := globalDB.GetFQCN(mut.ComponentType)
 		if globalDB.IsContinuation(mut.ComponentType, methodName) {
-			return "(call-component-type-method-with-blocking-continuation " + comp + " '" + fqcn +
-				" '" + methodName + " (*list-for-runtime*" + argList + ") '(" + allTypes + "))"
+			panic(unsupportedIOSBlock(b.Type, "the iOS runtime does not define generic blocking continuation calls"))
 		}
 		return "(call-component-type-method " + comp + " '" + fqcn +
 			" '" + methodName + " (*list-for-runtime*" + argList + ") '(" + allTypes + "))"
@@ -1352,17 +1371,43 @@ func genVarGet(b ast.Block) string {
 	if b.Mutation != nil && len(b.Mutation.EventParams) > 0 {
 		name = b.Mutation.EventParams[0].Name
 	}
-	if strings.HasPrefix(name, "global ") {
-		return "(get-var g$" + name[7:] + ")"
+	if globalName, ok := yailGlobalName(name); ok {
+		return "(get-var " + globalName + ")"
 	}
-	return "(lexical-value $" + name + ")"
+	return "(lexical-value " + yailLocalName(name) + ")"
 }
 
 func genVarSet(name, val string) string {
-	if strings.HasPrefix(name, "global ") {
-		return "(set-var! g$" + name[7:] + " " + val + ")"
+	if globalName, ok := yailGlobalName(name); ok {
+		return "(set-var! " + globalName + " " + val + ")"
 	}
-	return "(set-lexical! $" + name + " " + val + ")"
+	return "(set-lexical! " + yailLocalName(name) + " " + val + ")"
+}
+
+func yailGlobalName(name string) (string, bool) {
+	if strings.HasPrefix(name, "global ") {
+		return "g$" + strings.TrimPrefix(name, "global "), true
+	}
+	return "", false
+}
+
+func yailLocalName(name string) string {
+	prefix, base, ok := unprefixAIName(name)
+	if ok {
+		switch prefix {
+		case "local", "param":
+			return "$" + prefix + "_" + base
+		}
+	}
+	return "$" + name
+}
+
+func unprefixAIName(name string) (prefix, base string, ok bool) {
+	parts := strings.SplitN(name, " ", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
 }
 
 func mutItemCount(b ast.Block) int {
@@ -1499,12 +1544,38 @@ func matrixOperation(mode string) (operator, display string) {
 	case "TRANSPOSE":
 		return "yail-matrix-transpose", "transpose"
 	case "ROTATE_LEFT":
-		return "yail-matrix-rotate-left", "rotate_left"
+		panic(unsupportedIOSBlock("matrices_rotate_left", "the iOS runtime does not define yail-matrix-rotate-left"))
 	case "ROTATE_RIGHT":
-		return "yail-matrix-rotate-right", "rotate_right"
+		panic(unsupportedIOSBlock("matrices_rotate_right", "the iOS runtime does not define yail-matrix-rotate-right"))
 	default:
 		panic("blocklytoyail: unsupported matrices_operations OP: " + mode)
 	}
+}
+
+func unsupportedIOSBlock(blockType, reason string) string {
+	return "blocklytoyail: " + blockType + " is not supported by the App Inventor iOS runtime: " + reason
+}
+
+func mathArithmeticOperator(mode string) string {
+	switch mode {
+	case "ADD":
+		return "+"
+	case "MULTIPLY":
+		return "*"
+	case "DIVIDE":
+		return "yail-divide"
+	case "POWER":
+		return "expt"
+	default:
+		return "+"
+	}
+}
+
+func matrixArithmeticMode(b ast.Block, def string) string {
+	if mode := fieldByName(b, "OP"); mode != "" {
+		return mode
+	}
+	return def
 }
 
 func matrixArithmeticOperator(mode string) string {

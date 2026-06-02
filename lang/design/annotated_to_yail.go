@@ -346,6 +346,9 @@ func (c *AnnYailConverter) generateYail(screen Component, codeYail string) (stri
 
 	sb.WriteString("(begin\n")
 	sb.WriteString("(clear-current-form)\n")
+	sb.WriteString("(set-form-name \"")
+	sb.WriteString(formName)
+	sb.WriteString("\")\n")
 
 	if formName != "Screen1" {
 		sb.WriteString("(rename-component \"Screen1\" \"")

@@ -177,6 +177,27 @@ func TestAnnYailSkipsInternalPropertiesAndAlwaysSendsDefaults(t *testing.T) {
 	}
 }
 
+func TestAnnYailSetsFormNameBeforeOptionalRename(t *testing.T) {
+	source := `Screen.DetailScreen { Title: "Detail" }`
+
+	yail, err := NewAnnYailConverter().ConvertAnnToYail(source)
+	if err != nil {
+		t.Fatalf("ConvertAnnToYail() error = %v", err)
+	}
+
+	setForm := `(set-form-name "DetailScreen")`
+	rename := `(rename-component "Screen1" "DetailScreen")`
+	if !strings.Contains(yail, setForm) {
+		t.Fatalf("generated YAIL does not contain %q:\n%s", setForm, yail)
+	}
+	if !strings.Contains(yail, rename) {
+		t.Fatalf("generated YAIL does not contain %q:\n%s", rename, yail)
+	}
+	if strings.Index(yail, setForm) > strings.Index(yail, rename) {
+		t.Fatalf("generated YAIL sets form name after rename:\n%s", yail)
+	}
+}
+
 func TestAnnValidationRejectsUnknownDuplicateAndIllegalContainment(t *testing.T) {
 	source := `Screen.Screen1 {
   Button.Dup

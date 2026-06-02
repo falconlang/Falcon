@@ -158,6 +158,59 @@ func TestAnonymousProcedureBlocksGenerateYAIL(t *testing.T) {
 	}
 }
 
+func TestAppInventorPrefixedVariableNamesGenerateCanonicalYAIL(t *testing.T) {
+	tests := []struct {
+		name string
+		xml  string
+		want string
+	}{
+		{
+			name: "prefixed local declaration",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="local_declaration_expression">
+    <mutation>
+      <localname name="item"></localname>
+    </mutation>
+    <field name="VAR0">local item</field>
+    <value name="DECL0"><block type="math_number"><field name="NUM">7</field></block></value>
+    <value name="RETURN"><block type="lexical_variable_get"><field name="VAR">local item</field></block></value>
+  </block>
+</xml>`,
+			want: `(let (($local_item 7)) (lexical-value $local_item))`,
+		},
+		{
+			name: "prefixed procedure parameter",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_defreturn">
+    <mutation><arg name="param value"></arg></mutation>
+    <field name="NAME">echo</field>
+    <value name="RETURN"><block type="procedure_lexical_variable_get"><field name="VAR">param value</field></block></value>
+  </block>
+</xml>`,
+			want: `(def (p$echo $param_value) (lexical-value $param_value))`,
+		},
+		{
+			name: "prefixed list transform variable",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="lists_map">
+    <field name="VAR">local item</field>
+    <value name="TO"><block type="lexical_variable_get"><field name="VAR">local item</field></block></value>
+  </block>
+</xml>`,
+			want: `(map_nondest $local_item (lexical-value $local_item)`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			yail := generateYAILForTest(t, tt.xml)
+			if !strings.Contains(yail, tt.want) {
+				t.Fatalf("YAIL = %q, want substring %q", yail, tt.want)
+			}
+		})
+	}
+}
+
 func TestMatrixCreateYAILUsesFields(t *testing.T) {
 	yail := generateYAILForTest(t, `<xml xmlns="https://developers.google.com/blockly/xml">
   <block type="matrices_create">
@@ -197,11 +250,6 @@ func TestMatrixBlocksGenerateYAILPrimitives(t *testing.T) {
 		want string
 	}{
 		{
-			name: "create multidim",
-			xml:  matrixBlockXML("matrices_create_multidim", matrixNumberValue("DIM", "2"), matrixNumberValue("INITIAL", "9")),
-			want: `make-yail-matrix-multidim (*list-for-runtime* 2 9) '(list number) "create multidimensional matrix"`,
-		},
-		{
 			name: "get row",
 			xml:  matrixBlockXML("matrices_get_row", matrixNumberValue("MATRIX", "1"), matrixNumberValue("ROW", "2")),
 			want: `yail-matrix-get-row (*list-for-runtime* 1 2) '(matrix number) "get matrix row"`,
@@ -228,7 +276,7 @@ func TestMatrixBlocksGenerateYAILPrimitives(t *testing.T) {
 				matrixNumberValue("DIM0", "2"),
 				matrixNumberValue("DIM1", "3"),
 				matrixNumberValue("VALUE", "9")),
-			want: `yail-matrix-set-cell! (*list-for-runtime* 1 9 2 3) '(matrix number number number) "set matrix cell"`,
+			want: `yail-matrix-set-cell! (*list-for-runtime* 1 2 3 9) '(matrix number number number) "set matrix cell"`,
 		},
 		{
 			name: "dimensions",
@@ -259,8 +307,6 @@ func TestMatrixOperationYAILPrimitives(t *testing.T) {
 	}{
 		{op: "INVERSE", want: `yail-matrix-inverse (*list-for-runtime* 1) '(matrix) "inverse"`},
 		{op: "TRANSPOSE", want: `yail-matrix-transpose (*list-for-runtime* 1) '(matrix) "transpose"`},
-		{op: "ROTATE_LEFT", want: `yail-matrix-rotate-left (*list-for-runtime* 1) '(matrix) "rotate_left"`},
-		{op: "ROTATE_RIGHT", want: `yail-matrix-rotate-right (*list-for-runtime* 1) '(matrix) "rotate_right"`},
 	}
 
 	for _, tt := range tests {
@@ -268,6 +314,134 @@ func TestMatrixOperationYAILPrimitives(t *testing.T) {
 			yail := generateYAILForTest(t, matrixBlockXML("matrices_operations",
 				`<field name="OP">`+tt.op+`</field>`,
 				matrixNumberValue("MATRIX", "1")))
+			if !strings.Contains(yail, tt.want) {
+				t.Fatalf("YAIL = %q, want substring %q", yail, tt.want)
+			}
+		})
+	}
+}
+
+func TestIOSUnsupportedBlocksReturnErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		xml  string
+		want string
+	}{
+		{
+			name: "run in background",
+			xml:  matrixBlockXML("controls_run_in_background"),
+			want: "controls_run_in_background is not supported by the App Inventor iOS runtime",
+		},
+		{
+			name: "run after period",
+			xml:  matrixBlockXML("controls_run_after_period"),
+			want: "controls_run_after_period is not supported by the App Inventor iOS runtime",
+		},
+		{
+			name: "multidimensional matrix",
+			xml:  matrixBlockXML("matrices_create_multidim", matrixNumberValue("DIM", "2"), matrixNumberValue("INITIAL", "9")),
+			want: "matrices_create_multidim is not supported by the App Inventor iOS runtime",
+		},
+		{
+			name: "rotate left",
+			xml: matrixBlockXML("matrices_operations",
+				`<field name="OP">ROTATE_LEFT</field>`,
+				matrixNumberValue("MATRIX", "1")),
+			want: "matrices_rotate_left is not supported by the App Inventor iOS runtime",
+		},
+		{
+			name: "rotate right",
+			xml: matrixBlockXML("matrices_operations",
+				`<field name="OP">ROTATE_RIGHT</field>`,
+				matrixNumberValue("MATRIX", "1")),
+			want: "matrices_rotate_right is not supported by the App Inventor iOS runtime",
+		},
+		{
+			name: "3d matrix cell",
+			xml: matrixBlockXML("matrices_get_cell",
+				`<mutation items="3"></mutation>`,
+				matrixNumberValue("MATRIX", "1"),
+				matrixNumberValue("DIM0", "2"),
+				matrixNumberValue("DIM1", "3"),
+				matrixNumberValue("DIM2", "4")),
+			want: "matrices_get_cell is not supported by the App Inventor iOS runtime",
+		},
+		{
+			name: "generic continuation method",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="component_method">
+    <mutation is_generic="true" component_type="File" method_name="Exists">
+      <arg name="scope" type="com.google.appinventor.components.common.FileScopeEnum"></arg>
+      <arg name="path" type="text"></arg>
+    </mutation>
+    <value name="COMPONENT"><block type="component_component_block"><field name="COMPONENT_SELECTOR">File1</field></block></value>
+    <value name="ARG0"><block type="text"><field name="TEXT">App</field></block></value>
+    <value name="ARG1"><block type="text"><field name="TEXT">data.txt</field></block></value>
+  </block>
+</xml>`,
+			want: "component_method is not supported by the App Inventor iOS runtime",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewParser(tt.xml).TryGenerateYAIL()
+			if err == nil {
+				t.Fatal("TryGenerateYAIL() error = nil, want unsupported iOS block error")
+			}
+			if !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("TryGenerateYAIL() error = %q, want substring %q", err.Error(), tt.want)
+			}
+		})
+	}
+}
+
+func TestAppInventorArithmeticAliasBlocksGenerateYAIL(t *testing.T) {
+	tests := []struct {
+		name string
+		xml  string
+		want string
+	}{
+		{
+			name: "math binary alias",
+			xml: matrixBlockXML("math_arithmetic",
+				`<field name="OP">DIVIDE</field>`,
+				matrixNumberValue("A", "8"),
+				matrixNumberValue("B", "2")),
+			want: `yail-divide (*list-for-runtime* 8 2) '(number number) "yail-divide"`,
+		},
+		{
+			name: "math variadic alias",
+			xml: matrixBlockXML("math_arithmetic_list",
+				`<field name="OP">MULTIPLY</field>`,
+				`<mutation items="3"></mutation>`,
+				matrixNumberValue("NUM0", "2"),
+				matrixNumberValue("NUM1", "3"),
+				matrixNumberValue("NUM2", "4")),
+			want: `* (*list-for-runtime* 2 3 4) '(number number number) "*"`,
+		},
+		{
+			name: "matrix binary alias",
+			xml: matrixBlockXML("matrices_arithmetic",
+				`<field name="OP">POWER</field>`,
+				matrixNumberValue("A", "2"),
+				matrixNumberValue("B", "3")),
+			want: `yail-matrix-power (*list-for-runtime* 2 3) '(matrix number) "yail-matrix-power"`,
+		},
+		{
+			name: "matrix variadic alias",
+			xml: matrixBlockXML("matrices_arithmetic_list",
+				`<field name="OP">MULTIPLY</field>`,
+				`<mutation items="2"></mutation>`,
+				matrixNumberValue("MAT0", "5"),
+				matrixNumberValue("MAT1", "6")),
+			want: `yail-matrix-multiply (*list-for-runtime* 5 6) '(matrix any) "yail-matrix-multiply"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			yail := generateYAILForTest(t, tt.xml)
 			if !strings.Contains(yail, tt.want) {
 				t.Fatalf("YAIL = %q, want substring %q", yail, tt.want)
 			}
