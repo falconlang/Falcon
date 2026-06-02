@@ -16,6 +16,7 @@ const (
 	List
 	Dict
 	Color
+	ProcedureType
 	NonConsumable // result of a statement; consuming it is a runtime error
 )
 
@@ -26,6 +27,7 @@ type Value struct {
 	strVal  string
 	listVal *[]Value
 	dictVal *OrderedDict
+	procVal *ProcedureValue
 }
 
 // --- Constructors ---
@@ -36,6 +38,9 @@ func NumVal(n float64) Value    { return Value{vtype: Number, numVal: n} }
 func StrVal(s string) Value     { return Value{vtype: String, strVal: s} }
 func ColorVal(hex string) Value { return Value{vtype: Color, strVal: hex} }
 func VoidVal() Value            { return Value{vtype: NonConsumable} }
+func ProcVal(proc *ProcedureValue) Value {
+	return Value{vtype: ProcedureType, procVal: proc}
+}
 
 func ListVal(elems []Value) Value {
 	cp := make([]Value, len(elems))
@@ -77,6 +82,8 @@ func (v Value) TypeName() string {
 		return "dict"
 	case Color:
 		return "color"
+	case ProcedureType:
+		return "procedure"
 	default:
 		return "unknown"
 	}
@@ -103,6 +110,8 @@ func (v Value) errorStr() string {
 		return "null"
 	case Color:
 		return "color " + v.strVal
+	case ProcedureType:
+		return "procedure " + v.procVal.DisplayName()
 	default:
 		return "unknown"
 	}
@@ -160,6 +169,8 @@ func (v Value) AsStr() string {
 		return v.String()
 	case Dict:
 		return v.String()
+	case ProcedureType:
+		return v.procVal.DisplayName()
 	default:
 		return v.String()
 	}
@@ -183,6 +194,16 @@ func (v Value) AsDict() *OrderedDict {
 		panic("expected a dict value but got " + v.errorStr())
 	}
 	return v.dictVal
+}
+
+func (v Value) AsProc() *ProcedureValue {
+	if v.vtype == NonConsumable {
+		panic("expected a procedure value but got a statement result (void)")
+	}
+	if v.vtype != ProcedureType {
+		panic("expected a procedure value but got " + v.errorStr())
+	}
+	return v.procVal
 }
 
 func CoerceNum(v Value) (float64, bool) {
@@ -235,6 +256,8 @@ func (v Value) stringDepth(depth int) string {
 		return v.strVal
 	case Color:
 		return v.strVal
+	case ProcedureType:
+		return v.procVal.DisplayName()
 	case List:
 		parts := make([]string, len(*v.listVal))
 		for i, e := range *v.listVal {
@@ -296,6 +319,8 @@ func deepCopyValueMemo(v Value, lists map[*[]Value]*[]Value, dicts map[*OrderedD
 			nd.Set(entry.Key, deepCopyValueMemo(entry.Val, lists, dicts))
 		}
 		return DictVal(nd)
+	case ProcedureType:
+		return v
 	default:
 		return v
 	}
@@ -326,6 +351,8 @@ func deepEqualMemo(a, b Value, seen map[equalPair]bool) bool {
 		return a.numVal == b.numVal
 	case String, Color:
 		return a.strVal == b.strVal
+	case ProcedureType:
+		return a.procVal == b.procVal
 	case List:
 		if a.listVal == b.listVal {
 			return true // same pointer — same list (handles self-referential equality)

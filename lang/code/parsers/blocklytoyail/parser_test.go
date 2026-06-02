@@ -68,6 +68,96 @@ func TestTryGenerateYAILReturnsMalformedXmlError(t *testing.T) {
 	}
 }
 
+func TestAnonymousProcedureBlocksGenerateYAIL(t *testing.T) {
+	tests := []struct {
+		name string
+		xml  string
+		want string
+	}{
+		{
+			name: "void definition",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_defanonnoreturn">
+    <mutation><arg name="x"></arg></mutation>
+    <statement name="STACK">
+      <block type="procedures_callanonnoreturn">
+        <value name="PROCEDURE"><block type="lexical_variable_get"><field name="VAR">greet</field></block></value>
+      </block>
+    </statement>
+  </block>
+</xml>`,
+			want: `(call-yail-primitive create-yail-procedure (*list-for-runtime* (lambda ($x) (call-yail-primitive call-yail-procedure (*list-for-runtime* (lexical-value $greet)) '(any) "call procedure"))) '(any) "create procedure")`,
+		},
+		{
+			name: "returning definition",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_defanonreturn">
+    <mutation><arg name="r"></arg></mutation>
+    <value name="RETURN"><block type="math_number"><field name="NUM">5</field></block></value>
+  </block>
+</xml>`,
+			want: `(call-yail-primitive create-yail-procedure (*list-for-runtime* (lambda ($r) 5)) '(any) "create procedure")`,
+		},
+		{
+			name: "direct call",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_callanonreturn">
+    <mutation items="1"></mutation>
+    <value name="PROCEDURE"><block type="lexical_variable_get"><field name="VAR">f</field></block></value>
+    <value name="ARG0"><block type="math_number"><field name="NUM">5</field></block></value>
+  </block>
+</xml>`,
+			want: `(call-yail-primitive call-yail-procedure (*list-for-runtime* (lexical-value $f) 5) '(any any) "call procedure")`,
+		},
+		{
+			name: "input list call",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_callanonreturn_inputlist">
+    <value name="PROCEDURE"><block type="lexical_variable_get"><field name="VAR">f</field></block></value>
+    <value name="INPUTLIST"><block type="lists_create_with"><mutation items="0"></mutation></block></value>
+  </block>
+</xml>`,
+			want: `(call-yail-primitive call-yail-procedure-input-list (*list-for-runtime* (lexical-value $f) (call-yail-primitive make-yail-list (*list-for-runtime*) '() "make a list")) '(any any) "call procedure(with input list)")`,
+		},
+		{
+			name: "num args",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_numArgs">
+    <value name="PROCEDURE"><block type="lexical_variable_get"><field name="VAR">f</field></block></value>
+  </block>
+</xml>`,
+			want: `(call-yail-primitive num-args-yail-procedure (*list-for-runtime* (lexical-value $f)) '(any) "get number of arguments")`,
+		},
+		{
+			name: "get with name",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_getWithName">
+    <value name="PROCEDURENAME"><block type="text"><field name="TEXT">sayHello</field></block></value>
+  </block>
+</xml>`,
+			want: `(call-yail-primitive create-yail-procedure-with-name (*list-for-runtime* "sayHello") '(any) "get procedure")`,
+		},
+		{
+			name: "get with dropdown",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_getWithDropdown">
+    <field name="PROCNAME">sayHello</field>
+  </block>
+</xml>`,
+			want: `(call-yail-primitive create-yail-procedure (*list-for-runtime* (get-var p$sayHello)) '(any) "get procedure")`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			yail := generateYAILForTest(t, tt.xml)
+			if yail != tt.want {
+				t.Fatalf("YAIL = %q, want %q", yail, tt.want)
+			}
+		})
+	}
+}
+
 func TestMatrixCreateYAILUsesFields(t *testing.T) {
 	yail := generateYAILForTest(t, `<xml xmlns="https://developers.google.com/blockly/xml">
   <block type="matrices_create">

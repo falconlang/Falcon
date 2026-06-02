@@ -18,11 +18,25 @@ import (
 	"strings"
 )
 
-type Procedure struct {
+type ProcedureValue struct {
+	name     string
 	params   []string
 	voidBody []ast.Expr // for void procedures
 	retExpr  ast.Expr   // for returning procedures
+	env      *Env
 }
+
+func (p *ProcedureValue) DisplayName() string {
+	if p == nil {
+		return "<procedure>"
+	}
+	if p.name != "" {
+		return p.name
+	}
+	return "<anonymous procedure>"
+}
+
+type Procedure = ProcedureValue
 
 type stackFrame struct {
 	token *lex.Token
@@ -78,9 +92,9 @@ func (i *Interpreter) RunGetLast(exprs []ast.Expr) Value {
 	for _, e := range exprs {
 		switch n := e.(type) {
 		case *procedures.VoidProcedure:
-			i.procedures[n.Name] = &Procedure{params: n.Parameters, voidBody: n.Body}
+			i.procedures[n.Name] = &Procedure{name: n.Name, params: n.Parameters, voidBody: n.Body, env: i.globalEnv}
 		case *procedures.RetProcedure:
-			i.procedures[n.Name] = &Procedure{params: n.Parameters, retExpr: n.Result}
+			i.procedures[n.Name] = &Procedure{name: n.Name, params: n.Parameters, retExpr: n.Result, env: i.globalEnv}
 		}
 	}
 	for _, e := range exprs {
@@ -106,9 +120,9 @@ func (i *Interpreter) Run(exprs []ast.Expr) {
 	for _, e := range exprs {
 		switch n := e.(type) {
 		case *procedures.VoidProcedure:
-			i.procedures[n.Name] = &Procedure{params: n.Parameters, voidBody: n.Body}
+			i.procedures[n.Name] = &Procedure{name: n.Name, params: n.Parameters, voidBody: n.Body, env: i.globalEnv}
 		case *procedures.RetProcedure:
-			i.procedures[n.Name] = &Procedure{params: n.Parameters, retExpr: n.Result}
+			i.procedures[n.Name] = &Procedure{name: n.Name, params: n.Parameters, retExpr: n.Result, env: i.globalEnv}
 		}
 	}
 	// Evaluate globals after all procedures are registered.
@@ -230,14 +244,33 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 
 	// Procedure definitions
 	case *procedures.VoidProcedure:
-		i.procedures[e.Name] = &Procedure{params: e.Parameters, voidBody: e.Body}
+		i.procedures[e.Name] = &Procedure{name: e.Name, params: e.Parameters, voidBody: e.Body, env: i.globalEnv}
 		return VoidVal()
 	case *procedures.RetProcedure:
-		i.procedures[e.Name] = &Procedure{params: e.Parameters, retExpr: e.Result}
+		i.procedures[e.Name] = &Procedure{name: e.Name, params: e.Parameters, retExpr: e.Result, env: i.globalEnv}
 		return VoidVal()
 	case *procedures.Call:
 		i.lastToken = e.Where
 		return i.evalProcedureCall(e)
+	case *procedures.AnonProcedure:
+		proc := &ProcedureValue{
+			params:   e.Parameters,
+			voidBody: e.Body,
+			retExpr:  e.Result,
+			env:      i.currEnv,
+		}
+		return ProcVal(proc)
+	case *procedures.AnonCall:
+		return i.evalAnonProcedureCall(e)
+	case *procedures.AnonCallInputList:
+		return i.evalAnonProcedureCallInputList(e)
+	case *procedures.NumArgs:
+		return NumVal(float64(len(i.Eval(e.Procedure).AsProc().params)))
+	case *procedures.GetWithName:
+		name := i.Eval(e.Name).AsStr()
+		return ProcVal(i.lookupProcedure(name))
+	case *procedures.GetWithDropdown:
+		return ProcVal(i.lookupProcedure(e.Name))
 
 	// List manipulation
 	case *astlist.Get:
@@ -632,20 +665,53 @@ func (i *Interpreter) evalVarResult(e *variables.VarResult) Value {
 // --- Procedure calls ---
 
 func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
-	proc, ok := i.procedures[e.Name]
-	if !ok {
-		panic("undefined procedure: " + e.Name)
-	}
+	proc := i.lookupProcedure(e.Name)
 	// Evaluate arguments in the current (caller) env before switching scope.
 	savedToken := i.lastToken
 	savedHighlight := i.lastHighlight
 	argVals := i.evalExprs(e.Arguments)
 	i.lastToken = savedToken
 	i.lastHighlight = savedHighlight
-	if len(argVals) != len(proc.params) {
-		panic("procedure " + e.Name + " expects " + strconv.Itoa(len(proc.params)) + " argument(s) but got " + strconv.Itoa(len(argVals)))
+	return i.callProcedureValue(proc, argVals, e.Name, e.Where)
+}
+
+func (i *Interpreter) evalAnonProcedureCall(e *procedures.AnonCall) Value {
+	proc := i.Eval(e.Procedure).AsProc()
+	argVals := i.evalExprs(e.Arguments)
+	return i.callProcedureValue(proc, argVals, proc.DisplayName(), nil)
+}
+
+func (i *Interpreter) evalAnonProcedureCallInputList(e *procedures.AnonCallInputList) Value {
+	proc := i.Eval(e.Procedure).AsProc()
+	argList := i.Eval(e.InputList).AsList()
+	argVals := make([]Value, len(*argList))
+	copy(argVals, *argList)
+	return i.callProcedureValue(proc, argVals, proc.DisplayName(), nil)
+}
+
+func (i *Interpreter) lookupProcedure(name string) *ProcedureValue {
+	proc, ok := i.procedures[name]
+	if !ok {
+		panic("undefined procedure: " + name)
 	}
-	callEnv := NewEnv(i.globalEnv)
+	return proc
+}
+
+func (i *Interpreter) callProcedureValue(proc *ProcedureValue, argVals []Value, callName string, where *lex.Token) Value {
+	if proc == nil {
+		panic("undefined procedure")
+	}
+	if callName == "" {
+		callName = proc.DisplayName()
+	}
+	if len(argVals) != len(proc.params) {
+		panic("procedure " + callName + " expects " + strconv.Itoa(len(proc.params)) + " argument(s) but got " + strconv.Itoa(len(argVals)))
+	}
+	parentEnv := proc.env
+	if parentEnv == nil {
+		parentEnv = i.globalEnv
+	}
+	callEnv := NewEnv(parentEnv)
 	for k, param := range proc.params {
 		callEnv.Define(param, argVals[k])
 	}
@@ -654,7 +720,7 @@ func (i *Interpreter) evalProcedureCall(e *procedures.Call) Value {
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
-				i.stackTrace = append(i.stackTrace, stackFrame{e.Where, e.Name})
+				i.stackTrace = append(i.stackTrace, stackFrame{where, callName})
 				panic(r)
 			}
 		}()
@@ -811,6 +877,9 @@ func (i *Interpreter) DiagnosticFromRuntimeError(r any) []codecontext.Diagnostic
 func (i *Interpreter) formatTraceFrame(token *lex.Token, funcName string, isLast ...bool) string {
 	last := len(isLast) > 0 && isLast[0]
 	fileName := "<unknown>"
+	if token == nil {
+		return "  File \"" + fileName + "\", line 0, in " + funcName + "\n"
+	}
 	if token.Context != nil {
 		fileName = token.Context.FileName
 	}

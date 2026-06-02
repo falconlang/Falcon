@@ -33,6 +33,14 @@ func MakeScopeCursor() *ScopeCursor {
 
 func (s *ScopeCursor) Enter(where *lex.Token, t ScopeType) {
 	s.checkScope(where, t)
+	s.enterUnchecked(t)
+}
+
+func (s *ScopeCursor) EnterAnonymousProcedure(t ScopeType) {
+	s.enterUnchecked(t)
+}
+
+func (s *ScopeCursor) enterUnchecked(t ScopeType) {
 	newScope := &Scope{Type: t, Parent: s.currScope, Variables: map[string]*VarEntry{}}
 	s.allScopes = append(s.allScopes, newScope)
 	s.currScope = newScope

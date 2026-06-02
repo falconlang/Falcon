@@ -471,11 +471,11 @@ func (p *LangParser) funcSmt() ast.Expr {
 }
 
 func (p *LangParser) anonProcedure() ast.Expr {
-	where := p.next()
+	p.next()
 	parameters := p.parameters()
 	returning := p.consume(l.Assign)
 	if returning {
-		p.ScopeCursor.Enter(where, ScopeRetProc)
+		p.ScopeCursor.EnterAnonymousProcedure(ScopeRetProc)
 		for _, parameter := range parameters {
 			p.ScopeCursor.DefineVariable(parameter, []ast.Signature{ast.SignAny})
 		}
@@ -494,7 +494,14 @@ func (p *LangParser) anonProcedure() ast.Expr {
 	for i, param := range parameters {
 		vars[i] = scopeVar(param, ast.SignAny)
 	}
-	body := p.body(ScopeProc, vars...)
+	p.expect(l.OpenCurly)
+	p.ScopeCursor.EnterAnonymousProcedure(ScopeProc)
+	for _, v := range vars {
+		p.ScopeCursor.DefineVariable(v.Name, v.Sigs)
+	}
+	body := p.bodyUntilCurly()
+	p.ScopeCursor.Exit(ScopeProc)
+	p.expect(l.CloseCurly)
 	return &procedures.AnonProcedure{Parameters: parameters, Body: body}
 }
 
