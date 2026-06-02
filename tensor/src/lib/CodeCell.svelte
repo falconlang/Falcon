@@ -1201,7 +1201,9 @@
         class="do-it-result-dismiss"
         title="Dismiss"
         on:click|stopPropagation={() => clearDoItResult(cell.id)}
-      >×</button>
+      >
+        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" width="9" height="9" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+      </button>
     </div>
   {/if}
 
