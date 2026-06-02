@@ -12,6 +12,7 @@ package blocklytoyail
 
 import (
 	"Falcon/code/ast"
+	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -956,10 +957,22 @@ func (p *Parser) genBlock(b ast.Block) string {
 func (p *Parser) genMatrixCreate(b ast.Block) string {
 	rows := matrixDimension(b, "ROWS", 2)
 	cols := matrixDimension(b, "COLS", 2)
+	mutationValues := matrixMutationValues(b)
+	if len(mutationValues) > 0 {
+		if !hasMatrixDimension(b, "ROWS") {
+			rows = len(mutationValues)
+		}
+		if !hasMatrixDimension(b, "COLS") && len(mutationValues[0]) > 0 {
+			cols = len(mutationValues[0])
+		}
+	}
 	args := []string{strconv.Itoa(rows), strconv.Itoa(cols)}
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
 			value := fieldByName(b, "MATRIX_"+strconv.Itoa(i)+"_"+strconv.Itoa(j))
+			if value == "" && i < len(mutationValues) && j < len(mutationValues[i]) {
+				value = mutationValues[i][j]
+			}
 			if value == "" {
 				value = "0"
 			}
@@ -1016,6 +1029,13 @@ func (p *Parser) genMatrixArithmeticList(b ast.Block, mode string) string {
 	for i := 0; i < n; i++ {
 		if arg := p.genValueSlot(b.Values, "MAT"+strconv.Itoa(i)); arg != "" {
 			args = append(args, arg)
+		}
+	}
+	if len(args) == 0 {
+		a := p.genValueSlot(b.Values, "A")
+		bv := p.genValueSlot(b.Values, "B")
+		if a != "" || bv != "" {
+			args = append(args, valueOrDefault(a, "0"), valueOrDefault(bv, "0"))
 		}
 	}
 
@@ -1369,6 +1389,13 @@ func mutItemCountOrValues(b ast.Block, prefix string, def int) int {
 	return def
 }
 
+func valueOrDefault(value, def string) string {
+	if value == "" {
+		return def
+	}
+	return value
+}
+
 func mutElseIfCount(b ast.Block) int {
 	if b.Mutation != nil {
 		return b.Mutation.ElseIfCount
@@ -1397,6 +1424,43 @@ func matrixDimension(b ast.Block, name string, def int) int {
 		}
 	}
 	return def
+}
+
+func hasMatrixDimension(b ast.Block, name string) bool {
+	if positiveInt(fieldByName(b, name)) > 0 {
+		return true
+	}
+	if b.Mutation == nil {
+		return false
+	}
+	switch name {
+	case "ROWS":
+		return b.Mutation.Rows > 0
+	case "COLS":
+		return b.Mutation.Cols > 0
+	default:
+		return false
+	}
+}
+
+func matrixMutationValues(b ast.Block) [][]string {
+	if b.Mutation == nil || b.Mutation.Matrix == "" {
+		return nil
+	}
+	dec := json.NewDecoder(strings.NewReader(b.Mutation.Matrix))
+	dec.UseNumber()
+	var raw [][]json.Number
+	if err := dec.Decode(&raw); err != nil {
+		return nil
+	}
+	values := make([][]string, len(raw))
+	for i, row := range raw {
+		values[i] = make([]string, len(row))
+		for j, value := range row {
+			values[i][j] = value.String()
+		}
+	}
+	return values
 }
 
 func positiveInt(s string) int {
