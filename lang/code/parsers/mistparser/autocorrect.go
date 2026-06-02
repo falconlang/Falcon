@@ -7,6 +7,7 @@ import (
 	"Falcon/code/ast/control"
 	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/list"
+	astmatrix "Falcon/code/ast/matrix"
 	"Falcon/code/ast/method"
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
@@ -178,6 +179,19 @@ func (p *LangParser) walkAndCorrect(expr ast.Expr) {
 	case *list.Set:
 		p.walkAndCorrect(e.List)
 		p.walkAndCorrect(e.Index)
+		p.walkAndCorrect(e.Value)
+
+	// Matrix operations
+	case *astmatrix.GetCell:
+		p.walkAndCorrect(e.Matrix)
+		for _, dim := range e.Dims {
+			p.walkAndCorrect(dim)
+		}
+	case *astmatrix.SetCell:
+		p.walkAndCorrect(e.Matrix)
+		for _, dim := range e.Dims {
+			p.walkAndCorrect(dim)
+		}
 		p.walkAndCorrect(e.Value)
 
 	// Fundamentals that can contain sub-expressions

@@ -98,6 +98,35 @@ func TestMatrixPowerBlockRoundTripsAsMatrixPower(t *testing.T) {
 	}
 }
 
+func TestMatrixCellBlocksUseDoubleSquareCoordinates(t *testing.T) {
+	tests := []struct {
+		name  string
+		block string
+		want  string
+	}{
+		{name: "get", block: "matrices_get_cell", want: "1[[2, 3]]"},
+		{name: "set", block: "matrices_set_cell", want: "1[[2, 3]] = 9"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exprs, err := NewParser(matrixCellXML(tt.block)).TryGenerateAST()
+			if err != nil {
+				t.Fatalf("TryGenerateAST() error = %v", err)
+			}
+			if len(exprs) != 1 {
+				t.Fatalf("TryGenerateAST() produced %d expressions, want 1", len(exprs))
+			}
+			if got := exprs[0].String(); got != tt.want {
+				t.Fatalf("source = %q, want %q", got, tt.want)
+			}
+			if got := exprs[0].Blockly(false).Type; got != tt.block {
+				t.Fatalf("round-trip block type = %q, want %q", got, tt.block)
+			}
+		})
+	}
+}
+
 func matrixArithmeticXML(blockType, aName, bName string) string {
 	return `<xml xmlns="https://developers.google.com/blockly/xml">
   <block type="` + blockType + `">
@@ -111,6 +140,38 @@ func matrixArithmeticXML(blockType, aName, bName string) string {
         <field name="NUM">2</field>
       </block>
     </value>
+  </block>
+</xml>`
+}
+
+func matrixCellXML(blockType string) string {
+	value := ""
+	if blockType == "matrices_set_cell" {
+		value = `
+    <value name="VALUE">
+      <block type="math_number">
+        <field name="NUM">9</field>
+      </block>
+    </value>`
+	}
+	return `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="` + blockType + `">
+    <mutation items="2"></mutation>
+    <value name="MATRIX">
+      <block type="math_number">
+        <field name="NUM">1</field>
+      </block>
+    </value>
+    <value name="DIM0">
+      <block type="math_number">
+        <field name="NUM">2</field>
+      </block>
+    </value>
+    <value name="DIM1">
+      <block type="math_number">
+        <field name="NUM">3</field>
+      </block>
+    </value>` + value + `
   </block>
 </xml>`
 }

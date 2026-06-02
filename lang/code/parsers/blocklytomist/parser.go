@@ -7,6 +7,7 @@ import (
 	"Falcon/code/ast/control"
 	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/list"
+	astmatrix "Falcon/code/ast/matrix"
 	"Falcon/code/ast/method"
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
@@ -1046,31 +1047,30 @@ func (p *Parser) matricesGetColumn(block ast.Block) ast.Expr {
 func (p *Parser) matricesSetCell(block ast.Block) ast.Expr {
 	numItems := block.Mutation.ItemCount
 	pVals := p.makeValueMap(block.Values)
-
-	matrix := pVals.get("MATRIX")
-	var currHead ast.Expr
-	currHead = matrix
-
-	for i := 0; i < numItems-1; i++ {
-		dim := pVals.get("DIM" + strconv.Itoa(i))
-		currHead = &list.Get{List: currHead, Index: dim}
+	dims := make([]ast.Expr, numItems)
+	for i := range dims {
+		dims[i] = pVals.get("DIM" + strconv.Itoa(i))
 	}
-	return &list.Set{List: currHead, Index: pVals.get("DIM" + strconv.Itoa(numItems-1)), Value: pVals.get("VALUE")}
+	return &astmatrix.SetCell{
+		Where:  lex.MakeFakeToken(lex.OpenSquare),
+		Matrix: pVals.get("MATRIX"),
+		Dims:   dims,
+		Value:  pVals.get("VALUE"),
+	}
 }
 
 func (p *Parser) matricesGetCell(block ast.Block) ast.Expr {
 	numItems := block.Mutation.ItemCount
 	pVals := p.makeValueMap(block.Values)
-
-	matrix := pVals.get("MATRIX")
-	var currHead ast.Expr
-	currHead = matrix
-
-	for i := 0; i < numItems; i++ {
-		dim := pVals.get("DIM" + strconv.Itoa(i))
-		currHead = &list.Get{List: currHead, Index: dim}
+	dims := make([]ast.Expr, numItems)
+	for i := range dims {
+		dims[i] = pVals.get("DIM" + strconv.Itoa(i))
 	}
-	return currHead
+	return &astmatrix.GetCell{
+		Where:  lex.MakeFakeToken(lex.OpenSquare),
+		Matrix: pVals.get("MATRIX"),
+		Dims:   dims,
+	}
 }
 
 func (p *Parser) matricesNdArray(block ast.Block) ast.Expr {

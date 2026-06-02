@@ -7,6 +7,7 @@ import (
 	"Falcon/code/ast/control"
 	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/list"
+	astmatrix "Falcon/code/ast/matrix"
 	"Falcon/code/ast/method"
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
@@ -755,6 +756,8 @@ func (p *LangParser) assignSmt(left ast.Expr, right ast.Expr) (ast.Expr, bool) {
 		return &variables.Set{Global: nameExpr.Global, Name: nameExpr.Name, Expr: right}, true
 	} else if listGet, ok := left.(*list.Get); ok {
 		return &list.Set{Where: listGet.Where, List: listGet.List, Index: listGet.Index, Value: right}, true
+	} else if matrixGet, ok := left.(*astmatrix.GetCell); ok {
+		return &astmatrix.SetCell{Where: matrixGet.Where, Matrix: matrixGet.Matrix, Dims: matrixGet.Dims, Value: right}, true
 	}
 	return nil, false
 }
@@ -789,6 +792,12 @@ func (p *LangParser) element() ast.Expr {
 				break // '[' is on a new line — new statement, not index access
 			}
 			openSquare := p.next()
+			if p.isNext(l.OpenSquare) {
+				p.next()
+				left = &astmatrix.GetCell{Where: openSquare, Matrix: left, Dims: p.matrixCellDims()}
+				p.expect(l.CloseSquare)
+				continue
+			}
 			// an index element access
 			left = &list.Get{Where: openSquare, List: left, Index: p.parse()}
 			p.expect(l.CloseSquare)
@@ -797,6 +806,21 @@ func (p *LangParser) element() ast.Expr {
 		break
 	}
 	return left
+}
+
+func (p *LangParser) matrixCellDims() []ast.Expr {
+	if p.isNext(l.CloseSquare) {
+		p.peek().Error("Matrix cell access requires at least one dimension")
+	}
+	var dims []ast.Expr
+	for p.notEOF() {
+		dims = append(dims, p.expr(0))
+		if !p.consume(l.Comma) {
+			break
+		}
+	}
+	p.expect(l.CloseSquare)
+	return dims
 }
 
 func (p *LangParser) componentCall(compName string, compType string) ast.Expr {

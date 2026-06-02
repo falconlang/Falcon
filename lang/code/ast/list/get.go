@@ -2,6 +2,7 @@ package list
 
 import (
 	"Falcon/code/ast"
+	"Falcon/code/ast/fundamentals"
 	"Falcon/code/lex"
 	"Falcon/code/sugar"
 )
@@ -17,7 +18,11 @@ func (g *Get) String() string {
 	if !g.List.Continuous() {
 		pFormat = "(%)[%]"
 	}
-	return sugar.Format(pFormat, g.List.String(), g.Index.String())
+	index := g.Index.String()
+	if _, ok := g.Index.(*fundamentals.List); ok {
+		index = "(" + index + ")"
+	}
+	return sugar.Format(pFormat, g.List.String(), index)
 }
 
 func (g *Get) Blockly(flags ...bool) ast.Block {

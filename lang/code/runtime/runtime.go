@@ -7,6 +7,7 @@ import (
 	"Falcon/code/ast/control"
 	"Falcon/code/ast/fundamentals"
 	astlist "Falcon/code/ast/list"
+	astmatrix "Falcon/code/ast/matrix"
 	astmethod "Falcon/code/ast/method"
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
@@ -272,6 +273,12 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		}
 		(*list)[idx-1] = val
 		return VoidVal()
+	case *astmatrix.GetCell:
+		i.lastToken = e.Where
+		return i.evalMatrixGetCell(e)
+	case *astmatrix.SetCell:
+		i.lastToken = e.Where
+		return i.evalMatrixSetCell(e)
 	case *astlist.Transformer:
 		i.lastToken = e.Where
 		return i.evalTransformer(e)

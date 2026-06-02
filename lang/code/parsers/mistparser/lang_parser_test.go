@@ -96,6 +96,58 @@ func TestNumericPowerStillGeneratesMathPower(t *testing.T) {
 	}
 }
 
+func TestMatrixCellSyntaxGeneratesMatrixBlocks(t *testing.T) {
+	tests := []struct {
+		name  string
+		src   string
+		block string
+	}{
+		{
+			name:  "get",
+			src:   "makeNdArray([2, 2], 0)[[1, 2]]",
+			block: "matrices_get_cell",
+		},
+		{
+			name:  "set",
+			src:   "makeNdArray([2, 2], 0)[[1, 2]] = 9",
+			block: "matrices_set_cell",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := &context.CodeContext{SourceCode: &tt.src, FileName: "test.mist"}
+			parser := NewLangParser(false, lex.NewLexer(ctx).Lex())
+
+			exprs := parser.ParseAll()
+			if len(exprs) != 1 {
+				t.Fatalf("ParseAll() expressions = %d, want 1", len(exprs))
+			}
+			got := exprs[0].Blockly(false).Type
+			if got != tt.block {
+				t.Fatalf("Blockly type = %q, want %q", got, tt.block)
+			}
+		})
+	}
+}
+
+func TestParenthesizedListIndexStaysListIndex(t *testing.T) {
+	src := "[[1, 2], [3, 4]][([1, 2])]"
+	ctx := &context.CodeContext{SourceCode: &src, FileName: "test.mist"}
+	parser := NewLangParser(false, lex.NewLexer(ctx).Lex())
+
+	exprs := parser.ParseAll()
+	if len(exprs) != 1 {
+		t.Fatalf("ParseAll() expressions = %d, want 1", len(exprs))
+	}
+	if got := exprs[0].Blockly(false).Type; got != "lists_select_item" {
+		t.Fatalf("Blockly type = %q, want lists_select_item", got)
+	}
+	if got := exprs[0].String(); got != src {
+		t.Fatalf("source = %q, want %q", got, src)
+	}
+}
+
 func TestScreenInitializeEventValidatesAgainstFormMetadata(t *testing.T) {
 	source := strings.Join([]string{
 		"@Screen { Screen1 }",
