@@ -181,6 +181,12 @@ Use the `=` symbol followed by an expression between curly braces.
 func double(n) = { n * 2 }
 ```
 
+For a single expression, the braces are optional:
+
+```
+func double(n) = n * 2
+```
+
 Or multiple expressions:
 
 ```
@@ -193,6 +199,69 @@ func Fib(n) = {
 }
 ```
 Note that there is no `return` statement in Falcon. The last expression in a body is taken as the output of an expression.
+
+### Anonymous functions
+
+Anonymous functions are procedure values. They can be assigned to variables, passed around, called directly with `()`, or called dynamically with `.call(inputList)`.
+
+Void anonymous function:
+
+```
+local greet = func(x) {
+  println("Hello " _ x _ "!")
+}
+
+greet("Melon")
+greet.call(["Melon"])
+```
+
+Result anonymous function:
+
+```
+local circleArea = func(r) = 3.14 * r ^ 2
+
+println(circleArea(5))
+println(circleArea.call([5]))
+```
+
+You can also use a braced result body when the function has multiple expressions or needs `yield`:
+
+```
+local clampPositive = func(n) = {
+  if (n < 0) {
+    yield 0
+  }
+  n
+}
+```
+
+Anonymous functions capture lexical variables:
+
+```
+local makeAdder = func(x) = {
+  local add = func(y) = x + y
+  add
+}
+
+local addFive = makeAdder(5)
+println(addFive(7))  // Output: 12
+```
+
+Helper calls:
+
+```
+println(greet.numArgs())
+
+func sayHello(x) {
+  println("Hello " _ x _ "!")
+}
+
+local byName = getFunc("sayHello")
+local byDropdown = func.sayHello
+
+byName("Ada")
+byDropdown.call(["Grace"])
+```
 
 ### yield
 
