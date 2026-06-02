@@ -44,6 +44,9 @@ import {
   projectPropertiesToAiaProperties,
 } from '../src/lib/project-properties.js';
 import {
+  scmToDesignSchema,
+} from '../src/lib/appinventor-design-schema.js';
+import {
   parseProperties,
   projectPropertiesText,
 } from '../src/lib/aia-project-properties.js';
@@ -579,6 +582,45 @@ test('project property definitions include App Inventor project properties and h
       'NSLocationWhenInUseUsageDescription',
     ]
   );
+});
+
+test('imported designer text excludes root project properties', () => {
+  const designCode = scmToDesignSchema(JSON.stringify({
+    Source: 'Form',
+    Properties: {
+      $Name: 'Screen1',
+      $Type: 'Form',
+      AppName: 'btchat',
+      ShowListsAsJson: 'False',
+      Sizing: 'Fixed',
+      Title: 'Bluetooth Chat, Role=undefined',
+      VersionCode: '2',
+      VersionName: '2.0',
+      Theme: 'Classic',
+      ActionBar: 'False',
+      $Components: [
+        {
+          $Name: 'Label1',
+          $Type: 'Label',
+          Text: 'Nickname',
+        },
+      ],
+    },
+  }), 'Screen1');
+
+  assert.equal(designCode, `Screen.Screen1 {
+  Title: "Bluetooth Chat, Role=undefined",
+  Label.Label1 {
+    Text: "Nickname"
+  }
+}`);
+  assert.equal(designCode.includes('AppName:'), false);
+  assert.equal(designCode.includes('ShowListsAsJson:'), false);
+  assert.equal(designCode.includes('Sizing:'), false);
+  assert.equal(designCode.includes('VersionCode:'), false);
+  assert.equal(designCode.includes('VersionName:'), false);
+  assert.equal(designCode.includes('Theme:'), false);
+  assert.equal(designCode.includes('ActionBar:'), false);
 });
 
 test('project properties normalize AIA keys and serialize back to project.properties keys', () => {
