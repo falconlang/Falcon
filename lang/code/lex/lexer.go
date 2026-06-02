@@ -110,6 +110,17 @@ func (l *Lexer) parse() {
 	case ')':
 		l.createOp(")")
 	case '[':
+		if l.notEOF() {
+			switch l.peek() {
+			case '+', '-', '*', '^':
+				op := l.next()
+				if l.consume(']') {
+					l.createOp("[" + string(op) + "]")
+					return
+				}
+				l.back()
+			}
+		}
 		l.createOp("[")
 	case ']':
 		l.createOp("]")

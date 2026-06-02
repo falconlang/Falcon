@@ -26,15 +26,17 @@ func _() {
 	_ = x[Value-15]
 	_ = x[ConstantValue-16]
 	_ = x[PreserveOrder-17]
+	_ = x[Compoundable-18]
 }
 
-const _Flag_name = "OperatorLLogicOrLLogicAndBBitwiseOrBBitwiseAndBBitwiseXorRelationalEqualityBinaryBinaryL1BinaryL2TextJoinPairAssignmentTypeUnaryValueConstantValuePreserveOrder"
+const _Flag_name = "OperatorLLogicOrLLogicAndBBitwiseOrBBitwiseAndBBitwiseXorRelationalEqualityBinaryBinaryL1BinaryL2TextJoinPairAssignmentTypeUnaryValueConstantValuePreserveOrderCompoundable"
 
-var _Flag_index = [...]uint8{0, 8, 16, 25, 35, 46, 57, 67, 75, 81, 89, 97, 105, 109, 123, 128, 133, 146, 159}
+var _Flag_index = [...]uint8{0, 8, 16, 25, 35, 46, 57, 67, 75, 81, 89, 97, 105, 109, 123, 128, 133, 146, 159, 171}
 
 func (i Flag) String() string {
-	if i < 0 || i >= Flag(len(_Flag_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Flag_index)-1 {
 		return "Flag(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Flag_name[_Flag_index[i]:_Flag_index[i+1]]
+	return _Flag_name[_Flag_index[idx]:_Flag_index[idx+1]]
 }

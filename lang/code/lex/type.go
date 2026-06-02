@@ -74,4 +74,9 @@ const (
 	Any
 	Undefined
 	Yield
+
+	MatrixPlus
+	MatrixDash
+	MatrixTimes
+	MatrixPower
 )

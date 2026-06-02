@@ -36,6 +36,66 @@ func TestParseAllWithLineNumbersTracksTopLevelExpressionStarts(t *testing.T) {
 	}
 }
 
+func TestMatrixOperatorsGenerateMatrixBlocks(t *testing.T) {
+	tests := []struct {
+		name  string
+		src   string
+		block string
+	}{
+		{
+			name:  "add",
+			src:   "makeNdArray([1, 2], 0) [+] makeNdArray([1, 2], 1)",
+			block: "matrices_add",
+		},
+		{
+			name:  "subtract",
+			src:   "makeNdArray([1, 2], 0) [-] makeNdArray([1, 2], 1)",
+			block: "matrices_subtract",
+		},
+		{
+			name:  "multiply",
+			src:   "makeNdArray([1, 2], 0) [*] makeNdArray([1, 2], 1)",
+			block: "matrices_multiply",
+		},
+		{
+			name:  "power",
+			src:   "makeNdArray([2, 2], 0) [^] 2",
+			block: "matrices_power",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := &context.CodeContext{SourceCode: &tt.src, FileName: "test.mist"}
+			parser := NewLangParser(false, lex.NewLexer(ctx).Lex())
+
+			exprs := parser.ParseAll()
+			if len(exprs) != 1 {
+				t.Fatalf("ParseAll() expressions = %d, want 1", len(exprs))
+			}
+			got := exprs[0].Blockly(false).Type
+			if got != tt.block {
+				t.Fatalf("Blockly type = %q, want %q", got, tt.block)
+			}
+		})
+	}
+}
+
+func TestNumericPowerStillGeneratesMathPower(t *testing.T) {
+	src := "2 ^ 3"
+	ctx := &context.CodeContext{SourceCode: &src, FileName: "test.mist"}
+	parser := NewLangParser(false, lex.NewLexer(ctx).Lex())
+
+	exprs := parser.ParseAll()
+	if len(exprs) != 1 {
+		t.Fatalf("ParseAll() expressions = %d, want 1", len(exprs))
+	}
+	got := exprs[0].Blockly(false).Type
+	if got != "math_power" {
+		t.Fatalf("Blockly type = %q, want math_power", got)
+	}
+}
+
 func TestScreenInitializeEventValidatesAgainstFormMetadata(t *testing.T) {
 	source := strings.Join([]string{
 		"@Screen { Screen1 }",

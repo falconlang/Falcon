@@ -17,7 +17,8 @@ func (b *BinaryExpr) String() string {
 	myPrecedence := lex.PrecedenceOf(b.Where.Flags[0])
 	// For non-left-associative operators, right operands at the same precedence need parens
 	// to avoid changing semantics: e.g. 10-(3-2) must not become 10-3-2.
-	rightNeedsParensAtSamePrec := b.Operator == lex.Dash || b.Operator == lex.Slash || b.Operator == lex.Power
+	rightNeedsParensAtSamePrec := b.Operator == lex.Dash || b.Operator == lex.Slash || b.Operator == lex.Power ||
+		b.Operator == lex.MatrixDash || b.Operator == lex.MatrixPower
 	stringified := make([]string, len(b.Operands))
 	for i, operand := range b.Operands {
 		operandStr := operand.String()
@@ -51,7 +52,7 @@ func (b *BinaryExpr) CanRepeat(testOperator lex.Type) bool {
 		return false
 	}
 	switch b.Operator {
-	case lex.Power, lex.Dash, lex.Slash,
+	case lex.Power, lex.Dash, lex.Slash, lex.MatrixDash, lex.MatrixPower,
 		lex.Equals, lex.NotEquals, lex.TextEquals, lex.TextNotEquals,
 		lex.LessThan, lex.LessThanEqual, lex.GreatThan, lex.GreaterThanEqual,
 		lex.TextLessThan, lex.TextGreaterThan:
@@ -63,6 +64,8 @@ func (b *BinaryExpr) CanRepeat(testOperator lex.Type) bool {
 
 func (b *BinaryExpr) Blockly(flags ...bool) ast.Block {
 	switch b.Operator {
+	case lex.MatrixPlus, lex.MatrixDash, lex.MatrixTimes, lex.MatrixPower:
+		return b.matrixArithmeticExpr()
 	case lex.BitwiseAnd, lex.BitwiseOr, lex.BitwiseXor:
 		return b.bitwiseExpr()
 	case lex.Equals, lex.NotEquals:
@@ -96,6 +99,8 @@ func (b *BinaryExpr) Consumable() bool {
 
 func (b *BinaryExpr) Signature() []ast.Signature {
 	switch b.Operator {
+	case lex.MatrixPlus, lex.MatrixTimes, lex.MatrixDash, lex.MatrixPower:
+		b.ensureSignature(ast.SignList)
 	case lex.Plus, lex.Times, lex.Dash, lex.Slash, lex.Power, lex.Remainder, lex.BitwiseAnd, lex.BitwiseOr, lex.BitwiseXor:
 		b.ensureSignature(ast.SignNumb, ast.SignText)
 	case lex.LogicAnd, lex.LogicOr:
@@ -108,6 +113,8 @@ func (b *BinaryExpr) Signature() []ast.Signature {
 		b.ensureSignature(ast.SignNumb, ast.SignText)
 	}
 	switch b.Operator {
+	case lex.MatrixPlus, lex.MatrixTimes, lex.MatrixDash, lex.MatrixPower:
+		return []ast.Signature{ast.SignList}
 	case lex.BitwiseAnd, lex.BitwiseOr, lex.BitwiseXor:
 		return []ast.Signature{ast.SignNumb}
 	case lex.Equals, lex.NotEquals:
@@ -263,6 +270,36 @@ func (b *BinaryExpr) simpleMathExpr() ast.Block {
 	return ast.Block{
 		Type:   blockType,
 		Values: ast.MakeValues(b.Operands, "A", "B"),
+	}
+}
+
+func (b *BinaryExpr) matrixArithmeticExpr() ast.Block {
+	switch b.Operator {
+	case lex.MatrixPlus:
+		return ast.Block{
+			Type:     "matrices_add",
+			Values:   ast.ValuesByPrefix("MAT", b.Operands),
+			Mutation: &ast.Mutation{ItemCount: len(b.Operands)},
+		}
+	case lex.MatrixTimes:
+		return ast.Block{
+			Type:     "matrices_multiply",
+			Values:   ast.ValuesByPrefix("MAT", b.Operands),
+			Mutation: &ast.Mutation{ItemCount: len(b.Operands)},
+		}
+	case lex.MatrixDash:
+		return ast.Block{
+			Type:   "matrices_subtract",
+			Values: ast.MakeValues(b.Operands, "A", "B"),
+		}
+	case lex.MatrixPower:
+		return ast.Block{
+			Type:   "matrices_power",
+			Values: ast.MakeValues(b.Operands, "A", "B"),
+		}
+	default:
+		b.Where.Error("Unknown matrix operator! " + b.Operator.String())
+		panic("")
 	}
 }
 

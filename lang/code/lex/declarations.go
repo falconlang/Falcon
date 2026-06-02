@@ -8,6 +8,11 @@ var Symbols = map[string]StaticToken{
 	"%": staticOf(Remainder, BinaryL1, Operator, PreserveOrder, Compoundable),
 	"^": staticOf(Power, BinaryL2, Operator, PreserveOrder, Compoundable),
 
+	"[+]": staticOf(MatrixPlus, Binary, Operator, Compoundable),
+	"[-]": staticOf(MatrixDash, Binary, Operator, PreserveOrder, Compoundable),
+	"[*]": staticOf(MatrixTimes, BinaryL1, Operator, PreserveOrder, Compoundable),
+	"[^]": staticOf(MatrixPower, BinaryL2, Operator, PreserveOrder, Compoundable),
+
 	"||": staticOf(LogicOr, LLogicOr, Operator),
 	"&&": staticOf(LogicAnd, LLogicAnd, Operator),
 	"|":  staticOf(BitwiseOr, BBitwiseOr, Operator, Compoundable),
