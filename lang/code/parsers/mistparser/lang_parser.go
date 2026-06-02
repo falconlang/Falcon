@@ -746,18 +746,19 @@ func (p *LangParser) expr(minPrecedence int) ast.Expr {
 			left = p.compoundOperator(opToken, left)
 			break
 		}
-		var right ast.Expr
-		if opToken.HasFlag(l.PreserveOrder) {
-			right = p.element()
-		} else {
-			right = p.expr(precedence + 1)
-		}
-		if rBinExpr, ok := right.(*common.BinaryExpr); ok && rBinExpr.CanRepeat(opToken.Type) {
-			// for NoPreserveOrder: merge binary expr with same operator (towards right)
+		right := p.expr(precedence + 1)
+		lBinExpr, leftRepeats := left.(*common.BinaryExpr)
+		leftRepeats = leftRepeats && lBinExpr.CanRepeat(opToken.Type)
+		rBinExpr, rightRepeats := right.(*common.BinaryExpr)
+		rightRepeats = rightRepeats && rBinExpr.CanRepeat(opToken.Type)
+		if opToken.HasFlag(l.PreserveOrder) && leftRepeats {
+			// PreserveOrder operators prefer extending the left-hand chain.
+			lBinExpr.Operands = append(lBinExpr.Operands, right)
+		} else if rightRepeats {
+			// Other repeatable operators can merge into the right-hand chain.
 			rBinExpr.Operands = append([]ast.Expr{left}, rBinExpr.Operands...)
 			left = rBinExpr
-		} else if lBinExpr, ok := left.(*common.BinaryExpr); ok && lBinExpr.CanRepeat(opToken.Type) {
-			// for PreserveOder: merge binary expr with same operator (towards left)
+		} else if leftRepeats {
 			lBinExpr.Operands = append(lBinExpr.Operands, right)
 		} else {
 			// a new binary node
