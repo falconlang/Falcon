@@ -495,12 +495,18 @@
         class="dsgn-mode-btn"
         class:dsgn-mode-btn--active={visualMode}
         on:click={() => (visualMode = true)}
-        title="Visual editor"
+        title="Tree editor"
       >
         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 2h2v2H1zM5 3h6M1 6h2v2H1zM5 7h4M1 10h2v2H1zM5 11h3"/>
+          <rect x="4" y="0.5" width="4" height="2.5" rx="0.5"/>
+          <line x1="6" y1="3" x2="6" y2="5.5"/>
+          <line x1="2.5" y1="5.5" x2="9.5" y2="5.5"/>
+          <line x1="2.5" y1="5.5" x2="2.5" y2="7"/>
+          <line x1="9.5" y1="5.5" x2="9.5" y2="7"/>
+          <rect x="1" y="7" width="3" height="2.5" rx="0.5"/>
+          <rect x="8" y="7" width="3" height="2.5" rx="0.5"/>
         </svg>
-        Visual
+        Tree
       </button>
     </div>
   </div>
