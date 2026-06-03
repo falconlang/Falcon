@@ -48,7 +48,7 @@
 
   const HISTORY_LIMIT = 100;
   const BLOCKLY_HEIGHT_TRANSITION_MS = 180;
-  const CODE_LINE_HEIGHT = 13 * 1.65;
+  const CODE_LINE_HEIGHT = 13 * 1.4;
   const CODE_PAD_TOP = 12;
   const AUTO_PAIRS = {
     '{': '}',

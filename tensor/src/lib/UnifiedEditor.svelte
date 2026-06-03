@@ -304,7 +304,7 @@
   }
 
   const CALLOUT_DEBOUNCE_MS = 280;
-  const LINE_HEIGHT = 13 * 1.65; // must match .code-area font-size × line-height
+  const LINE_HEIGHT = 13 * 1.4; // must match .code-area font-size × line-height
   const CODE_PAD_TOP = 12;        // must match .code-area padding-top
   const CALLOUT_GAP = 8;
   const CALLOUT_PADDING = 12; // 6px × 2
