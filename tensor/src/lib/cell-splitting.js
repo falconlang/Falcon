@@ -77,17 +77,30 @@ function adjustedStartLine(lines, lineNumber, minLine = 1) {
   return start;
 }
 
+function lineStartsExpressionBody(code) {
+  return /^(func|global)\b/.test(code) && /(?:^|[^=!<>])=\s*$/.test(code);
+}
+
 function inferTopLevelLineNumbers(lines) {
   const starts = [];
   let depth = 0;
+  let pendingExpressionBody = false;
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     const code = codePartBeforeLineComment(line).trim();
-    if (depth === 0 && code && !code.startsWith('}')) {
+    const depthBefore = depth;
+    if (depthBefore === 0 && code && !code.startsWith('}') && !pendingExpressionBody) {
       starts.push(i + 1);
     }
     depth = updateDepthFromLine(line, depth);
+    if (code) {
+      if (depthBefore === 0 && lineStartsExpressionBody(code)) {
+        pendingExpressionBody = true;
+      } else if (pendingExpressionBody) {
+        pendingExpressionBody = depth > 0;
+      }
+    }
   }
 
   return starts;

@@ -561,6 +561,40 @@ when Button1.Click {
   ]);
 });
 
+test('splitFalconSourceByTopLevelLines keeps expression-bodied functions with their body', () => {
+  const source = `global persons = {  }
+
+func createPerson(name, id, icon) =
+MelonNotification1.CreatePerson(false, icon, true, icon, name, "")
+
+func getStartIntent() =
+MelonNotification1.CreateIntent("Screen1", "Das notification was clicked")
+
+func makeConvo() =
+{
+    local chat = [["Cat", "I'm Mr. Cat"], ["Duck", "I'm a Duck!"]]
+    local messagesObjs = []
+    messagesObjs
+  }
+
+when MessageNotification.Click() {
+  buildSimple()
+}`;
+
+  assert.deepEqual(splitFalconSourceByTopLevelLines(source), [
+    'global persons = {  }',
+    'func createPerson(name, id, icon) =\nMelonNotification1.CreatePerson(false, icon, true, icon, name, "")',
+    'func getStartIntent() =\nMelonNotification1.CreateIntent("Screen1", "Das notification was clicked")',
+    `func makeConvo() =
+{
+    local chat = [["Cat", "I'm Mr. Cat"], ["Duck", "I'm a Duck!"]]
+    local messagesObjs = []
+    messagesObjs
+  }`,
+    'when MessageNotification.Click() {\n  buildSimple()\n}',
+  ]);
+});
+
 test('splitFalconSourceIntoCells falls back when parser line starts collapse the script', () => {
   const source = `func helper() = {
   1
