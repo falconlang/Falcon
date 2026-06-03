@@ -16,10 +16,9 @@
              <circle cx="2.8" cy="6.5" r="0.85" fill="currentColor" stroke="none"/>
              <circle cx="2.8" cy="9.2" r="0.85" fill="currentColor" stroke="none"/>
              <path d="M5 3.8h5.5M5 6.5h4.5M5 9.2h3.5" stroke-linecap="round"/>`,
-    // closed book — spine on left, ruled lines on right
-    map:    `<rect x="2" y="1.5" width="8.5" height="9" rx="0.8"/>
-             <path d="M4.5 1.5v9" stroke-linecap="round"/>
-             <path d="M6 4h3.5M6 6h3.5M6 8h2.5" stroke-linecap="round"/>`,
+    // open book — two pages fanning from centre spine
+    map:    `<path d="M6 3.5C4.5 2.5 3 2.5 2 3V9.5C3 9 4.5 9 6 10C7.5 9 9 9 10 9.5V3C9 2.5 7.5 2.5 6 3.5Z" stroke-linejoin="round"/>
+             <path d="M6 3.5V10" stroke-linecap="round"/>`,
     // half-filled circle — left half = false/0, right half = true/1
     bool:   `<path d="M6 2a4 4 0 010 8Z" fill="currentColor" stroke="none"/>
              <circle cx="6" cy="6" r="4"/>`,
