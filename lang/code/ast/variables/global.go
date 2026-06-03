@@ -10,7 +10,7 @@ type Global struct {
 }
 
 func (g *Global) String() string {
-	return "global " + g.Name + " = " + g.Value.String()
+	return "global " + ast.FormatName(g.Name) + " = " + g.Value.String()
 }
 
 func (g *Global) Blockly(flags ...bool) ast.Block {

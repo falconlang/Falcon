@@ -14,9 +14,9 @@ type Get struct {
 
 func (g *Get) String() string {
 	if g.Global {
-		return "this." + g.Name
+		return "this." + ast.FormatName(g.Name)
 	}
-	return g.Name
+	return ast.FormatName(g.Name)
 }
 
 func (g *Get) Blockly(flags ...bool) ast.Block {

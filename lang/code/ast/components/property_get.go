@@ -12,7 +12,7 @@ type PropertyGet struct {
 }
 
 func (p *PropertyGet) String() string {
-	return sugar.Format("%.%", p.ComponentName, p.Property)
+	return sugar.Format("%.%", ast.FormatName(p.ComponentName), ast.FormatName(p.Property))
 }
 
 func (p *PropertyGet) Blockly(flags ...bool) ast.Block {

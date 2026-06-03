@@ -15,7 +15,7 @@ type EachPair struct {
 }
 
 func (e *EachPair) String() string {
-	return sugar.Format("for (%, % in %) {\n%}", e.KeyName, e.ValueName, e.Iterable.String(), ast.PadBody(e.Body))
+	return sugar.Format("for (%, % in %) {\n%}", ast.FormatName(e.KeyName), ast.FormatName(e.ValueName), e.Iterable.String(), ast.PadBody(e.Body))
 }
 
 func (e *EachPair) Blockly(flags ...bool) ast.Block {

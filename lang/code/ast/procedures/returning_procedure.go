@@ -6,7 +6,6 @@ import (
 	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/variables"
 	"Falcon/code/sugar"
-	"strings"
 )
 
 type RetProcedure struct {
@@ -32,7 +31,7 @@ func (v *RetProcedure) String() string {
 			resultString = ast.Pad(v.Result.String())
 		}
 	}
-	return sugar.Format("func %(%) =\n%", v.Name, strings.Join(v.Parameters, ", "), resultString)
+	return sugar.Format("func %(%) =\n%", ast.FormatName(v.Name), ast.JoinNames(", ", v.Parameters), resultString)
 }
 
 func (v *RetProcedure) Blockly(flags ...bool) ast.Block {

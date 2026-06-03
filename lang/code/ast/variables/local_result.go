@@ -34,7 +34,7 @@ func (v *VarResult) String() string {
 	var builder strings.Builder
 	localLines := make([]string, len(combinedNames))
 	for k, name := range combinedNames {
-		localLines[k] = "local " + name + " = " + combinedValues[k].String()
+		localLines[k] = "local " + ast.FormatName(name) + " = " + combinedValues[k].String()
 	}
 	builder.WriteString(strings.Join(localLines, "\n"))
 	builder.WriteString("\n")

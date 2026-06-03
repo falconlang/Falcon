@@ -10,9 +10,9 @@ type Set struct {
 
 func (s Set) String() string {
 	if s.Global {
-		return "this." + s.Name + " = " + s.Expr.String()
+		return "this." + ast.FormatName(s.Name) + " = " + s.Expr.String()
 	}
-	return s.Name + " = " + s.Expr.String()
+	return ast.FormatName(s.Name) + " = " + s.Expr.String()
 }
 
 func (s Set) Blockly(flags ...bool) ast.Block {

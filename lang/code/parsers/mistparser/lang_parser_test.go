@@ -139,6 +139,37 @@ func TestAnonymousProcedureDefinitionsGenerateProcedureBlocks(t *testing.T) {
 	}
 }
 
+func TestEscapedKeywordIdentifiersParseAndRoundTrip(t *testing.T) {
+	src := strings.Join([]string{
+		"local `when` = 4",
+		"`when` + 2",
+	}, "\n")
+	expr := parseOneForTest(t, src)
+	if got := expr.String(); got != src {
+		t.Fatalf("String() = %q, want %q", got, src)
+	}
+}
+
+func TestEscapedKeywordProcedureNamesAndParametersParse(t *testing.T) {
+	src := strings.Join([]string{
+		"func `when`(`global`) = `global` + 1",
+		"`when`(4)",
+	}, "\n")
+	ctx := &context.CodeContext{SourceCode: &src, FileName: "test.mist"}
+	parser := NewLangParser(false, lex.NewLexer(ctx).Lex())
+
+	exprs := parser.ParseAll()
+	if len(exprs) != 2 {
+		t.Fatalf("ParseAll() expressions = %d, want 2", len(exprs))
+	}
+	if got := exprs[0].String(); got != "func `when`(`global`) =\n  `global` + 1\n" {
+		t.Fatalf("procedure String() = %q", got)
+	}
+	if got := exprs[1].String(); got != "`when`(4)" {
+		t.Fatalf("call String() = %q", got)
+	}
+}
+
 func TestAnonymousProcedureCallsChooseBlockByConsumption(t *testing.T) {
 	statementCall := parseOneForTest(t, `(func(x) { println(x) })("Melon")`).Blockly(true)
 	if statementCall.Type != "procedures_callanonnoreturn" {

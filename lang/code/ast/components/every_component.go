@@ -10,7 +10,7 @@ type EveryComponent struct {
 }
 
 func (e *EveryComponent) String() string {
-	return sugar.Format("every(%)", e.Type)
+	return sugar.Format("every(%)", ast.FormatName(e.Type))
 }
 
 func (e *EveryComponent) Blockly(flags ...bool) ast.Block {

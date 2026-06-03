@@ -172,6 +172,8 @@ func (l *Lexer) parse() {
 		l.createOp("@")
 	case '"':
 		l.text()
+	case '`':
+		l.escapedName()
 	case '#':
 		l.colorCode()
 	default:
@@ -184,6 +186,43 @@ func (l *Lexer) parse() {
 			l.error("Unexpected character '%'", string(c))
 		}
 	}
+}
+
+func (l *Lexer) escapedName() {
+	startRow := l.currRow
+	var writer strings.Builder
+	for l.notEOF() {
+		c := l.next()
+		if c == '`' {
+			break
+		}
+		if c == '\n' {
+			l.error("Unterminated escaped identifier")
+		}
+		if c == '\\' && l.notEOF() {
+			next := l.next()
+			if next == '\n' {
+				l.error("Unterminated escaped identifier")
+			}
+			c = next
+		}
+		writer.WriteByte(c)
+	}
+	if l.source[l.currIndex-1] != '`' {
+		l.error("Unterminated escaped identifier")
+	}
+	content := writer.String()
+	if content == "" {
+		l.error("Escaped identifier cannot be empty")
+	}
+	l.appendToken(&Token{
+		Context: l.ctx,
+		Row:     startRow + len(content),
+		Column:  l.currColumn,
+		Type:    Name,
+		Content: &content,
+		Flags:   []Flag{Value},
+	})
 }
 
 func (l *Lexer) createOp(op string) {

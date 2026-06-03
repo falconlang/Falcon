@@ -290,7 +290,7 @@ func (c *Call) String() string {
 	if !c.On.Continuous() {
 		pFormat = "(%).%(%)"
 	}
-	return sugar.Format(pFormat, c.On.String(), c.Name, ast.JoinExprs(", ", c.Args))
+	return sugar.Format(pFormat, c.On.String(), ast.FormatName(c.Name), ast.JoinExprs(", ", c.Args))
 }
 
 func (c *Call) Blockly(flags ...bool) ast.Block {

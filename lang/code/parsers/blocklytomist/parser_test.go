@@ -48,6 +48,104 @@ func TestComponentEventParameterNameMismatchReturnsError(t *testing.T) {
 	}
 }
 
+func TestReservedBlocklyNamesGenerateEscapedMistIdentifiers(t *testing.T) {
+	tests := []struct {
+		name string
+		xml  string
+		want string
+	}{
+		{
+			name: "global declaration",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="global_declaration">
+    <field name="NAME">when</field>
+    <value name="VALUE"><block type="math_number"><field name="NUM">1</field></block></value>
+  </block>
+</xml>`,
+			want: "global `when` = 1",
+		},
+		{
+			name: "lexical get",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="lexical_variable_get">
+    <field name="VAR">when</field>
+  </block>
+</xml>`,
+			want: "`when`",
+		},
+		{
+			name: "global set",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="lexical_variable_set">
+    <field name="VAR">global when</field>
+    <value name="VALUE"><block type="math_number"><field name="NUM">2</field></block></value>
+  </block>
+</xml>`,
+			want: "this.`when` = 2",
+		},
+		{
+			name: "local declaration",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="local_declaration_expression">
+    <mutation><localname name="local"></localname></mutation>
+    <field name="VAR0">local</field>
+    <value name="DECL0"><block type="math_number"><field name="NUM">3</field></block></value>
+    <value name="RETURN"><block type="lexical_variable_get"><field name="VAR">local</field></block></value>
+  </block>
+</xml>`,
+			want: "local `local` = 3\n`local`",
+		},
+		{
+			name: "procedure definition",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_defreturn">
+    <mutation><arg name="global"></arg></mutation>
+    <field name="NAME">func</field>
+    <field name="VAR0">global</field>
+    <value name="RETURN"><block type="lexical_variable_get"><field name="VAR">global</field></block></value>
+  </block>
+</xml>`,
+			want: "func `func`(`global`) =\n  `global`\n",
+		},
+		{
+			name: "procedure call",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_callreturn">
+    <mutation name="when"><arg name="local"></arg></mutation>
+    <field name="PROCNAME">when</field>
+    <value name="ARG0"><block type="math_number"><field name="NUM">4</field></block></value>
+  </block>
+</xml>`,
+			want: "`when`(4)",
+		},
+		{
+			name: "component reference",
+			xml: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="component_component_block">
+    <mutation component_type="Button" instance_name="when"></mutation>
+    <field name="COMPONENT_SELECTOR">when</field>
+  </block>
+</xml>`,
+			want: "`when`",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exprs, err := NewParser(tt.xml).TryGenerateAST()
+			if err != nil {
+				t.Fatalf("TryGenerateAST() error = %v", err)
+			}
+			if len(exprs) != 1 {
+				t.Fatalf("TryGenerateAST() produced %d expressions, want 1", len(exprs))
+			}
+			if got := exprs[0].String(); got != tt.want {
+				t.Fatalf("source = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestMatrixArithmeticBlocksUseMatrixOperators(t *testing.T) {
 	tests := []struct {
 		name  string

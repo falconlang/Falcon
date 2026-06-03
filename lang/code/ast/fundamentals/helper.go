@@ -10,7 +10,7 @@ type HelperDropdown struct {
 }
 
 func (h *HelperDropdown) String() string {
-	return h.Key + "@" + h.Option
+	return ast.FormatName(h.Key) + "@" + ast.FormatName(h.Option)
 }
 
 func (h *HelperDropdown) Blockly(flags ...bool) ast.Block {

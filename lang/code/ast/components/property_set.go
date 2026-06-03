@@ -13,7 +13,7 @@ type PropertySet struct {
 }
 
 func (p *PropertySet) String() string {
-	return sugar.Format("%.% = %", p.ComponentName, p.Property, p.Value.String())
+	return sugar.Format("%.% = %", ast.FormatName(p.ComponentName), ast.FormatName(p.Property), p.Value.String())
 }
 
 func (p *PropertySet) Blockly(flags ...bool) ast.Block {

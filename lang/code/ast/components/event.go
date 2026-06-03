@@ -3,7 +3,6 @@ package components
 import (
 	"Falcon/code/ast"
 	"Falcon/code/sugar"
-	"strings"
 )
 
 type Event struct {
@@ -16,7 +15,7 @@ type Event struct {
 
 func (e *Event) String() string {
 	pFormat := "when %.%(%) {\n%}"
-	return sugar.Format(pFormat, e.ComponentName, e.Event, strings.Join(e.Parameters, ", "), ast.PadBody(e.Body))
+	return sugar.Format(pFormat, ast.FormatName(e.ComponentName), ast.FormatName(e.Event), ast.JoinNames(", ", e.Parameters), ast.PadBody(e.Body))
 }
 
 func (e *Event) Blockly(flags ...bool) ast.Block {

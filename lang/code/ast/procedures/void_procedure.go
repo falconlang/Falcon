@@ -3,7 +3,6 @@ package procedures
 import (
 	"Falcon/code/ast"
 	"Falcon/code/sugar"
-	"strings"
 )
 
 type VoidProcedure struct {
@@ -13,7 +12,7 @@ type VoidProcedure struct {
 }
 
 func (v *VoidProcedure) String() string {
-	return sugar.Format("func %(%) {\n%}", v.Name, strings.Join(v.Parameters, ", "), ast.PadBody(v.Body))
+	return sugar.Format("func %(%) {\n%}", ast.FormatName(v.Name), ast.JoinNames(", ", v.Parameters), ast.PadBody(v.Body))
 }
 
 func (v *VoidProcedure) Blockly(flags ...bool) ast.Block {

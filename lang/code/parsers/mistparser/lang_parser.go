@@ -93,7 +93,7 @@ func (p *LangParser) GetComponentDefinitionsCode() string {
 	// convert the AST back to syntax
 	var definitions strings.Builder
 	for key, value := range p.Resolver.ComponentNameMap {
-		definitions.WriteString(sugar.Format("@% { % }\n", key, strings.Join(value, ", ")))
+		definitions.WriteString(sugar.Format("@% { % }\n", ast.FormatName(key), ast.JoinNames(", ", value)))
 	}
 	return definitions.String()
 }

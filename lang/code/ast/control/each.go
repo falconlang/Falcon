@@ -14,7 +14,7 @@ type Each struct {
 }
 
 func (e *Each) String() string {
-	return sugar.Format("for (% in %) {\n%}", e.IName, e.Iterable.String(), ast.PadBody(e.Body))
+	return sugar.Format("for (% in %) {\n%}", ast.FormatName(e.IName), e.Iterable.String(), ast.PadBody(e.Body))
 }
 
 func (e *Each) Blockly(flags ...bool) ast.Block {

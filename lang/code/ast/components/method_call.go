@@ -13,7 +13,7 @@ type MethodCall struct {
 }
 
 func (m *MethodCall) String() string {
-	return sugar.Format("%.%(%)", m.ComponentName, m.Method, ast.JoinExprs(", ", m.Args))
+	return sugar.Format("%.%(%)", ast.FormatName(m.ComponentName), ast.FormatName(m.Method), ast.JoinExprs(", ", m.Args))
 }
 
 func (m *MethodCall) Blockly(flags ...bool) ast.Block {

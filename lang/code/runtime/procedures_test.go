@@ -104,6 +104,19 @@ func TestProcedureRuntimeHelpers(t *testing.T) {
 	}
 }
 
+func TestEscapedKeywordIdentifiersRuntime(t *testing.T) {
+	src := strings.Join([]string{
+		"global `when` = 1",
+		"this.`when` = this.`when` + 2",
+		"func `func`(`global`) = `global` + this.`when`",
+		"`func`(4)",
+	}, "\n")
+	got := evalProcedureTestSource(t, src)
+	if got.String() != "7" {
+		t.Fatalf("result = %q, want 7", got.String())
+	}
+}
+
 func TestAnonymousProcedureRuntimeCapturesLexicalScope(t *testing.T) {
 	src := strings.Join([]string{
 		"local makeAdder = func(x) = {",

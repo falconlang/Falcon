@@ -8,7 +8,6 @@ import (
 	"Falcon/code/lex"
 	"Falcon/code/sugar"
 	"strconv"
-	"strings"
 )
 
 type Transformer struct {
@@ -84,7 +83,7 @@ func (t *Transformer) singleExprTransformerString() string {
 		return sugar.Format(pFormat,
 			t.List.String(),
 			t.Name,
-			strings.Join(t.Names, ", "),
+			ast.JoinNames(", ", t.Names),
 			t.Transformer.String())
 	}
 	pFormat := "%\n  .%(%) { % -> % }"
@@ -95,7 +94,7 @@ func (t *Transformer) singleExprTransformerString() string {
 		t.List.String(),
 		t.Name,
 		ast.JoinExprs(", ", t.Args),
-		strings.Join(t.Names, ", "),
+		ast.JoinNames(", ", t.Names),
 		t.Transformer.String())
 }
 
@@ -108,7 +107,7 @@ func (t *Transformer) bodyTransformerString(do ast.Expr) string {
 		return sugar.Format(pFormat,
 			t.List.String(),
 			t.Name,
-			strings.Join(t.Names, ", "),
+			ast.JoinNames(", ", t.Names),
 			ast.PadDirect(ast.Pad(do.String())))
 	}
 	pFormat := "%\n  .%(%) { % -> \n%}"
@@ -119,7 +118,7 @@ func (t *Transformer) bodyTransformerString(do ast.Expr) string {
 		t.List.String(),
 		t.Name,
 		ast.JoinExprs(", ", t.Args),
-		strings.Join(t.Names, ", "),
+		ast.JoinNames(", ", t.Names),
 		ast.PadDirect(ast.Pad(do.String())))
 }
 

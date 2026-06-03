@@ -68,7 +68,7 @@ func (q *Question) String() string {
 	if !q.On.Continuous() {
 		pFormat = "(%) ? %"
 	}
-	return sugar.Format(pFormat, q.On.String(), q.Question)
+	return sugar.Format(pFormat, q.On.String(), ast.FormatName(q.Question))
 }
 
 func (q *Question) Blockly(flags ...bool) ast.Block {

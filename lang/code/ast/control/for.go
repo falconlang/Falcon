@@ -17,7 +17,7 @@ type For struct {
 
 func (f *For) String() string {
 	return sugar.Format("for (%: % .. % step %) {\n%}",
-		f.IName, f.From.String(), f.To.String(), f.By.String(), ast.PadBody(f.Body))
+		ast.FormatName(f.IName), f.From.String(), f.To.String(), f.By.String(), ast.PadBody(f.Body))
 }
 
 func (f *For) Blockly(flags ...bool) ast.Block {

@@ -15,7 +15,7 @@ type Call struct {
 }
 
 func (v *Call) String() string {
-	return sugar.Format("%(%)", v.Name, ast.JoinExprs(", ", v.Arguments))
+	return sugar.Format("%(%)", ast.FormatName(v.Name), ast.JoinExprs(", ", v.Arguments))
 }
 
 func (v *Call) Blockly(flags ...bool) ast.Block {

@@ -6,7 +6,6 @@ import (
 	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/variables"
 	"Falcon/code/sugar"
-	"strings"
 )
 
 type AnonProcedure struct {
@@ -18,9 +17,9 @@ type AnonProcedure struct {
 
 func (a *AnonProcedure) String() string {
 	if a.Returning {
-		return sugar.Format("func(%) =\n%", strings.Join(a.Parameters, ", "), formatProcedureResult(a.Result))
+		return sugar.Format("func(%) =\n%", ast.JoinNames(", ", a.Parameters), formatProcedureResult(a.Result))
 	}
-	return sugar.Format("func(%) {\n%}", strings.Join(a.Parameters, ", "), ast.PadBody(a.Body))
+	return sugar.Format("func(%) {\n%}", ast.JoinNames(", ", a.Parameters), ast.PadBody(a.Body))
 }
 
 func (a *AnonProcedure) Blockly(flags ...bool) ast.Block {
@@ -189,7 +188,7 @@ type GetWithDropdown struct {
 }
 
 func (g *GetWithDropdown) String() string {
-	return "func." + g.Name
+	return "func." + ast.FormatName(g.Name)
 }
 
 func (g *GetWithDropdown) Blockly(flags ...bool) ast.Block {

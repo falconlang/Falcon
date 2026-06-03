@@ -14,7 +14,7 @@ type Transform struct {
 }
 
 func (t *Transform) String() string {
-	return sugar.Format("%::%", t.On.String(), t.Name)
+	return sugar.Format("%::%", t.On.String(), ast.FormatName(t.Name))
 }
 
 func (t *Transform) Blockly(flags ...bool) ast.Block {
