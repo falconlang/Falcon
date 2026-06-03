@@ -334,7 +334,7 @@ func (f *FuncCall) Signature() []ast.Signature {
 }
 
 func (f *FuncCall) everyComponent() ast.Block {
-	compType, ok := f.Args[0].(*variables.Get)
+	compType, ok := ast.UnwrapAnnotated(f.Args[0]).(*variables.Get)
 	if !ok || compType.Global {
 		f.Where.Error("Expected a component type for every() 1st argument!")
 	}
@@ -351,11 +351,11 @@ func (f *FuncCall) genericCall(vcall bool) ast.Block {
 	// arg[2] 	 method name
 	// arg[4->n] invoke args
 	// if {vcall}, it is a returning method
-	compType, ok := f.Args[0].(*fundamentals.Text)
+	compType, ok := ast.UnwrapAnnotated(f.Args[0]).(*fundamentals.Text)
 	if !ok {
 		f.Where.Error("Expected a component type for call() 1st argument!")
 	}
-	vGet, ok := f.Args[2].(*fundamentals.Text)
+	vGet, ok := ast.UnwrapAnnotated(f.Args[2]).(*fundamentals.Text)
 	if !ok {
 		f.Where.Error("Expected a method name for call() 3rd argument!")
 	}
@@ -378,11 +378,11 @@ func (f *FuncCall) genericCall(vcall bool) ast.Block {
 }
 
 func (f *FuncCall) genericGet() ast.Block {
-	compType, ok := f.Args[0].(*fundamentals.Text)
+	compType, ok := ast.UnwrapAnnotated(f.Args[0]).(*fundamentals.Text)
 	if !ok {
 		f.Where.Error("Expected a component type for get() 1st argument!")
 	}
-	vGet, ok := f.Args[2].(*fundamentals.Text)
+	vGet, ok := ast.UnwrapAnnotated(f.Args[2]).(*fundamentals.Text)
 	if !ok {
 		f.Where.Error("Expected a property type for get() 3rd argument!")
 	}
@@ -400,11 +400,11 @@ func (f *FuncCall) genericGet() ast.Block {
 }
 
 func (f *FuncCall) genericSet() ast.Block {
-	compType, ok := f.Args[0].(*fundamentals.Text)
+	compType, ok := ast.UnwrapAnnotated(f.Args[0]).(*fundamentals.Text)
 	if !ok {
 		f.Where.Error("Expected a component type for set() 1st argument!")
 	}
-	propName, ok := f.Args[2].(*fundamentals.Text)
+	propName, ok := ast.UnwrapAnnotated(f.Args[2]).(*fundamentals.Text)
 	if !ok {
 		f.Where.Error("Expected a property type for set() 3rd argument!")
 	}
@@ -649,7 +649,7 @@ func (f *FuncCall) mathRadix() ast.Block {
 	case "hexa":
 		fieldOp = "HEX"
 	}
-	textExpr, ok := f.Args[0].(*fundamentals.Text)
+	textExpr, ok := ast.UnwrapAnnotated(f.Args[0]).(*fundamentals.Text)
 	if !ok {
 		f.Where.Error("Expected a numeric string argument for %()", f.Name)
 	}

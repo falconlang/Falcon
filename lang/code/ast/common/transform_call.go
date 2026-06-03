@@ -20,7 +20,7 @@ func (t *Transform) String() string {
 func (t *Transform) Blockly(flags ...bool) ast.Block {
 	switch t.Name {
 	case "obfuscate":
-		textExpr, ok := t.On.(*fundamentals.Text)
+		textExpr, ok := ast.UnwrapAnnotated(t.On).(*fundamentals.Text)
 		if ok {
 			return ast.Block{
 				Type:     "obfuscated_text",

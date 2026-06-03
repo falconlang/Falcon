@@ -108,6 +108,70 @@ func TestNumericPowerStillGeneratesMathPower(t *testing.T) {
 	}
 }
 
+func serializeBlocklyForTest(t *testing.T, src string) string {
+	t.Helper()
+	ctx := &context.CodeContext{SourceCode: &src, FileName: "test.mist"}
+	parser := NewLangParser(false, lex.NewLexer(ctx).Lex())
+	exprs := parser.ParseAll()
+	blocks := make([]ast.Block, len(exprs))
+	for i, expr := range exprs {
+		blocks[i] = expr.Blockly(true)
+	}
+	return string(ast.XmlRoot{
+		XMLNS:  "https://developers.google.com/blockly/xml",
+		Blocks: blocks,
+	}.MarshalIndent("", "  "))
+}
+
+func TestBlockCommentInlineSerializesRootBlockInline(t *testing.T) {
+	xmlText := serializeBlocklyForTest(t, "/*inline*/ 1 + 2")
+
+	if !strings.Contains(xmlText, `<block type="math_add" inline="true">`) {
+		t.Fatalf("serialized XML = %s, want root math_add inline", xmlText)
+	}
+}
+
+func TestBlockCommentInlineInsideExpressionSerializesMarkedOperandOnly(t *testing.T) {
+	xmlText := serializeBlocklyForTest(t, "1 + /*inline*/ 2")
+
+	if strings.Contains(xmlText, `<block type="math_add" inline="true">`) {
+		t.Fatalf("serialized XML = %s, root math_add should not be inline", xmlText)
+	}
+	if !strings.Contains(xmlText, `<block type="math_number" inline="true">`) {
+		t.Fatalf("serialized XML = %s, want marked operand inline", xmlText)
+	}
+}
+
+func TestBlockCommentSerializesAsBlocklyComment(t *testing.T) {
+	xmlText := serializeBlocklyForTest(t, "/* explain */ 123")
+
+	want := `<comment pinned="false" h="80" w="160">explain</comment>`
+	if !strings.Contains(xmlText, want) {
+		t.Fatalf("serialized XML = %s, want %s", xmlText, want)
+	}
+}
+
+func TestBlockCommentInlineAndCommentCanAnnotateSameBlock(t *testing.T) {
+	xmlText := serializeBlocklyForTest(t, "/*inline*/ /* explain */ 123")
+
+	if !strings.Contains(xmlText, `<block type="math_number" inline="true">`) {
+		t.Fatalf("serialized XML = %s, want inline number block", xmlText)
+	}
+	want := `<comment pinned="false" h="80" w="160">explain</comment>`
+	if !strings.Contains(xmlText, want) {
+		t.Fatalf("serialized XML = %s, want %s", xmlText, want)
+	}
+}
+
+func TestMultipleBlockCommentsJoinAsBlocklyComment(t *testing.T) {
+	xmlText := serializeBlocklyForTest(t, "/* first */ /* second */ 123")
+
+	want := "<comment pinned=\"false\" h=\"80\" w=\"160\">first\nsecond</comment>"
+	if !strings.Contains(xmlText, want) {
+		t.Fatalf("serialized XML = %s, want joined comment", xmlText)
+	}
+}
+
 func TestAnonymousProcedureDefinitionsGenerateProcedureBlocks(t *testing.T) {
 	tests := []struct {
 		name string

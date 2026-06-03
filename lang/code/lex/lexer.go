@@ -51,6 +51,10 @@ func (l *Lexer) parse() {
 		}
 		return
 	}
+	if c == '/' && l.consume('*') {
+		l.blockComment()
+		return
+	}
 	if c == '\n' {
 		l.currColumn++
 		l.currRow = 0
@@ -186,6 +190,33 @@ func (l *Lexer) parse() {
 			l.error("Unexpected character '%'", string(c))
 		}
 	}
+}
+
+func (l *Lexer) blockComment() {
+	startColumn := l.currColumn
+	startRow := l.currRow - 1
+	var writer strings.Builder
+	for l.notEOF() {
+		c := l.next()
+		if c == '*' && l.consume('/') {
+			content := writer.String()
+			l.appendToken(&Token{
+				Context: l.ctx,
+				Row:     startRow,
+				Column:  startColumn,
+				Type:    BlockComment,
+				Content: &content,
+				Flags:   []Flag{},
+			})
+			return
+		}
+		if c == '\n' {
+			l.currColumn++
+			l.currRow = 0
+		}
+		writer.WriteByte(c)
+	}
+	l.error("Unterminated block comment")
 }
 
 func (l *Lexer) escapedName() {

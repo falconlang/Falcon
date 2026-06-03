@@ -59,7 +59,7 @@ func (y *YieldParser) edits(exprs []ast.Expr) []ast.Expr {
 	var newExprs []ast.Expr
 outerLoop:
 	for k, expr := range exprs {
-		switch e := expr.(type) {
+		switch e := ast.UnwrapAnnotated(expr).(type) {
 		case *control.If:
 			allBodiesYield := true
 			for j := range e.Bodies {
@@ -272,14 +272,14 @@ func (y *YieldParser) mapRouteToYields(traverseExprs []ast.Expr, frames []Frame)
 		return
 	}
 	// check if the last expression is yield
-	switch yield := traverseExprs[len(traverseExprs)-1].(type) {
+	switch yield := ast.UnwrapAnnotated(traverseExprs[len(traverseExprs)-1]).(type) {
 	case *fundamentals.Yield:
 		y.paths = append(y.paths, makePath(frames, yield))
 		return
 	}
 	// or else the last second expression (in case of loop yield)
 	if len(traverseExprs) > 1 {
-		switch yield := traverseExprs[len(traverseExprs)-2].(type) {
+		switch yield := ast.UnwrapAnnotated(traverseExprs[len(traverseExprs)-2]).(type) {
 		case *fundamentals.Yield:
 			y.paths = append(y.paths, makePath(frames, yield))
 			return
@@ -287,7 +287,7 @@ func (y *YieldParser) mapRouteToYields(traverseExprs []ast.Expr, frames []Frame)
 	}
 	handled := false
 	for _, expr := range traverseExprs {
-		switch e := expr.(type) {
+		switch e := ast.UnwrapAnnotated(expr).(type) {
 		case *control.If:
 			{
 				handled = true

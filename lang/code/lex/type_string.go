@@ -73,11 +73,12 @@ func _() {
 	_ = x[MatrixDash-62]
 	_ = x[MatrixTimes-63]
 	_ = x[MatrixPower-64]
+	_ = x[BlockComment-65]
 }
 
-const _Type_name = "PlusDashTimesSlashPowerRemainderLogicOrLogicAndBitwiseOrBitwiseAndBitwiseXorEqualsNotEqualsLessThanLessThanEqualGreatThanGreaterThanEqualTextEqualsTextNotEqualsTextLessThanTextGreaterThanOpenCurveCloseCurveOpenSquareCloseSquareOpenCurlyCloseCurlyAssignDotCommaQuestionNotColonDoubleColonDoubleDotRightArrowUnderscoreAtTrueFalseTextNumberNameColorCodeIfElseForStepInWhileDoBreakWalkAllGlobalLocalThisFuncWhenAnyUndefinedYieldMatrixPlusMatrixDashMatrixTimesMatrixPower"
+const _Type_name = "PlusDashTimesSlashPowerRemainderLogicOrLogicAndBitwiseOrBitwiseAndBitwiseXorEqualsNotEqualsLessThanLessThanEqualGreatThanGreaterThanEqualTextEqualsTextNotEqualsTextLessThanTextGreaterThanOpenCurveCloseCurveOpenSquareCloseSquareOpenCurlyCloseCurlyAssignDotCommaQuestionNotColonDoubleColonDoubleDotRightArrowUnderscoreAtTrueFalseTextNumberNameColorCodeIfElseForStepInWhileDoBreakWalkAllGlobalLocalThisFuncWhenAnyUndefinedYieldMatrixPlusMatrixDashMatrixTimesMatrixPowerBlockComment"
 
-var _Type_index = [...]uint16{0, 4, 8, 13, 18, 23, 32, 39, 47, 56, 66, 76, 82, 91, 99, 112, 121, 137, 147, 160, 172, 187, 196, 206, 216, 227, 236, 246, 252, 255, 260, 268, 271, 276, 287, 296, 306, 316, 318, 322, 327, 331, 337, 341, 350, 352, 356, 359, 363, 365, 370, 372, 377, 384, 390, 395, 399, 403, 407, 410, 419, 424, 434, 444, 455, 466}
+var _Type_index = [...]uint16{0, 4, 8, 13, 18, 23, 32, 39, 47, 56, 66, 76, 82, 91, 99, 112, 121, 137, 147, 160, 172, 187, 196, 206, 216, 227, 236, 246, 252, 255, 260, 268, 271, 276, 287, 296, 306, 316, 318, 322, 327, 331, 337, 341, 350, 352, 356, 359, 363, 365, 370, 372, 377, 384, 390, 395, 399, 403, 407, 410, 419, 424, 434, 444, 455, 466, 478}
 
 func (i Type) String() string {
 	idx := int(i) - 0

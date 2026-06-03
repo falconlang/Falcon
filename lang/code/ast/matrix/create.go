@@ -103,11 +103,12 @@ func (c *Create) matrixMutation() string {
 }
 
 func matrixLiteralCell(cell ast.Expr) (string, bool) {
+	cell = ast.UnwrapAnnotated(cell)
 	if number, ok := cell.(*fundamentals.Number); ok {
 		return number.Content, true
 	}
 	if neg, ok := cell.(*common.FuncCall); ok && neg.Name == "neg" && len(neg.Args) == 1 {
-		if number, ok := neg.Args[0].(*fundamentals.Number); ok {
+		if number, ok := ast.UnwrapAnnotated(neg.Args[0]).(*fundamentals.Number); ok {
 			return "-" + number.Content, true
 		}
 	}

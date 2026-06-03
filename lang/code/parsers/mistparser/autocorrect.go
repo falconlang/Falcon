@@ -31,6 +31,8 @@ func (p *LangParser) walkAndCorrect(expr ast.Expr) {
 		return
 	}
 	switch e := expr.(type) {
+	case *ast.AnnotatedExpr:
+		p.walkAndCorrect(e.Expr)
 
 	case *method.Call:
 		var corrections []method.Correction

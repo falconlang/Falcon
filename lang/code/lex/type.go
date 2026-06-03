@@ -79,4 +79,5 @@ const (
 	MatrixDash
 	MatrixTimes
 	MatrixPower
+	BlockComment
 )

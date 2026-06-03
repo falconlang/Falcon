@@ -15,6 +15,8 @@ type XmlRoot struct {
 type Block struct {
 	Type       string
 	Disabled   bool
+	Inline     bool
+	Comment    string
 	Mutation   *Mutation
 	Fields     []Field
 	Values     []Value
@@ -254,8 +256,12 @@ func writeBlock(sb *strings.Builder, b Block, ind, step string) {
 	if b.Disabled {
 		sb.WriteString(` disabled="true"`)
 	}
+	if b.Inline {
+		sb.WriteString(` inline="true"`)
+	}
 	sb.WriteByte('>')
 	writeMutation(sb, b.Mutation, ind+step, step)
+	writeComment(sb, b.Comment, ind+step)
 	for _, f := range b.Fields {
 		sb.WriteByte('\n')
 		sb.WriteString(ind + step)
@@ -339,6 +345,17 @@ func writeShadow(sb *strings.Builder, s *Shadow, ind, step string) {
 	sb.WriteByte('\n')
 	sb.WriteString(ind)
 	sb.WriteString("</shadow>")
+}
+
+func writeComment(sb *strings.Builder, comment string, ind string) {
+	if comment == "" {
+		return
+	}
+	sb.WriteByte('\n')
+	sb.WriteString(ind)
+	sb.WriteString(`<comment pinned="false" h="80" w="160">`)
+	sb.WriteString(xmlutil.EscapeText(comment))
+	sb.WriteString("</comment>")
 }
 
 func writeMutation(sb *strings.Builder, m *Mutation, ind, step string) {
@@ -462,12 +479,15 @@ func elementToBlock(e *xmlutil.Element) Block {
 	b := Block{
 		Type:     e.AttrVal("type"),
 		Disabled: e.AttrBool("disabled"),
+		Inline:   e.AttrBool("inline"),
 	}
 	for _, child := range e.Children {
 		switch child.Name {
 		case "mutation":
 			m := elementToMutation(child)
 			b.Mutation = &m
+		case "comment":
+			b.Comment = child.Text
 		case "field":
 			b.Fields = append(b.Fields, Field{
 				Name:  child.AttrVal("name"),

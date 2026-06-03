@@ -19,7 +19,7 @@ func (g *Get) String() string {
 		pFormat = "(%)[%]"
 	}
 	index := g.Index.String()
-	if _, ok := g.Index.(*fundamentals.List); ok {
+	if _, ok := ast.UnwrapAnnotated(g.Index).(*fundamentals.List); ok {
 		index = "(" + index + ")"
 	}
 	return sugar.Format(pFormat, g.List.String(), index)

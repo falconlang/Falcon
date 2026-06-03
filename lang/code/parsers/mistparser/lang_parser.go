@@ -47,6 +47,11 @@ type LangParser struct {
 	methodValidator   MethodValidator
 }
 
+type blockAnnotations struct {
+	inline   bool
+	comments []string
+}
+
 // EnableAutoCorrect turns on the auto-correction pass. Disabled by default.
 func (p *LangParser) EnableAutoCorrect() { p.autoCorrect = true }
 
@@ -117,8 +122,14 @@ func (p *LangParser) ParseTopLevel() ([]ast.Expr, []int) {
 		p.predeclareTopLevelSymbols()
 	}
 	for p.notEOF() {
-		lineNumbers = append(lineNumbers, p.peek().Column)
+		if p.onlyBlockCommentsRemain() {
+			break
+		}
+		lineNumbers = append(lineNumbers, p.peekExpressionLine())
 		e := p.parse()
+		if e == nil {
+			continue
+		}
 		expressions = append(expressions, e)
 	}
 	for _, e := range expressions {
@@ -344,6 +355,15 @@ func (p *LangParser) defineStatements() {
 }
 
 func (p *LangParser) parse() ast.Expr {
+	annotations := p.consumeBlockAnnotations()
+	if p.isEOF() {
+		return nil
+	}
+	expr := p.parseCore()
+	return annotateExpr(expr, annotations)
+}
+
+func (p *LangParser) parseCore() ast.Expr {
 	switch p.peek().Type {
 	case l.If:
 		return p.ifSmt()
@@ -377,6 +397,77 @@ func (p *LangParser) parse() ast.Expr {
 	default:
 		return p.expr(0)
 	}
+}
+
+func (p *LangParser) consumeBlockAnnotations() blockAnnotations {
+	var annotations blockAnnotations
+	for p.notEOF() && p.peek().Type == l.BlockComment {
+		content := ""
+		if p.peek().Content != nil {
+			content = *p.peek().Content
+		}
+		p.skip()
+		trimmed := strings.TrimSpace(content)
+		if trimmed == "inline" {
+			annotations.inline = true
+			continue
+		}
+		if trimmed != "" {
+			annotations.comments = append(annotations.comments, trimmed)
+		}
+	}
+	return annotations
+}
+
+func annotateExpr(expr ast.Expr, annotations blockAnnotations) ast.Expr {
+	if expr == nil || (!annotations.inline && len(annotations.comments) == 0) {
+		return expr
+	}
+	return &ast.AnnotatedExpr{
+		Expr:    expr,
+		Inline:  annotations.inline,
+		Comment: strings.Join(annotations.comments, "\n"),
+	}
+}
+
+func (p *LangParser) onlyBlockCommentsRemain() bool {
+	for i := p.currIndex; i < p.tokenSize; i++ {
+		if p.Tokens[i].Type != l.BlockComment {
+			return false
+		}
+	}
+	p.currIndex = p.tokenSize
+	return true
+}
+
+func (p *LangParser) peekExpressionLine() int {
+	for i := p.currIndex; i < p.tokenSize; i++ {
+		if p.Tokens[i].Type != l.BlockComment {
+			return p.Tokens[i].Column
+		}
+	}
+	return p.peek().Column
+}
+
+func (p *LangParser) skipBlockCommentsBefore(checkTypes ...l.Type) bool {
+	i := p.currIndex
+	for i < p.tokenSize && p.Tokens[i].Type == l.BlockComment {
+		i++
+	}
+	if i == p.currIndex {
+		return false
+	}
+	if i >= p.tokenSize {
+		p.currIndex = i
+		return true
+	}
+	for _, checkType := range checkTypes {
+		if p.Tokens[i].Type == checkType {
+			p.currIndex = i
+			return true
+		}
+	}
+	return false
 }
 
 func (p *LangParser) yieldSmt() ast.Expr {
@@ -699,22 +790,28 @@ func (p *LangParser) body(scope ScopeType, vars ...ScopeVar) []ast.Expr {
 
 func (p *LangParser) bodyUntilCurly() []ast.Expr {
 	var expressions []ast.Expr
-	if p.isNext(l.CloseCurly) {
+	if p.isNext(l.CloseCurly) || p.skipBlockCommentsBefore(l.CloseCurly) {
 		return expressions
 	}
 	for p.notEOF() && !p.isNext(l.CloseCurly) {
+		if p.skipBlockCommentsBefore(l.CloseCurly) {
+			break
+		}
 		expr := p.parse()
+		if expr == nil {
+			continue
+		}
 		expressions = append(expressions, expr)
 		p.consume(l.Comma)
 
 		// no statements allowed after `break`
-		switch expr.(type) {
+		switch ast.UnwrapAnnotated(expr).(type) {
 		case *control.Break, *fundamentals.Yield:
 			if p.notEOF() && !p.isNext(l.CloseCurly) {
 				p.peek().Error("unreachable code after '%'", expr.String())
 			}
 		}
-		switch expr.(type) {
+		switch ast.UnwrapAnnotated(expr).(type) {
 		case *fundamentals.Yield:
 			if p.ScopeCursor.In(ScopeLoop) {
 				// we have to inject a break statement here
@@ -726,6 +823,7 @@ func (p *LangParser) bodyUntilCurly() []ast.Expr {
 }
 
 func (p *LangParser) expr(minPrecedence int) ast.Expr {
+	annotations := p.consumeBlockAnnotations()
 	left := p.element()
 	for p.notEOF() {
 		opToken := p.peek()
@@ -769,7 +867,7 @@ func (p *LangParser) expr(minPrecedence int) ast.Expr {
 			left = p.makeBinary(opToken, left, right)
 		}
 	}
-	return left
+	return annotateExpr(left, annotations)
 }
 
 func isRightAssociativeOperator(operator l.Type) bool {
@@ -1119,7 +1217,7 @@ func (p *LangParser) smartBody() ast.Expr {
 	body := p.body(ScopeSmartBody)
 	k := 0
 	for ; k < len(body); k++ {
-		if _, ok := body[k].(*fundamentals.Pair); !ok {
+		if _, ok := ast.UnwrapAnnotated(body[k]).(*fundamentals.Pair); !ok {
 			break
 		}
 	}
