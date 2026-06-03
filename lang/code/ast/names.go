@@ -30,7 +30,9 @@ func FormatName(name string) string {
 			return name
 		}
 	}
-	return "`" + strings.ReplaceAll(name, "`", "\\`") + "`"
+	name = strings.ReplaceAll(name, "\\", "\\\\")
+	name = strings.ReplaceAll(name, "`", "\\`")
+	return "`" + name + "`"
 }
 
 func JoinNames(sep string, names []string) string {
