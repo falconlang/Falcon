@@ -1441,6 +1441,86 @@
       default:                    return '<rect x="1.5" y="1.5" width="9" height="9" rx="1.5" stroke-width="1.3"/>';
     }
   }
+
+  // ── Screen preview renderer ────────────────────────────────────────
+  function escHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function prevBg(node) {
+    const v = node?.props?.BackgroundColor;
+    if (!v || v === '&H00000000') return '';
+    return `background:${aiColorToHex(v)};`;
+  }
+
+  function prevTc(node) {
+    const v = node?.props?.TextColor;
+    if (!v || v === '&H00000000') return '';
+    return `color:${aiColorToHex(v)};`;
+  }
+
+  function renderPreviewChildren(node) {
+    return (node.children || []).map(renderPreviewNode).join('');
+  }
+
+  function renderPreviewNode(node) {
+    if (!node) return '';
+    if (isNonVisibleComponentType(node.type)) return '';
+    if (node.props?.Visible === 'false') return '';
+    const type = node.type;
+    const bg = prevBg(node);
+    const tc = prevTc(node);
+    switch (type) {
+      case 'Screen':
+      case 'Form': {
+        const title = escHtml(node.props?.Title || node.name);
+        return `<div class="prev-screen" style="${bg}"><div class="prev-titlebar">${title}</div><div class="prev-body">${renderPreviewChildren(node)}</div></div>`;
+      }
+      case 'HorizontalArrangement':
+      case 'ScrollHorizontal':
+        return `<div class="prev-horiz" style="${bg}">${renderPreviewChildren(node)}</div>`;
+      case 'VerticalArrangement':
+      case 'ScrollVertical':
+        return `<div class="prev-vert" style="${bg}">${renderPreviewChildren(node)}</div>`;
+      case 'Button': {
+        const text = escHtml(node.props?.Text || node.name);
+        return `<div class="prev-button" style="${bg}${tc}">${text}</div>`;
+      }
+      case 'Label': {
+        const text = escHtml(node.props?.Text || '');
+        return `<div class="prev-label" style="${bg}${tc}">${text || escHtml(node.name)}</div>`;
+      }
+      case 'TextBox': {
+        const placeholder = escHtml(node.props?.Hint || node.props?.Text || node.name);
+        return `<div class="prev-textbox" style="${bg}">${placeholder}</div>`;
+      }
+      case 'CheckBox': {
+        const text = escHtml(node.props?.Text || node.name);
+        return `<div class="prev-checkbox" style="${bg}${tc}"><span class="prev-checkbox-box"></span>${text}</div>`;
+      }
+      case 'Image':
+        return `<div class="prev-image" style="${bg}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="1" width="14" height="14" rx="1.5"/><path d="M1 11l4-4 2.5 2.5 2.5-3 4 4.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+      case 'ListView':
+        return `<div class="prev-listview" style="${bg}"><div class="prev-listview-item">Item 1</div><div class="prev-listview-item">Item 2</div><div class="prev-listview-item">Item 3</div></div>`;
+      case 'WebViewer':
+        return `<div class="prev-webviewer" style="${bg}">WebViewer</div>`;
+      case 'Canvas':
+        return `<div class="prev-canvas" style="${bg}">Canvas</div>`;
+      default:
+        if (CONTAINER_TYPES.has(type)) {
+          return `<div class="prev-vert" style="${bg}">${renderPreviewChildren(node)}</div>`;
+        }
+        return `<div class="prev-generic">${escHtml(type)}</div>`;
+    }
+  }
+
+  function renderPreview(root) {
+    return root ? renderPreviewNode(root) : '';
+  }
 </script>
 
 <svelte:window on:keydown={handleListDataDialogKey} />
@@ -1469,6 +1549,11 @@
         class:active={treeTab === 'components'}
         on:click={() => { treeTab = 'components'; closeCtxMenu(); }}
       >Components</button>
+      <button
+        class="vis-tab-btn"
+        class:active={treeTab === 'preview'}
+        on:click={() => { treeTab = 'preview'; closeCtxMenu(); }}
+      >Preview</button>
       <button
         class="vis-tab-btn"
         class:active={treeTab === 'media'}
@@ -1614,7 +1699,7 @@
       </div>
     {/if}
 
-  {:else}
+  {:else if treeTab === 'media'}
     <!-- Media tab -->
     <div class="vis-media-tab">
       <div class="vis-media-header">
@@ -1684,6 +1769,15 @@
           <div class="vis-media-empty">No media files</div>
         {/if}
       </div>
+    </div>
+  {:else}
+    <!-- Preview tab -->
+    <div class="vis-preview-scroll">
+      {#if mutableTree}
+        {@html renderPreview(mutableTree)}
+      {:else}
+        <div class="vis-tree-empty">No components to preview.</div>
+      {/if}
     </div>
   {/if}
 
@@ -2219,7 +2313,7 @@
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 1px;
+    gap: 4px;
     padding: 4px 6px;
     border-bottom: 1px solid var(--border-soft);
     background: var(--surface);
@@ -3377,4 +3471,214 @@
     transition: opacity 0.1s;
   }
   .vis-listdata-save-btn:hover { opacity: 0.86; }
+
+  /* ── Screen preview ─────────────────────────────────────────────────── */
+  .vis-preview-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 16px 24px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .vis-preview-scroll::-webkit-scrollbar { width: 4px; }
+  .vis-preview-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  :global(.prev-screen) {
+    aspect-ratio: 9 / 20;
+    flex: 1;
+    min-height: 0;
+    max-height: 100%;
+    background: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :global(html:not([data-theme="dark"]) .prev-screen) {
+    border: 1px solid #1a1916;
+  }
+
+  :global(.prev-titlebar) {
+    flex-shrink: 0;
+    height: 34px;
+    background: #1a73e8;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  :global(.prev-body) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #ddd transparent;
+  }
+
+  :global(.prev-vert) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px dashed var(--border-soft);
+    border-radius: 3px;
+    padding: 4px;
+    min-height: 20px;
+  }
+
+  :global(.prev-horiz) {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    align-items: flex-start;
+    border: 1px dashed var(--border-soft);
+    border-radius: 3px;
+    padding: 4px;
+    min-height: 20px;
+  }
+
+  :global(.prev-button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    padding: 0 12px;
+    background: #1a73e8;
+    color: #fff;
+    border-radius: 4px;
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  :global(.prev-label) {
+    font-family: var(--font);
+    font-size: 11.5px;
+    color: #202124;
+    padding: 1px 2px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  :global(.prev-textbox) {
+    height: 28px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 0 8px;
+    font-family: var(--font);
+    font-size: 11px;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    background: #fafafa;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  :global(.prev-checkbox) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font);
+    font-size: 11.5px;
+    color: #202124;
+    padding: 2px 0;
+  }
+
+  :global(.prev-checkbox-box) {
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid #888;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  :global(.prev-image) {
+    height: 60px;
+    background: #f1f3f4;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+  }
+  :global(.prev-image svg) { width: 24px; height: 24px; }
+
+  :global(.prev-listview) {
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  :global(.prev-listview-item) {
+    padding: 6px 10px;
+    font-family: var(--font);
+    font-size: 11px;
+    color: #202124;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  :global(.prev-listview-item:last-child) { border-bottom: none; }
+
+  :global(.prev-webviewer) {
+    height: 60px;
+    background: #f1f3f4;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font);
+    font-size: 11px;
+    color: #888;
+  }
+
+  :global(.prev-canvas) {
+    height: 60px;
+    background: #f8f8f8;
+    border: 1px dashed #bbb;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font);
+    font-size: 11px;
+    color: #888;
+  }
+
+  :global(.prev-generic) {
+    height: 22px;
+    padding: 0 8px;
+    background: #f1f3f4;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    font-family: var(--font);
+    font-size: 10px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 </style>
