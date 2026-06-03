@@ -4,9 +4,15 @@ import { test } from 'node:test';
 import { get } from 'svelte/store';
 import {
   __companionInternalsForTests,
+  companionAssetOrigin,
+  companionAssetProjectId,
+  companionAssetUploadUrl,
+  companionFetchAssetYail,
+  companionLoadExtensionsYail,
   extractComponentDefs,
   generateCompanionCode,
   normalizeCompanionDesignSource,
+  schemeString,
 } from '../src/lib/companion.js';
 import { splitFalconSourceByTopLevelLines, splitFalconSourceIntoCells } from '../src/lib/cell-splitting.js';
 import {
@@ -31,6 +37,7 @@ import {
   loadProjectState,
   pasteCopiedCellBelow,
   projectProperties,
+  projectExtensionComponents,
   replaceCodeCells,
   screenList,
   setProjectProperty,
@@ -53,6 +60,12 @@ import {
 import {
   appInventorAssetNameError,
 } from '../src/lib/appinventor-validation.js';
+import {
+  componentDescriptorName,
+  knownComponentTypeSet,
+  readComponentDescriptorFile,
+  setProjectExtensionComponentDescriptors,
+} from '../src/lib/appinventor-component-registry.js';
 import {
   CURRENT_YA_VERSION,
   componentDefinitionsFromScmProperties,
@@ -114,6 +127,64 @@ test('extractComponentDefs handles same-line bodyless children and current compo
   assert.equal(defs.NxtSound, undefined);
 });
 
+test('App Inventor extension descriptors register component names and aliases', () => {
+  const descriptors = readComponentDescriptorFile(JSON.stringify({
+    name: 'TestExtension',
+    type: 'com.example.TestExtension',
+    external: 'true',
+    nonVisible: 'true',
+    version: '3',
+    events: [],
+    methods: [],
+    properties: [],
+    blockProperties: [],
+  }));
+
+  setProjectExtensionComponentDescriptors(descriptors);
+  try {
+    assert.equal(componentDescriptorName('com.example.TestExtension'), 'TestExtension');
+    assert.equal(componentDescriptorName('TestExtension'), 'TestExtension');
+    assert.equal(componentDescriptorName('UnknownExtension'), 'UnknownExtension');
+    assert.equal(knownComponentTypeSet().has('TestExtension'), true);
+
+    const defs = extractComponentDefs('Screen.Screen1 { TestExtension.Ext1 }', knownComponentTypeSet());
+    assert.deepEqual(defs.TestExtension, ['Ext1']);
+  } finally {
+    setProjectExtensionComponentDescriptors([]);
+  }
+});
+
+test('loadProjectState keeps imported App Inventor extension descriptors in project state', () => {
+  const originalSnapshot = getProjectSnapshot();
+  const extensionComponents = readComponentDescriptorFile(JSON.stringify([{
+    name: 'LoadedExtension',
+    type: 'com.example.LoadedExtension',
+    external: 'true',
+    nonVisible: 'true',
+    version: '1',
+    events: [],
+    methods: [],
+    properties: [],
+    blockProperties: [],
+  }]));
+
+  loadProjectState({
+    projectName: 'WithExtensions',
+    activeScreen: 'Screen1',
+    screens: [{ name: 'Screen1', cells: [], designCode: 'Screen.Screen1 { LoadedExtension.Ext1 }' }],
+    assets: [],
+    extensionComponents,
+  });
+
+  try {
+    assert.equal(get(projectExtensionComponents).length, 1);
+    assert.equal(getProjectSnapshot().extensionComponents[0].name, 'LoadedExtension');
+    assert.equal(knownComponentTypeSet().has('LoadedExtension'), true);
+  } finally {
+    loadProjectState(originalSnapshot);
+  }
+});
+
 test('normalizeCompanionDesignSource supplies empty screen fallback and active screen root name', () => {
   assert.equal(
     normalizeCompanionDesignSource('', 'Screen2'),
@@ -138,6 +209,46 @@ test('createQrSvg enforces 5 character uppercase alphanumeric companion codes', 
 
   assert.throws(() => createQrSvg('123456789'), /5 uppercase alphanumeric/);
   assert.throws(() => createQrSvg('abc12'), /5 uppercase alphanumeric/);
+});
+
+test('companion live asset helpers produce App Inventor AssetFetcher payloads', () => {
+  assert.equal(companionAssetProjectId('AB 12!'), 'tensor-live-AB_12_');
+  assert.equal(
+    companionAssetUploadUrl('tensor-live-AB12C', 'assets/external_comps/com.example.Ext/classes.jar', 'http://192.168.1.10:5173/'),
+    'http://192.168.1.10:5173/__tensor_companion_assets/tensor-live-AB12C/assets/external_comps/com.example.Ext/classes.jar',
+  );
+  assert.equal(schemeString('a"b\\c\n'), '"a\\"b\\\\c\\n"');
+  assert.equal(
+    companionFetchAssetYail({
+      projectId: 'tensor-live-AB12C',
+      origin: 'http://192.168.1.10:5173/',
+      assetName: 'assets/external_comps/com.example.Ext/classes.jar',
+    }),
+    '(begin (require <com.google.youngandroid.runtime>) (AssetFetcher:fetchAssets "" "tensor-live-AB12C" "http://192.168.1.10:5173" "assets/external_comps/com.example.Ext/classes.jar"))',
+  );
+  assert.equal(
+    companionLoadExtensionsYail(['com.example.Ext']),
+    '(begin (require <com.google.youngandroid.runtime>) (AssetFetcher:loadExtensions "[\\"com.example.Ext\\"]"))',
+  );
+});
+
+test('companion asset upload URL escapes path segments without flattening directories', () => {
+  assert.equal(
+    companionAssetUploadUrl('proj/1', 'assets/My Sounds/a b.mp3', 'http://host'),
+    'http://host/__tensor_companion_assets/proj%2F1/assets/My%20Sounds/a%20b.mp3',
+  );
+});
+
+test('companion asset origin does not silently fall back to page localhost', () => {
+  assert.equal(companionAssetOrigin(), '');
+  assert.throws(
+    () => companionAssetUploadUrl('proj', 'assets/file.txt'),
+    /Companion asset origin is not configured/,
+  );
+  assert.throws(
+    () => companionAssetUploadUrl('proj', 'assets/file.txt', '/relative'),
+    /absolute HTTP\(S\) URL/,
+  );
 });
 
 test('collectFalconSymbols finds real declarations across code cells', () => {

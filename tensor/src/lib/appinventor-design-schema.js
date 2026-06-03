@@ -1,7 +1,6 @@
-import simpleComponents from '../../../lang/code/compdb/simple_components.json' with { type: 'json' };
+import { componentMetaMap } from './appinventor-component-registry.js';
 import { PROJECT_PROPERTY_NAMES } from './project-properties.js';
 
-const COMPONENT_META = new Map(simpleComponents.map(component => [component.name, component]));
 const TYPE_ALIASES = {
   Screen: 'Form',
   Form: 'Form',
@@ -45,7 +44,7 @@ function designerEditorTypeToValueKind(editorType) {
 }
 
 function componentPropertyValueKind(componentType, propName) {
-  const component = COMPONENT_META.get(scmType(componentType));
+  const component = componentMetaMap().get(scmType(componentType));
   const blockProp = component?.blockProperties?.find(prop => prop.name === propName);
   if (blockProp?.type) return blockProp.type;
   const designerProp = component?.properties?.find(prop => prop.name === propName);

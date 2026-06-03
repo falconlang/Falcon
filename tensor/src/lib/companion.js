@@ -12,6 +12,7 @@ import {
   ensureDebugNotifierDesignSource,
   instrumentFalconSourceForDebug,
 } from './debug-instrumentation.js'
+import { knownComponentTypeSet } from './appinventor-component-registry.js'
 
 const RENDEZVOUS = 'https://rendezvous.appinventor.mit.edu/rendezvous/'
 const RENDEZVOUS2 = 'https://rendezvous.appinventor.mit.edu/rendezvous2/'
@@ -91,6 +92,14 @@ function nextChunkSymbol() {
   return `Q${chunkSequence}`
 }
 
+export function schemeString(value) {
+  return `"${String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')}"`
+}
+
 export function chunkCompanionMessage(input) {
   const message = String(input ?? '')
   if (message.length <= WEBRTC_CHUNK_LENGTH) return [message]
@@ -120,6 +129,80 @@ export function sendCompanionMessage(channel, input) {
   const chunks = chunkCompanionMessage(input)
   for (const chunk of chunks) channel.send(chunk)
   return chunks.length
+}
+
+function trimTrailingSlash(value) {
+  return String(value || '').replace(/\/+$/, '')
+}
+
+function encodeAssetPath(path) {
+  return String(path || '')
+    .split('/')
+    .filter(Boolean)
+    .map(part => encodeURIComponent(part))
+    .join('/')
+}
+
+export function companionAssetProjectId(sessionCode) {
+  return `tensor-live-${String(sessionCode || 'session').replace(/[^A-Za-z0-9_-]/g, '_')}`
+}
+
+export function companionAssetOrigin() {
+  const envOrigin = import.meta.env?.VITE_COMPANION_ASSET_ORIGIN
+  let storedOrigin = ''
+  try {
+    storedOrigin = globalThis.localStorage?.getItem('tensorCompanionAssetOrigin') || ''
+  } catch {}
+  const origin = trimTrailingSlash(storedOrigin || envOrigin || '')
+  return origin
+}
+
+function requireCompanionAssetOrigin(origin) {
+  const clean = trimTrailingSlash(origin)
+  if (!clean) {
+    throw new Error('Companion asset origin is not configured. Set VITE_COMPANION_ASSET_ORIGIN or localStorage.tensorCompanionAssetOrigin to a URL the Companion can reach.')
+  }
+  if (!/^https?:\/\//i.test(clean)) {
+    throw new Error(`Companion asset origin must be an absolute HTTP(S) URL: ${origin}`)
+  }
+  return clean
+}
+
+export function companionAssetUploadUrl(projectId, assetName, origin = companionAssetOrigin()) {
+  const cleanOrigin = requireCompanionAssetOrigin(origin)
+  return `${cleanOrigin}/__tensor_companion_assets/${encodeURIComponent(projectId)}/${encodeAssetPath(assetName)}`
+}
+
+export function companionFetchAssetYail({ cookie = '', projectId, origin, assetName }) {
+  return `(begin (require <com.google.youngandroid.runtime>) (AssetFetcher:fetchAssets ${schemeString(cookie)} ${schemeString(projectId)} ${schemeString(trimTrailingSlash(origin))} ${schemeString(assetName)}))`
+}
+
+export function companionLoadExtensionsYail(extensionNames = []) {
+  return `(begin (require <com.google.youngandroid.runtime>) (AssetFetcher:loadExtensions ${schemeString(JSON.stringify(extensionNames || []))}))`
+}
+
+export async function publishCompanionAsset(projectId, assetName, blob, origin = companionAssetOrigin(), signal = undefined) {
+  const response = await fetch(companionAssetUploadUrl(projectId, assetName, origin), {
+    method: 'PUT',
+    headers: { 'Content-Type': blob?.type || 'application/octet-stream' },
+    body: blob,
+    signal,
+  })
+  if (!response.ok) {
+    throw new Error(`Unable to publish companion asset ${assetName}: HTTP ${response.status}`)
+  }
+  return response.json().catch(() => ({ ok: true }))
+}
+
+export async function clearPublishedCompanionAssets(projectId, origin = companionAssetOrigin(), signal = undefined) {
+  if (!projectId) return
+  const cleanOrigin = trimTrailingSlash(origin)
+  if (!cleanOrigin) return
+  if (!/^https?:\/\//i.test(cleanOrigin)) return
+  await fetch(`${cleanOrigin}/__tensor_companion_assets/${encodeURIComponent(projectId)}`, {
+    method: 'DELETE',
+    signal,
+  }).catch(() => {})
 }
 
 function describeIceCandidate(candidate) {
@@ -179,7 +262,7 @@ function canonicalComponentDefType(type) {
 
 async function knownComponentTypesForExtraction() {
   const names = await listComponents()
-  return new Set([...names, 'Screen', 'Form'])
+  return new Set([...names, ...knownComponentTypeSet(), 'Screen', 'Form'])
 }
 
 export function extractComponentDefs(annSource, knownTypes = KNOWN_COMPONENT_TYPES) {
@@ -356,7 +439,7 @@ export async function validateSources(mistSource, annSource) {
       }
     }
 
-    const componentDefs = extractComponentDefs(annSource)
+    const componentDefs = extractComponentDefs(annSource, await knownComponentTypesForExtraction())
     const mistResult = await mistToXmlDiagnosticResult(mistSource, componentDefs)
     if (!mistResult.ok) {
       return {

@@ -1,6 +1,5 @@
 <script>
   import { createEventDispatcher, tick } from 'svelte';
-  import simpleComponents from '../../../lang/code/compdb/simple_components.json';
   import { addDesignAsset, deleteDesignAsset, designAssets, renameDesignAsset } from './stores.js';
   import {
     customDesignerEditorMetadata,
@@ -23,6 +22,11 @@
     isValidScreenName,
     normalizeAppInventorAssetName,
   } from './appinventor-validation.js';
+  import {
+    allComponentDescriptors,
+    componentMetaMap,
+    extensionComponentDescriptors,
+  } from './appinventor-component-registry.js';
 
   export let schemaValue = '';
   const dispatch = createEventDispatcher();
@@ -290,9 +294,10 @@
     return props;
   }
 
-  const COMP_PROPS = buildComponentProps(simpleComponents);
-  const KNOWN_COMPONENT_TYPES = new Set(Object.keys(COMP_PROPS));
-  const COMPONENT_META = new Map(simpleComponents.map(component => [component.name, component]));
+  let componentDescriptors = allComponentDescriptors();
+  let COMP_PROPS = buildComponentProps(componentDescriptors);
+  let KNOWN_COMPONENT_TYPES = new Set(Object.keys(COMP_PROPS));
+  let COMPONENT_META = componentMetaMap();
   const CANVAS_CHILD_TYPES = new Set(['Ball', 'ImageSprite']);
   const MAP_CHILD_TYPES = new Set(['Circle', 'FeatureCollection', 'LineString', 'Marker', 'Polygon', 'Rectangle']);
   const FEATURE_COLLECTION_CHILD_TYPES = new Set(['Circle', 'LineString', 'Marker', 'Polygon', 'Rectangle']);
@@ -318,12 +323,17 @@
   ];
 
 
-  const CONTAINER_TYPES = new Set([
+  let CONTAINER_TYPES = new Set();
+  $: componentDescriptors = allComponentDescriptors($extensionComponentDescriptors);
+  $: COMP_PROPS = buildComponentProps(componentDescriptors);
+  $: KNOWN_COMPONENT_TYPES = new Set(Object.keys(COMP_PROPS));
+  $: COMPONENT_META = componentMetaMap($extensionComponentDescriptors);
+  $: CONTAINER_TYPES = new Set([
     'Screen',
     'Form',
     'ScrollHorizontal',
     'ScrollVertical',
-    ...simpleComponents
+    ...componentDescriptors
       .filter(component => component.categoryString === 'LAYOUT')
       .map(component => component.name),
   ]);
@@ -650,7 +660,9 @@
   let addCompHighlight = 0;
   let addCompSelecting = false; // true while clicking a suggestion, suppresses blur
 
-  const ALL_COMPONENT_NAMES = ["AbsoluteArrangement","AccelerometerSensor","ActivityStarter","AnomalyDetection","Ball","BarcodeScanner","Barometer","BluetoothClient","BluetoothServer","Button","Camcorder","Camera","Canvas","Chart","ChartData2D","ChatBot","CheckBox","Circle","CircularProgress","Clock","CloudDB","ContactPicker","DataFile","DatePicker","EmailPicker","Ev3ColorSensor","Ev3Commands","Ev3GyroSensor","Ev3Motors","Ev3Sound","Ev3TouchSensor","Ev3UI","Ev3UltrasonicSensor","FeatureCollection","File","FilePicker","FirebaseDB","FusiontablesControl","GameClient","GyroscopeSensor","HorizontalArrangement","HorizontalScrollArrangement","Hygrometer","Image","ImageBot","ImagePicker","ImageSprite","Label","LightSensor","LineString","LinearProgress","ListPicker","ListView","LocationSensor","MagneticFieldSensor","Map","Marker","MediaStore","Navigation","NearField","Notifier","NxtColorSensor","NxtDirectCommands","NxtDrive","NxtLightSensor","NxtSoundSensor","NxtTouchSensor","NxtUltrasonicSensor","OrientationSensor","PasswordTextBox","Pedometer","PhoneCall","PhoneNumberPicker","PhoneStatus","Player","Polygon","ProximitySensor","Rectangle","Regression","Serial","Sharing","Slider","Sound","SoundRecorder","SpeechRecognizer","Spinner","Spreadsheet","Switch","TableArrangement","TextBox","TextToSpeech","Texting","Thermometer","TimePicker","TinyDB","TinyWebDB","Translator","Trendline","Twitter","VerticalArrangement","VerticalScrollArrangement","VideoPlayer","Voting","Web","WebViewer","YandexTranslate"];
+  $: ALL_COMPONENT_NAMES = Array.from(KNOWN_COMPONENT_TYPES)
+    .filter(name => name !== 'Screen' && name !== 'Form')
+    .sort((a, b) => a.localeCompare(b));
 
   $: addCompSuggestions = addCompValue.trim()
     ? ALL_COMPONENT_NAMES.filter(n => n.toLowerCase().startsWith(addCompValue.trim().toLowerCase())).slice(0, 7)

@@ -6,6 +6,7 @@
     appendDebugLogsFromCompanionResponse,
     activeScreen,
     getDesignSource,
+    designAssets,
     liveTestOpen,
     liveTestState,
     companionCommand,
@@ -33,10 +34,17 @@
   import {
     compileForCompanion,
     compileSnippetForCompanion,
+    clearPublishedCompanionAssets,
+    companionAssetOrigin,
+    companionAssetProjectId,
+    companionFetchAssetYail,
+    companionLoadExtensionsYail,
     connectCompanion,
     debugContinueReplPayload,
     generateCompanionCode,
     pollRendezvous,
+    publishCompanionAsset,
+    schemeString,
     sendCompanionMessage,
   } from './companion.js';
   import {
@@ -71,6 +79,9 @@
   let pendingDoItCellId = null;
   let debugIdleTimer = null;
   let debugContinueGlobal = null;
+  let pendingAssetTransfers = new Map();
+  let pendingExtensionsLoaded = null;
+  let companionAssetProject = null;
   const COMPANION_DEBUG = Boolean(import.meta.env?.DEV);
 
   $: liveTestState.set({
@@ -89,7 +100,12 @@
     // Only include user breakpoints when debug mode is user-enabled; debug instrumentation is always active
     const userBreakpoints = $debugUserEnabled ? debugBreakpointsForCompile($activeScreen) : [];
     const breakpointKey = JSON.stringify(userBreakpoints);
-    return `${$activeScreen}\0${source}\0${getDesignSource()}\0breakpoints:${breakpointKey}`;
+    const assetKey = ($designAssets || []).map(asset => {
+      const name = typeof asset === 'string' ? asset : asset?.name;
+      const size = typeof asset === 'string' ? 0 : asset?.size || asset?.blob?.size || asset?.bytes?.length || 0;
+      return `${name}:${size}`;
+    }).join('|');
+    return `${$activeScreen}\0${source}\0${getDesignSource()}\0assets:${assetKey}\0breakpoints:${breakpointKey}`;
   }
 
   function debugCompileOptions(sourceMap) {
@@ -163,14 +179,6 @@
         message: item.message,
       },
     ].slice(-8);
-  }
-
-  function schemeString(value) {
-    return `"${String(value ?? '')
-      .replace(/\\/g, '\\\\')
-      .replace(/"/g, '\\"')
-      .replace(/\n/g, '\\n')
-      .replace(/\r/g, '\\r')}"`;
   }
 
   async function blobToBase64(blob) {
@@ -266,6 +274,120 @@
     return stored;
   }
 
+  function resolvePendingAssetTransfer(assetName) {
+    const pending = pendingAssetTransfers.get(assetName);
+    if (!pending) return false;
+    clearTimeout(pending.timer);
+    pending.resolve(assetName);
+    pendingAssetTransfers.delete(assetName);
+    return true;
+  }
+
+  function waitForAssetTransfer(assetName, timeoutMs = 20000) {
+    return new Promise((resolve, reject) => {
+      const existing = pendingAssetTransfers.get(assetName);
+      if (existing) {
+        clearTimeout(existing.timer);
+        existing.reject(new Error(`Superseded transfer wait for ${assetName}`));
+      }
+      const timer = setTimeout(() => {
+        pendingAssetTransfers.delete(assetName);
+        reject(new Error(`Timed out waiting for companion asset transfer: ${assetName}`));
+      }, timeoutMs);
+      pendingAssetTransfers.set(assetName, { resolve, reject, timer });
+    });
+  }
+
+  function waitForExtensionsLoaded(timeoutMs = 30000) {
+    return new Promise((resolve, reject) => {
+      if (pendingExtensionsLoaded?.timer) {
+        clearTimeout(pendingExtensionsLoaded.timer);
+        pendingExtensionsLoaded.reject(new Error('Superseded extension load wait'));
+      }
+      const timer = setTimeout(() => {
+        pendingExtensionsLoaded = null;
+        reject(new Error('Timed out waiting for companion extension load'));
+      }, timeoutMs);
+      pendingExtensionsLoaded = { resolve, reject, timer };
+    });
+  }
+
+  function clearPendingCompanionWaits(reason = 'Companion disconnected') {
+    for (const pending of pendingAssetTransfers.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error(reason));
+    }
+    pendingAssetTransfers.clear();
+    if (pendingExtensionsLoaded) {
+      clearTimeout(pendingExtensionsLoaded.timer);
+      pendingExtensionsLoaded.reject(new Error(reason));
+      pendingExtensionsLoaded = null;
+    }
+  }
+
+  async function blobForCompanionAsset(asset) {
+    if (asset?.blob instanceof Blob) return asset.blob;
+    if (asset?.url) {
+      const response = await fetch(asset.url);
+      if (response.ok) return response.blob();
+    }
+    if (asset?.bytes) return new Blob([asset.bytes], { type: asset.type || '' });
+    return new Blob([]);
+  }
+
+  function assetRecordName(asset) {
+    return typeof asset === 'string' ? asset : asset?.name;
+  }
+
+  function extensionNamesForLiveTest() {
+    const names = new Set();
+    for (const asset of $designAssets || []) {
+      const name = assetRecordName(asset);
+      const match = String(name || '').match(/^external_comps\/([^/]+)\//);
+      if (match) names.add(match[1]);
+    }
+    return Array.from(names).sort();
+  }
+
+  async function publishAndLoadCompanionAssets(activeChannel, projectId, signal) {
+    const assets = ($designAssets || [])
+      .map(asset => ({ asset, name: assetRecordName(asset) }))
+      .filter(entry => entry.name);
+    const extensions = extensionNamesForLiveTest();
+    if (!assets.length && !extensions.length) return;
+
+    const origin = companionAssetOrigin();
+    if (!origin) throw new Error('No companion asset origin is configured');
+
+    addConnectionLog(`Publishing ${assets.length} asset${assets.length === 1 ? '' : 's'} for Companion`);
+    await clearPublishedCompanionAssets(projectId, origin, signal);
+
+    for (const { asset, name } of assets) {
+      const archiveName = `assets/${name}`;
+      const blob = await blobForCompanionAsset(asset);
+      await publishCompanionAsset(projectId, archiveName, blob, origin, signal);
+      if (channel !== activeChannel || !activeChannel || activeChannel.readyState !== 'open') {
+        throw new Error('Companion disconnected before assets could be loaded');
+      }
+      const wait = waitForAssetTransfer(archiveName);
+      sendCompanionMessage(activeChannel, companionFetchAssetYail({
+        projectId,
+        origin,
+        assetName: archiveName,
+      }));
+      await wait;
+      addConnectionLog(`Companion asset loaded: ${name}`, 'info');
+    }
+
+    if (extensions.length) {
+      addConnectionLog(`Loading ${extensions.length} extension package${extensions.length === 1 ? '' : 's'} in Companion`);
+      const wait = waitForExtensionsLoaded();
+      sendCompanionMessage(activeChannel, companionLoadExtensionsYail(extensions));
+      await wait;
+      addConnectionLog('Companion extensions loaded', 'info');
+    }
+  }
+
   function handleCompanionResponse(data) {
     messageCount += 1;
     try {
@@ -287,7 +409,17 @@
           continue;
         }
         if (value.type === 'assetTransferred') {
+          resolvePendingAssetTransfer(value.value || '');
           addConnectionLog(`Companion asset transferred: ${value.value || 'asset'}`, 'info');
+          continue;
+        }
+        if (value.type === 'extensionsLoaded') {
+          if (pendingExtensionsLoaded) {
+            clearTimeout(pendingExtensionsLoaded.timer);
+            pendingExtensionsLoaded.resolve();
+            pendingExtensionsLoaded = null;
+          }
+          addConnectionLog('Companion extension load complete', 'info');
           continue;
         }
         if (value.type === 'error') {
@@ -352,6 +484,7 @@
     lastSentSourceKey = null;
     lastFailedSourceKey = null;
     debugContinueGlobal = null;
+    clearPendingCompanionWaits();
 
     if (localChannel) {
       localChannel.onmessage = null;
@@ -389,6 +522,10 @@
     error = null;
     messageCount = 0;
     resetConnectionLogs();
+    if (companionAssetProject) {
+      clearPublishedCompanionAssets(companionAssetProject, companionAssetOrigin());
+      companionAssetProject = null;
+    }
   }
 
   function locateRuntimeError() {
@@ -464,6 +601,8 @@
     try {
       addConnectionLog(`${label}: compiling Falcon and Designer sources`);
       const result = await compileCurrentForCompanion();
+      companionAssetProject ||= companionAssetProjectId(liveCode || 'refresh');
+      await publishAndLoadCompanionAssets(activeChannel, companionAssetProject, abortController?.signal);
       sendCompiledResult(label, result, sourceKey, activeChannel);
       lastFailedSourceKey = null;
       error = null;
@@ -550,6 +689,8 @@
       };
 
       addConnectionLog('Sending REPL payload to companion');
+      companionAssetProject = companionAssetProjectId(liveCode);
+      await publishAndLoadCompanionAssets(conn.channel, companionAssetProject, abort.signal);
       sendCompiledResult('initial send', result, sourceKey, conn.channel);
       status = 'connected';
       error = null;
@@ -760,12 +901,14 @@
     const unsubDesign = designCode.subscribe(() => scheduleRefresh());
     const unsubDebug = debugUserEnabled.subscribe(() => scheduleRefresh());
     const unsubBreakpoints = debugBreakpoints.subscribe(() => scheduleRefresh());
+    const unsubAssets = designAssets.subscribe(() => scheduleRefresh());
 
     return () => {
       unsubCells();
       unsubDesign();
       unsubDebug();
       unsubBreakpoints();
+      unsubAssets();
       clearDebugIdleTimer();
       resetDisconnected();
     };

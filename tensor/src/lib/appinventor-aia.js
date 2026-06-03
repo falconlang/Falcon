@@ -1,7 +1,14 @@
-import simpleComponents from '../../../lang/code/compdb/simple_components.json';
 import { getProjectSnapshot } from './stores.js';
 import { mistToXmlResult, xmlToMist } from './falcon-wasm.js';
 import { componentDefinitionsFromDesigner, upgradeBlocklyXml } from './blockly-preview.js';
+import {
+  allComponentDescriptors,
+  componentMetaMap,
+  knownComponentTypeSet,
+  projectExtensionComponentDescriptors,
+  readComponentDescriptorFile,
+  setProjectExtensionComponentDescriptors,
+} from './appinventor-component-registry.js';
 import {
   blocklyXmlToFalconCodeWithComments,
   injectFalconCommentsIntoBlocklyXml,
@@ -44,8 +51,6 @@ const PRESERVED_BLOCKS_MARKER = 'data-tensor-preserved-blockly';
 
 let jsZipPromise = null;
 
-const COMPONENT_META = new Map(simpleComponents.map(component => [component.name, component]));
-const KNOWN_COMPONENT_TYPES = new Set([...COMPONENT_META.keys(), 'Screen']);
 const TYPE_ALIASES = {
   Screen: 'Form',
   Form: 'Form',
@@ -177,6 +182,29 @@ function assetNameForImport(pathName, usedNames = null) {
   }
   usedNames.add(next);
   return next;
+}
+
+async function extensionComponentDescriptorsFromZip(zip) {
+  const descriptors = [];
+  const seen = new Set();
+  const descriptorPathRe = /^assets\/external_comps\/[^/]+\/(?:component|components)\.json$/i;
+
+  for (const [path, entry] of Object.entries(zip.files)) {
+    if (entry.dir || !descriptorPathRe.test(path)) continue;
+    let parsed;
+    try {
+      parsed = readComponentDescriptorFile(await entry.async('string'));
+    } catch (error) {
+      throw new Error(`Unable to read App Inventor extension descriptor ${path}: ${error?.message || error}`);
+    }
+    for (const descriptor of parsed) {
+      if (seen.has(descriptor.name)) continue;
+      seen.add(descriptor.name);
+      descriptors.push({ ...descriptor, external: 'true' });
+    }
+  }
+
+  return descriptors;
 }
 
 function textFileBaseName(path) {
@@ -357,23 +385,26 @@ function scmType(type) {
 }
 
 function isKnownComponentType(type) {
-  return KNOWN_COMPONENT_TYPES.has(type) || KNOWN_COMPONENT_TYPES.has(scmType(type));
+  const knownTypes = knownComponentTypeSet();
+  return knownTypes.has(type) || knownTypes.has(scmType(type));
 }
 
 function isNonVisibleComponentType(type) {
   if (type === 'Screen' || type === 'Form') return false;
-  return COMPONENT_META.get(scmType(type))?.nonVisible === 'true';
+  return componentMetaMap().get(scmType(type))?.nonVisible === 'true';
 }
 
-const CONTAINER_TYPES = new Set([
-  'Screen',
-  'Form',
-  'ScrollHorizontal',
-  'ScrollVertical',
-  ...simpleComponents
-    .filter(component => component.categoryString === 'LAYOUT')
-    .map(component => component.name),
-]);
+function containerTypes() {
+  return new Set([
+    'Screen',
+    'Form',
+    'ScrollHorizontal',
+    'ScrollVertical',
+    ...allComponentDescriptors()
+      .filter(component => component.categoryString === 'LAYOUT')
+      .map(component => component.name),
+  ]);
+}
 
 function canContainComponent(parentType, childType) {
   const parent = scmType(parentType);
@@ -390,7 +421,7 @@ function canContainComponent(parentType, childType) {
   }
   if (isNonVisibleComponentType(parent)) return false;
   if (parent === 'Canvas' || parent === 'Map' || parent === 'FeatureCollection' || parent === 'Chart') return false;
-  return CONTAINER_TYPES.has(parent);
+  return containerTypes().has(parent);
 }
 
 function validateDesignTree(node, parent = null) {
@@ -409,7 +440,7 @@ function validateUniqueComponentNames(node, seen = new Set()) {
 }
 
 function componentVersion(type) {
-  return COMPONENT_META.get(scmType(type))?.version || '1';
+  return componentMetaMap().get(scmType(type))?.version || '1';
 }
 
 function stableUuid(seed) {
@@ -627,148 +658,159 @@ export async function importAiaFile(file) {
 
   const projectProperties = parseProperties(decodeJavaPropertiesBytes(await propsEntry.async('uint8array')));
   const project = sanitizeProjectName(projectProperties.name || stripKnownExtension(file?.name) || DEFAULT_PROJECT);
-  const screenFiles = new Map();
-  const assetNames = [];
-  const importAssetNames = new Map();
-  const usedAssetNames = new Set();
+  const extensionComponents = await extensionComponentDescriptorsFromZip(zip);
+  const previousExtensionComponents = projectExtensionComponentDescriptors();
+  setProjectExtensionComponentDescriptors(extensionComponents);
 
-  for (const [path, entry] of Object.entries(zip.files)) {
-    if (entry.dir && !path.startsWith('assets/')) continue;
-    if (!entry.dir && path.startsWith('assets/')) {
-      const rawName = path.slice('assets/'.length);
-      if (rawName) {
-        const name = assetNameForImport(rawName, usedAssetNames);
-        importAssetNames.set(path, name);
-        assetNames.push(name);
-      }
-      continue;
-    }
-    if (entry.dir || !path.startsWith('src/') || !/\.(scm|bky|blk)$/i.test(path)) continue;
-    const base = appInventorSourceBase(path);
-    const record = screenFiles.get(base) || {};
-    if (/\.scm$/i.test(path)) record.scm = path;
-    if (/\.bky$/i.test(path)) record.bky = path;
-    if (/\.blk$/i.test(path)) record.blk = path;
-    screenFiles.set(base, record);
-  }
+  try {
+    const screenFiles = new Map();
+    const assetNames = [];
+    const importAssetNames = new Map();
+    const usedAssetNames = new Set();
 
-  const screenRecords = [];
-  const usedScreenNames = new Set();
-  let screen1ProjectProperties = {};
-  for (const [base, record] of screenFiles) {
-    if (!record.scm) continue;
-    const rawScm = await zip.file(record.scm).async('string');
-    const blockPath = record.bky || record.blk || '';
-    const rawBlocks = blockPath ? await zip.file(blockPath).async('string') : '';
-    const fallbackName = sanitizeScreenName(textFileBaseName(base), `Screen${screenRecords.length + 1}`);
-    let designCode = '';
-    let screenName = fallbackName;
-    let sourceScm = rawScm;
-    let preUpgradeFormJson = '{}';
-    let componentDefinitions = null;
-
-    try {
-      const upgraded = upgradeLegacyScmText(rawScm, {
-        host: typeof window !== 'undefined' ? window.location.hostname : '',
-      });
-      const scm = upgraded.scm;
-      preUpgradeFormJson = formJsonForBlockUpgrade(upgraded.original);
-      screenName = sanitizeScreenName(scm?.Properties?.$Name || fallbackName, fallbackName);
-      screenName = uniqueScreenName(screenName, usedScreenNames, fallbackName);
-      if (scm?.Properties) scm.Properties.$Name = screenName;
-      componentDefinitions = componentDefinitionsFromScmProperties(scm.Properties);
-      designCode = scmComponentToSchema(scm.Properties);
-      sourceScm = serializeScmJson(scm);
-      record.sourceScmUpgradeWarnings = upgraded.warnings || [];
-      if (screenName === 'Screen1' && !usedScreenNames.has('Screen1')) {
-        screen1ProjectProperties = extractProjectPropertiesFromScmProperties(scm.Properties);
-      }
-    } catch {
-      designCode = scmToDesignSchema(rawScm, fallbackName);
-      screenName = uniqueScreenName(screenName, usedScreenNames, fallbackName);
-    }
-    usedScreenNames.add(screenName);
-
-    screenRecords.push({
-      name: screenName,
-      designCode,
-      rawBlocks,
-      blockPath,
-      preUpgradeFormJson,
-      componentDefinitions,
-      sourceScm,
-      sourceDesignCode: designCode,
-      sourceScmUpgradeWarnings: record.sourceScmUpgradeWarnings || [],
-    });
-  }
-
-  if (!screenRecords.length) {
-    throw new Error('No App Inventor screens were found in the project archive');
-  }
-
-  const screenNames = screenRecords.map(screen => screen.name);
-  const screens = [];
-  for (const record of screenRecords) {
-    let rawBlocklyXml = record.rawBlocks;
-    if (record.blockPath || String(record.rawBlocks || '').trim()) {
-      try {
-        rawBlocklyXml = await upgradeBlocklyXml(
-          record.rawBlocks,
-          record.preUpgradeFormJson,
-          record.componentDefinitions,
-          {
-            assetNames,
-            screenName: record.name,
-            screenNames,
-          },
-        );
-      } catch (error) {
-        console.debug('[aia-import-block-upgrade]', error);
-        if (!isRecoverableBlockUpgradeError(error)) {
-          throw new Error(`Unable to upgrade blocks for ${record.name}: ${error?.message || error}`);
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (entry.dir && !path.startsWith('assets/')) continue;
+      if (!entry.dir && path.startsWith('assets/')) {
+        const rawName = path.slice('assets/'.length);
+        if (rawName) {
+          const name = assetNameForImport(rawName, usedAssetNames);
+          importAssetNames.set(path, name);
+          assetNames.push(name);
         }
-        rawBlocklyXml = record.rawBlocks;
+        continue;
       }
+      if (entry.dir || !path.startsWith('src/') || !/\.(scm|bky|blk)$/i.test(path)) continue;
+      const base = appInventorSourceBase(path);
+      const record = screenFiles.get(base) || {};
+      if (/\.scm$/i.test(path)) record.scm = path;
+      if (/\.bky$/i.test(path)) record.bky = path;
+      if (/\.blk$/i.test(path)) record.blk = path;
+      screenFiles.set(base, record);
     }
-    screens.push({
-      name: record.name,
-      cells: await importedBlocksCell(record.name, rawBlocklyXml),
-      designCode: record.designCode,
-      rawBlocklyXml,
-      sourceScm: record.sourceScm,
-      sourceDesignCode: record.sourceDesignCode,
-      sourceScmUpgradeWarnings: record.sourceScmUpgradeWarnings || [],
-    });
+
+    const screenRecords = [];
+    const usedScreenNames = new Set();
+    let screen1ProjectProperties = {};
+    for (const [base, record] of screenFiles) {
+      if (!record.scm) continue;
+      const rawScm = await zip.file(record.scm).async('string');
+      const blockPath = record.bky || record.blk || '';
+      const rawBlocks = blockPath ? await zip.file(blockPath).async('string') : '';
+      const fallbackName = sanitizeScreenName(textFileBaseName(base), `Screen${screenRecords.length + 1}`);
+      let designCode = '';
+      let screenName = fallbackName;
+      let sourceScm = rawScm;
+      let preUpgradeFormJson = '{}';
+      let componentDefinitions = null;
+
+      try {
+        const upgraded = upgradeLegacyScmText(rawScm, {
+          host: typeof window !== 'undefined' ? window.location.hostname : '',
+        });
+        const scm = upgraded.scm;
+        preUpgradeFormJson = formJsonForBlockUpgrade(upgraded.original);
+        screenName = sanitizeScreenName(scm?.Properties?.$Name || fallbackName, fallbackName);
+        screenName = uniqueScreenName(screenName, usedScreenNames, fallbackName);
+        if (scm?.Properties) scm.Properties.$Name = screenName;
+        componentDefinitions = componentDefinitionsFromScmProperties(scm.Properties);
+        designCode = scmComponentToSchema(scm.Properties);
+        sourceScm = serializeScmJson(scm);
+        record.sourceScmUpgradeWarnings = upgraded.warnings || [];
+        if (screenName === 'Screen1' && !usedScreenNames.has('Screen1')) {
+          screen1ProjectProperties = extractProjectPropertiesFromScmProperties(scm.Properties);
+        }
+      } catch {
+        designCode = scmToDesignSchema(rawScm, fallbackName);
+        screenName = uniqueScreenName(screenName, usedScreenNames, fallbackName);
+      }
+      usedScreenNames.add(screenName);
+
+      screenRecords.push({
+        name: screenName,
+        designCode,
+        rawBlocks,
+        blockPath,
+        preUpgradeFormJson,
+        componentDefinitions,
+        sourceScm,
+        sourceDesignCode: designCode,
+        sourceScmUpgradeWarnings: record.sourceScmUpgradeWarnings || [],
+      });
+    }
+
+    if (!screenRecords.length) {
+      throw new Error('No App Inventor screens were found in the project archive');
+    }
+
+    const screenNames = screenRecords.map(screen => screen.name);
+    const screens = [];
+    for (const record of screenRecords) {
+      let rawBlocklyXml = record.rawBlocks;
+      if (record.blockPath || String(record.rawBlocks || '').trim()) {
+        try {
+          rawBlocklyXml = await upgradeBlocklyXml(
+            record.rawBlocks,
+            record.preUpgradeFormJson,
+            record.componentDefinitions,
+            {
+              assetNames,
+              screenName: record.name,
+              screenNames,
+              extensionComponents,
+            },
+          );
+        } catch (error) {
+          console.debug('[aia-import-block-upgrade]', error);
+          if (!isRecoverableBlockUpgradeError(error)) {
+            throw new Error(`Unable to upgrade blocks for ${record.name}: ${error?.message || error}`);
+          }
+          rawBlocklyXml = record.rawBlocks;
+        }
+      }
+      screens.push({
+        name: record.name,
+        cells: await importedBlocksCell(record.name, rawBlocklyXml),
+        designCode: record.designCode,
+        rawBlocklyXml,
+        sourceScm: record.sourceScm,
+        sourceDesignCode: record.sourceDesignCode,
+        sourceScmUpgradeWarnings: record.sourceScmUpgradeWarnings || [],
+      });
+    }
+
+    const assets = [];
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (entry.dir || !path.startsWith('assets/')) continue;
+      const name = importAssetNames.get(path) || assetNameForImport(path.slice('assets/'.length));
+      if (!name) continue;
+      const blob = await entry.async('blob');
+      assets.push(normalizedAssetRecord(name, blob));
+    }
+
+    screens.sort(screenSort);
+    const activeScreenNames = new Set(screens.map(screen => screen.name));
+    const sanitizedLastOpened = sanitizeScreenName(projectProperties.lastopened || '', '');
+    const activeScreen = activeScreenNames.has(projectProperties.lastopened)
+      ? projectProperties.lastopened
+      : activeScreenNames.has(sanitizedLastOpened)
+        ? sanitizedLastOpened
+        : screens[0].name;
+
+    return {
+      projectName: project,
+      projectProperties: normalizeProjectProperties({
+        ...screen1ProjectProperties,
+        ...projectProperties,
+      }),
+      activeScreen,
+      screens,
+      assets,
+      extensionComponents,
+    };
+  } catch (error) {
+    setProjectExtensionComponentDescriptors(previousExtensionComponents);
+    throw error;
   }
-
-  const assets = [];
-  for (const [path, entry] of Object.entries(zip.files)) {
-    if (entry.dir || !path.startsWith('assets/')) continue;
-    const name = importAssetNames.get(path) || assetNameForImport(path.slice('assets/'.length));
-    if (!name) continue;
-    const blob = await entry.async('blob');
-    assets.push(normalizedAssetRecord(name, blob));
-  }
-
-  screens.sort(screenSort);
-  const activeScreenNames = new Set(screens.map(screen => screen.name));
-  const sanitizedLastOpened = sanitizeScreenName(projectProperties.lastopened || '', '');
-  const activeScreen = activeScreenNames.has(projectProperties.lastopened)
-    ? projectProperties.lastopened
-    : activeScreenNames.has(sanitizedLastOpened)
-      ? sanitizedLastOpened
-    : screens[0].name;
-
-  return {
-    projectName: project,
-    projectProperties: normalizeProjectProperties({
-      ...screen1ProjectProperties,
-      ...projectProperties,
-    }),
-    activeScreen,
-    screens,
-    assets,
-  };
 }
 
 export async function exportCurrentProjectToAia() {

@@ -1,8 +1,12 @@
 import { get } from 'svelte/store';
-import simpleComponentsJsonText from '../../../lang/code/compdb/simple_components.json?raw';
 import { listComponents, mistToXmlResult } from './falcon-wasm.js';
 import { cells, designCode } from './stores.js';
 import { injectFalconCommentsIntoBlocklyXml } from './blockly-comments.js';
+import {
+  allComponentDescriptorsJsonText,
+  componentDescriptorName as registryComponentDescriptorName,
+  knownComponentTypeSet,
+} from './appinventor-component-registry.js';
 import { CURRENT_BLOCKS_LANGUAGE_VERSION, CURRENT_YA_VERSION } from './appinventor-legacy.js';
 import {
   blocklyTargetXmlWithContextParts,
@@ -24,7 +28,6 @@ const BLOCKLY_EXTENSION_SCRIPTS = [
 let blocklyRuntimePromise = null;
 let blocklyWarmupPromise = null;
 let componentTypesPromise = null;
-let simpleComponentAliases = null;
 let renderHostId = 0;
 
 function runtimeLoadError(promise) {
@@ -39,36 +42,8 @@ export function blocklyTargetXmlsWithContext(xml, targetIndexes = []) {
   return blocklyTargetXmlsWithContextParts(xml, targetIndexes);
 }
 
-function componentTypeAliases() {
-  if (simpleComponentAliases) return simpleComponentAliases;
-
-  const aliases = new Map();
-  const descriptors = JSON.parse(simpleComponentsJsonText);
-  for (const descriptor of descriptors) {
-    const name = String(descriptor?.name || '').trim();
-    if (!name) continue;
-
-    aliases.set(name, name);
-
-    const javaType = String(descriptor?.type || '').trim();
-    if (javaType) {
-      aliases.set(javaType, name);
-      aliases.set(javaType.split('.').pop(), name);
-    }
-  }
-
-  if (aliases.has('Form')) {
-    aliases.set('Screen', 'Form');
-  }
-
-  simpleComponentAliases = aliases;
-  return aliases;
-}
-
 function componentDescriptorName(typeName) {
-  const clean = String(typeName || '').trim();
-  if (!clean) return '';
-  return componentTypeAliases().get(clean) || clean;
+  return registryComponentDescriptorName(typeName);
 }
 
 function addComponentInstance(instances, typeName, instanceName) {
@@ -134,15 +109,16 @@ function ensureWorkspaceComponentDatabase(workspace) {
 function populateWorkspaceComponentTypes(workspace) {
   const { Blockly } = window;
   const componentDb = ensureWorkspaceComponentDatabase(workspace);
+  const componentJsonText = allComponentDescriptorsJsonText();
 
   if (typeof workspace.populateComponentTypes === 'function') {
-    workspace.populateComponentTypes(simpleComponentsJsonText, {});
+    workspace.populateComponentTypes(componentJsonText, {});
   } else if (componentDb?.populateTypes) {
-    componentDb.populateTypes(JSON.parse(simpleComponentsJsonText));
+    componentDb.populateTypes(JSON.parse(componentJsonText));
     componentDb.populateTranslations?.({});
   } else if (Blockly?.ComponentDatabase) {
     workspace.componentDb_ = new Blockly.ComponentDatabase();
-    workspace.componentDb_.populateTypes(JSON.parse(simpleComponentsJsonText));
+    workspace.componentDb_.populateTypes(JSON.parse(componentJsonText));
     workspace.componentDb_.populateTranslations?.({});
   } else {
     throw new Error('Blockly component database is unavailable');
@@ -204,7 +180,8 @@ async function knownComponentTypes() {
       throw error;
     });
   }
-  return componentTypesPromise;
+  const builtinTypes = await componentTypesPromise;
+  return Array.from(new Set([...builtinTypes, ...knownComponentTypeSet()]));
 }
 
 function addComponentDefinition(defs, type, instanceName, knownTypes) {
@@ -540,10 +517,15 @@ function applyWorkspaceImportContext(workspace, {
   assetNames = [],
   screenName = 'Screen1',
   screenNames = [],
+  extensionComponents = null,
 } = {}) {
   workspace.formName = screenName;
   workspace.screenList_ = Array.from(new Set([screenName, ...(screenNames || [])].filter(Boolean)));
   workspace.assetList_ = Array.from(new Set((assetNames || []).filter(Boolean)));
+  if (Array.isArray(extensionComponents) && extensionComponents.length) {
+    const componentDb = ensureWorkspaceComponentDatabase(workspace);
+    componentDb?.populateTypes?.(JSON.parse(JSON.stringify(extensionComponents)));
+  }
 }
 
 export async function upgradeBlocklyXml(blocksContent, preUpgradeFormJson, componentDefinitions = null, options = {}) {

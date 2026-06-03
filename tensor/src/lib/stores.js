@@ -9,6 +9,7 @@ import {
   isValidAppInventorAssetName,
   normalizeAppInventorAssetName,
 } from './appinventor-validation.js';
+import { setProjectExtensionComponentDescriptors } from './appinventor-component-registry.js';
 import { isDebugTraceValue, lineMapEntryForUnifiedLine } from './debug-source-map.js';
 
 export const initialDesignCode = `Screen.Screen1 { Title: "Calculator",
@@ -80,6 +81,7 @@ const initialCells = [
 export const cells = writable(initialCells);
 export const designCode = writable(initialDesignCode);
 export const designAssets = writable([]);
+export const projectExtensionComponents = writable([]);
 export const projectName = writable('falcon_tour');
 export const projectProperties = writable(defaultProjectProperties());
 export const activeCellId = writable('c1');
@@ -286,6 +288,7 @@ export function getProjectSnapshot() {
     activeScreen: get(activeScreen),
     screens,
     assets: get(designAssets),
+    extensionComponents: get(projectExtensionComponents),
   };
 }
 
@@ -317,6 +320,8 @@ export function loadProjectState(project) {
 
   projectName.set(project?.projectName || 'ImportedProject');
   projectProperties.set(normalizeProjectProperties(project?.projectProperties || {}));
+  projectExtensionComponents.set(project?.extensionComponents || []);
+  setProjectExtensionComponentDescriptors(project?.extensionComponents || []);
   screenList.set(names);
   screenSavedStates.set(saved);
   activeScreen.set(active);
