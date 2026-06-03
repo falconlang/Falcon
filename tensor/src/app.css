@@ -7,7 +7,7 @@
   --border-soft: #E6EBF0;
   --text: #1A1A21;
   --text-muted: #6C7080;
-  --text-faint: #A8ABB4;
+  --text-faint: #8C8F98;
   --accent: #1A7A3E;
   --accent-soft: #E8F5EE;
   --accent-mid: #3DA05A;
@@ -30,7 +30,7 @@
   --tok-k: #6830CC;
   --tok-s: #1A6B3A;
   --tok-n: #B83B0A;
-  --tok-c: #A09B93;
+  --tok-c: #7E7B75;
   --tok-f: #1A4EC4;
   --tok-b: #3A3730;
   --tok-t: #521FB0;
@@ -41,11 +41,11 @@
 [data-theme="dark"] {
   --bg: #161512;
   --surface: #1E1D18;
-  --border: #2E2B24;
-  --border-soft: #252320;
+  --border: #4A4840;
+  --border-soft: #312F28;
   --text: #EDE9E0;
-  --text-muted: #8A8780;
-  --text-faint: #4A4844;
+  --text-muted: #9C9A94;
+  --text-faint: #828076;
   --accent: #4CC87A;
   --accent-soft: #0D2018;
   --accent-mid: #3ABF6E;
@@ -55,18 +55,18 @@
   --warn-soft: #1E1A0A;
   --error: #E07070;
   --error-soft: #2A1212;
-  --cell-active: #252320;
+  --cell-active: #2C2924;
   --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.25);
   /* Syntax token colours — dark */
   --tok-k: #A78BFA;
   --tok-s: #6EE7B7;
   --tok-n: #FB923C;
-  --tok-c: #706E68;
+  --tok-c: #8C8A84;
   --tok-f: #93C5FD;
   --tok-b: #C8C4BC;
   --tok-t: #C4B5FD;
-  --tok-o: #8B8880;
+  --tok-o: #9C9A94;
   --tok-p: #C8C4BC;
 }
 
@@ -964,7 +964,7 @@ html, body {
 .k  { color: #6830CC; }
 .s  { color: #1A6B3A; }
 .n  { color: #B83B0A; }
-.c  { color: #A09B93; font-style: italic; }
+.c  { color: #7E7B75; font-style: italic; }
 .f  { color: #1A4EC4; }
 .b  { color: #3A3730; font-weight: 500; }
 .t  { color: #521FB0; }
@@ -975,11 +975,11 @@ html, body {
 [data-theme="dark"] .k { color: #A78BFA; }
 [data-theme="dark"] .s { color: #6EE7B7; }
 [data-theme="dark"] .n { color: #FB923C; }
-[data-theme="dark"] .c { color: #706E68; }
+[data-theme="dark"] .c { color: #8C8A84; }
 [data-theme="dark"] .f { color: #93C5FD; }
 [data-theme="dark"] .b { color: #C8C4BC; font-weight: 500; }
 [data-theme="dark"] .t { color: #C4B5FD; }
-[data-theme="dark"] .o { color: #8B8880; }
+[data-theme="dark"] .o { color: #9C9A94; }
 [data-theme="dark"] .p { color: #C8C4BC; }
 
 /* ── Markdown Cell ── */
