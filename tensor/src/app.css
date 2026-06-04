@@ -883,10 +883,10 @@ html, body {
   -webkit-text-fill-color: transparent;
   caret-color: var(--text);
 }
-.unified-editor .code-area {
+.code-area {
   scrollbar-width: none;
 }
-.unified-editor .code-area::-webkit-scrollbar {
+.code-area::-webkit-scrollbar {
   display: none;
 }
 .code-area::selection {
@@ -1188,11 +1188,12 @@ html, body {
 }
 .dsgn-scroll {
   height: 100%;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
-.dsgn-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+.dsgn-scroll::-webkit-scrollbar { width: 5px; height: 0; }
 .dsgn-scroll::-webkit-scrollbar-track { background: transparent; }
 .dsgn-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 .dsgn-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
@@ -1254,6 +1255,10 @@ html, body {
   color: transparent;
   -webkit-text-fill-color: transparent;
   caret-color: var(--accent);
+  scrollbar-width: none;
+}
+.dsgn-code::-webkit-scrollbar {
+  display: none;
 }
 .dsgn-code::selection {
   background: color-mix(in srgb, var(--accent) 24%, transparent);

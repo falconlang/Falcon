@@ -2219,7 +2219,7 @@
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 1px;
+    gap: 4px;
     padding: 4px 6px;
     border-bottom: 1px solid var(--border-soft);
     background: var(--surface);
