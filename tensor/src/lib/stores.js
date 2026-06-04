@@ -1001,12 +1001,78 @@ function uniqueAssetName(name, assets, exceptId = null) {
   return next;
 }
 
-function replaceProjectAssetReference(oldName, nextName) {
+function xmlEscapeText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function replaceLiteral(text, before, after) {
+  if (!before || typeof text !== 'string' || !text.includes(before)) return text;
+  return text.split(before).join(after);
+}
+
+function replaceAssetNameInText(text, oldName, nextName) {
+  if (typeof text !== 'string' || !oldName) return text;
+  const rawOld = String(oldName);
+  const rawNext = String(nextName || '');
+  const pairs = [
+    [rawOld, rawNext],
+    [JSON.stringify(rawOld).slice(1, -1), JSON.stringify(rawNext).slice(1, -1)],
+    [xmlEscapeText(rawOld), xmlEscapeText(rawNext)],
+  ];
+  const seen = new Set();
+  let out = text;
+  for (const [before, after] of pairs) {
+    if (seen.has(before)) continue;
+    seen.add(before);
+    out = replaceLiteral(out, before, after);
+  }
+  return out;
+}
+
+function replaceAssetNameInCells(cellList, oldName, nextName) {
+  return cloneCells(cellList || []).map(cell => (
+    cell?.type === 'code'
+      ? { ...cell, code: replaceAssetNameInText(cell.code || '', oldName, nextName) }
+      : cell
+  ));
+}
+
+function replaceAssetNameInScreenState(state, oldName, nextName) {
+  return {
+    ...state,
+    cells: replaceAssetNameInCells(state?.cells || [], oldName, nextName),
+    designCode: replaceAssetNameInText(state?.designCode || '', oldName, nextName),
+    rawBlocklyXml: replaceAssetNameInText(state?.rawBlocklyXml || '', oldName, nextName),
+    sourceScm: replaceAssetNameInText(state?.sourceScm || '', oldName, nextName),
+    sourceDesignCode: replaceAssetNameInText(state?.sourceDesignCode || '', oldName, nextName),
+    sourceScmUpgradeWarnings: Array.from(state?.sourceScmUpgradeWarnings || []),
+  };
+}
+
+function replaceAssetReferences(oldName, nextName) {
   if (!oldName) return;
   projectProperties.update(properties => {
     const normalized = normalizeProjectProperties(properties);
     if (normalized.Icon !== oldName) return properties;
     return { ...normalized, Icon: nextName || '' };
+  });
+  clearDebugRuntimeState();
+  cells.update(cellList => replaceAssetNameInCells(cellList, oldName, nextName));
+  designCode.update(code => replaceAssetNameInText(code, oldName, nextName));
+  rawBlocklyXml.update(xml => replaceAssetNameInText(xml, oldName, nextName));
+  sourceScm.update(text => replaceAssetNameInText(text, oldName, nextName));
+  sourceDesignCode.update(code => replaceAssetNameInText(code, oldName, nextName));
+  screenSavedStates.update(states => {
+    const next = {};
+    for (const [screen, state] of Object.entries(states || {})) {
+      next[screen] = replaceAssetNameInScreenState(state, oldName, nextName);
+    }
+    return next;
   });
 }
 
@@ -1070,7 +1136,7 @@ export function renameDesignAsset(assetId, nextName) {
       return renamed;
     });
   });
-  if (renamed?.name && oldName) replaceProjectAssetReference(oldName, renamed.name);
+  if (renamed?.name && oldName) replaceAssetReferences(oldName, renamed.name);
   return renamed;
 }
 
@@ -1092,7 +1158,7 @@ export function deleteDesignAsset(assetId) {
     return next;
   });
   const removedName = assetNameFrom(removed);
-  if (removedName) replaceProjectAssetReference(removedName, '');
+  if (removedName) replaceAssetReferences(removedName, '');
   return typeof removed === 'string'
     ? { id: removed, name: removed, size: 0, type: '', blob: null, url: '' }
     : removed;

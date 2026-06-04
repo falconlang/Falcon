@@ -1433,26 +1433,41 @@ func (h *simulationHost) callSpriteMethod(componentName, componentType, method s
 }
 
 type spriteBounds struct {
-	x      float64
-	y      float64
-	width  float64
-	height float64
+	x       float64
+	y       float64
+	width   float64
+	height  float64
+	originX float64
+	originY float64
+	u       float64
+	v       float64
 }
 
 func (h *simulationHost) spriteBounds(componentName, componentType string) spriteBounds {
-	x := valueAsNumber(h.GetProperty(componentName, componentType, "X"), 0)
-	y := valueAsNumber(h.GetProperty(componentName, componentType, "Y"), 0)
+	originX := valueAsNumber(h.GetProperty(componentName, componentType, "X"), 0)
+	originY := valueAsNumber(h.GetProperty(componentName, componentType, "Y"), 0)
 	if componentType == "Ball" {
 		r := math.Max(0, valueAsNumber(h.GetProperty(componentName, componentType, "Radius"), 5))
-		return spriteBounds{x: x, y: y, width: r * 2, height: r * 2}
+		u, v := 0.0, 0.0
+		if valueAsBool(h.GetProperty(componentName, componentType, "OriginAtCenter")) {
+			u, v = 0.5, 0.5
+		}
+		width, height := r*2, r*2
+		return spriteBounds{x: originX - width*u, y: originY - height*v, width: width, height: height, originX: originX, originY: originY, u: u, v: v}
 	}
 	width := math.Max(0, valueAsNumber(h.GetProperty(componentName, componentType, "Width"), 0))
 	height := math.Max(0, valueAsNumber(h.GetProperty(componentName, componentType, "Height"), 0))
-	return spriteBounds{x: x, y: y, width: width, height: height}
+	u := clampFloat(valueAsNumber(h.GetProperty(componentName, componentType, "OriginX"), 0), 0, 1)
+	v := clampFloat(valueAsNumber(h.GetProperty(componentName, componentType, "OriginY"), 0), 0, 1)
+	return spriteBounds{x: originX - width*u, y: originY - height*v, width: width, height: height, originX: originX, originY: originY, u: u, v: v}
 }
 
 func (b spriteBounds) center() (float64, float64) {
 	return b.x + b.width/2, b.y + b.height/2
+}
+
+func (b spriteBounds) originForLeftTop(left, top float64) (float64, float64) {
+	return left + b.width*b.u, top + b.height*b.v
 }
 
 func (h *simulationHost) spritesCollide(aName, aType, bName string) bool {
@@ -1466,16 +1481,46 @@ func (h *simulationHost) spritesCollide(aName, aType, bName string) bool {
 }
 
 func (h *simulationHost) bounceSprite(componentName, componentType string, edge int) {
-	heading := valueAsNumber(h.GetProperty(componentName, componentType, "Heading"), 0)
+	h.moveSpriteIntoBounds(componentName, componentType)
+	heading := normalizeDegrees(valueAsNumber(h.GetProperty(componentName, componentType, "Heading"), 0))
+	next := heading
 	switch edge {
-	case 1, 3:
-		heading = 360 - heading
-	case 2, 4:
-		heading = 180 - heading
+	case 3: // East
+		if heading < 90 || heading > 270 {
+			next = 180 - heading
+		}
+	case -3: // West
+		if heading > 90 && heading < 270 {
+			next = 180 - heading
+		}
+	case 1: // North
+		if heading > 0 && heading < 180 {
+			next = 360 - heading
+		}
+	case -1: // South
+		if heading > 180 {
+			next = 360 - heading
+		}
+	case 2: // Northeast
+		if heading > 0 && heading < 90 {
+			next = 180 + heading
+		}
+	case -4: // Northwest
+		if heading > 90 && heading < 180 {
+			next = 180 + heading
+		}
+	case -2: // Southwest
+		if heading > 180 && heading < 270 {
+			next = 180 + heading
+		}
+	case 4: // Southeast
+		if heading > 270 {
+			next = 180 + heading
+		}
 	default:
 		return
 	}
-	h.setProperty(componentName, "Heading", runtime.NumVal(normalizeDegrees(heading)))
+	h.setProperty(componentName, "Heading", runtime.NumVal(normalizeDegrees(next)))
 }
 
 func normalizeDegrees(value float64) float64 {
@@ -1489,20 +1534,21 @@ func normalizeDegrees(value float64) float64 {
 func (h *simulationHost) moveSpriteIntoBounds(componentName, componentType string) {
 	canvasWidth, canvasHeight := h.firstCanvasSize()
 	bounds := h.spriteBounds(componentName, componentType)
-	x := bounds.x
-	y := bounds.y
+	left := bounds.x
+	top := bounds.y
 	if bounds.x < 0 {
-		x = 0
+		left = 0
 	}
 	if bounds.y < 0 {
-		y = 0
+		top = 0
 	}
 	if bounds.x+bounds.width > canvasWidth {
-		x = math.Max(0, canvasWidth-bounds.width)
+		left = math.Max(0, canvasWidth-bounds.width)
 	}
 	if bounds.y+bounds.height > canvasHeight {
-		y = math.Max(0, canvasHeight-bounds.height)
+		top = math.Max(0, canvasHeight-bounds.height)
 	}
+	x, y := bounds.originForLeftTop(left, top)
 	h.setProperty(componentName, "X", runtime.NumVal(x))
 	h.setProperty(componentName, "Y", runtime.NumVal(y))
 }
@@ -1534,8 +1580,10 @@ func (h *simulationHost) pointSpriteTowards(componentName, componentType, target
 	if targetType != "Ball" && targetType != "ImageSprite" {
 		return
 	}
-	x1, y1 := h.spriteBounds(componentName, componentType).center()
-	x2, y2 := h.spriteBounds(targetName, targetType).center()
+	source := h.spriteBounds(componentName, componentType)
+	target := h.spriteBounds(targetName, targetType)
+	x1, y1 := source.originX, source.originY
+	x2, y2 := target.originX, target.originY
 	heading := math.Atan2(-(y2-y1), x2-x1) * 180 / math.Pi
 	h.setProperty(componentName, "Heading", runtime.NumVal(normalizeDegrees(heading)))
 }
@@ -2248,14 +2296,7 @@ func valueList(value runtime.Value) []runtime.Value {
 
 func numbersFromValue(value runtime.Value) []float64 {
 	if value.Type() == runtime.List || value.Type() == runtime.Matrix {
-		items := valueList(value)
-		out := make([]float64, 0, len(items))
-		for _, item := range items {
-			if n, ok := runtime.CoerceNum(item); ok && !math.IsNaN(n) && !math.IsInf(n, 0) {
-				out = append(out, n)
-			}
-		}
-		return out
+		return appendNumbersFromValue(nil, value)
 	}
 	text := strings.TrimSpace(value.AsStr())
 	if text == "" {
@@ -2275,6 +2316,19 @@ func numbersFromValue(value runtime.Value) []float64 {
 		}
 	}
 	return out
+}
+
+func appendNumbersFromValue(out []float64, value runtime.Value) []float64 {
+	if value.Type() == runtime.List || value.Type() == runtime.Matrix {
+		for _, item := range valueList(value) {
+			out = appendNumbersFromValue(out, item)
+		}
+		return out
+	}
+	if n, ok := runtime.CoerceNum(value); ok && !math.IsNaN(n) && !math.IsInf(n, 0) {
+		return append(out, n)
+	}
+	return append(out, numbersFromValue(value)...)
 }
 
 func elementsFromString(text string) []runtime.Value {

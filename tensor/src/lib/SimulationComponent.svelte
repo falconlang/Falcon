@@ -64,6 +64,7 @@
 
   onDestroy(() => {
     clearLongClick();
+    stopSpriteAnimationLoop();
     if (mapInstance) { mapInstance.remove(); mapInstance = null; }
   });
 
@@ -379,6 +380,10 @@
   }
 
   function handleComponentActions(actionState) {
+    if (node?.type === 'Canvas') {
+      clearCanvasDrawingLayerOnBackgroundChange();
+      handleCanvasActionState(actionState);
+    }
     runAction(actionState, 'open', ['open', 'Open', 'DisplayDropdown', 'LaunchPicker'], () => {
       if ((node?.type === 'ListPicker' || node?.type === 'Spinner') && enabled && visible) {
         pickerFilter = '';
@@ -398,6 +403,7 @@
     runAction(actionState, 'reload', ['reload'], () => { try { webViewerFrame?.contentWindow?.location?.reload(); } catch {} });
     runAction(actionState, 'play', ['play'], () => { videoEl?.play().catch(() => {}); });
     runAction(actionState, 'pause', ['pause'], () => { videoEl?.pause(); });
+    runAction(actionState, 'fullscreen', ['fullscreen'], () => requestVideoFullscreen());
     runAction(actionState, 'seek', ['seek'], () => {
       if (videoEl) videoEl.currentTime = (numberOr(actionState.ms, 0)) / 1000;
     });
@@ -533,6 +539,15 @@
     emitInteraction([{ component: node.name, property: 'Duration', value: dur }], null);
   }
 
+  async function requestVideoFullscreen() {
+    await tick();
+    const target = videoEl?.parentElement || videoEl;
+    try {
+      if (target?.requestFullscreen) await target.requestFullscreen();
+      else if (videoEl?.webkitEnterFullscreen) videoEl.webkitEnterFullscreen();
+    } catch {}
+  }
+
   // ── File / Image / Contact pickers ─────────────────────────────────────
   let fileInput;
   const MOCK_CONTACTS = [
@@ -592,7 +607,28 @@
   let canvasPrev = null;
   let canvasTouchStart = null;
   let canvasTouchTime = null;
+  let canvasTouchedSprites = [];
+  let canvasDrawOps = [];
+  let lastCanvasActionSeq = 0;
+  let canvasImageCache = new Map();
+  let spriteAnimationFrame = null;
+  let spriteLastTick = {};
+  let spriteCollisionPairs = new Set();
+  let canvasDraggedSprites = [];
+  let canvasIsDrag = false;
+  let canvasPointerHistory = [];
+  let lastCanvasBackgroundKey = null;
+  let canvasBackgroundSignature = '';
   const CANVAS_PAD_PX = 0;
+  const EDGE_NORTH = 1;
+  const EDGE_NORTHEAST = 2;
+  const EDGE_EAST = 3;
+  const EDGE_SOUTHEAST = 4;
+  const EDGE_SOUTH = -1;
+  const EDGE_SOUTHWEST = -2;
+  const EDGE_WEST = -3;
+  const EDGE_NORTHWEST = -4;
+  const FLING_MIN_SPEED_PX_PER_MS = 1;
 
   function canvasWidth() {
     const v = props.Width;
@@ -627,110 +663,605 @@
     const scaleX = canvasEl.width / rect.width;
     const scaleY = canvasEl.height / rect.height;
     return {
-      x: Math.round((e.clientX - rect.left) * scaleX),
-      y: Math.round((e.clientY - rect.top) * scaleY),
+      x: Math.max(0, Math.round((e.clientX - rect.left) * scaleX)),
+      y: Math.max(0, Math.round((e.clientY - rect.top) * scaleY)),
     };
   }
 
-  function canvasPointerDown(e) {
+  function unitValue(value, fallback = 0) {
+    const n = numberOr(value, fallback);
+    return Math.max(0, Math.min(1, n));
+  }
+
+  function spriteImageElement(sprite) {
+    if (sprite.type !== 'ImageSprite') return null;
+    const sp = state?.[sprite.name] ?? {};
+    return cachedCanvasImage(resolveAssetUrl(assets, sp.Picture));
+  }
+
+  function spriteLength(value, natural = 0) {
+    const n = numberOr(value, -1);
+    if (n < 0) return Math.max(0, numberOr(natural, 0));
+    return Math.max(0, n);
+  }
+
+  function spriteGeometry(sprite, override = null) {
+    const sp = state?.[sprite.name] ?? {};
+    const originX = numberOr(override?.X ?? sp.X, 0);
+    const originY = numberOr(override?.Y ?? sp.Y, 0);
+    if (sprite.type === 'Ball') {
+      const r = Math.max(0, numberOr(sp.Radius, 5));
+      const u = boolValue(sp.OriginAtCenter, false) ? 0.5 : 0;
+      const v = boolValue(sp.OriginAtCenter, false) ? 0.5 : 0;
+      const width = r * 2;
+      const height = r * 2;
+      const x = originX - width * u;
+      const y = originY - height * v;
+      return {
+        x,
+        y,
+        width,
+        height,
+        cx: x + r,
+        cy: y + r,
+        originX,
+        originY,
+        u,
+        v,
+        radius: r,
+      };
+    }
+    const img = spriteImageElement(sprite);
+    const width = spriteLength(sp.Width, img?.naturalWidth || 0);
+    const height = spriteLength(sp.Height, img?.naturalHeight || 0);
+    const u = unitValue(sp.OriginX, 0);
+    const v = unitValue(sp.OriginY, 0);
+    const x = originX - width * u;
+    const y = originY - height * v;
+    return { x, y, width, height, cx: x + width / 2, cy: y + height / 2, originX, originY, u, v, radius: 0 };
+  }
+
+  function spriteContainsPoint(sprite, pt) {
+    const sp = state?.[sprite.name] ?? {};
+    if (sp.Visible === false || sp.Enabled === false) return false;
+    const geom = spriteGeometry(sprite);
+    if (sprite.type === 'Ball') {
+      return Math.hypot(pt.x - geom.cx, pt.y - geom.cy) <= geom.radius;
+    }
+    if (boolValue(sp.Rotates, true) && numberOr(sp.Heading, 0) !== 0) {
+      const angle = numberOr(sp.Heading, 0) * Math.PI / 180;
+      const dx = pt.x - geom.originX;
+      const dy = pt.y - geom.originY;
+      const localX = geom.originX + dx * Math.cos(angle) - dy * Math.sin(angle);
+      const localY = geom.originY + dx * Math.sin(angle) + dy * Math.cos(angle);
+      return localX >= geom.x && localX <= geom.x + geom.width
+        && localY >= geom.y && localY <= geom.y + geom.height;
+    }
+    return pt.x >= geom.x && pt.x <= geom.x + geom.width && pt.y >= geom.y && pt.y <= geom.y + geom.height;
+  }
+
+  function hitSpritesAt(pt) {
+    return canvasSprites()
+      .filter(sprite => spriteContainsPoint(sprite, pt))
+      .sort((a, b) => numberOr(state?.[b.name]?.Z, 1) - numberOr(state?.[a.name]?.Z, 1));
+  }
+
+  function uniqueSprites(primary = [], fallback = []) {
+    const seen = new Set();
+    const out = [];
+    for (const sprite of [...primary, ...fallback]) {
+      if (!sprite?.name || seen.has(sprite.name)) continue;
+      seen.add(sprite.name);
+      out.push(sprite);
+    }
+    return out;
+  }
+
+  async function canvasPointerDown(e) {
     if (!enabled) return;
     canvasEl?.setPointerCapture(e.pointerId);
     const pt = canvasPoint(e);
+    canvasTouchedSprites = hitSpritesAt(pt);
+    canvasDraggedSprites = [...canvasTouchedSprites];
     canvasDragStart = pt;
     canvasPrev = pt;
     canvasTouchStart = pt;
     canvasTouchTime = Date.now();
-    emitEvent(node.name, 'TouchDown', [pt.x, pt.y]);
+    for (const sprite of canvasTouchedSprites) await emitEvent(sprite.name, 'TouchDown', [pt.x, pt.y]);
+    await emitEvent(node.name, 'TouchDown', [pt.x, pt.y]);
+    canvasIsDrag = false;
+    canvasPointerHistory = [{ ...pt, t: canvasTouchTime }];
   }
 
-  function canvasPointerMove(e) {
+  async function canvasPointerMove(e) {
     if (!enabled || !canvasDragStart) return;
     const pt = canvasPoint(e);
-    emitEvent(node.name, 'Dragged', [
+    const threshold = numberOr(props.TapThreshold, 15);
+    if (!canvasIsDrag
+      && Math.abs(pt.x - canvasDragStart.x) < threshold
+      && Math.abs(pt.y - canvasDragStart.y) < threshold) {
+      return;
+    }
+    canvasIsDrag = true;
+    if (!boolValue(props.ExtendMovesOutsideCanvas, false)
+      && (pt.x <= 0 || pt.x > canvasWidth() || pt.y <= 0 || pt.y > canvasHeight())) {
+      return;
+    }
+
+    canvasDraggedSprites = uniqueSprites(canvasDraggedSprites, hitSpritesAt(pt));
+    let handled = false;
+    for (const sprite of canvasDraggedSprites) {
+      const sp = state?.[sprite.name] ?? {};
+      if (sp.Visible === false || sp.Enabled === false) continue;
+      handled = true;
+      await emitEvent(sprite.name, 'Dragged', [
+        canvasDragStart.x, canvasDragStart.y,
+        canvasPrev.x, canvasPrev.y,
+        pt.x, pt.y,
+      ]);
+    }
+    await emitEvent(node.name, 'Dragged', [
       canvasDragStart.x, canvasDragStart.y,
       canvasPrev.x, canvasPrev.y,
       pt.x, pt.y,
-      false,
+      handled,
     ]);
     canvasPrev = pt;
+    canvasPointerHistory = [...canvasPointerHistory, { ...pt, t: Date.now() }].slice(-8);
   }
 
-  function canvasPointerUp(e) {
+  async function canvasPointerUp(e) {
     if (!enabled) return;
     const pt = canvasPoint(e);
-    emitEvent(node.name, 'TouchUp', [pt.x, pt.y]);
-    const elapsed = Date.now() - (canvasTouchTime || 0);
-    const dx = pt.x - (canvasTouchStart?.x ?? pt.x);
-    const dy = pt.y - (canvasTouchStart?.y ?? pt.y);
-    const dist = Math.hypot(dx, dy);
-    if (dist < numberOr(props.TapThreshold, 15)) {
-      emitEvent(node.name, 'Touched', [pt.x, pt.y, false]);
-    } else if (elapsed > 0) {
-      const speed = dist / elapsed * 1000;
-      const heading = (Math.atan2(-dy, dx) * 180 / Math.PI + 360) % 360;
-      emitEvent(node.name, 'Flung', [pt.x, pt.y, speed, heading, dx / elapsed * 1000, -dy / elapsed * 1000, false]);
+    const upTime = Date.now();
+    canvasPointerHistory = [...canvasPointerHistory, { ...pt, t: upTime }].slice(-8);
+    let handled = false;
+    for (const sprite of canvasDraggedSprites) {
+      const sp = state?.[sprite.name] ?? {};
+      if (sp.Visible === false || sp.Enabled === false) continue;
+      await emitEvent(sprite.name, 'Touched', [pt.x, pt.y]);
+      await emitEvent(sprite.name, 'TouchUp', [pt.x, pt.y]);
+      handled = true;
     }
-    canvasDragStart = null;
-    canvasPrev = null;
+    if (!canvasIsDrag) await emitEvent(node.name, 'Touched', [pt.x, pt.y, handled]);
+    await emitEvent(node.name, 'TouchUp', [pt.x, pt.y]);
+    await maybeEmitCanvasFling(pt, upTime);
+    resetCanvasPointerState();
   }
 
   function canvasPointerCancel() {
+    resetCanvasPointerState();
+  }
+
+  async function maybeEmitCanvasFling(pt, upTime) {
+    if (!canvasTouchStart || canvasPointerHistory.length < 2) return;
+    const recent = [...canvasPointerHistory].reverse().find(point => upTime - point.t >= 16 && upTime - point.t <= 140)
+      || canvasPointerHistory[0];
+    const dt = Math.max(1, upTime - recent.t);
+    const vx = (pt.x - recent.x) / dt;
+    const vy = (pt.y - recent.y) / dt;
+    const speed = Math.hypot(vx, vy);
+    const totalDist = Math.hypot(pt.x - canvasTouchStart.x, pt.y - canvasTouchStart.y);
+    if (speed < FLING_MIN_SPEED_PX_PER_MS || totalDist < numberOr(props.TapThreshold, 15)) return;
+    const heading = normalizeHeading(-Math.atan2(vy, vx) * 180 / Math.PI);
+    let handled = false;
+    for (const sprite of canvasTouchedSprites) {
+      const sp = state?.[sprite.name] ?? {};
+      if (sp.Visible === false || sp.Enabled === false) continue;
+      await emitEvent(sprite.name, 'Flung', [canvasTouchStart.x, canvasTouchStart.y, speed, heading, vx, vy]);
+      handled = true;
+    }
+    await emitEvent(node.name, 'Flung', [canvasTouchStart.x, canvasTouchStart.y, speed, heading, vx, vy, handled]);
+  }
+
+  function normalizeHeading(value) {
+    const normalized = value % 360;
+    return normalized < 0 ? normalized + 360 : normalized;
+  }
+
+  function resetCanvasPointerState() {
     canvasDragStart = null;
     canvasPrev = null;
+    canvasTouchStart = null;
+    canvasTouchTime = null;
+    canvasTouchedSprites = [];
+    canvasDraggedSprites = [];
+    canvasIsDrag = false;
+    canvasPointerHistory = [];
   }
 
   // Re-render canvas drawing ops when state changes
-  $: if (canvasEl && state) applyCanvasOps();
+  $: if (canvasEl && state) { canvasDrawOps; applyCanvasOps(); }
+  $: if (node?.type === 'Canvas') updateSpriteAnimationLoop();
+  $: canvasBackgroundSignature = node?.type === 'Canvas'
+    ? [props.BackgroundColor ?? '', props.BackgroundImage ?? '', props.BackgroundImageinBase64 ?? ''].join('\0')
+    : '';
+  $: if (node?.type === 'Canvas') clearCanvasDrawingLayerOnBackgroundChange(canvasBackgroundSignature);
 
   function applyCanvasOps() {
     const ctx = getCanvas();
     if (!ctx || !canvasEl) return;
-    // Clear + background
     ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
     const bg = colorValue(props.BackgroundColor, '#ffffff');
     if (bg && bg !== 'transparent') {
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
     }
-    // Background image
-    if (assetUrl && props.BackgroundImage) {
-      const img = new Image();
-      img.onload = () => { ctx.drawImage(img, 0, 0, canvasEl.width, canvasEl.height); };
-      img.src = assetUrl;
+
+    const bgImage = cachedCanvasImage(canvasBackgroundUrl());
+    if (bgImage) {
+      ctx.drawImage(bgImage, 0, 0, canvasEl.width, canvasEl.height);
     }
-    // Draw sprites (Ball/ImageSprite) on canvas
-    for (const sprite of canvasSprites()) {
+
+    for (const op of canvasDrawOps) drawCanvasOp(ctx, op);
+
+    for (const sprite of canvasSprites().slice().sort((a, b) => numberOr(state?.[a.name]?.Z, 1) - numberOr(state?.[b.name]?.Z, 1))) {
       const sp = state?.[sprite.name] ?? {};
       if (sp.Visible === false) continue;
       ctx.save();
       if (sprite.type === 'Ball') {
-        const r = numberOr(sp.Radius, 5);
-        const cx = numberOr(sp.X, 0) + (boolValue(sp.OriginAtCenter, false) ? 0 : r);
-        const cy = numberOr(sp.Y, 0) + (boolValue(sp.OriginAtCenter, false) ? 0 : r);
-        ctx.fillStyle = colorValue(sp.PaintColor, '#000000');
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fill();
+        drawBall(ctx, sprite, sp);
       } else if (sprite.type === 'ImageSprite') {
-        const spUrl = resolveAssetUrl(assets, sp.Picture);
-        const w = numberOr(sp.Width, 0);
-        const h = numberOr(sp.Height, 0);
-        const x = numberOr(sp.X, 0);
-        const y = numberOr(sp.Y, 0);
-        if (spUrl && w > 0 && h > 0) {
-          const img = new Image();
-          img.onload = () => { ctx.drawImage(img, x, y, w, h); };
-          img.src = spUrl;
-        }
+        drawImageSprite(ctx, sprite, sp);
       }
       ctx.restore();
     }
   }
 
-  // Canvas draw op effects: the Go host emits 'canvas-draw' effects
-  $: if (node?.type === 'Canvas') handleCanvasEffects();
-  let lastCanvasDrawSeq = 0;
-  function handleCanvasEffects() { /* ops arrive via applyCanvasOps reactive */ }
+  function canvasBackgroundUrl() {
+    const base64 = String(props.BackgroundImageinBase64 ?? '').trim();
+    if (base64) return base64.startsWith('data:') ? base64 : `data:image/png;base64,${base64}`;
+    return props.BackgroundImage ? assetUrl : '';
+  }
+
+  function canvasBackgroundKey() {
+    return [
+      props.BackgroundColor ?? '',
+      props.BackgroundImage ?? '',
+      props.BackgroundImageinBase64 ?? '',
+    ].join('\0');
+  }
+
+  function clearCanvasDrawingLayerOnBackgroundChange(key = canvasBackgroundKey()) {
+    if (lastCanvasBackgroundKey === null) {
+      lastCanvasBackgroundKey = key;
+      return;
+    }
+    if (key === lastCanvasBackgroundKey) return;
+    lastCanvasBackgroundKey = key;
+    if (!canvasDrawOps.length) return;
+    canvasDrawOps = [];
+    applyCanvasOps();
+  }
+
+  function cachedCanvasImage(url) {
+    if (!url) return null;
+    let entry = canvasImageCache.get(url);
+    if (!entry) {
+      const img = new Image();
+      entry = { img };
+      canvasImageCache.set(url, entry);
+      img.onload = () => applyCanvasOps();
+      img.onerror = () => canvasImageCache.delete(url);
+      img.src = url;
+    }
+    return entry.img.complete && entry.img.naturalWidth > 0 ? entry.img : null;
+  }
+
+  function drawBall(ctx, sprite, sp) {
+    const geom = spriteGeometry(sprite);
+    ctx.fillStyle = colorValue(sp.PaintColor, '#000000');
+    ctx.beginPath();
+    ctx.arc(geom.cx, geom.cy, geom.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawImageSprite(ctx, sprite, sp) {
+    const img = spriteImageElement(sprite);
+    const geom = spriteGeometry(sprite);
+    if (!img || geom.width <= 0 || geom.height <= 0) return;
+    if (boolValue(sp.Rotates, true)) {
+      const angle = numberOr(sp.Heading, 0) * Math.PI / 180;
+      ctx.translate(geom.originX, geom.originY);
+      ctx.rotate(-angle);
+      ctx.drawImage(img, geom.x - geom.originX, geom.y - geom.originY, geom.width, geom.height);
+    } else {
+      ctx.drawImage(img, geom.x, geom.y, geom.width, geom.height);
+    }
+  }
+
+  function handleCanvasActionState(actionState) {
+    const ordered = Array.isArray(actionState?.__actions) ? actionState.__actions : [];
+    const nextActions = ordered.filter(action => (
+      action.seq > lastCanvasActionSeq
+      && (action.action === 'canvas-draw' || action.action === 'canvas-clear')
+    ));
+    if (!nextActions.length) return;
+
+    let nextOps = canvasDrawOps;
+    for (const action of nextActions) {
+      if (action.action === 'canvas-clear') {
+        nextOps = [];
+      } else if (action.action === 'canvas-draw') {
+        nextOps = [...nextOps, action];
+      }
+      lastCanvasActionSeq = Math.max(lastCanvasActionSeq, action.seq);
+    }
+    canvasDrawOps = nextOps;
+    applyCanvasOps();
+  }
+
+  function drawCanvasOp(ctx, op) {
+    const color = colorValue(op.color ?? props.PaintColor, '#000000');
+    const lineWidth = Math.max(1, numberOr(op.lineWidth ?? props.LineWidth, 2));
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    switch (op.op) {
+      case 'line':
+        ctx.beginPath();
+        ctx.moveTo(numberOr(op.x1, 0), numberOr(op.y1, 0));
+        ctx.lineTo(numberOr(op.x2, 0), numberOr(op.y2, 0));
+        ctx.stroke();
+        break;
+      case 'circle':
+        ctx.beginPath();
+        ctx.arc(numberOr(op.cx, 0), numberOr(op.cy, 0), Math.max(0, numberOr(op.r, 0)), 0, Math.PI * 2);
+        if (boolValue(op.fill, false)) ctx.fill();
+        else ctx.stroke();
+        break;
+      case 'point': {
+        const size = Math.max(1, lineWidth);
+        ctx.fillRect(numberOr(op.x, 0) - size / 2, numberOr(op.y, 0) - size / 2, size, size);
+        break;
+      }
+      case 'text':
+        drawCanvasText(ctx, op, 0);
+        break;
+      case 'textAngle':
+        drawCanvasText(ctx, op, -numberOr(op.angle, 0));
+        break;
+      case 'arc':
+        drawCanvasArc(ctx, op);
+        break;
+      case 'shape':
+        drawCanvasShape(ctx, op);
+        break;
+      default:
+        break;
+    }
+  }
+
+  function drawCanvasText(ctx, op, angle = 0) {
+    const x = numberOr(op.x, 0);
+    const y = numberOr(op.y, 0);
+    ctx.save();
+    ctx.translate(x, y);
+    if (angle) ctx.rotate(angle * Math.PI / 180);
+    ctx.font = `${Math.max(1, numberOr(op.fontSize ?? props.FontSize, 14))}px sans-serif`;
+    ctx.textAlign = canvasTextAlign();
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(String(op.text ?? ''), 0, 0);
+    ctx.restore();
+  }
+
+  function canvasTextAlign() {
+    const align = numberOr(props.TextAlignment, 1);
+    if (align === 0) return 'left';
+    if (align === 2) return 'right';
+    return 'center';
+  }
+
+  function drawCanvasArc(ctx, op) {
+    const left = numberOr(op.left, 0);
+    const top = numberOr(op.top, 0);
+    const right = numberOr(op.right, left);
+    const bottom = numberOr(op.bottom, top);
+    const cx = (left + right) / 2;
+    const cy = (top + bottom) / 2;
+    const rx = Math.max(0, Math.abs(right - left) / 2);
+    const ry = Math.max(0, Math.abs(bottom - top) / 2);
+    const start = numberOr(op.startAngle, 0) * Math.PI / 180;
+    const sweep = numberOr(op.sweepAngle, 0) * Math.PI / 180;
+    ctx.beginPath();
+    if (boolValue(op.useCenter, false)) ctx.moveTo(cx, cy);
+    ctx.ellipse(cx, cy, rx, ry, 0, start, start + sweep, sweep < 0);
+    if (boolValue(op.useCenter, false)) ctx.closePath();
+    if (boolValue(op.fill, false)) ctx.fill();
+    else ctx.stroke();
+  }
+
+  function drawCanvasShape(ctx, op) {
+    const pts = normalizeCanvasPoints(op.points);
+    if (!pts.length) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (const pt of pts.slice(1)) ctx.lineTo(pt.x, pt.y);
+    ctx.closePath();
+    if (boolValue(op.fill, false)) ctx.fill();
+    else ctx.stroke();
+  }
+
+  function normalizeCanvasPoints(value) {
+    if (!Array.isArray(value)) return [];
+    if (value.every(item => !Array.isArray(item) && typeof item !== 'object')) {
+      const out = [];
+      for (let i = 0; i + 1 < value.length; i += 2) {
+        out.push({ x: numberOr(value[i], 0), y: numberOr(value[i + 1], 0) });
+      }
+      return out;
+    }
+    return value
+      .map(item => {
+        if (Array.isArray(item)) return { x: numberOr(item[0], 0), y: numberOr(item[1], 0) };
+        if (item && typeof item === 'object') return { x: numberOr(item.x ?? item.X, 0), y: numberOr(item.y ?? item.Y, 0) };
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  function movingCanvasSprites() {
+    return canvasSprites().filter(sprite => {
+      const sp = state?.[sprite.name] ?? {};
+      return sp.Visible !== false && sp.Enabled !== false && numberOr(sp.Speed, 0) > 0;
+    });
+  }
+
+  function updateSpriteAnimationLoop() {
+    if (!canvasEl || node?.type !== 'Canvas') return;
+    if (movingCanvasSprites().length > 0) {
+      if (spriteAnimationFrame == null) {
+        spriteAnimationFrame = requestAnimationFrame(spriteAnimationTick);
+      }
+    } else {
+      stopSpriteAnimationLoop();
+    }
+  }
+
+  function stopSpriteAnimationLoop() {
+    if (spriteAnimationFrame != null) cancelAnimationFrame(spriteAnimationFrame);
+    spriteAnimationFrame = null;
+    spriteLastTick = {};
+  }
+
+  function spriteAnimationTick(timestamp) {
+    spriteAnimationFrame = null;
+    animateCanvasSprites(timestamp);
+    detectSpriteCollisions();
+    if (movingCanvasSprites().length > 0) {
+      spriteAnimationFrame = requestAnimationFrame(spriteAnimationTick);
+    } else {
+      stopSpriteAnimationLoop();
+    }
+  }
+
+  function animateCanvasSprites(timestamp) {
+    const batchPatches = [];
+    for (const sprite of movingCanvasSprites()) {
+      const sp = state?.[sprite.name] ?? {};
+      const interval = Math.max(1, numberOr(sp.Interval, 100));
+      const last = spriteLastTick[sprite.name];
+      if (last == null) {
+        spriteLastTick[sprite.name] = timestamp;
+        continue;
+      }
+      const elapsed = timestamp - last;
+      if (elapsed < interval) continue;
+      const steps = Math.max(1, Math.floor(elapsed / interval));
+      spriteLastTick[sprite.name] = last + steps * interval;
+
+      const heading = numberOr(sp.Heading, 0) * Math.PI / 180;
+      const speed = numberOr(sp.Speed, 0) * steps;
+      const next = clampSpritePosition(
+        sprite,
+        numberOr(sp.X, 0) + speed * Math.cos(heading),
+        numberOr(sp.Y, 0) - speed * Math.sin(heading),
+      );
+      const patches = [
+        { component: sprite.name, property: 'X', value: next.x },
+        { component: sprite.name, property: 'Y', value: next.y },
+      ];
+      if (next.edge) {
+        emitInteraction(patches, { component: sprite.name, event: 'EdgeReached', args: [next.edge] });
+      } else {
+        batchPatches.push(...patches);
+      }
+    }
+    if (batchPatches.length) emitInteraction(batchPatches, null);
+  }
+
+  function clampSpritePosition(sprite, x, y) {
+    const geom = spriteGeometry(sprite, { X: x, Y: y });
+    const over = {
+      west: geom.x < 0,
+      north: geom.y < 0,
+      east: geom.x + geom.width > canvasWidth(),
+      south: geom.y + geom.height > canvasHeight(),
+    };
+    const edge = edgeDirection(over);
+    if (!edge) return { x, y, edge: 0 };
+
+    const moved = moveSpriteGeometryIntoCanvas(sprite, geom);
+    return { ...moved, edge };
+  }
+
+  function edgeDirection({ west, north, east, south }) {
+    if (west) {
+      if (north) return EDGE_NORTHWEST;
+      if (south) return EDGE_SOUTHWEST;
+      return EDGE_WEST;
+    }
+    if (east) {
+      if (north) return EDGE_NORTHEAST;
+      if (south) return EDGE_SOUTHEAST;
+      return EDGE_EAST;
+    }
+    if (north) return EDGE_NORTH;
+    if (south) return EDGE_SOUTH;
+    return 0;
+  }
+
+  function moveSpriteGeometryIntoCanvas(sprite, geom) {
+    const width = canvasWidth();
+    const height = canvasHeight();
+    let left = geom.x;
+    let top = geom.y;
+    if (geom.width > width) left = 0;
+    else if (geom.x < 0) left = 0;
+    else if (geom.x + geom.width > width) left = width - geom.width;
+
+    if (geom.height > height) top = 0;
+    else if (geom.y < 0) top = 0;
+    else if (geom.y + geom.height > height) top = height - geom.height;
+
+    return {
+      x: left + geom.width * geom.u,
+      y: top + geom.height * geom.v,
+    };
+  }
+
+  function detectSpriteCollisions() {
+    const sprites = canvasSprites().filter(sprite => {
+      const sp = state?.[sprite.name] ?? {};
+      return sp.Visible !== false && sp.Enabled !== false;
+    });
+    const current = new Set();
+    for (let i = 0; i < sprites.length; i += 1) {
+      for (let j = i + 1; j < sprites.length; j += 1) {
+        if (!spritesOverlap(sprites[i], sprites[j])) continue;
+        current.add(collisionKey(sprites[i], sprites[j]));
+      }
+    }
+    for (const key of current) {
+      if (spriteCollisionPairs.has(key)) continue;
+      const [a, b] = key.split('|');
+      emitEvent(a, 'CollidedWith', [b]);
+      emitEvent(b, 'CollidedWith', [a]);
+    }
+    for (const key of spriteCollisionPairs) {
+      if (current.has(key)) continue;
+      const [a, b] = key.split('|');
+      emitEvent(a, 'NoLongerCollidingWith', [b]);
+      emitEvent(b, 'NoLongerCollidingWith', [a]);
+    }
+    spriteCollisionPairs = current;
+  }
+
+  function collisionKey(a, b) {
+    return [a.name, b.name].sort().join('|');
+  }
+
+  function spritesOverlap(a, b) {
+    const ga = spriteGeometry(a);
+    const gb = spriteGeometry(b);
+    return ga.x < gb.x + gb.width
+      && ga.x + ga.width > gb.x
+      && ga.y < gb.y + gb.height
+      && ga.y + ga.height > gb.y;
+  }
 
   // ── Chart helpers ───────────────────────────────────────────────────────
   const CHART_PAD = 32;
@@ -746,9 +1277,13 @@
       .map((c, i) => {
         const sp = state?.[c.name] ?? {};
         const pts = parseChartPoints(sp.Elements || sp.ElementsFromPairs || '');
+        const colors = parseChartColors(sp.Colors);
         return {
           label: sp.Label || c.name,
           color: colorValue(sp.Color, CHART_COLORS[i % CHART_COLORS.length]),
+          colors,
+          dataLabelColor: colorValue(sp.DataLabelColor, '#000000'),
+          highlightColor: colorValue(sp.HighlightColor, ''),
           points: pts,
           name: c.name,
         };
@@ -767,18 +1302,39 @@
     return pts;
   }
 
+  function parseChartColors(value) {
+    if (Array.isArray(value)) return value.map(item => colorValue(item, '')).filter(Boolean);
+    const text = String(value ?? '').trim();
+    if (!text) return [];
+    return text.split(',').map(item => colorValue(item.trim(), '')).filter(Boolean);
+  }
+
   function chartXRange() {
     const all = chartDataSeries().flatMap(s => s.points.map(p => p[0]));
+    const manualMin = finiteNumber(props.XMin);
+    const manualMax = finiteNumber(props.XMax);
+    if (manualMin != null && manualMax != null && manualMax > manualMin) return [manualMin, manualMax];
     if (!all.length) return [0, 1];
-    const min = boolValue(props.XFromZero, false) ? 0 : Math.min(...all);
-    return [min, Math.max(...all, min + 1)];
+    const min = manualMin ?? (boolValue(props.XFromZero, false) ? 0 : Math.min(...all));
+    const max = manualMax ?? Math.max(...all, min + 1);
+    return [min, Math.max(max, min + 1)];
   }
 
   function chartYRange() {
     const all = chartDataSeries().flatMap(s => s.points.map(p => p[1]));
+    const manualMin = finiteNumber(props.YMin);
+    const manualMax = finiteNumber(props.YMax);
+    if (manualMin != null && manualMax != null && manualMax > manualMin) return [manualMin, manualMax];
     if (!all.length) return [0, 1];
-    const min = boolValue(props.YFromZero, false) ? 0 : Math.min(...all);
-    return [min, Math.max(...all, min + 1)];
+    const min = manualMin ?? (boolValue(props.YFromZero, false) ? 0 : Math.min(...all));
+    const max = manualMax ?? Math.max(...all, min + 1);
+    return [min, Math.max(max, min + 1)];
+  }
+
+  function finiteNumber(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
   }
 
   function chartX(v) {
@@ -795,6 +1351,39 @@
 
   function chartPolylinePoints(pts) {
     return pts.map(p => `${chartX(p[0])},${chartY(p[1])}`).join(' ');
+  }
+
+  function chartTicks(range, count = 5) {
+    const [min, max] = range;
+    const span = max - min;
+    if (!Number.isFinite(span) || span <= 0) return [];
+    return Array.from({ length: count }, (_, i) => min + (span * i) / (count - 1));
+  }
+
+  function chartXTicks() {
+    return chartTicks(chartXRange());
+  }
+
+  function chartYTicks() {
+    return chartTicks(chartYRange());
+  }
+
+  function chartTickText(value) {
+    if (Math.abs(value) >= 1000 || (Math.abs(value) > 0 && Math.abs(value) < 0.01)) return value.toExponential(1);
+    return Number.isInteger(value) ? String(value) : String(Math.round(value * 100) / 100);
+  }
+
+  function chartLabels() {
+    if (Array.isArray(props.Labels)) return props.Labels.map(item => String(item ?? ''));
+    return elementsFromString(props.Labels);
+  }
+
+  function chartXTickText(value, index) {
+    return chartLabels()[index] || chartTickText(value);
+  }
+
+  function chartPointColor(series, index) {
+    return series.colors[index] || series.color;
   }
 
   function chartAreaPath(pts) {
@@ -822,7 +1411,8 @@
     const total = pts.reduce((s, p) => s + Math.abs(p[1]), 0) || 1;
     const cx = chartWidth() / 2;
     const cy = chartHeight() / 2;
-    const r = Math.min(cx, cy) - CHART_PAD;
+    const radiusPct = Math.max(0, Math.min(100, numberOr(props.PieRadius, 100))) / 100;
+    const r = (Math.min(cx, cy) - CHART_PAD) * radiusPct;
     let angle = -Math.PI / 2;
     return pts.map((p, i) => {
       const sweep = (Math.abs(p[1]) / total) * Math.PI * 2;
@@ -832,20 +1422,78 @@
       const y2 = cy + r * Math.sin(angle + sweep);
       const large = sweep > Math.PI ? 1 : 0;
       const d = `M${cx},${cy}L${x1},${y1}A${r},${r},0,${large},1,${x2},${y2}Z`;
-      const fill = CHART_COLORS[(si * pts.length + i) % CHART_COLORS.length];
+      const series = chartDataSeries()[si];
+      const fill = series?.colors?.[i] || CHART_COLORS[(si * pts.length + i) % CHART_COLORS.length];
       angle += sweep;
       return { d, fill };
     });
   }
 
+  function chartEntryClick(series, pt) {
+    emitEvent(node.name, 'EntryClick', [series.label, pt[0], pt[1]]);
+    emitEvent(series.name, 'EntryClick', [pt[0], pt[1]]);
+  }
+
+  function chartTrendlines() {
+    const series = chartDataSeries();
+    return (node?.children || [])
+      .filter(c => c.type === 'Trendline')
+      .map((trend, index) => {
+        const sp = state?.[trend.name] ?? {};
+        if (sp.Visible === false) return null;
+        const targetName = String(sp.ChartData ?? '').trim();
+        const target = series.find(item => item.name === targetName || item.label === targetName) || series[index] || series[0];
+        if (!target || target.points.length < 2) return null;
+        const regression = linearRegression(target.points);
+        if (!regression) return null;
+        const [xMin, xMax] = chartXRange();
+        const y1 = regression.slope * xMin + regression.intercept;
+        const y2 = regression.slope * xMax + regression.intercept;
+        return {
+          name: trend.name,
+          d: `M${chartX(xMin)},${chartY(y1)}L${chartX(xMax)},${chartY(y2)}`,
+          color: colorValue(sp.Color, target.color),
+          width: Math.max(1, numberOr(sp.StrokeWidth, 1)),
+          dash: numberOr(sp.StrokeStyle, 1) === 2 ? '6 4' : numberOr(sp.StrokeStyle, 1) === 3 ? '2 4' : '',
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function linearRegression(points) {
+    const n = points.length;
+    if (n < 2) return null;
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumXX = 0;
+    for (const [x, y] of points) {
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumXX += x * x;
+    }
+    const denom = n * sumXX - sumX * sumX;
+    if (denom === 0) return null;
+    const slope = (n * sumXY - sumX * sumY) / denom;
+    const intercept = (sumY - slope * sumX) / n;
+    return { slope, intercept };
+  }
+
   // ── Map helpers (Leaflet) ───────────────────────────────────────────────
   let mapEl;
   let mapInstance = null;
+  let mapTileLayer = null;
+  let mapZoomControl = null;
+  let mapScaleControl = null;
+  let mapCompassControl = null;
   let mapLayers = {};
+  let mapFeatureActionSeq = {};
 
   // Map setup runs reactively via the $: if (mapEl) initOrUpdateMap() block below
 
   $: if (node?.type === 'Map' && mapEl) initOrUpdateMap();
+  $: if (node?.type === 'Map' && mapInstance) handleMapFeatureActions();
 
   async function initOrUpdateMap() {
     const L = await import('leaflet').catch(() => null);
@@ -861,15 +1509,14 @@
       mapInstance = L.map(mapEl, {
         center: [numberOr(props.Latitude, 42.359144), numberOr(props.Longitude, -71.093612)],
         zoom: numberOr(props.ZoomLevel, 13),
-        zoomControl: boolValue(props.ShowZoom, false),
+        zoomControl: false,
         dragging: boolValue(props.EnablePan, true),
         scrollWheelZoom: boolValue(props.EnableZoom, true),
         touchZoom: boolValue(props.EnableZoom, true),
         doubleClickZoom: boolValue(props.EnableZoom, true),
         attributionControl: true,
       });
-      const tileUrl = props.CustomUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-      L.tileLayer(tileUrl, { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(mapInstance);
+      updateMapTileLayer(L);
       mapInstance.on('moveend', () => emitEvent(node.name, 'BoundsChange'));
       mapInstance.on('zoomend', () => emitEvent(node.name, 'ZoomChange'));
       mapInstance.on('click', (e) => emitEvent(node.name, 'TapAtPoint', [e.latlng.lat, e.latlng.lng]));
@@ -877,33 +1524,152 @@
       mapInstance.on('contextmenu', (e) => emitEvent(node.name, 'LongPressAtPoint', [e.latlng.lat, e.latlng.lng]));
       emitEvent(node.name, 'Ready');
     } else {
+      updateMapTileLayer(L);
       mapInstance.setView(
         [numberOr(props.Latitude, 42.359144), numberOr(props.Longitude, -71.093612)],
         numberOr(props.ZoomLevel, 13),
         { animate: false },
       );
     }
+    updateMapInteractions();
+    updateMapControls(L);
+    fitMapBoundsIfNeeded(L);
     updateMapFeatures(L);
+  }
+
+  function mapTileConfig() {
+    const custom = String(props.CustomUrl ?? '').trim();
+    const defaultUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    if (custom && custom !== defaultUrl) {
+      return { url: custom, attribution: '' };
+    }
+    switch (numberOr(props.MapType, 1)) {
+      case 2:
+        return {
+          url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+          attribution: '© OpenTopoMap contributors',
+        };
+      case 3:
+        return {
+          url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          attribution: '© OpenStreetMap contributors © CARTO',
+        };
+      default:
+        return {
+          url: defaultUrl,
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        };
+    }
+  }
+
+  function updateMapTileLayer(L) {
+    if (!mapInstance || !L) return;
+    const config = mapTileConfig();
+    if (mapTileLayer?._simUrl === config.url) return;
+    if (mapTileLayer) mapTileLayer.remove();
+    mapTileLayer = L.tileLayer(config.url, {
+      attribution: config.attribution,
+      maxZoom: numberOr(props.MapType, 1) === 2 ? 17 : 19,
+    });
+    mapTileLayer._simUrl = config.url;
+    mapTileLayer.addTo(mapInstance);
+  }
+
+  function updateMapInteractions() {
+    if (!mapInstance) return;
+    const pan = boolValue(props.EnablePan, true);
+    const zoom = boolValue(props.EnableZoom, true);
+    if (pan) mapInstance.dragging?.enable(); else mapInstance.dragging?.disable();
+    for (const handler of ['scrollWheelZoom', 'touchZoom', 'doubleClickZoom', 'boxZoom', 'keyboard']) {
+      if (zoom) mapInstance[handler]?.enable?.();
+      else mapInstance[handler]?.disable?.();
+    }
+  }
+
+  function updateMapControls(L) {
+    if (!mapInstance || !L) return;
+    if (boolValue(props.ShowZoom, false)) {
+      if (!mapZoomControl) mapZoomControl = L.control.zoom({ position: 'topleft' }).addTo(mapInstance);
+    } else if (mapZoomControl) {
+      mapZoomControl.remove();
+      mapZoomControl = null;
+    }
+
+    if (boolValue(props.ShowScale, false)) {
+      if (!mapScaleControl) mapScaleControl = L.control.scale({ position: 'bottomleft', metric: true, imperial: true }).addTo(mapInstance);
+    } else if (mapScaleControl) {
+      mapScaleControl.remove();
+      mapScaleControl = null;
+    }
+
+    if (boolValue(props.ShowCompass, false)) {
+      if (!mapCompassControl) {
+        const CompassControl = L.Control.extend({
+          options: { position: 'topright' },
+          onAdd() {
+            const el = L.DomUtil.create('div', 'sim-map-compass');
+            el.innerHTML = '<span>N</span>';
+            return el;
+          },
+        });
+        mapCompassControl = new CompassControl().addTo(mapInstance);
+      }
+      const el = mapCompassControl.getContainer?.();
+      if (el) el.style.setProperty('--sim-map-rotation', `${numberOr(props.Rotation, 0)}deg`);
+    } else if (mapCompassControl) {
+      mapCompassControl.remove();
+      mapCompassControl = null;
+    }
+  }
+
+  function fitMapBoundsIfNeeded(L) {
+    if (!mapInstance || !L) return;
+    const bounds = parseBoundingBox(props.BoundingBox);
+    if (!bounds) return;
+    mapInstance.fitBounds(bounds, { animate: false });
   }
 
   function updateMapFeatures(L) {
     if (!mapInstance || !L) return;
     const nextKeys = new Set();
-    for (const child of node?.children || []) {
+    for (const { child, collection } of mapFeatureEntries()) {
       const sp = state?.[child.name] ?? {};
       if (sp.Visible === false) continue;
       const key = child.name;
+      const collectionName = collection?.name || '';
       nextKeys.add(key);
+      if (mapLayers[key]?._simType !== child.type || mapLayers[key]?._simCollectionName !== collectionName) {
+        mapLayers[key]?.remove();
+        delete mapLayers[key];
+      }
       if (mapLayers[key]) {
         updateMapLayer(L, child, sp, mapLayers[key]);
       } else {
-        mapLayers[key] = createMapLayer(L, child, sp);
-        if (mapLayers[key]) mapLayers[key].addTo(mapInstance);
+        mapLayers[key] = createMapLayer(L, child, sp, collection);
+        if (mapLayers[key]) {
+          mapLayers[key]._simType = child.type;
+          mapLayers[key]._simCollectionName = collectionName;
+          mapLayers[key].addTo(mapInstance);
+        }
       }
     }
     for (const k of Object.keys(mapLayers)) {
       if (!nextKeys.has(k)) { mapLayers[k]?.remove(); delete mapLayers[k]; }
     }
+  }
+
+  function mapFeatureEntries(children = node?.children || [], collection = null) {
+    const out = [];
+    for (const child of children) {
+      if (child.type === 'FeatureCollection') {
+        const collectionState = state?.[child.name] ?? {};
+        if (collectionState.Visible === false) continue;
+        out.push(...mapFeatureEntries(child.children || [], child));
+      } else if (['Marker', 'Circle', 'LineString', 'Polygon', 'Rectangle'].includes(child.type)) {
+        out.push({ child, collection });
+      }
+    }
+    return out;
   }
 
   function featureStyle(sp) {
@@ -916,40 +1682,42 @@
     };
   }
 
-  function createMapLayer(L, child, sp) {
+  function createMapLayer(L, child, sp, collection = null) {
     switch (child.type) {
       case 'Marker': {
-        const icon = L.divIcon({
-          html: `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg" width="24" height="36"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="${colorValue(sp.FillColor,'#ff0000')}" stroke="${colorValue(sp.StrokeColor,'#000')}"/><circle cx="12" cy="12" r="5" fill="white"/></svg>`,
-          className: '',
-          iconSize: [24, 36],
-          iconAnchor: [12, 36],
-          popupAnchor: [0, -36],
-        });
+        const icon = markerIcon(L, sp);
         const m = L.marker([numberOr(sp.Latitude, 0), numberOr(sp.Longitude, 0)], { icon, draggable: boolValue(sp.Draggable, false) });
-        if (sp.Title || sp.Description) m.bindPopup(`<b>${sp.Title || ''}</b><br>${sp.Description || ''}`);
-        m.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
-        m.on('contextmenu', () => emitEvent(node.name, 'FeatureLongClick', [child.name]));
+        bindFeaturePopup(m, sp);
+        bindMapFeatureEvents(L, m, child, collection);
+        m.on('dragend', () => {
+          const latlng = m.getLatLng();
+          emitInteraction([
+            { component: child.name, property: 'Latitude', value: latlng.lat },
+            { component: child.name, property: 'Longitude', value: latlng.lng },
+          ], null);
+        });
         return m;
       }
       case 'Circle': {
         const c = L.circle([numberOr(sp.Latitude, 0), numberOr(sp.Longitude, 0)], { radius: numberOr(sp.Radius, 10), ...featureStyle(sp), draggable: boolValue(sp.Draggable, false) });
-        c.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
-        c.on('contextmenu', () => emitEvent(node.name, 'FeatureLongClick', [child.name]));
+        bindFeaturePopup(c, sp);
+        bindMapFeatureEvents(L, c, child, collection);
         return c;
       }
       case 'LineString': {
-        const pts = parseLatLngList(sp.PointsFromString);
+        const pts = featurePoints(sp);
         if (!pts.length) return null;
         const l = L.polyline(pts, { ...featureStyle(sp), draggable: boolValue(sp.Draggable, false) });
-        l.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
+        bindFeaturePopup(l, sp);
+        bindMapFeatureEvents(L, l, child, collection);
         return l;
       }
       case 'Polygon': {
-        const pts = parseLatLngList(sp.PointsFromString);
+        const pts = polygonLatLngs(sp);
         if (!pts.length) return null;
         const pg = L.polygon(pts, { ...featureStyle(sp), draggable: boolValue(sp.Draggable, false) });
-        pg.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
+        bindFeaturePopup(pg, sp);
+        bindMapFeatureEvents(L, pg, child, collection);
         return pg;
       }
       case 'Rectangle': {
@@ -958,7 +1726,8 @@
           [numberOr(sp.NorthLatitude, 0), numberOr(sp.EastLongitude, 0)],
         ];
         const r = L.rectangle(bounds, { ...featureStyle(sp), draggable: boolValue(sp.Draggable, false) });
-        r.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
+        bindFeaturePopup(r, sp);
+        bindMapFeatureEvents(L, r, child, collection);
         return r;
       }
       default: return null;
@@ -968,18 +1737,23 @@
   function updateMapLayer(L, child, sp, layer) {
     if (child.type === 'Marker') {
       layer.setLatLng([numberOr(sp.Latitude, 0), numberOr(sp.Longitude, 0)]);
+      layer.setIcon(markerIcon(L, sp));
+      bindFeaturePopup(layer, sp);
     } else if (child.type === 'Circle') {
       layer.setLatLng([numberOr(sp.Latitude, 0), numberOr(sp.Longitude, 0)]);
       layer.setRadius(numberOr(sp.Radius, 10));
       layer.setStyle(featureStyle(sp));
+      bindFeaturePopup(layer, sp);
     } else if (child.type === 'LineString') {
-      const pts = parseLatLngList(sp.PointsFromString);
+      const pts = featurePoints(sp);
       if (pts.length) layer.setLatLngs(pts);
       layer.setStyle(featureStyle(sp));
+      bindFeaturePopup(layer, sp);
     } else if (child.type === 'Polygon') {
-      const pts = parseLatLngList(sp.PointsFromString);
+      const pts = polygonLatLngs(sp);
       if (pts.length) layer.setLatLngs(pts);
       layer.setStyle(featureStyle(sp));
+      bindFeaturePopup(layer, sp);
     } else if (child.type === 'Rectangle') {
       const bounds = [
         [numberOr(sp.SouthLatitude, 0), numberOr(sp.WestLongitude, 0)],
@@ -987,20 +1761,174 @@
       ];
       layer.setBounds(bounds);
       layer.setStyle(featureStyle(sp));
+      bindFeaturePopup(layer, sp);
     }
   }
 
-  function parseLatLngList(value) {
+  function bindFeaturePopup(layer, sp) {
+    const title = String(sp.Title ?? '');
+    const description = String(sp.Description ?? '');
+    if (!title && !description) {
+      layer.unbindPopup?.();
+      return;
+    }
+    layer.bindPopup(`<b>${escapeHtml(title)}</b><br>${escapeHtml(description)}`);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function markerIcon(L, sp) {
+    const imageUrl = resolveAssetUrl(assets, sp.ImageAsset);
+    if (imageUrl) {
+      const size = [32, 32];
+      return L.icon({
+        iconUrl: imageUrl,
+        iconSize: size,
+        iconAnchor: markerAnchor(sp, size[0], size[1]),
+        popupAnchor: [0, -size[1] / 2],
+      });
+    }
+    const size = [24, 36];
+    return L.divIcon({
+      html: `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg" width="24" height="36"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="${colorValue(sp.FillColor,'#ff0000')}" stroke="${colorValue(sp.StrokeColor,'#000')}"/><circle cx="12" cy="12" r="5" fill="white"/></svg>`,
+      className: '',
+      iconSize: size,
+      iconAnchor: markerAnchor(sp, size[0], size[1]),
+      popupAnchor: [0, -size[1]],
+    });
+  }
+
+  function markerAnchor(sp, width, height) {
+    const horizontal = numberOr(sp.AnchorHorizontal, 3);
+    const vertical = numberOr(sp.AnchorVertical, 3);
+    const x = horizontal === 1 ? 0 : horizontal === 2 ? width : width / 2;
+    const y = vertical === 1 ? 0 : vertical === 2 ? height / 2 : height;
+    return [x, y];
+  }
+
+  function bindMapFeatureEvents(L, layer, child, collection = null) {
+    layer.on('click', async (e) => {
+      stopLeafletPropagation(L, e);
+      await emitMapFeatureEvent(child, collection, 'Click', 'FeatureClick');
+    });
+    layer.on('contextmenu', async (e) => {
+      stopLeafletPropagation(L, e);
+      await emitMapFeatureEvent(child, collection, 'LongClick', 'FeatureLongClick');
+    });
+    layer.on('dragstart', () => emitMapFeatureEvent(child, collection, 'StartDrag', 'FeatureStartDrag'));
+    layer.on('drag', () => emitMapFeatureEvent(child, collection, 'Drag', 'FeatureDrag'));
+    layer.on('dragend', () => emitMapFeatureEvent(child, collection, 'StopDrag', 'FeatureStopDrag'));
+  }
+
+  async function emitMapFeatureEvent(child, collection, featureEvent, aggregateEvent) {
+    await emitEvent(child.name, featureEvent);
+    if (collection?.name) await emitEvent(collection.name, aggregateEvent, [child.name]);
+    await emitEvent(node.name, aggregateEvent, [child.name]);
+  }
+
+  function handleMapFeatureActions() {
+    const nextSeq = { ...mapFeatureActionSeq };
+    for (const { child } of mapFeatureEntries()) {
+      const layer = mapLayers[child.name];
+      if (!layer) continue;
+      const actionState = actions?.[child.name] || {};
+      for (const action of ['show-infobox', 'hide-infobox']) {
+        const seq = numberOr(actionState[action], 0);
+        const key = `${child.name}:${action}`;
+        if (seq <= 0 || seq === nextSeq[key]) continue;
+        nextSeq[key] = seq;
+        if (action === 'show-infobox') layer.openPopup?.();
+        else layer.closePopup?.();
+      }
+    }
+    mapFeatureActionSeq = nextSeq;
+  }
+
+  function stopLeafletPropagation(L, e) {
+    if (e?.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+  }
+
+  function featurePoints(sp) {
+    return parseLatLngList(sp.Points ?? sp.PointsFromString);
+  }
+
+  function polygonLatLngs(sp) {
+    const outer = featurePoints(sp);
+    if (!outer.length) return [];
+    const holes = parseLatLngRings(sp.HolePoints ?? sp.HolePointsFromString);
+    return holes.length ? [outer, ...holes] : outer;
+  }
+
+  function parseLatLngRings(value) {
+    if (Array.isArray(value) && Array.isArray(value[0]) && Array.isArray(value[0][0])) {
+      return value.map(ring => parseLatLngList(ring)).filter(ring => ring.length);
+    }
     const text = String(value ?? '').trim();
     if (!text) return [];
     try {
       const parsed = JSON.parse(text);
-      if (Array.isArray(parsed)) return parsed.map(p => Array.isArray(p) ? [Number(p[0]), Number(p[1])] : [0, 0]);
+      if (Array.isArray(parsed) && Array.isArray(parsed[0]) && Array.isArray(parsed[0][0])) {
+        return parsed.map(ring => parseLatLngList(ring)).filter(ring => ring.length);
+      }
+      const single = parseLatLngList(parsed);
+      return single.length ? [single] : [];
+    } catch {
+      const single = parseLatLngList(text);
+      return single.length ? [single] : [];
+    }
+  }
+
+  function parseLatLngList(value) {
+    if (Array.isArray(value)) {
+      if (value.every(point => !Array.isArray(point) && typeof point !== 'object')) {
+        const nums = value.map(Number).filter(Number.isFinite);
+        const pts = [];
+        for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+        return pts;
+      }
+      return value
+        .map(point => {
+          if (Array.isArray(point)) return [Number(point[0]), Number(point[1])];
+          if (point && typeof point === 'object') return [Number(point.Latitude ?? point.latitude ?? point.lat), Number(point.Longitude ?? point.longitude ?? point.lng)];
+          return null;
+        })
+        .filter(point => point && point.every(Number.isFinite));
+    }
+    const text = String(value ?? '').trim();
+    if (!text) return [];
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parseLatLngList(parsed);
     } catch {}
     const nums = text.split(/[\s,]+/).map(Number).filter(Number.isFinite);
     const pts = [];
     for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
     return pts;
+  }
+
+  function parseBoundingBox(value) {
+    if (Array.isArray(value)) {
+      if (Array.isArray(value[0]) && Array.isArray(value[1])) return [value[0], value[1]];
+      if (value.length >= 4) {
+        const nums = value.map(Number);
+        if (nums.every(Number.isFinite)) return [[nums[2], nums[1]], [nums[0], nums[3]]];
+      }
+    }
+    const text = String(value ?? '').trim();
+    if (!text) return null;
+    try {
+      return parseBoundingBox(JSON.parse(text));
+    } catch {
+      const nums = text.split(/[\s,]+/).map(Number).filter(Number.isFinite);
+      if (nums.length >= 4) return [[nums[2], nums[1]], [nums[0], nums[3]]];
+    }
+    return null;
   }
 
   function childEvent(event) {
@@ -1340,6 +2268,10 @@
       `color: ${colorValue(firstNonEmpty(props.TextColor, props.ItemTextColor), '#202124')};`,
       `background: ${bg};`,
       hasValue(props.DividerColor) ? `border-bottom-color: ${colorValue(props.DividerColor, '#eef1f4')};` : '',
+      `border-bottom-width: ${Math.max(0, numberOr(props.DividerThickness, 0))}px;`,
+      `border-bottom-style: solid;`,
+      `border-radius: ${Math.max(0, numberOr(props.ElementCornerRadius, 0))}px;`,
+      `margin: ${Math.max(0, numberOr(props.ElementMarginsWidth, 0))}px;`,
     ].filter(Boolean).join(' ');
   }
 
@@ -1524,6 +2456,8 @@
         style={buttonInnerStyle('width: 100%;')}
         disabled={!enabled}
         on:change={spinnerChange}
+        on:pointerdown={() => emitEvent(node.name, 'TouchDown')}
+        on:pointerup={() => emitEvent(node.name, 'TouchUp')}
         on:focus={focusEvent}
         on:blur={blurEvent}
       >
@@ -1810,11 +2744,38 @@
       data-sim-component={node.name}
     >
       <svg class="sim-chart-svg" viewBox={`0 0 ${chartWidth()} ${chartHeight()}`} preserveAspectRatio="none">
+        {#if numberOr(props.Type, 0) !== 4}
+          {#if boolValue(props.GridEnabled, true)}
+            {#each chartXTicks() as tick}
+              <line class="sim-chart-grid-line" x1={chartX(tick)} y1={CHART_PAD} x2={chartX(tick)} y2={chartHeight() - CHART_PAD} />
+            {/each}
+            {#each chartYTicks() as tick}
+              <line class="sim-chart-grid-line" x1={CHART_PAD} y1={chartY(tick)} x2={chartWidth() - CHART_PAD} y2={chartY(tick)} />
+            {/each}
+          {/if}
+          <line class="sim-chart-axis-line" x1={CHART_PAD} y1={chartHeight() - CHART_PAD} x2={chartWidth() - CHART_PAD} y2={chartHeight() - CHART_PAD} />
+          <line class="sim-chart-axis-line" x1={CHART_PAD} y1={CHART_PAD} x2={CHART_PAD} y2={chartHeight() - CHART_PAD} />
+          {#each chartXTicks() as tick, ti}
+            <text class="sim-chart-axis-text" x={chartX(tick)} y={chartHeight() - 8} text-anchor="middle" fill={colorValue(props.AxesTextColor, '#000000')}>{chartXTickText(tick, ti)}</text>
+          {/each}
+          {#each chartYTicks() as tick}
+            <text class="sim-chart-axis-text" x={CHART_PAD - 5} y={chartY(tick) + 3} text-anchor="end" fill={colorValue(props.AxesTextColor, '#000000')}>{chartTickText(tick)}</text>
+          {/each}
+        {/if}
         {#each chartDataSeries() as series, si}
           {#if numberOr(props.Type, 0) === 4}
             <!-- Pie chart -->
-            {#each pieSectors(series.points, si) as sector}
-              <path d={sector.d} fill={sector.fill} stroke="white" stroke-width="1" />
+            {#each pieSectors(series.points, si) as sector, pi}
+              <path
+                role="button"
+                tabindex="0"
+                d={sector.d}
+                fill={sector.fill}
+                stroke="white"
+                stroke-width="1"
+                on:click={() => chartEntryClick(series, series.points[pi])}
+                on:keydown={(e) => e.key === 'Enter' && chartEntryClick(series, series.points[pi])}
+              />
             {/each}
           {:else if numberOr(props.Type, 0) === 3}
             <!-- Bar chart -->
@@ -1826,10 +2787,11 @@
                 y={chartY(pt[1])}
                 width={chartBarWidth(chartDataSeries().length, series.points.length)}
                 height={chartHeight() - CHART_PAD - chartY(pt[1])}
-                fill={series.color}
-                on:click={() => emitEvent(node.name, 'EntryClick', [series.label, pt[0], pt[1]])}
-                on:keydown={(e) => e.key === 'Enter' && emitEvent(node.name, 'EntryClick', [series.label, pt[0], pt[1]])}
+                fill={chartPointColor(series, pi)}
+                on:click={() => chartEntryClick(series, pt)}
+                on:keydown={(e) => e.key === 'Enter' && chartEntryClick(series, pt)}
               />
+              <text class="sim-chart-data-label" x={chartBarX(si, pi, chartDataSeries().length, series.points.length) + chartBarWidth(chartDataSeries().length, series.points.length) / 2} y={chartY(pt[1]) - 4} text-anchor="middle" fill={series.dataLabelColor}>{pt[1]}</text>
             {/each}
           {:else}
             <!-- Line / scatter / area -->
@@ -1841,21 +2803,30 @@
               <!-- Line -->
               <polyline points={chartPolylinePoints(series.points)} fill="none" stroke={series.color} stroke-width="2" />
             {/if}
-            {#each series.points as pt}
+            {#each series.points as pt, pi}
               <circle
                 role="button"
                 tabindex="0"
                 cx={chartX(pt[0])}
                 cy={chartY(pt[1])}
                 r="4"
-                fill={series.color}
-                on:click={() => emitEvent(node.name, 'EntryClick', [series.label, pt[0], pt[1]])}
-                on:keydown={(e) => e.key === 'Enter' && emitEvent(node.name, 'EntryClick', [series.label, pt[0], pt[1]])}
+                fill={chartPointColor(series, pi)}
+                stroke={series.highlightColor || 'none'}
+                stroke-width={series.highlightColor ? 2 : 0}
+                on:click={() => chartEntryClick(series, pt)}
+                on:keydown={(e) => e.key === 'Enter' && chartEntryClick(series, pt)}
               />
+              <text class="sim-chart-data-label" x={chartX(pt[0])} y={chartY(pt[1]) - 7} text-anchor="middle" fill={series.dataLabelColor}>{pt[1]}</text>
             {/each}
           {/if}
         {/each}
+        {#each chartTrendlines() as trendline}
+          <path d={trendline.d} fill="none" stroke={trendline.color} stroke-width={trendline.width} stroke-dasharray={trendline.dash} />
+        {/each}
       </svg>
+      {#if props.Description}
+        <div class="sim-chart-description">{props.Description}</div>
+      {/if}
       {#if boolValue(props.LegendEnabled, true) && chartDataSeries().length > 0}
         <div class="sim-chart-legend">
           {#each chartDataSeries() as series}
@@ -2464,6 +3435,42 @@
     cursor: pointer;
   }
 
+  .sim-chart-grid-line {
+    stroke: rgba(32, 33, 36, 0.12);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .sim-chart-axis-line {
+    stroke: rgba(32, 33, 36, 0.5);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .sim-chart-axis-text,
+  .sim-chart-data-label {
+    font: 9px/1 system-ui, sans-serif;
+    paint-order: stroke;
+    stroke: rgba(255, 255, 255, 0.88);
+    stroke-width: 2px;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .sim-chart-data-label {
+    font-size: 8px;
+    pointer-events: none;
+  }
+
+  .sim-chart-description {
+    padding: 3px 8px 4px;
+    border-top: 1px solid #eee;
+    color: #555;
+    font-size: 10px;
+    line-height: 1.25;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
   .sim-chart-legend {
     display: flex;
     flex-wrap: wrap;
@@ -2489,5 +3496,23 @@
     border: 1px solid #c9cdd3;
     border-radius: 3px;
     z-index: 0;
+  }
+
+  :global(.sim-map-compass) {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(32, 33, 36, 0.22);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    color: #202124;
+    font: 700 12px/1 system-ui, sans-serif;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+  }
+
+  :global(.sim-map-compass span) {
+    display: block;
+    transform: rotate(calc(-1 * var(--sim-map-rotation, 0deg)));
   }
 </style>

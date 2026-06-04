@@ -426,6 +426,7 @@ export function buildSimulationDefaults(now = new Date()) {
       Height: 300,
       BackgroundColor: '&HFFFFFFFF',
       BackgroundImage: '',
+      BackgroundImageinBase64: '',
       PaintColor: '&HFF000000',
       LineWidth: 2,
       FontSize: 14,
@@ -461,6 +462,7 @@ export function buildSimulationDefaults(now = new Date()) {
       Rotates: true,
       OriginX: 0,
       OriginY: 0,
+      MarkOrigin: '',
     },
     Chart: {
       Visible: true,
@@ -472,6 +474,7 @@ export function buildSimulationDefaults(now = new Date()) {
       GridEnabled: true,
       LegendEnabled: true,
       Description: '',
+      Labels: [],
       PieRadius: 100,
       XFromZero: false,
       YFromZero: false,
@@ -484,15 +487,18 @@ export function buildSimulationDefaults(now = new Date()) {
       PointShape: 0,
       Elements: [],
       ElementsFromPairs: '',
+      Colors: [],
       DataLabelColor: '&HFF000000',
+      HighlightColor: '',
     },
     Trendline: {
-      Visible: false,
+      Visible: true,
       Color: '&HFF000000',
       Model: 'Linear',
       StrokeWidth: 1,
       StrokeStyle: 1,
       Extend: true,
+      ChartData: '',
     },
     Map: {
       Visible: true,
@@ -511,6 +517,8 @@ export function buildSimulationDefaults(now = new Date()) {
       ShowZoom: false,
       Rotation: 0,
       CustomUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      BoundingBox: '',
+      CenterFromString: '',
     },
     Marker: {
       Visible: true,
@@ -546,6 +554,7 @@ export function buildSimulationDefaults(now = new Date()) {
     },
     LineString: {
       Visible: true,
+      Points: [],
       PointsFromString: '',
       Title: '',
       Description: '',
@@ -557,7 +566,9 @@ export function buildSimulationDefaults(now = new Date()) {
     },
     Polygon: {
       Visible: true,
+      Points: [],
       PointsFromString: '',
+      HolePoints: [],
       HolePointsFromString: '',
       Title: '',
       Description: '',
@@ -622,6 +633,8 @@ export const SIMULATION_VISUAL_PROPS = new Set([
   'ReadOnly',
   'Width',
   'Height',
+  'WidthPercent',
+  'HeightPercent',
   'Left',
   'Top',
   'BackgroundColor',
@@ -629,6 +642,7 @@ export const SIMULATION_VISUAL_PROPS = new Set([
   'TextColor',
   'HintText',
   'FontSize',
+  'TextSize',
   'FontSizeDetail',
   'FontBold',
   'FontItalic',
@@ -755,6 +769,7 @@ export const SIMULATION_VISUAL_PROPS = new Set([
   'LineWidth',
   'TapThreshold',
   'ExtendMovesOutsideCanvas',
+  'BackgroundImageinBase64',
   // Ball / ImageSprite
   'X',
   'Y',
@@ -766,6 +781,7 @@ export const SIMULATION_VISUAL_PROPS = new Set([
   'OriginAtCenter',
   'OriginX',
   'OriginY',
+  'MarkOrigin',
   'Rotates',
   // Chart
   'Type',
@@ -773,6 +789,7 @@ export const SIMULATION_VISUAL_PROPS = new Set([
   'GridEnabled',
   'LegendEnabled',
   'Description',
+  'Labels',
   'PieRadius',
   'XFromZero',
   'YFromZero',
@@ -780,7 +797,22 @@ export const SIMULATION_VISUAL_PROPS = new Set([
   'LineType',
   'PointShape',
   'DataLabelColor',
+  'Colors',
+  'HighlightColor',
   'ElementsFromPairs',
+  'ChartData',
+  'CorrelationCoefficient',
+  'LinearCoefficient',
+  'RSquared',
+  'YIntercept',
+  'XIntercepts',
+  'Predictions',
+  'Results',
+  'ExponentialBase',
+  'ExponentialCoefficient',
+  'LogarithmCoefficient',
+  'LogarithmConstant',
+  'QuadraticCoefficient',
   'Model',
   'StrokeStyle',
   'StrokeWidth',
@@ -799,6 +831,8 @@ export const SIMULATION_VISUAL_PROPS = new Set([
   'ShowZoom',
   'Rotation',
   'CustomUrl',
+  'BoundingBox',
+  'CenterFromString',
   // Map features
   'Title',
   'FillColor',
@@ -810,7 +844,9 @@ export const SIMULATION_VISUAL_PROPS = new Set([
   'ImageAsset',
   'AnchorHorizontal',
   'AnchorVertical',
+  'Points',
   'PointsFromString',
+  'HolePoints',
   'HolePointsFromString',
   'NorthLatitude',
   'SouthLatitude',
@@ -1056,9 +1092,12 @@ function isNumericProp(propName) {
   return [
     'Width',
     'Height',
+    'WidthPercent',
+    'HeightPercent',
     'Left',
     'Top',
     'FontSize',
+    'TextSize',
     'FontSizeDetail',
     'RotationAngle',
     'SelectionIndex',
@@ -1142,6 +1181,15 @@ function coerceNumber(value) {
   return Number.isFinite(numberValue) ? numberValue : value;
 }
 
+function parseOriginMarker(value) {
+  const match = String(value ?? '').trim().match(/^\(\s*([-+]?\d+(?:\.\d+)?)\s*,\s*([-+]?\d+(?:\.\d+)?)\s*\)$/);
+  if (!match) return null;
+  const x = Number(match[1]);
+  const y = Number(match[2]);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return [Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y))];
+}
+
 export function coerceSimulationValue(componentType, propName, value) {
   if (value === null || value === undefined) return value;
   if (Array.isArray(value)) return propName === 'Elements' ? normalizeElements(value) : value;
@@ -1177,6 +1225,13 @@ export function deriveStateFromDesignerProps(componentType, props = {}) {
       const hour = Number(key === 'Hour' ? next.Hour : next.Hour ?? props.Hour ?? SIMULATION_DEFAULTS.TimePicker.Hour);
       const minute = Number(key === 'Minute' ? next.Minute : next.Minute ?? props.Minute ?? SIMULATION_DEFAULTS.TimePicker.Minute);
       if (Number.isFinite(hour) && Number.isFinite(minute)) next.Instant = timeInstant(hour, minute);
+    }
+    if (componentType === 'ImageSprite' && key === 'MarkOrigin') {
+      const origin = parseOriginMarker(value);
+      if (origin) {
+        next.OriginX = origin[0];
+        next.OriginY = origin[1];
+      }
     }
   }
   return next;
