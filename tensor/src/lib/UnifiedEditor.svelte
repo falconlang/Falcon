@@ -3,6 +3,7 @@
   import { get } from 'svelte/store';
   import {
     activeScreen, cells, replaceCodeCells,
+    unifiedSearchSource, searchNavigation,
     liveTestState, companionCommand,
     doItResults, clearDoItResult, unifiedSelectionActive,
     debugBreakpoints, toggleDebugBreakpoint,
@@ -72,6 +73,18 @@
   let pendingInjectedAnnotationKey = '';
   let injectedLineNumber = null;
   let injectedLineTexts = [];
+  let handledSearchNavToken = null;
+
+  // Publish the live source (injected error rows stripped) for universal search.
+  $: { editorValue; injectedLineNumber; injectedLineTexts; unifiedSearchSource.set(getUnifiedEditorCode()); }
+
+  // Reveal a search match expressed in source coordinates.
+  $: if ($searchNavigation
+      && $searchNavigation.token !== handledSearchNavToken
+      && $searchNavigation.scope === 'script') {
+    handledSearchNavToken = $searchNavigation.token;
+    revealScriptMatch($searchNavigation.sourceStart, $searchNavigation.sourceEnd);
+  }
 
   $: injectedLineCount = injectedLineTexts.length;
 
@@ -169,6 +182,33 @@
 
   function lineNumberLabel(viewLine) {
     return viewLineToSourceLine(viewLine) ?? '';
+  }
+
+  // Inverse of viewOffsetToSourceOffset: maps a source-coordinate offset back into
+  // the view buffer (which may contain injected error rows).
+  function sourceOffsetToViewOffset(offset, text = editorValue, removalRange = injectedLineRemovalRange(text)) {
+    const bounded = Math.max(0, Number(offset) || 0);
+    if (!removalRange) return bounded;
+    const gap = removalRange.end - removalRange.start;
+    return bounded < removalRange.start ? bounded : bounded + gap;
+  }
+
+  function scrollViewLineIntoView(viewLine) {
+    const wrap = typeof document !== 'undefined' ? document.getElementById('notebook-wrap') : null;
+    if (!wrap || !codeEl) return;
+    const lh = codeLineHeight();
+    const editorTop = codeEl.getBoundingClientRect().top - wrap.getBoundingClientRect().top + wrap.scrollTop;
+    const lineY = editorTop + codePadTop() + (Math.max(1, viewLine) - 1) * lh;
+    wrap.scrollTop = Math.max(0, lineY - wrap.clientHeight / 2 + lh / 2);
+  }
+
+  function revealScriptMatch(sourceStart, sourceEnd) {
+    const removalRange = injectedLineRemovalRange();
+    const viewStart = sourceOffsetToViewOffset(sourceStart, editorValue, removalRange);
+    const viewEnd = sourceOffsetToViewOffset(sourceEnd, editorValue, removalRange);
+    setSelection(viewStart, viewEnd);
+    const viewLine = editorValue.slice(0, viewStart).split('\n').length;
+    tick().then(() => scrollViewLineIntoView(viewLine));
   }
 
   function clearInjectedAnnotationFromView({ sync = false, immediate = false } = {}) {
@@ -1263,6 +1303,7 @@
     unsubscribeCells?.();
     unsubscribeScreen?.();
     document.removeEventListener('selectionchange', onDocumentSelectionChange);
+    unifiedSearchSource.set('');
     unifiedSelectionActive.set(false);
     dismissCallout();
     dismissDoItCallout();

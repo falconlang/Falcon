@@ -41,6 +41,24 @@ func TestComponentEventUsesMetadataParamsWhenMutationArgsMissing(t *testing.T) {
 	}
 }
 
+func TestGenericComponentEventUsesMetadataParamsWhenMutationArgsMissing(t *testing.T) {
+	xml := `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="component_event">
+    <mutation component_type="Button" is_generic="true" event_name="Click"></mutation>
+    <field name="COMPONENT_SELECTOR">Button</field>
+  </block>
+</xml>`
+
+	yail, err := NewParser(xml).TryGenerateYAIL()
+	if err != nil {
+		t.Fatalf("TryGenerateYAIL() error = %v", err)
+	}
+	want := "(define-generic-event com.google.appinventor.components.runtime.Button Click ($component $notAlreadyHandled)"
+	if !strings.Contains(yail, want) {
+		t.Fatalf("TryGenerateYAIL() = %q, want it to contain %q", yail, want)
+	}
+}
+
 func TestComponentEventParameterNameMismatchReturnsError(t *testing.T) {
 	xml := `<xml xmlns="https://developers.google.com/blockly/xml">
   <block type="component_event">

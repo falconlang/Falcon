@@ -5,6 +5,7 @@
     designCode,
     initialDesignCode,
     updateDesignCode,
+    searchNavigation,
   } from './stores.js';
   import { schemaTokenize, tokensToHtml } from './tokenizer.js';
   import DesignerVisual from './DesignerVisual.svelte';
@@ -55,6 +56,34 @@
     schemaValue = text;
     updateDesignCode(text);
     if (caret !== null) setDesignerSelection(caret);
+  }
+
+  // ── Universal search: reveal a text match (designer text mode) ──
+  let handledSearchNavToken = null;
+  $: if (
+    $searchNavigation
+    && $searchNavigation.token !== handledSearchNavToken
+    && $searchNavigation.scope === 'designer-text'
+  ) {
+    handledSearchNavToken = $searchNavigation.token;
+    if (!visualMode) revealDesignerText($searchNavigation.start, $searchNavigation.end);
+  }
+
+  function revealDesignerText(start, end) {
+    setDesignerSelection(start, end);
+    tick().then(() => {
+      if (!dsgnCodeEl) return;
+      const scroller = dsgnCodeEl.closest('.dsgn-scroll');
+      if (!scroller) return;
+      const safeStart = Math.max(0, Math.min(start, schemaValue.length));
+      const line = schemaValue.slice(0, safeStart).split('\n').length;
+      const cs = getComputedStyle(dsgnCodeEl);
+      const lh = parseFloat(cs.lineHeight) || 18;
+      const pad = parseFloat(cs.paddingTop) || 0;
+      const editorTop = dsgnCodeEl.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+      const y = editorTop + pad + (line - 1) * lh;
+      scroller.scrollTop = Math.max(0, y - scroller.clientHeight / 2 + lh / 2);
+    });
   }
 
   function pushDesignerHistory(caret = designerSelectionRange().end) {

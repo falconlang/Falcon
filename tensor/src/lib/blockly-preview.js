@@ -7,6 +7,10 @@ import {
   componentDescriptorName as registryComponentDescriptorName,
   knownComponentTypeSet,
 } from './appinventor-component-registry.js';
+import {
+  designTreeToComponentDefinitions,
+  parseDesignSchema,
+} from './design-schema-tree.js';
 import { CURRENT_BLOCKS_LANGUAGE_VERSION, CURRENT_YA_VERSION } from './appinventor-legacy.js';
 import {
   blocklyTargetXmlWithContextParts,
@@ -246,6 +250,10 @@ export async function componentDefinitionsFromDesigner(source = get(designCode))
   const defs = {};
   const typeCounts = {};
   const original = String(source || '');
+
+  try {
+    return designTreeToComponentDefinitions(parseDesignSchema(original, { pathIds: false }));
+  } catch {}
 
   const legacyRe = /@([A-Za-z]\w*)\s*\{(?:[^{}@]*?[,\n])?\s*id\s*:\s*"([^"]+)"/g;
   let match;

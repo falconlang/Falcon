@@ -64,6 +64,30 @@ function normalizeDiagnosticResult(result, extra = {}) {
   }
 }
 
+const SIMULATION_TINYDB_STORAGE_KEY = 'tensor:simulation:tinydb:v1';
+
+function safeObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function loadSimulationTinyDBStores() {
+  try {
+    const storage = globalThis?.localStorage;
+    if (!storage) return {};
+    return safeObject(JSON.parse(storage.getItem(SIMULATION_TINYDB_STORAGE_KEY) || '{}'));
+  } catch {
+    return {};
+  }
+}
+
+function saveSimulationTinyDBStores(stores) {
+  try {
+    const storage = globalThis?.localStorage;
+    if (!storage) return;
+    storage.setItem(SIMULATION_TINYDB_STORAGE_KEY, JSON.stringify(safeObject(stores)));
+  } catch {}
+}
+
 function normalizeMistToXmlResult(result) {
   if (typeof result === 'string') {
     try {
@@ -107,6 +131,23 @@ function normalizeSourceDiagnosticResult(result) {
   return normalizeDiagnosticResult(result, obj => ({
     source: typeof obj.source === 'string' ? obj.source : '',
   }))
+}
+
+function normalizeSimulationResult(result) {
+  return normalizeDiagnosticResult(result, obj => ({
+    sessionId: Number(obj.sessionId) || null,
+    statePatch: obj.statePatch && typeof obj.statePatch === 'object' ? obj.statePatch : {},
+    effects: Array.from(obj.effects ?? []),
+    logs: Array.from(obj.logs ?? []).map(line => String(line ?? '')),
+    unsupported: Array.from(obj.unsupported ?? []),
+    tinyDBStores: safeObject(obj.tinyDBStores),
+  }))
+}
+
+function normalizePersistedSimulationResult(rawResult) {
+  const result = normalizeSimulationResult(rawResult);
+  if (result.ok) saveSimulationTinyDBStores(result.tinyDBStores);
+  return result;
 }
 
 export async function describeComponent(name) {
@@ -271,4 +312,51 @@ export async function runCodeDiagnosticResult(sourceCode) {
     window.falconPrint = originalPrint
     window.mistError = originalMistError
   }
+}
+
+export async function createSimulationSession(sourceCode, componentDefs, initialState) {
+  await waitForReady()
+  if (typeof window.createSimulationSession !== 'function') {
+    return normalizeSimulationResult({ ok: false, error: 'Simulation runtime is not available' })
+  }
+  return normalizePersistedSimulationResult(window.createSimulationSession(
+    String(sourceCode ?? ''),
+    componentDefs || {},
+    initialState || {},
+    loadSimulationTinyDBStores(),
+  ))
+}
+
+export async function setSimulationProperty(sessionId, component, property, value) {
+  await waitForReady()
+  if (typeof window.setSimulationProperty !== 'function') {
+    return normalizeSimulationResult({ ok: false, sessionId, error: 'Simulation runtime is not available' })
+  }
+  return normalizePersistedSimulationResult(window.setSimulationProperty(
+    Number(sessionId),
+    String(component || ''),
+    String(property || ''),
+    value,
+  ))
+}
+
+export async function dispatchSimulationEvent(sessionId, component, event, args = []) {
+  await waitForReady()
+  if (typeof window.dispatchSimulationEvent !== 'function') {
+    return normalizeSimulationResult({ ok: false, sessionId, error: 'Simulation runtime is not available' })
+  }
+  return normalizePersistedSimulationResult(window.dispatchSimulationEvent(
+    Number(sessionId),
+    String(component || ''),
+    String(event || ''),
+    Array.isArray(args) ? args : [],
+  ))
+}
+
+export async function disposeSimulationSession(sessionId) {
+  await waitForReady()
+  if (typeof window.disposeSimulationSession !== 'function') {
+    return normalizeSimulationResult({ ok: true, sessionId })
+  }
+  return normalizeSimulationResult(window.disposeSimulationSession(Number(sessionId)))
 }

@@ -3,6 +3,7 @@ package mistparser
 import (
 	"Falcon/code/ast"
 	"Falcon/code/ast/common"
+	"Falcon/code/ast/components"
 	"Falcon/code/ast/procedures"
 	"Falcon/code/ast/variables"
 	"Falcon/code/compdb"
@@ -445,6 +446,36 @@ func TestInvalidComponentEventReportsDiagnostic(t *testing.T) {
 	}()
 
 	parser.ParseTopLevel()
+}
+
+func TestGenericComponentEventAllowsAppInventorLeadingParameters(t *testing.T) {
+	source := strings.Join([]string{
+		"@Button { Button1 }",
+		"",
+		"when any Button.Click(component, notAlreadyHandled) {",
+		"  println(component)",
+		"}",
+	}, "\n")
+	ctx := &context.CodeContext{SourceCode: &source, FileName: "test.mist"}
+	parser := NewLangParser(true, lex.NewLexer(ctx).Lex())
+	parser.SetComponentDefinitions(
+		map[string][]string{"Button": {"Button1"}},
+		map[string]string{"Button1": "Button"},
+	)
+	parser.SetEventValidator(compdb.GlobalDB.ValidateEvent)
+
+	exprs, _ := parser.ParseTopLevel()
+	if len(exprs) != 1 {
+		t.Fatalf("ParseTopLevel() expressions = %d, want 1", len(exprs))
+	}
+	event, ok := exprs[0].(*components.GenericEvent)
+	if !ok {
+		t.Fatalf("ParseTopLevel() expression = %T, want *components.GenericEvent", exprs[0])
+	}
+	want := []string{"component", "notAlreadyHandled"}
+	if !reflect.DeepEqual(event.Parameters, want) {
+		t.Fatalf("generic event parameters = %v, want %v", event.Parameters, want)
+	}
 }
 
 func TestComponentEventParameterNameMismatchReportsDiagnostic(t *testing.T) {

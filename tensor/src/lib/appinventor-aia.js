@@ -27,6 +27,7 @@ import {
   normalizeProjectProperties,
 } from './project-properties.js';
 import { scmComponentToSchema, scmToDesignSchema } from './appinventor-design-schema.js';
+import { parseDesignSchema as parseSharedDesignSchema } from './design-schema-tree.js';
 import {
   decodeJavaPropertiesBytes,
   parseProperties,
@@ -483,7 +484,7 @@ function nodeToScmProperties(node, path, screenName, project) {
 function designSchemaToScm(schema, screenName, project, projectProperties = null) {
   const trimmed = String(schema || '').trim();
   const root = trimmed
-    ? parseDesignSchema(trimmed)
+    ? parseSharedDesignSchema(trimmed, { pathIds: false })
     : { type: 'Screen', name: screenName, props: { Title: screenName }, children: [] };
   let properties = nodeToScmProperties(root, '0', screenName, project);
   if (projectProperties && screenName === 'Screen1') {

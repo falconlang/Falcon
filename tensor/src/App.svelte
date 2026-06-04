@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { hideCtx, liveTestOpen, doItCellId, sidebarVisible, undoDeleteCell, redoDeleteCell } from './lib/stores.js';
+  import { hideCtx, liveTestOpen, simulateOpen, doItCellId, sidebarVisible, undoDeleteCell, redoDeleteCell, toggleSearch, searchOpen } from './lib/stores.js';
   import TopBar from './lib/TopBar.svelte';
   import Toolbar from './lib/Toolbar.svelte';
   import Sidebar from './lib/Sidebar.svelte';
@@ -10,6 +10,8 @@
   import StatusBar from './lib/StatusBar.svelte';
   import ContextMenu from './lib/ContextMenu.svelte';
   import LiveTestOverlay from './lib/LiveTestOverlay.svelte';
+  import SimulateOverlay from './lib/SimulateOverlay.svelte';
+  import UniversalSearch from './lib/UniversalSearch.svelte';
   import { warmBlocklyPreviewRuntime } from './lib/blockly-preview.js';
 
   function closeSidebar() { sidebarVisible.set(false); }
@@ -32,12 +34,22 @@
       if (e.key === 'Escape') {
         hideCtx();
         liveTestOpen.set(false);
+        simulateOpen.set(false);
+        searchOpen.set(false);
         return;
       }
 
       const mod = e.ctrlKey || e.metaKey;
       if (!mod || e.altKey) return;
       const key = e.key?.toLowerCase();
+
+      // Universal search overrides the browser's native find, regardless of focus.
+      if (key === 'f' && !e.shiftKey) {
+        e.preventDefault();
+        toggleSearch();
+        return;
+      }
+
       const wantsUndo = key === 'z' && !e.shiftKey;
       const wantsRedo = (key === 'z' && e.shiftKey) || key === 'y';
       if (!wantsUndo && !wantsRedo) return;
@@ -114,9 +126,11 @@
     </div>
     <DesignerPanel />
     <LiveTestOverlay />
+    <SimulateOverlay />
   </div>
 
   <StatusBar />
 </div>
 
 <ContextMenu />
+<UniversalSearch />

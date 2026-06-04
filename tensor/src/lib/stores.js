@@ -88,12 +88,19 @@ export const activeCellId = writable('c1');
 export const execCounter = writable(6);
 export const ctxMenu = writable({ show: false, x: 0, y: 0, cellId: null });
 export const liveTestOpen = writable(false);
+export const simulateOpen = writable(false);
 export const companionCommand = writable(null);
 export const liveTestState = writable({
   status: 'idle',
   code: null,
   error: null,
   messageCount: 0,
+});
+export const simulateState = writable({
+  status: 'idle',
+  sessionId: null,
+  error: null,
+  diagnostics: [],
 });
 export const doItCellId = writable(null);
 export const doItResults = writable({});
@@ -126,6 +133,17 @@ export const debugExpressionValues = writable({});
 export const copiedCellAvailable = writable(false);
 export const sourceNavigationHighlight = writable(null);
 
+// ── Universal search ──
+export const searchOpen = writable(false);
+// Live source of the unified Script editor, published while it is mounted.
+export const unifiedSearchSource = writable('');
+// Searchable component/property index, published by the designer tree editor while mounted.
+export const designerSearchIndex = writable([]);
+// True while the designer tree editor is mounted (designer is in Tree mode).
+export const designerTreeActive = writable(false);
+// Token-stamped navigation request consumed by the active editors.
+export const searchNavigation = writable(null);
+
 // ── Deleted-cell undo/redo history (per screen) ──
 export const deletedCellUndoStack = writable([]); // [{ cell, index }]
 export const deletedCellRedoStack = writable([]);
@@ -138,6 +156,18 @@ let cellIdSeed = Date.now();
 let copiedCell = null;
 let sourceNavigationHighlightTimer = null;
 let sourceNavigationHighlightId = 0;
+let searchNavigationId = 0;
+
+export function openSearch() { searchOpen.set(true); }
+export function closeSearch() { searchOpen.set(false); }
+export function toggleSearch() { searchOpen.update(v => !v); }
+
+// Dispatch a navigation request to whichever editor owns the result's coordinates.
+// No mode flipping: the search overlay blocks the pane mode toggles, so results
+// always match the current mode and navigation stays within it.
+export function requestSearchNavigation(payload = {}) {
+  searchNavigation.set({ ...payload, token: ++searchNavigationId });
+}
 
 function nextCellId() {
   cellIdSeed += 1;

@@ -509,7 +509,11 @@ func (p *LangParser) genericEvent() ast.Expr {
 		parameters = p.parameters()
 	}
 	if p.eventValidator != nil {
-		if err := p.eventValidator(componentType, eventName, parameters); err != nil {
+		err := p.eventValidator(componentType, eventName, parameters)
+		if err != nil && len(parameters) >= 2 {
+			err = p.eventValidator(componentType, eventName, parameters[2:])
+		}
+		if err != nil {
 			eventTok.Error("%", err.Error())
 		}
 	}

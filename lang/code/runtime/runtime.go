@@ -43,6 +43,13 @@ type stackFrame struct {
 	name  string
 }
 
+type ComponentHost interface {
+	GetProperty(componentName, componentType, property string) Value
+	SetProperty(componentName, componentType, property string, value Value)
+	CallMethod(componentName, componentType, method string, args []Value) Value
+	Unsupported(kind, detail string)
+}
+
 // Interpreter implements Visitor and holds the runtime state.
 type Interpreter struct {
 	globalEnv      *Env
@@ -52,6 +59,7 @@ type Interpreter struct {
 	lastHighlight  int          // override highlight width (0 = use token's own content length)
 	stackTrace     []stackFrame // populated as panics propagate up through procedure calls
 	outputCallback func(string) // if non-nil, receives each printed line instead of stdout
+	componentHost  ComponentHost
 }
 
 func NewInterpreter() *Interpreter {
@@ -74,6 +82,43 @@ func NewInterpreterWithOutput(callback func(string)) *Interpreter {
 		procedures:     make(map[string]*Procedure),
 		outputCallback: callback,
 	}
+}
+
+func (i *Interpreter) SetComponentHost(host ComponentHost) {
+	i.componentHost = host
+}
+
+func (i *Interpreter) RegisterTopLevelDefinition(e ast.Expr) bool {
+	switch n := e.(type) {
+	case *procedures.VoidProcedure:
+		i.procedures[n.Name] = &Procedure{name: n.Name, params: n.Parameters, voidBody: n.Body, env: i.globalEnv}
+		return true
+	case *procedures.RetProcedure:
+		i.procedures[n.Name] = &Procedure{name: n.Name, params: n.Parameters, retExpr: n.Result, env: i.globalEnv}
+		return true
+	case *variables.Global:
+		return true
+	case *components.Event, *components.GenericEvent:
+		return true
+	default:
+		return false
+	}
+}
+
+func (i *Interpreter) RunBody(body []ast.Expr) Value {
+	return i.execBody(body)
+}
+
+func (i *Interpreter) RunBodyWithLocals(body []ast.Expr, names []string, values []Value) Value {
+	childEnv := NewEnv(i.currEnv)
+	for index, name := range names {
+		value := NullVal()
+		if index < len(values) {
+			value = values[index]
+		}
+		childEnv.Define(name, value)
+	}
+	return i.inEnv(childEnv, func() Value { return i.execBody(body) })
 }
 
 // inEnv temporarily switches currEnv to env, calls fn, then restores currEnv.
@@ -321,31 +366,65 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 
 	// Component blocks
 	case *components.Event:
-		i.stub("event handler " + e.ComponentName + "." + e.Event)
+		if i.componentHost != nil {
+			i.componentHost.Unsupported("event", "event handler "+e.ComponentName+"."+e.Event+" cannot execute directly")
+		} else {
+			i.stub("event handler " + e.ComponentName + "." + e.Event)
+		}
 		return VoidVal()
 	case *components.GenericEvent:
-		i.stub("generic event handler " + e.ComponentType + "." + e.Event)
+		if i.componentHost != nil {
+			i.componentHost.Unsupported("generic-event", e.ComponentType+"."+e.Event)
+		} else {
+			i.stub("generic event handler " + e.ComponentType + "." + e.Event)
+		}
 		return VoidVal()
 	case *components.MethodCall:
+		if i.componentHost != nil {
+			return i.componentHost.CallMethod(e.ComponentName, e.ComponentType, e.Method, i.evalExprs(e.Args))
+		}
 		i.stub("component method " + e.ComponentName + "." + e.Method + "(...)")
 		return VoidVal()
 	case *components.GenericMethodCall:
-		i.stub("generic component method " + e.ComponentType + "." + e.Method + "(...)")
+		if i.componentHost != nil {
+			i.componentHost.Unsupported("generic-method", e.ComponentType+"."+e.Method)
+		} else {
+			i.stub("generic component method " + e.ComponentType + "." + e.Method + "(...)")
+		}
 		return VoidVal()
 	case *components.PropertyGet:
+		if i.componentHost != nil {
+			return i.componentHost.GetProperty(e.ComponentName, e.ComponentType, e.Property)
+		}
 		i.stub("property get " + e.ComponentName + "." + e.Property)
 		return NullVal() // property reads are expressions
 	case *components.GenericPropertyGet:
-		i.stub("generic property get " + e.ComponentType + "." + e.Property)
+		if i.componentHost != nil {
+			i.componentHost.Unsupported("generic-property-get", e.ComponentType+"."+e.Property)
+		} else {
+			i.stub("generic property get " + e.ComponentType + "." + e.Property)
+		}
 		return NullVal() // property reads are expressions
 	case *components.PropertySet:
+		if i.componentHost != nil {
+			i.componentHost.SetProperty(e.ComponentName, e.ComponentType, e.Property, i.Eval(e.Value))
+			return VoidVal()
+		}
 		i.stub("property set " + e.ComponentName + "." + e.Property)
 		return VoidVal()
 	case *components.GenericPropertySet:
-		i.stub("generic property set " + e.ComponentType + "." + e.Property)
+		if i.componentHost != nil {
+			i.componentHost.Unsupported("generic-property-set", e.ComponentType+"."+e.Property)
+		} else {
+			i.stub("generic property set " + e.ComponentType + "." + e.Property)
+		}
 		return VoidVal()
 	case *components.EveryComponent:
-		i.stub("every(" + e.Type + ")")
+		if i.componentHost != nil {
+			i.componentHost.Unsupported("every-component", "every("+e.Type+")")
+		} else {
+			i.stub("every(" + e.Type + ")")
+		}
 		return EmptyList()
 
 	default:

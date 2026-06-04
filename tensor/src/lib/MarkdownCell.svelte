@@ -1,8 +1,30 @@
 <script>
-  import { setActive, moveCellById, deleteCellById } from './stores.js';
+  import { tick } from 'svelte';
+  import { setActive, moveCellById, deleteCellById, sourceNavigationHighlight } from './stores.js';
 
   export let cell;
   export let active = false;
+
+  let handledSourceHighlightToken = null;
+  let searchFlash = false;
+
+  // Reveal + flash when universal search navigates to this markdown cell.
+  $: if (
+    $sourceNavigationHighlight?.cellId === cell.id
+    && $sourceNavigationHighlight?.token !== handledSourceHighlightToken
+  ) {
+    handledSourceHighlightToken = $sourceNavigationHighlight.token;
+    revealCell();
+  }
+
+  async function revealCell() {
+    await tick();
+    document.getElementById(`cell-${cell.id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    searchFlash = false;
+    await tick();
+    searchFlash = true;
+    setTimeout(() => { searchFlash = false; }, 1400);
+  }
 
   const ALLOWED_TAGS = new Set([
     'a', 'br', 'code', 'div', 'em', 'h1', 'h2', 'h3', 'h4',
@@ -96,6 +118,7 @@
 <div
   class="cell md-cell"
   class:active
+  class:search-flash={searchFlash}
   id="cell-{cell.id}"
   role="button"
   tabindex="0"

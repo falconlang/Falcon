@@ -1,6 +1,6 @@
 <script>
-  import { createEventDispatcher, tick } from 'svelte';
-  import { addDesignAsset, deleteDesignAsset, designAssets, renameDesignAsset } from './stores.js';
+  import { createEventDispatcher, tick, onMount, onDestroy } from 'svelte';
+  import { addDesignAsset, deleteDesignAsset, designAssets, renameDesignAsset, designerSearchIndex, designerTreeActive, searchNavigation } from './stores.js';
   import {
     customDesignerEditorMetadata,
     optionsForDesignerEditorType,
@@ -27,6 +27,10 @@
     componentMetaMap,
     extensionComponentDescriptors,
   } from './appinventor-component-registry.js';
+  import {
+    parseDesignSchemaResult as parseSharedDesignSchemaResult,
+    serializeDesignTree as serializeSharedDesignTree,
+  } from './design-schema-tree.js';
 
   export let schemaValue = '';
   const dispatch = createEventDispatcher();
@@ -633,7 +637,7 @@
   $: {
     if (schemaValue !== prevSchema) {
       prevSchema = schemaValue;
-      const parsed = parseSchema(schemaValue);
+      const parsed = parseSharedDesignSchemaResult(schemaValue);
       parseError = parsed.error || '';
       mutableTree = parsed.root;
       if (parsed.root && !findNode(parsed.root, selectedPathId)) selectedPathId = '0';
@@ -642,7 +646,7 @@
 
   function applyChange(newTree) {
     mutableTree = newTree;
-    const schema = serializeTree(newTree);
+    const schema = serializeSharedDesignTree(newTree);
     prevSchema = schema;
     parseError = '';
     dispatch('change', { schema });
@@ -694,6 +698,88 @@
     ? groupByCategory(COMP_PROPS[selectedNode.type] ?? FALLBACK_PROPS)
     : [];
   $: isRoot = selectedNode?.pathId === '0';
+
+  // ── Universal search: publish a full (collapse-independent) component/property index ──
+  let flashPropName = null;
+  let treeFlashPathId = null;
+  let handledDesignerNavToken = null;
+  let propFlashTimer = null;
+  let treeFlashTimer = null;
+
+  $: designerSearchIndex.set(
+    (mutableTree ? flattenTree(mutableTree, 0, new Set()) : []).map(node => ({
+      pathId: node.pathId,
+      name: node.name,
+      type: node.type,
+      props: (COMP_PROPS[node.type] ?? FALLBACK_PROPS).map(p => ({
+        name: p.name,
+        category: p.category || 'Appearance',
+        value: node.props?.[p.name] ?? '',
+      })),
+    }))
+  );
+
+  $: if (
+    $searchNavigation
+    && $searchNavigation.token !== handledDesignerNavToken
+    && $searchNavigation.scope === 'designer-tree'
+  ) {
+    handledDesignerNavToken = $searchNavigation.token;
+    revealTreeMatch($searchNavigation.pathId, $searchNavigation.propName, $searchNavigation.category);
+  }
+
+  function expandAncestors(pathId) {
+    const parts = String(pathId || '').split('-');
+    if (parts.length <= 1) return;
+    const ancestors = [];
+    for (let i = 1; i < parts.length; i += 1) ancestors.push(parts.slice(0, i).join('-'));
+    if (!ancestors.some(a => collapsed.has(a))) return;
+    const next = new Set(collapsed);
+    ancestors.forEach(a => next.delete(a));
+    collapsed = next;
+  }
+
+  async function revealTreeMatch(pathId, propName, category) {
+    if (!mutableTree || !findNode(mutableTree, pathId)) return;
+    expandAncestors(pathId);
+    selectedPathId = pathId;
+    treeTab = 'components';
+    if (propName && category && collapsedCategories.has(category)) {
+      const next = new Set(collapsedCategories);
+      next.delete(category);
+      collapsedCategories = next;
+    }
+    await tick();
+
+    const treeRow = document.querySelector('.vis-tree-scroll .vis-item.selected');
+    treeRow?.scrollIntoView({ block: 'nearest' });
+
+    if (propName) {
+      await tick();
+      const row = document.querySelector(`.vis-props-scroll [data-prop-name="${cssAttrEscape(propName)}"]`);
+      row?.scrollIntoView({ block: 'center' });
+      flashPropName = propName;
+      clearTimeout(propFlashTimer);
+      propFlashTimer = setTimeout(() => { flashPropName = null; }, 1400);
+    } else {
+      treeFlashPathId = pathId;
+      clearTimeout(treeFlashTimer);
+      treeFlashTimer = setTimeout(() => { treeFlashPathId = null; }, 1400);
+    }
+  }
+
+  function cssAttrEscape(value) {
+    return String(value).replace(/["\\]/g, '\\$&');
+  }
+
+  onMount(() => { designerTreeActive.set(true); });
+
+  onDestroy(() => {
+    designerTreeActive.set(false);
+    designerSearchIndex.set([]);
+    clearTimeout(propFlashTimer);
+    clearTimeout(treeFlashTimer);
+  });
 
   function normalizeAssetRecord(asset, index) {
     if (typeof asset === 'string') {
@@ -1507,6 +1593,7 @@
           <div
             class="vis-item"
             class:selected={isSel}
+            class:search-flash-row={treeFlashPathId === node.pathId}
             class:drag-source={dragPathId === node.pathId}
             class:drop-before={dropPos === 'before'}
             class:drop-after={dropPos === 'after'}
@@ -1795,7 +1882,7 @@
                   {@const val = propVal(selectedNode, prop.name)}
                   {@const editorVal = propDisplayVal(prop, val)}
                   {@const options = selectOptions(prop)}
-                  <div class="vis-row">
+                  <div class="vis-row" class:search-flash-row={flashPropName === prop.name} data-prop-name={prop.name}>
                     <div class="vis-row-label">
                       <span class="vis-prop-name">{prop.name}</span>
                       <button

@@ -1205,7 +1205,11 @@ func (p *Parser) genComponentEvent(b ast.Block) string {
 		params[i] = "$" + a.Name
 	}
 	if len(params) == 0 {
-		params = globalDB.GetEventParams(mut.ComponentType, mut.EventName)
+		if mut.IsGeneric {
+			params = globalDB.GetGenericEventParams(mut.ComponentType, mut.EventName)
+		} else {
+			params = globalDB.GetEventParams(mut.ComponentType, mut.EventName)
+		}
 		for i, param := range params {
 			params[i] = "$" + param
 		}
@@ -1214,7 +1218,13 @@ func (p *Parser) genComponentEvent(b ast.Block) string {
 	for i, param := range params {
 		validateParams[i] = strings.TrimPrefix(param, "$")
 	}
-	if err := globalDB.ValidateEvent(mut.ComponentType, mut.EventName, validateParams); err != nil {
+	var err error
+	if mut.IsGeneric {
+		err = globalDB.ValidateGenericEvent(mut.ComponentType, mut.EventName, validateParams)
+	} else {
+		err = globalDB.ValidateEvent(mut.ComponentType, mut.EventName, validateParams)
+	}
+	if err != nil {
 		panic(err)
 	}
 	paramStr := strings.Join(params, " ")

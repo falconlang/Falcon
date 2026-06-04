@@ -435,6 +435,19 @@ func (db *CompDB) GetEventParams(compType, eventName string) []string {
 	return params
 }
 
+// GetGenericEventParams returns the canonical parameters for an "any
+// component" event handler.
+func (db *CompDB) GetGenericEventParams(compType, eventName string) []string {
+	params := db.GetEventParams(compType, eventName)
+	if params == nil {
+		return nil
+	}
+	result := make([]string, 0, len(params)+2)
+	result = append(result, "component", "notAlreadyHandled")
+	result = append(result, params...)
+	return result
+}
+
 // GetMethodParams returns the parameters for a component method.
 func (db *CompDB) GetMethodParams(compType, methodName string) []MethodParam {
 	compType = normalizeComponentType(compType)
@@ -586,4 +599,27 @@ func (db *CompDB) ValidateEvent(compType, eventName string, params []string) err
 		}
 	}
 	return nil
+}
+
+// ValidateGenericEvent checks an event used through an "any component" handler.
+// App Inventor exposes the triggering component and notAlreadyHandled before
+// the event's own parameters, but older/generated representations may only
+// include the event parameters.
+func (db *CompDB) ValidateGenericEvent(compType, eventName string, params []string) error {
+	if err := db.ValidateEvent(compType, eventName, params); err == nil {
+		return nil
+	} else if len(params) >= 2 {
+		if params[0] != "component" {
+			return errors.New("event " + compType + "." + eventName + " parameter 1 must be \"component\", got " + strconv.Quote(params[0]))
+		}
+		if params[1] != "notAlreadyHandled" {
+			return errors.New("event " + compType + "." + eventName + " parameter 2 must be \"notAlreadyHandled\", got " + strconv.Quote(params[1]))
+		}
+		if tailErr := db.ValidateEvent(compType, eventName, params[2:]); tailErr == nil {
+			return nil
+		}
+		return err
+	} else {
+		return err
+	}
 }

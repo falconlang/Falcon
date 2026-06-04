@@ -505,9 +505,19 @@ func (p *Parser) componentEvent(block ast.Block) ast.Expr {
 		paramNames[i] = mutArgsNames[i].Name
 	}
 	if len(paramNames) == 0 {
-		paramNames = compdb.GlobalDB.GetEventParams(block.Mutation.ComponentType, block.Mutation.EventName)
+		if block.Mutation.IsGeneric {
+			paramNames = compdb.GlobalDB.GetGenericEventParams(block.Mutation.ComponentType, block.Mutation.EventName)
+		} else {
+			paramNames = compdb.GlobalDB.GetEventParams(block.Mutation.ComponentType, block.Mutation.EventName)
+		}
 	}
-	if err := compdb.GlobalDB.ValidateEvent(block.Mutation.ComponentType, block.Mutation.EventName, paramNames); err != nil {
+	var err error
+	if block.Mutation.IsGeneric {
+		err = compdb.GlobalDB.ValidateGenericEvent(block.Mutation.ComponentType, block.Mutation.EventName, paramNames)
+	} else {
+		err = compdb.GlobalDB.ValidateEvent(block.Mutation.ComponentType, block.Mutation.EventName, paramNames)
+	}
+	if err != nil {
 		panic(err)
 	}
 	if block.Mutation.IsGeneric {
