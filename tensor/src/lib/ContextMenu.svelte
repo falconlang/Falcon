@@ -14,17 +14,33 @@
   import { xmlToMist } from './falcon-wasm.js';
 
   let busyAction = null;
+  let confirmDeleteCellId = null;
 
   function addCodeCellAfter() {
     addCodeCell();
     hideCtx();
   }
 
-  function deleteActiveCell() {
+  function requestDeleteCell() {
     if ($ctxMenu.cellId) {
-      deleteCellById($ctxMenu.cellId);
+      confirmDeleteCellId = $ctxMenu.cellId;
       hideCtx();
     }
+  }
+
+  function confirmDelete() {
+    if (confirmDeleteCellId) {
+      deleteCellById(confirmDeleteCellId);
+      confirmDeleteCellId = null;
+    }
+  }
+
+  function cancelDelete() {
+    confirmDeleteCellId = null;
+  }
+
+  function handleConfirmDialogKey(e) {
+    if (confirmDeleteCellId !== null && e.key === 'Escape') { e.stopPropagation(); cancelDelete(); }
   }
 
   function targetCodeCell() {
@@ -115,6 +131,8 @@
   }
 </script>
 
+<svelte:window on:keydown={handleConfirmDialogKey} />
+
 <div
   class="ctx-menu"
   class:show={$ctxMenu.show}
@@ -148,8 +166,33 @@
     Download blocks
   </button>
   <div class="ctx-sep"></div>
-  <button type="button" class="ctx-item danger" role="menuitem" on:click={deleteActiveCell}>
+  <button type="button" class="ctx-item danger" role="menuitem" on:click={requestDeleteCell}>
     <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h10M5 4V2h4v2M11 4l-.8 8H3.8L3 4"/></svg>
     Delete cell
   </button>
 </div>
+
+{#if confirmDeleteCellId !== null}
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div class="sd-overlay" on:click|self={cancelDelete}>
+  <div class="sd-card" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">
+    <div class="sd-header">
+      <div class="sd-header-icon sd-header-icon--danger">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h10M5 4V2h4v2M11 4l-.8 8H3.8L3 4"/></svg>
+      </div>
+      <span class="sd-title" id="delete-dialog-title">Delete cell</span>
+      <button class="sd-close" on:click={cancelDelete} title="Cancel">
+        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+      </button>
+    </div>
+    <div class="sd-body">
+      <p class="sd-desc">This cell will be permanently removed. This action cannot be undone.</p>
+    </div>
+    <div class="sd-footer">
+      <button type="button" class="sd-btn sd-btn--ghost" on:click={cancelDelete}>Cancel</button>
+      <button type="button" class="sd-btn sd-btn--danger" on:click={confirmDelete}>Delete</button>
+    </div>
+  </div>
+</div>
+{/if}

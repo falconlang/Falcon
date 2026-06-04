@@ -13,6 +13,10 @@
     removeScreen,
     projectName,
     clearDebugLogs,
+    undoDeleteCell,
+    redoDeleteCell,
+    canUndoDeletedCell,
+    canRedoDeletedCell,
   } from './stores.js';
   import ProjectPropertiesDialog from './ProjectPropertiesDialog.svelte';
   import { appInventorNameError, isValidScreenName } from './appinventor-validation.js';
@@ -130,6 +134,13 @@
       Code
     </button>
   </div>
+  <div class="tl-sep"></div>
+  <button class="tl-btn" title="Undo delete cell (Ctrl+Z)" disabled={!$canUndoDeletedCell} on:click={undoDeleteCell}>
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h6.5a3 3 0 0 1 0 6H6"/><path d="M5.5 2.5L3 5l2.5 2.5"/></svg>
+  </button>
+  <button class="tl-btn" title="Redo delete cell (Ctrl+Shift+Z)" disabled={!$canRedoDeletedCell} on:click={redoDeleteCell}>
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5H4.5a3 3 0 0 0 0 6H8"/><path d="M8.5 2.5L11 5 8.5 7.5"/></svg>
+  </button>
   <div class="tl-sep"></div>
   <button class="tl-btn" title="Clear outputs" on:click={clearDebugLogs}>
     <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h10M5 4V2h4v2M11 4l-.8 8H3.8L3 4"/></svg>

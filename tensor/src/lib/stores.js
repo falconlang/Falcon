@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import {
   defaultProjectProperties,
   normalizeProjectPropertyName,
@@ -126,6 +126,13 @@ export const debugExpressionValues = writable({});
 export const copiedCellAvailable = writable(false);
 export const sourceNavigationHighlight = writable(null);
 
+// ── Deleted-cell undo/redo history (per screen) ──
+export const deletedCellUndoStack = writable([]); // [{ cell, index }]
+export const deletedCellRedoStack = writable([]);
+export const canUndoDeletedCell = derived(deletedCellUndoStack, s => s.length > 0);
+export const canRedoDeletedCell = derived(deletedCellRedoStack, s => s.length > 0);
+const DELETED_CELL_HISTORY_LIMIT = 50;
+
 let blocklyPreviewRequestId = 0;
 let cellIdSeed = Date.now();
 let copiedCell = null;
@@ -202,6 +209,8 @@ function stateForScreen(name, savedStates = get(screenSavedStates)) {
 function applyScreenState(state) {
   const nextCells = cloneCells(state?.cells || []);
   clearDebugRuntimeState();
+  deletedCellUndoStack.set([]);
+  deletedCellRedoStack.set([]);
   cells.set(nextCells);
   designCode.set(state?.designCode || '');
   rawBlocklyXml.set(state?.rawBlocklyXml || '');
@@ -804,14 +813,66 @@ export function moveCellById(id, dir) {
   setActive(id);
 }
 
+function pushDeletedCell(cell, index) {
+  deletedCellUndoStack.update(stack => {
+    const next = [...stack, { cell: JSON.parse(JSON.stringify(cell)), index }];
+    if (next.length > DELETED_CELL_HISTORY_LIMIT) next.shift();
+    return next;
+  });
+  deletedCellRedoStack.set([]);
+}
+
 export function deleteCellById(id) {
   const currentCells = get(cells);
   const idx = currentCells.findIndex(c => c.id === id);
   if (idx === -1) return;
+  pushDeletedCell(currentCells[idx], idx);
   cells.update(cs => cs.filter(c => c.id !== id));
   const nextCells = get(cells);
   const nextActive = nextCells[Math.min(idx, nextCells.length - 1)]?.id || null;
   activeCellId.set(nextActive);
+}
+
+export function undoDeleteCell() {
+  const stack = get(deletedCellUndoStack);
+  if (!stack.length) return false;
+  const entry = stack[stack.length - 1];
+  deletedCellUndoStack.set(stack.slice(0, -1));
+
+  const collision = get(cells).some(c => c.id === entry.cell.id);
+  const restored = collision ? { ...entry.cell, id: nextCellId() } : entry.cell;
+
+  cells.update(cs => {
+    const next = [...cs];
+    const insertAt = Math.max(0, Math.min(entry.index, next.length));
+    next.splice(insertAt, 0, JSON.parse(JSON.stringify(restored)));
+    return next;
+  });
+  deletedCellRedoStack.update(s => [...s, { cell: restored, index: entry.index }]);
+  setActive(restored.id);
+  return true;
+}
+
+export function redoDeleteCell() {
+  const stack = get(deletedCellRedoStack);
+  if (!stack.length) return false;
+  const entry = stack[stack.length - 1];
+  deletedCellRedoStack.set(stack.slice(0, -1));
+
+  const idx = get(cells).findIndex(c => c.id === entry.cell.id);
+  if (idx === -1) return false; // stale entry; nothing to re-delete
+
+  cells.update(cs => cs.filter(c => c.id !== entry.cell.id));
+  // Push back onto the undo stack directly so the redo stack is preserved.
+  deletedCellUndoStack.update(s => {
+    const next = [...s, { cell: JSON.parse(JSON.stringify(entry.cell)), index: idx }];
+    if (next.length > DELETED_CELL_HISTORY_LIMIT) next.shift();
+    return next;
+  });
+  const nextCells = get(cells);
+  const nextActive = nextCells[Math.min(idx, nextCells.length - 1)]?.id || null;
+  activeCellId.set(nextActive);
+  return true;
 }
 
 export function updateCellExecCount(id) {

@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { hideCtx, liveTestOpen, doItCellId, sidebarVisible } from './lib/stores.js';
+  import { hideCtx, liveTestOpen, doItCellId, sidebarVisible, undoDeleteCell, redoDeleteCell } from './lib/stores.js';
   import TopBar from './lib/TopBar.svelte';
   import Toolbar from './lib/Toolbar.svelte';
   import Sidebar from './lib/Sidebar.svelte';
@@ -32,7 +32,29 @@
       if (e.key === 'Escape') {
         hideCtx();
         liveTestOpen.set(false);
+        return;
       }
+
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod || e.altKey) return;
+      const key = e.key?.toLowerCase();
+      const wantsUndo = key === 'z' && !e.shiftKey;
+      const wantsRedo = (key === 'z' && e.shiftKey) || key === 'y';
+      if (!wantsUndo && !wantsRedo) return;
+
+      // Command mode only: never hijack text editing or modal dialogs.
+      const ae = document.activeElement;
+      const editing = ae && (
+        ae.tagName === 'INPUT'
+        || ae.tagName === 'TEXTAREA'
+        || ae.tagName === 'SELECT'
+        || ae.isContentEditable
+      );
+      if (editing) return;
+      if (document.querySelector('.sd-overlay, .pp-overlay')) return;
+
+      if (wantsUndo && undoDeleteCell()) e.preventDefault();
+      else if (wantsRedo && redoDeleteCell()) e.preventDefault();
     };
 
     const onSelectionChange = () => {
