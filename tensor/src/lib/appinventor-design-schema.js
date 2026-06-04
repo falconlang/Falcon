@@ -31,9 +31,7 @@ function extractScmJson(text) {
 }
 
 function quoteSchemaString(value) {
-  return `"${String(value)
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')}"`;
+  return JSON.stringify(String(value));
 }
 
 function designerEditorTypeToValueKind(editorType) {

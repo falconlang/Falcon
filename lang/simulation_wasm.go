@@ -921,7 +921,7 @@ func componentActionWith(componentName, action string, fields map[string]any) ma
 func (h *simulationHost) callTextBoxMethod(componentName, method string, args []runtime.Value) runtime.Value {
 	switch method {
 	case "HideKeyboard":
-		return runtime.VoidVal()
+		h.effects = append(h.effects, componentAction(componentName, "hide-keyboard"))
 	case "RequestFocus":
 		h.effects = append(h.effects, componentAction(componentName, "focus"))
 	case "MoveCursorToStart":
@@ -1016,6 +1016,9 @@ func (h *simulationHost) callNotifierMethod(componentName, method string, args [
 func (h *simulationHost) callScreenMethod(componentName, method string, args []runtime.Value) runtime.Value {
 	switch method {
 	case "AskForPermission", "HideKeyboard":
+		if method == "HideKeyboard" {
+			h.effects = append(h.effects, componentAction(componentName, "hide-keyboard"))
+		}
 		return runtime.VoidVal()
 	case "OpenScreen", "OpenAnotherScreen", "OpenScreenWithStartValue", "OpenAnotherScreenWithStartValue",
 		"CloseScreen", "CloseScreenWithValue", "CloseScreenWithPlainText", "CloseApplication", "CloseApp",
@@ -1403,9 +1406,6 @@ func (h *simulationHost) callSpriteMethod(componentName, componentType, method s
 			dx := args[0].AsNum() - valueAsNumber(h.GetProperty(componentName, componentType, "X"), 0)
 			dy := args[1].AsNum() - valueAsNumber(h.GetProperty(componentName, componentType, "Y"), 0)
 			heading := math.Atan2(-dy, dx) * 180 / math.Pi
-			if heading < 0 {
-				heading += 360
-			}
 			h.setProperty(componentName, "Heading", runtime.NumVal(heading))
 		}
 	case "Bounce", "MoveIntoBounds", "PointTowards":
@@ -1585,7 +1585,7 @@ func (h *simulationHost) pointSpriteTowards(componentName, componentType, target
 	x1, y1 := source.originX, source.originY
 	x2, y2 := target.originX, target.originY
 	heading := math.Atan2(-(y2-y1), x2-x1) * 180 / math.Pi
-	h.setProperty(componentName, "Heading", runtime.NumVal(normalizeDegrees(heading)))
+	h.setProperty(componentName, "Heading", runtime.NumVal(heading))
 }
 
 func (h *simulationHost) callChartMethod(componentName, method string, args []runtime.Value) runtime.Value {

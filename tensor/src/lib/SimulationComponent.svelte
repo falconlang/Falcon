@@ -45,6 +45,7 @@
   let buttonEl;
   let pickerWrapEl;
   let webViewerFrame;
+  let suppressNextBlurEvent = false;
   let longClickTimer = null;
   let suppressClick = false;
 
@@ -66,6 +67,7 @@
     clearLongClick();
     stopSpriteAnimationLoop();
     if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+    if (imagePickerObjectUrl) { URL.revokeObjectURL(imagePickerObjectUrl); imagePickerObjectUrl = ''; }
   });
 
   function hasValue(value) {
@@ -408,7 +410,8 @@
       if (videoEl) videoEl.currentTime = (numberOr(actionState.ms, 0)) / 1000;
     });
     runAction(actionState, 'focus', ['focus', 'Focus', 'RequestFocus'], () => focusCurrentInput());
-    runAction(actionState, 'blur', ['blur', 'Blur', 'HideKeyboard'], () => blurCurrentInput());
+    runAction(actionState, 'hideKeyboard', ['hideKeyboard', 'hide-keyboard', 'HideKeyboard'], () => hideKeyboard());
+    runAction(actionState, 'blur', ['blur', 'Blur'], () => blurCurrentInput());
     runAction(actionState, 'cursorStart', ['MoveCursorToStart', 'cursorStart', 'cursor-start'], () => setTextCursor(0));
     runAction(actionState, 'cursorEnd', ['MoveCursorToEnd', 'cursorEnd', 'cursor-end'], () => setTextCursor(textValue().length));
     runAction(actionState, 'cursorTo', ['MoveCursorTo', 'cursorTo', 'cursor-position'], () => {
@@ -427,6 +430,24 @@
     await tick();
     const target = textInputEl || buttonEl || dateInput || timeInput;
     if (target) target.blur();
+  }
+
+  async function hideKeyboard() {
+    await tick();
+    const virtualKeyboard = typeof navigator !== 'undefined' ? navigator.virtualKeyboard : null;
+    if (virtualKeyboard && typeof virtualKeyboard.hide === 'function') {
+      try {
+        virtualKeyboard.hide();
+        return;
+      } catch {}
+    }
+    const active = typeof document !== 'undefined' ? document.activeElement : null;
+    const target = textInputEl || buttonEl || dateInput || timeInput || active;
+    if (target && typeof target.blur === 'function') {
+      suppressNextBlurEvent = true;
+      target.blur();
+      setTimeout(() => { suppressNextBlurEvent = false; }, 0);
+    }
   }
 
   async function setTextCursor(position) {
@@ -575,12 +596,19 @@
     }
   }
 
+  let imagePickerObjectUrl = '';
+
   async function filePickerChange(e) {
     const file = e.currentTarget.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
     const patches = [{ component: node.name, property: 'Selection', value: file.name }];
-    if (node?.type === 'ImagePicker') patches.push({ component: node.name, property: 'ImagePath', value: url });
+    if (node?.type === 'ImagePicker') {
+      // Revoke the previous blob URL before creating a new one to prevent memory leaks.
+      if (imagePickerObjectUrl) URL.revokeObjectURL(imagePickerObjectUrl);
+      imagePickerObjectUrl = url;
+      patches.push({ component: node.name, property: 'ImagePath', value: url });
+    }
     emitInteraction(patches, { component: node.name, event: 'AfterPicking', args: [] });
     e.currentTarget.value = '';
   }
@@ -629,6 +657,8 @@
   const EDGE_WEST = -3;
   const EDGE_NORTHWEST = -4;
   const FLING_MIN_SPEED_PX_PER_MS = 1;
+  const FINGER_WIDTH_PX = 24;
+  const FINGER_HEIGHT_PX = 24;
 
   function canvasWidth() {
     const v = props.Width;
@@ -721,28 +751,53 @@
     return { x, y, width, height, cx: x + width / 2, cy: y + height / 2, originX, originY, u, v, radius: 0 };
   }
 
-  function spriteContainsPoint(sprite, pt) {
+  function canvasTouchRect(pt) {
+    const halfWidth = FINGER_WIDTH_PX / 2;
+    const halfHeight = FINGER_HEIGHT_PX / 2;
+    return {
+      left: Math.max(0, pt.x - halfWidth),
+      top: Math.max(0, pt.y - halfHeight),
+      right: Math.min(canvasWidth() - 1, pt.x + halfWidth),
+      bottom: Math.min(canvasHeight() - 1, pt.y + halfHeight),
+    };
+  }
+
+  function rectsIntersect(a, b) {
+    return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
+  }
+
+  function spriteBoundingRect(sprite) {
+    const geom = spriteGeometry(sprite);
+    return {
+      left: geom.x,
+      top: geom.y,
+      right: geom.x + Math.max(0, geom.width) - 1,
+      bottom: geom.y + Math.max(0, geom.height) - 1,
+      geom,
+    };
+  }
+
+  function ballIntersectsRect(geom, rect) {
+    const x = Math.max(rect.left, Math.min(geom.cx, rect.right));
+    const y = Math.max(rect.top, Math.min(geom.cy, rect.bottom));
+    return Math.hypot(x - geom.cx, y - geom.cy) <= geom.radius;
+  }
+
+  function spriteIntersectsTouchRect(sprite, rect) {
     const sp = state?.[sprite.name] ?? {};
     if (sp.Visible === false || sp.Enabled === false) return false;
-    const geom = spriteGeometry(sprite);
+    const bounds = spriteBoundingRect(sprite);
+    if (bounds.right < bounds.left || bounds.bottom < bounds.top || !rectsIntersect(bounds, rect)) return false;
     if (sprite.type === 'Ball') {
-      return Math.hypot(pt.x - geom.cx, pt.y - geom.cy) <= geom.radius;
+      return ballIntersectsRect(bounds.geom, rect);
     }
-    if (boolValue(sp.Rotates, true) && numberOr(sp.Heading, 0) !== 0) {
-      const angle = numberOr(sp.Heading, 0) * Math.PI / 180;
-      const dx = pt.x - geom.originX;
-      const dy = pt.y - geom.originY;
-      const localX = geom.originX + dx * Math.cos(angle) - dy * Math.sin(angle);
-      const localY = geom.originY + dx * Math.sin(angle) + dy * Math.cos(angle);
-      return localX >= geom.x && localX <= geom.x + geom.width
-        && localY >= geom.y && localY <= geom.y + geom.height;
-    }
-    return pt.x >= geom.x && pt.x <= geom.x + geom.width && pt.y >= geom.y && pt.y <= geom.y + geom.height;
+    return true;
   }
 
   function hitSpritesAt(pt) {
+    const rect = canvasTouchRect(pt);
     return canvasSprites()
-      .filter(sprite => spriteContainsPoint(sprite, pt))
+      .filter(sprite => spriteIntersectsTouchRect(sprite, rect))
       .sort((a, b) => numberOr(state?.[b.name]?.Z, 1) - numberOr(state?.[a.name]?.Z, 1));
   }
 
@@ -784,7 +839,7 @@
     }
     canvasIsDrag = true;
     if (!boolValue(props.ExtendMovesOutsideCanvas, false)
-      && (pt.x <= 0 || pt.x > canvasWidth() || pt.y <= 0 || pt.y > canvasHeight())) {
+      && (pt.x < 0 || pt.x >= canvasWidth() || pt.y < 0 || pt.y >= canvasHeight())) {
       return;
     }
 
@@ -843,7 +898,7 @@
     const speed = Math.hypot(vx, vy);
     const totalDist = Math.hypot(pt.x - canvasTouchStart.x, pt.y - canvasTouchStart.y);
     if (speed < FLING_MIN_SPEED_PX_PER_MS || totalDist < numberOr(props.TapThreshold, 15)) return;
-    const heading = normalizeHeading(-Math.atan2(vy, vx) * 180 / Math.PI);
+    const heading = -Math.atan2(vy, vx) * 180 / Math.PI;
     let handled = false;
     for (const sprite of canvasTouchedSprites) {
       const sp = state?.[sprite.name] ?? {};
@@ -852,11 +907,6 @@
       handled = true;
     }
     await emitEvent(node.name, 'Flung', [canvasTouchStart.x, canvasTouchStart.y, speed, heading, vx, vy, handled]);
-  }
-
-  function normalizeHeading(value) {
-    const normalized = value % 360;
-    return normalized < 0 ? normalized + 360 : normalized;
   }
 
   function resetCanvasPointerState() {
@@ -870,8 +920,16 @@
     canvasPointerHistory = [];
   }
 
-  // Re-render canvas drawing ops when state changes
-  $: if (canvasEl && state) { canvasDrawOps; applyCanvasOps(); }
+  // Re-render only when canvas-relevant state actually changed.
+  // Keying on this canvas's own props and each sprite's state avoids a full
+  // repaint on every unrelated component update elsewhere in the scene.
+  // Draw-op changes trigger applyCanvasOps() directly via handleCanvasActionState,
+  // so they don't need to be included here.
+  let _lastCanvasRenderKey = '';
+  $: if (canvasEl && node?.type === 'Canvas') {
+    const _key = JSON.stringify([props, ...(node.children ?? []).map(c => state?.[c.name])]);
+    if (_key !== _lastCanvasRenderKey) { _lastCanvasRenderKey = _key; applyCanvasOps(); }
+  }
   $: if (node?.type === 'Canvas') updateSpriteAnimationLoop();
   $: canvasBackgroundSignature = node?.type === 'Canvas'
     ? [props.BackgroundColor ?? '', props.BackgroundImage ?? '', props.BackgroundImageinBase64 ?? ''].join('\0')
@@ -1257,6 +1315,17 @@
   function spritesOverlap(a, b) {
     const ga = spriteGeometry(a);
     const gb = spriteGeometry(b);
+    // Ball-Ball: circle-circle collision (matches App Inventor's collidingBalls logic)
+    if (a.type === 'Ball' && b.type === 'Ball') {
+      const dx = ga.cx - gb.cx;
+      const dy = ga.cy - gb.cy;
+      const sumR = ga.radius + gb.radius;
+      return dx * dx + dy * dy <= sumR * sumR;
+    }
+    // Ball-ImageSprite: circle-rect collision
+    if (a.type === 'Ball') return ballIntersectsRect(ga, spriteBoundingRect(b));
+    if (b.type === 'Ball') return ballIntersectsRect(gb, spriteBoundingRect(a));
+    // ImageSprite-ImageSprite: AABB
     return ga.x < gb.x + gb.width
       && ga.x + ga.width > gb.x
       && ga.y < gb.y + gb.height
@@ -1489,10 +1558,26 @@
   let mapCompassControl = null;
   let mapLayers = {};
   let mapFeatureActionSeq = {};
+  let leafletLib = null;
 
   // Map setup runs reactively via the $: if (mapEl) initOrUpdateMap() block below
 
   $: if (node?.type === 'Map' && mapEl) initOrUpdateMap();
+  // Sync view and config whenever props change after the map is initialized.
+  // This block references props directly so Svelte tracks it as a dependency,
+  // letting programmatic Latitude/Longitude/ZoomLevel/MapType changes take effect.
+  $: if (node?.type === 'Map' && mapInstance && leafletLib && props) {
+    mapInstance.setView(
+      [numberOr(props.Latitude, 42.359144), numberOr(props.Longitude, -71.093612)],
+      numberOr(props.ZoomLevel, 13),
+      { animate: false },
+    );
+    updateMapTileLayer(leafletLib);
+    updateMapInteractions();
+    updateMapControls(leafletLib);
+    fitMapBoundsIfNeeded(leafletLib);
+    updateMapFeatures(leafletLib);
+  }
   $: if (node?.type === 'Map' && mapInstance) handleMapFeatureActions();
 
   async function initOrUpdateMap() {
@@ -1522,19 +1607,11 @@
       mapInstance.on('click', (e) => emitEvent(node.name, 'TapAtPoint', [e.latlng.lat, e.latlng.lng]));
       mapInstance.on('dblclick', (e) => emitEvent(node.name, 'DoubleTapAtPoint', [e.latlng.lat, e.latlng.lng]));
       mapInstance.on('contextmenu', (e) => emitEvent(node.name, 'LongPressAtPoint', [e.latlng.lat, e.latlng.lng]));
+      // Cache the Leaflet module so the props-reactive block can call update helpers.
+      leafletLib = L;
       emitEvent(node.name, 'Ready');
-    } else {
-      updateMapTileLayer(L);
-      mapInstance.setView(
-        [numberOr(props.Latitude, 42.359144), numberOr(props.Longitude, -71.093612)],
-        numberOr(props.ZoomLevel, 13),
-        { animate: false },
-      );
     }
-    updateMapInteractions();
-    updateMapControls(L);
-    fitMapBoundsIfNeeded(L);
-    updateMapFeatures(L);
+    // View/config sync on remount is handled by the props-reactive block above.
   }
 
   function mapTileConfig() {
@@ -1963,6 +2040,10 @@
   }
 
   function blurEvent() {
+    if (suppressNextBlurEvent) {
+      suppressNextBlurEvent = false;
+      return;
+    }
     emitEvent(node.name, 'LostFocus');
   }
 
@@ -2208,12 +2289,11 @@
 
   function timeInstant(hour, minute) {
     const pad = n => String(n).padStart(2, '0');
-    const date = new Date();
-    date.setHours(hour, minute, 0, 0);
-    // Format from local parts so the hour/minute never shift across the UTC offset,
-    // matching capabilities.js timeInstant and the Go host's timeInstantString.
     const iso = `1970-01-01T${pad(hour)}:${pad(minute)}:00`;
-    return { iso, millis: date.getTime() };
+    // Millis must be an offset from 1970-01-01 (not today), matching App Inventor's
+    // Clock instant representation for TimePicker values.
+    const millis = new Date(1970, 0, 1, hour, minute, 0, 0).getTime();
+    return { iso, millis };
   }
 
   function timeChange(e) {

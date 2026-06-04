@@ -149,6 +149,21 @@ export function parseDesignSchema(source, { pathIds = true, validate = true } = 
       if (text[pos] === '\\') {
         pos += 1;
         if (pos >= text.length) fail('Unterminated string literal');
+        const escaped = text[pos++];
+        if (escaped === 'b') value += '\b';
+        else if (escaped === 'f') value += '\f';
+        else if (escaped === 'n') value += '\n';
+        else if (escaped === 'r') value += '\r';
+        else if (escaped === 't') value += '\t';
+        else if (escaped === 'u') {
+          const hex = text.slice(pos, pos + 4);
+          if (!/^[0-9A-Fa-f]{4}$/.test(hex)) fail('Invalid unicode escape');
+          value += String.fromCharCode(parseInt(hex, 16));
+          pos += 4;
+        } else {
+          value += escaped;
+        }
+        continue;
       }
       value += text[pos++];
     }
@@ -236,7 +251,7 @@ export function parseDesignSchemaResult(source, options) {
 }
 
 function quoteSchemaString(value) {
-  return `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  return JSON.stringify(String(value));
 }
 
 function isColorProp(node, propName) {

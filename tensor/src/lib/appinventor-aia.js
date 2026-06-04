@@ -185,6 +185,61 @@ function assetNameForImport(pathName, usedNames = null) {
   return next;
 }
 
+function xmlEscapeText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function replaceLiteral(text, before, after) {
+  if (!before || typeof text !== 'string' || !text.includes(before)) return text;
+  return text.split(before).join(after);
+}
+
+function replaceAssetNameInText(text, oldName, nextName) {
+  if (typeof text !== 'string' || !oldName || oldName === nextName) return text;
+  const rawOld = String(oldName);
+  const rawNext = String(nextName || '');
+  const pairs = [
+    [rawOld, rawNext],
+    [JSON.stringify(rawOld).slice(1, -1), JSON.stringify(rawNext).slice(1, -1)],
+    [xmlEscapeText(rawOld), xmlEscapeText(rawNext)],
+  ];
+  const seen = new Set();
+  let out = text;
+  for (const [before, after] of pairs) {
+    if (seen.has(before)) continue;
+    seen.add(before);
+    out = replaceLiteral(out, before, after);
+  }
+  return out;
+}
+
+function rewriteAssetReferencesInText(text, renames) {
+  if (!renames?.size || typeof text !== 'string') return text;
+  let out = text;
+  const entries = [...renames.entries()].sort((a, b) => b[0].length - a[0].length);
+  for (const [oldName, nextName] of entries) {
+    out = replaceAssetNameInText(out, oldName, nextName);
+  }
+  return out;
+}
+
+function rewriteAssetReferencesInObject(value, renames) {
+  if (!renames?.size) return value;
+  if (typeof value === 'string') return rewriteAssetReferencesInText(value, renames);
+  if (Array.isArray(value)) return value.map(item => rewriteAssetReferencesInObject(item, renames));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, rewriteAssetReferencesInObject(item, renames)]),
+    );
+  }
+  return value;
+}
+
 async function extensionComponentDescriptorsFromZip(zip) {
   const descriptors = [];
   const seen = new Set();
@@ -301,6 +356,21 @@ function parseDesignSchema(source) {
       if (text[pos] === '\\') {
         pos += 1;
         if (pos >= text.length) fail('Unterminated string literal');
+        const escaped = text[pos++];
+        if (escaped === 'b') value += '\b';
+        else if (escaped === 'f') value += '\f';
+        else if (escaped === 'n') value += '\n';
+        else if (escaped === 'r') value += '\r';
+        else if (escaped === 't') value += '\t';
+        else if (escaped === 'u') {
+          const hex = text.slice(pos, pos + 4);
+          if (!/^[0-9A-Fa-f]{4}$/.test(hex)) fail('Invalid unicode escape');
+          value += String.fromCharCode(parseInt(hex, 16));
+          pos += 4;
+        } else {
+          value += escaped;
+        }
+        continue;
       }
       value += text[pos++];
     }
@@ -657,7 +727,7 @@ export async function importAiaFile(file) {
     throw new Error('This file is not an App Inventor project archive: missing youngandroidproject/project.properties');
   }
 
-  const projectProperties = parseProperties(decodeJavaPropertiesBytes(await propsEntry.async('uint8array')));
+  let projectProperties = parseProperties(decodeJavaPropertiesBytes(await propsEntry.async('uint8array')));
   const project = sanitizeProjectName(projectProperties.name || stripKnownExtension(file?.name) || DEFAULT_PROJECT);
   const extensionComponents = await extensionComponentDescriptorsFromZip(zip);
   const previousExtensionComponents = projectExtensionComponentDescriptors();
@@ -667,6 +737,7 @@ export async function importAiaFile(file) {
     const screenFiles = new Map();
     const assetNames = [];
     const importAssetNames = new Map();
+    const assetReferenceRenames = new Map();
     const usedAssetNames = new Set();
 
     for (const [path, entry] of Object.entries(zip.files)) {
@@ -676,6 +747,7 @@ export async function importAiaFile(file) {
         if (rawName) {
           const name = assetNameForImport(rawName, usedAssetNames);
           importAssetNames.set(path, name);
+          if (name !== rawName) assetReferenceRenames.set(rawName, name);
           assetNames.push(name);
         }
         continue;
@@ -688,15 +760,18 @@ export async function importAiaFile(file) {
       if (/\.blk$/i.test(path)) record.blk = path;
       screenFiles.set(base, record);
     }
+    projectProperties = rewriteAssetReferencesInObject(projectProperties, assetReferenceRenames);
 
     const screenRecords = [];
     const usedScreenNames = new Set();
     let screen1ProjectProperties = {};
     for (const [base, record] of screenFiles) {
       if (!record.scm) continue;
-      const rawScm = await zip.file(record.scm).async('string');
+      const rawScm = rewriteAssetReferencesInText(await zip.file(record.scm).async('string'), assetReferenceRenames);
       const blockPath = record.bky || record.blk || '';
-      const rawBlocks = blockPath ? await zip.file(blockPath).async('string') : '';
+      const rawBlocks = blockPath
+        ? rewriteAssetReferencesInText(await zip.file(blockPath).async('string'), assetReferenceRenames)
+        : '';
       const fallbackName = sanitizeScreenName(textFileBaseName(base), `Screen${screenRecords.length + 1}`);
       let designCode = '';
       let screenName = fallbackName;
@@ -908,5 +983,5 @@ export function downloadBlob(blob, filename) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }

@@ -511,6 +511,12 @@ func (p *LangParser) genericEvent() ast.Expr {
 	if p.eventValidator != nil {
 		err := p.eventValidator(componentType, eventName, parameters)
 		if err != nil && len(parameters) >= 2 {
+			if parameters[0] != "component" {
+				eventTok.Error("event %.% parameter 1 must be %, got %", componentType, eventName, strconv.Quote("component"), strconv.Quote(parameters[0]))
+			}
+			if parameters[1] != "notAlreadyHandled" {
+				eventTok.Error("event %.% parameter 2 must be %, got %", componentType, eventName, strconv.Quote("notAlreadyHandled"), strconv.Quote(parameters[1]))
+			}
 			err = p.eventValidator(componentType, eventName, parameters[2:])
 		}
 		if err != nil {

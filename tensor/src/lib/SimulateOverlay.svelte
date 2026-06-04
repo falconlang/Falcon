@@ -1,7 +1,7 @@
 <script>
   import { onDestroy } from 'svelte';
   import { get } from 'svelte/store';
-  import { cells, designAssets, designCode, simulateOpen, simulateState } from './stores.js';
+  import { cells, designAssets, designCode, projectName, simulateOpen, simulateState } from './stores.js';
   import {
     createSimulationSession,
     dispatchSimulationEvent,
@@ -26,6 +26,8 @@
   let componentState = {};
   let rebuildTimer = null;
   let rebuildSeq = 0;
+  let sessionSeq = 0;
+  let sessionSignature = '';
   let rebuilding = false;
   let actionTokens = {};
   let unsupportedEntries = [];
@@ -47,8 +49,8 @@
     assets: ($designAssets || []).map(asset => asset?.name || asset).join('|'),
   });
 
-  $: if ($simulateOpen && sourceSignature) scheduleRebuild();
-  $: if (!$simulateOpen && sessionId !== null) disposeCurrentSession();
+  $: if ($simulateOpen && sourceSignature) scheduleRebuild(sourceSignature);
+  $: if (!$simulateOpen && (sessionId !== null || rebuildTimer !== null || rebuilding)) disposeCurrentSession();
 
   function joinedSource(list) {
     return (list || [])
@@ -58,9 +60,29 @@
       .trim();
   }
 
-  function scheduleRebuild() {
+  function scheduleRebuild(signature = sourceSignature) {
+    const seq = ++rebuildSeq;
     clearTimeout(rebuildTimer);
-    rebuildTimer = setTimeout(() => rebuildSimulation(), REBUILD_DELAY);
+    rebuilding = true;
+    rebuildTimer = setTimeout(() => rebuildSimulation(seq, signature), REBUILD_DELAY);
+  }
+
+  function currentSimulationScope() {
+    return String(get(projectName) || 'TensorProject');
+  }
+
+  function isCurrentRebuild(seq, signature) {
+    return $simulateOpen && seq === rebuildSeq && signature === sourceSignature;
+  }
+
+  function isCurrentSession(targetSession, seq, signature) {
+    return targetSession !== null
+      && targetSession === sessionId
+      && seq === rebuildSeq
+      && seq === sessionSeq
+      && signature === sourceSignature
+      && signature === sessionSignature
+      && !rebuilding;
   }
 
   function startDrag(e) {
@@ -103,6 +125,12 @@
   }
 
   async function disposeCurrentSession() {
+    rebuildSeq += 1;
+    sessionSeq = 0;
+    sessionSignature = '';
+    clearTimeout(rebuildTimer);
+    rebuildTimer = null;
+    rebuilding = false;
     const old = sessionId;
     sessionId = null;
     root = null;
@@ -118,7 +146,12 @@
 
   async function clearSessionAfterFailure(message, diagnostics = []) {
     const old = sessionId;
+    clearTimeout(rebuildTimer);
+    rebuildTimer = null;
+    rebuilding = false;
     sessionId = null;
+    sessionSeq = 0;
+    sessionSignature = '';
     root = null;
     componentState = {};
     actionTokens = {};
@@ -130,15 +163,18 @@
     }
   }
 
-  async function rebuildSimulation() {
+  async function rebuildSimulation(seq = ++rebuildSeq, signature = sourceSignature) {
     if (!$simulateOpen) return;
-    const seq = ++rebuildSeq;
+    clearTimeout(rebuildTimer);
+    rebuildTimer = null;
     rebuilding = true;
 
     const parsed = parseDesignSchemaResult(get(designCode));
     if (parsed.error) {
-      rebuilding = false;
-      await clearSessionAfterFailure(parsed.error);
+      if (isCurrentRebuild(seq, signature)) {
+        rebuilding = false;
+        await clearSessionAfterFailure(parsed.error);
+      }
       return;
     }
 
@@ -147,8 +183,8 @@
     const componentDefs = designTreeToComponentDefinitions(nextRoot);
     const staticUnsupported = unsupportedSimulationComponents(nextRoot);
     const source = joinedSource(get(cells));
-    const result = await createSimulationSession(source, componentDefs, nextInitialState);
-    if (seq !== rebuildSeq) {
+    const result = await createSimulationSession(source, componentDefs, nextInitialState, currentSimulationScope());
+    if (!isCurrentRebuild(seq, signature)) {
       if (result.sessionId) await disposeSimulationSession(result.sessionId);
       return;
     }
@@ -162,6 +198,8 @@
 
     const oldSession = sessionId;
     sessionId = result.sessionId;
+    sessionSeq = seq;
+    sessionSignature = signature;
     root = nextRoot;
     componentState = mergeSimulationStatePatch(nextInitialState, result.statePatch);
     unsupportedEntries = mergeUnsupported([], [...staticUnsupported, ...(result.unsupported || [])]);
@@ -175,8 +213,12 @@
 
   async function applyPropertyPatch(component, property, value) {
     componentState = mergeSimulationStatePatch(componentState, { [component]: { [property]: value } });
-    if (sessionId === null) return null;
-    const result = await setSimulationProperty(sessionId, component, property, value);
+    const targetSession = sessionId;
+    const seq = sessionSeq;
+    const signature = sessionSignature;
+    if (!isCurrentSession(targetSession, seq, signature)) return null;
+    const result = await setSimulationProperty(targetSession, component, property, value, currentSimulationScope());
+    if (!isCurrentSession(targetSession, seq, signature)) return null;
     if (result.ok) {
       componentState = mergeSimulationStatePatch(componentState, result.statePatch);
       addUnsupported(result.unsupported);
@@ -184,7 +226,7 @@
     } else {
       simulateState.set({
         status: 'error',
-        sessionId,
+        sessionId: targetSession,
         error: result.error || 'Unable to update property.',
         diagnostics: result.diagnostics || [],
       });
@@ -209,12 +251,24 @@
         continue;
       }
       if (effect?.type !== 'component-action' || !effect.component || !effect.action) continue;
+      const { type, component, action, ...payload } = effect;
+      const current = next[component] || {};
+      const sequence = (current[action] || 0) + 1;
+      const componentSequence = (current.__seq || 0) + 1;
+      const payloadKey = `${action}Payload`;
+      const payloadsKey = `${action}Payloads`;
+      const payloadWithSeq = { ...payload, seq: sequence };
+      const actionEntry = { ...payload, action, seq: componentSequence };
       next = {
         ...next,
-        [effect.component]: {
-          ...(next[effect.component] || {}),
-          [effect.action]: ((next[effect.component]?.[effect.action] || 0) + 1),
-          ...(effect.position !== undefined ? { position: effect.position } : {}),
+        [component]: {
+          ...current,
+          __seq: componentSequence,
+          __actions: [...(current.__actions || []), actionEntry].slice(-500),
+          [action]: sequence,
+          [payloadKey]: payloadWithSeq,
+          [payloadsKey]: [...(current[payloadsKey] || []), payloadWithSeq].slice(-500),
+          ...(payload.position !== undefined ? { position: payload.position } : {}),
         },
       };
     }
@@ -398,9 +452,13 @@
   }
 
   async function handleEvent(e) {
-    if (sessionId === null) return;
     const { component, event, args } = e.detail;
-    const result = await dispatchSimulationEvent(sessionId, component, event, args || []);
+    const targetSession = sessionId;
+    const seq = sessionSeq;
+    const signature = sessionSignature;
+    if (!isCurrentSession(targetSession, seq, signature)) return;
+    const result = await dispatchSimulationEvent(targetSession, component, event, args || [], currentSimulationScope());
+    if (!isCurrentSession(targetSession, seq, signature)) return;
     if (result.ok) {
       componentState = mergeSimulationStatePatch(componentState, result.statePatch);
       addUnsupported(result.unsupported);
@@ -408,7 +466,7 @@
     } else {
       simulateState.set({
         status: 'error',
-        sessionId,
+        sessionId: targetSession,
         error: result.error || 'Simulation runtime error.',
         diagnostics: result.diagnostics || [],
       });
@@ -430,8 +488,10 @@
   }
 
   function restart() {
+    const seq = ++rebuildSeq;
+    const signature = sourceSignature;
     clearTimeout(rebuildTimer);
-    rebuildSimulation();
+    rebuildSimulation(seq, signature);
   }
 
   onDestroy(() => {

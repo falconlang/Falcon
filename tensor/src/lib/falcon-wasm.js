@@ -51,7 +51,7 @@ function normalizeDiagnostic(diagnostic) {
   }
 }
 
-function normalizeDiagnosticResult(result, extra = {}) {
+function normalizeDiagnosticResult(result, extra = () => ({})) {
   const obj = result && typeof result === 'object' ? result : {}
   const diagnostics = Array.from(obj.diagnostics ?? [])
     .map(normalizeDiagnostic)
@@ -70,21 +70,26 @@ function safeObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
-function loadSimulationTinyDBStores() {
+function simulationStorageKey(scope = '') {
+  const clean = String(scope || 'default').trim() || 'default';
+  return `${SIMULATION_TINYDB_STORAGE_KEY}:${encodeURIComponent(clean)}`;
+}
+
+function loadSimulationTinyDBStores(scope = '') {
   try {
     const storage = globalThis?.localStorage;
     if (!storage) return {};
-    return safeObject(JSON.parse(storage.getItem(SIMULATION_TINYDB_STORAGE_KEY) || '{}'));
+    return safeObject(JSON.parse(storage.getItem(simulationStorageKey(scope)) || '{}'));
   } catch {
     return {};
   }
 }
 
-function saveSimulationTinyDBStores(stores) {
+function saveSimulationTinyDBStores(stores, scope = '') {
   try {
     const storage = globalThis?.localStorage;
     if (!storage) return;
-    storage.setItem(SIMULATION_TINYDB_STORAGE_KEY, JSON.stringify(safeObject(stores)));
+    storage.setItem(simulationStorageKey(scope), JSON.stringify(safeObject(stores)));
   } catch {}
 }
 
@@ -144,9 +149,9 @@ function normalizeSimulationResult(result) {
   }))
 }
 
-function normalizePersistedSimulationResult(rawResult) {
+function normalizePersistedSimulationResult(rawResult, storageScope = '') {
   const result = normalizeSimulationResult(rawResult);
-  if (result.ok) saveSimulationTinyDBStores(result.tinyDBStores);
+  if (result.ok) saveSimulationTinyDBStores(result.tinyDBStores, storageScope);
   return result;
 }
 
@@ -314,7 +319,7 @@ export async function runCodeDiagnosticResult(sourceCode) {
   }
 }
 
-export async function createSimulationSession(sourceCode, componentDefs, initialState) {
+export async function createSimulationSession(sourceCode, componentDefs, initialState, storageScope = '') {
   await waitForReady()
   if (typeof window.createSimulationSession !== 'function') {
     return normalizeSimulationResult({ ok: false, error: 'Simulation runtime is not available' })
@@ -323,11 +328,11 @@ export async function createSimulationSession(sourceCode, componentDefs, initial
     String(sourceCode ?? ''),
     componentDefs || {},
     initialState || {},
-    loadSimulationTinyDBStores(),
-  ))
+    loadSimulationTinyDBStores(storageScope),
+  ), storageScope)
 }
 
-export async function setSimulationProperty(sessionId, component, property, value) {
+export async function setSimulationProperty(sessionId, component, property, value, storageScope = '') {
   await waitForReady()
   if (typeof window.setSimulationProperty !== 'function') {
     return normalizeSimulationResult({ ok: false, sessionId, error: 'Simulation runtime is not available' })
@@ -337,10 +342,10 @@ export async function setSimulationProperty(sessionId, component, property, valu
     String(component || ''),
     String(property || ''),
     value,
-  ))
+  ), storageScope)
 }
 
-export async function dispatchSimulationEvent(sessionId, component, event, args = []) {
+export async function dispatchSimulationEvent(sessionId, component, event, args = [], storageScope = '') {
   await waitForReady()
   if (typeof window.dispatchSimulationEvent !== 'function') {
     return normalizeSimulationResult({ ok: false, sessionId, error: 'Simulation runtime is not available' })
@@ -350,7 +355,7 @@ export async function dispatchSimulationEvent(sessionId, component, event, args 
     String(component || ''),
     String(event || ''),
     Array.isArray(args) ? args : [],
-  ))
+  ), storageScope)
 }
 
 export async function disposeSimulationSession(sessionId) {

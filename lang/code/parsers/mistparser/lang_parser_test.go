@@ -478,6 +478,40 @@ func TestGenericComponentEventAllowsAppInventorLeadingParameters(t *testing.T) {
 	}
 }
 
+func TestGenericComponentEventRejectsInvalidAppInventorLeadingParameters(t *testing.T) {
+	source := strings.Join([]string{
+		"@Button { Button1 }",
+		"",
+		"when any Button.Click(button, alreadyHandled) {",
+		"  println(button)",
+		"}",
+	}, "\n")
+	ctx := &context.CodeContext{SourceCode: &source, FileName: "test.mist"}
+	parser := NewLangParser(true, lex.NewLexer(ctx).Lex())
+	parser.SetComponentDefinitions(
+		map[string][]string{"Button": {"Button1"}},
+		map[string]string{"Button1": "Button"},
+	)
+	parser.SetEventValidator(compdb.GlobalDB.ValidateEvent)
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("ParseTopLevel() panic = nil, want invalid generic event diagnostic")
+		}
+		err, ok := r.(*context.DiagnosticError)
+		if !ok {
+			t.Fatalf("ParseTopLevel() panic = %T %v, want *context.DiagnosticError", r, r)
+		}
+		want := `event Button.Click parameter 1 must be "component", got "button"`
+		if !strings.Contains(err.Raw, want) {
+			t.Fatalf("diagnostic raw = %q, want substring %q", err.Raw, want)
+		}
+	}()
+
+	parser.ParseTopLevel()
+}
+
 func TestComponentEventParameterNameMismatchReportsDiagnostic(t *testing.T) {
 	source := strings.Join([]string{
 		"@Screen { Screen1 }",
