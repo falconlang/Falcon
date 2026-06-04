@@ -584,6 +584,14 @@ function renderXmlIntoWorkspace(xmlGenerated, workspace, { clear = true } = {}) 
   return blocks;
 }
 
+function disposeRenderedBlocks(blocks) {
+  for (const block of blocks || []) {
+    try {
+      block.dispose?.(false);
+    } catch {}
+  }
+}
+
 function arrangeBlocksVertically(workspace) {
   const item = window.Blockly?.ContextMenuRegistry?.registry?.getItem?.('appinventor_arrange_vertical');
   if (!item || typeof item.callback !== 'function') return;
@@ -712,6 +720,7 @@ export async function blocklyXmlToPng(xml, componentDefinitions = undefined, opt
       ? renderXmlIntoWorkspace(contextXml, workspace)
       : [];
     const blocks = renderXmlIntoWorkspace(xml, workspace, { clear: !contextBlocks.length });
+    disposeRenderedBlocks(contextBlocks);
     await nextFrame();
     arrangeBlocksVertically(workspace);
     window.Blockly.svgResize(workspace);
