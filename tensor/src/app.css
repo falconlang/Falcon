@@ -1,25 +1,25 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #F6F8FA;
-  --surface: #FFFFFF;
-  --border: #D8DEE3;
-  --border-soft: #E6EBF0;
-  --text: #1A1A21;
-  --text-muted: #6C7080;
-  --text-faint: #8C8F98;
+  --bg: #F3F5F8;
+  --surface: #FAFBFC;
+  --border: #D4DAE0;
+  --border-soft: #E2E7ED;
+  --text: #1C1E28;
+  --text-muted: #6A6E80;
+  --text-faint: #909399;
   --accent: #1A7A3E;
-  --accent-soft: #E8F5EE;
+  --accent-soft: #E6F3EC;
   --accent-mid: #3DA05A;
   --run: #1A6B3A;
-  --run-soft: #EBF5EE;
+  --run-soft: #E8F3EE;
   --warn: #8B5E00;
-  --warn-soft: #FBF4E6;
+  --warn-soft: #F8F2E4;
   --error: #8B2020;
-  --error-soft: #FCE8E8;
-  --cell-active: #ECEEF2;
-  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --error-soft: #FAE8E8;
+  --cell-active: #EAEDF2;
+  --shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
   --radius: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -27,13 +27,13 @@
   --mono: 'DM Mono', 'Fira Code', monospace;
   --sidebar-w: 220px;
   /* Syntax token colours (used by CodeMirror HighlightStyle) */
-  --tok-k: #6830CC;
+  --tok-k: #5E38B8;
   --tok-s: #1A6B3A;
-  --tok-n: #B83B0A;
-  --tok-c: #7E7B75;
-  --tok-f: #1A4EC4;
+  --tok-n: #964020;
+  --tok-c: #848480;
+  --tok-f: #2A55A8;
   --tok-b: #3A3730;
-  --tok-t: #521FB0;
+  --tok-t: #4830A0;
   --tok-o: #6E6960;
   --tok-p: #3A3730;
 }
@@ -485,11 +485,11 @@ html, body {
 .sidebar-item.active { background: var(--accent-soft); color: var(--accent); }
 .sidebar-item svg { width: 13px; height: 13px; flex-shrink: 0; }
 
-.sidebar-item--fn  { background: #7C3AED; color: #fff; }
-.sidebar-item--fn:hover  { background: #6D28D9; color: #fff; }
+.sidebar-item--fn  { background: #EDE8FA; color: #5235B0; }
+.sidebar-item--fn:hover  { background: #E3DCFA; color: #4028A0; }
 
-.sidebar-item--var { background: #EA580C; color: #fff; }
-.sidebar-item--var:hover { background: #C2510A; color: #fff; }
+.sidebar-item--var { background: #FCF1E6; color: #9A3E14; }
+.sidebar-item--var:hover { background: #FAE9D6; color: #883210; }
 
 .sidebar-symbol-name {
   flex: 1;
@@ -967,13 +967,13 @@ html, body {
 }
 
 /* Syntax highlight tokens — light */
-.k  { color: #6830CC; }
+.k  { color: #5E38B8; }
 .s  { color: #1A6B3A; }
-.n  { color: #B83B0A; }
-.c  { color: #7E7B75; font-style: italic; }
-.f  { color: #1A4EC4; }
+.n  { color: #964020; }
+.c  { color: #848480; font-style: italic; }
+.f  { color: #2A55A8; }
 .b  { color: #3A3730; font-weight: 500; }
-.t  { color: #521FB0; }
+.t  { color: #4830A0; }
 .o  { color: #6E6960; }
 .p  { color: #3A3730; }
 
@@ -1919,7 +1919,6 @@ input:focus-visible {
 #debug-toolbar-btn.active {
   background: var(--warn-soft);
   color: var(--warn);
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--warn) 28%, transparent);
 }
 
 /* Gutter line numbers — current executing line */

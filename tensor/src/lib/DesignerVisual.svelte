@@ -1591,7 +1591,10 @@
               on:mousedown={() => { addCompSelecting = true; }}
               on:click={() => pickSuggestion(name)}
               tabindex="-1"
-            >{name}</button>
+            >
+              <svg class="vis-add-suggestion-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor">{@html compIcon(name)}</svg>
+              {name}
+            </button>
           {/each}
         </div>
       {/if}
@@ -2452,6 +2455,18 @@
   .vis-add-suggestion:hover,
   .vis-add-suggestion.highlighted {
     background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .vis-add-suggestion-icon {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    margin-right: 7px;
+    color: var(--text-faint);
+    transition: color 0.08s;
+  }
+  .vis-add-suggestion:hover .vis-add-suggestion-icon,
+  .vis-add-suggestion.highlighted .vis-add-suggestion-icon {
     color: var(--accent);
   }
 
