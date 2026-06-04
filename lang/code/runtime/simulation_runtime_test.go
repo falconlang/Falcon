@@ -3,19 +3,58 @@ package runtime
 import (
 	"Falcon/code/ast"
 	"Falcon/code/ast/components"
+	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/variables"
 	"Falcon/code/compdb"
 	"Falcon/code/context"
 	"Falcon/code/lex"
 	"Falcon/code/parsers/mistparser"
+	"fmt"
+	"sort"
 	"strings"
 	"testing"
 )
 
 type componentHostTestDouble struct {
-	state       map[string]map[string]Value
-	effects     []string
-	unsupported []string
+	state          map[string]map[string]Value
+	effects        []string
+	unsupported    []string
+	componentTypes map[string]string
+	componentNames map[string][]string
+}
+
+var defaultSimulationRuntimeComponentTypes = map[string]string{
+	"Screen1":             "Screen",
+	"AddButton":           "Button",
+	"Level":               "Slider",
+	"firstNumberTextBox":  "TextBox",
+	"secondNumberTextBox": "TextBox",
+	"Notifier1":           "Notifier",
+}
+
+func (h *componentHostTestDouble) ComponentType(componentName string) string {
+	if h.componentTypes != nil {
+		return h.componentTypes[componentName]
+	}
+	return defaultSimulationRuntimeComponentTypes[componentName]
+}
+
+func (h *componentHostTestDouble) ComponentNames(componentType string) []string {
+	if h.componentNames != nil {
+		return append([]string(nil), h.componentNames[componentType]...)
+	}
+	types := h.componentTypes
+	if types == nil {
+		types = defaultSimulationRuntimeComponentTypes
+	}
+	names := make([]string, 0)
+	for name, typ := range types {
+		if typ == componentType {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
 }
 
 func (h *componentHostTestDouble) GetProperty(componentName, componentType, property string) Value {
@@ -47,6 +86,109 @@ func (h *componentHostTestDouble) CallMethod(componentName, componentType, metho
 
 func (h *componentHostTestDouble) Unsupported(kind, detail string) {
 	h.unsupported = append(h.unsupported, kind+":"+detail)
+}
+
+func TestSimulationRuntimeGenericComponentBlocksDelegateToHost(t *testing.T) {
+	host := &componentHostTestDouble{
+		state: map[string]map[string]Value{
+			"firstNumberTextBox": {"Text": StrVal("")},
+			"Notifier1":          {},
+		},
+		componentNames: map[string][]string{
+			"Button": {"AddButton"},
+		},
+	}
+	interp := NewInterpreter()
+	interp.SetComponentHost(host)
+
+	interp.Eval(&components.GenericPropertySet{
+		Component:     &fundamentals.Component{Name: "firstNumberTextBox", Type: "TextBox"},
+		ComponentType: "TextBox",
+		Property:      "Text",
+		Value:         &fundamentals.Text{Content: "generic"},
+	})
+	got := interp.Eval(&components.GenericPropertyGet{
+		Component:     &fundamentals.Component{Name: "firstNumberTextBox", Type: "TextBox"},
+		ComponentType: "TextBox",
+		Property:      "Text",
+	})
+	if got.AsStr() != "generic" {
+		t.Fatalf("generic Text get = %q, want generic", got.AsStr())
+	}
+
+	interp.RunBodyWithLocals([]ast.Expr{
+		&components.GenericPropertySet{
+			Component:     &variables.Get{Name: "component"},
+			ComponentType: "TextBox",
+			Property:      "Text",
+			Value:         &fundamentals.Text{Content: "from event component"},
+		},
+	}, []string{"component"}, []Value{StrVal("firstNumberTextBox")})
+	if got := host.state["firstNumberTextBox"]["Text"].AsStr(); got != "from event component" {
+		t.Fatalf("generic event component Text = %q, want from event component", got)
+	}
+
+	interp.Eval(&components.GenericMethodCall{
+		Component:     &fundamentals.Component{Name: "Notifier1", Type: "Notifier"},
+		ComponentType: "Notifier",
+		Method:        "ShowAlert",
+		Args:          []ast.Expr{&fundamentals.Text{Content: "hello"}},
+	})
+	if len(host.effects) != 1 || host.effects[0] != "hello" {
+		t.Fatalf("generic method effects = %#v, want hello", host.effects)
+	}
+
+	componentsList := interp.Eval(&components.EveryComponent{Type: "Button"}).AsList()
+	if len(*componentsList) != 1 || (*componentsList)[0].AsStr() != "AddButton" {
+		t.Fatalf("every(Button) = %s, want [AddButton]", ListVal(*componentsList).String())
+	}
+}
+
+func TestSimulationRuntimeGenericHelpersDelegateToHost(t *testing.T) {
+	host := &componentHostTestDouble{state: map[string]map[string]Value{
+		"firstNumberTextBox": {"Text": StrVal("")},
+		"Level":              {"ThumbPosition": NumVal(7)},
+		"Notifier1":          {},
+	}}
+	interp, events := newSimulationRuntimeTestSession(t, strings.Join([]string{
+		`when AddButton.Click {`,
+		`  set("TextBox", firstNumberTextBox, "Text", get("Slider", Level, "ThumbPosition"))`,
+		`  call("Notifier", Notifier1, "ShowAlert", get("TextBox", firstNumberTextBox, "Text"))`,
+		`}`,
+	}, "\n"), host)
+
+	interp.RunBody(events["AddButton.Click"].Body)
+
+	if got := host.state["firstNumberTextBox"]["Text"].AsStr(); got != "7" {
+		t.Fatalf("generic helper Text = %q, want 7", got)
+	}
+	if len(host.effects) != 1 || host.effects[0] != "7" {
+		t.Fatalf("generic helper effects = %#v, want 7", host.effects)
+	}
+}
+
+func TestSimulationRuntimeGenericBlockRejectsWrongComponentType(t *testing.T) {
+	host := &componentHostTestDouble{state: map[string]map[string]Value{
+		"firstNumberTextBox": {"Text": StrVal("")},
+	}}
+	interp := NewInterpreter()
+	interp.SetComponentHost(host)
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("generic property get panic = nil, want component type mismatch")
+		}
+		if !strings.Contains(fmt.Sprint(r), "expected component of type Button but got TextBox") {
+			t.Fatalf("generic property get panic = %v, want type mismatch", r)
+		}
+	}()
+
+	interp.Eval(&components.GenericPropertyGet{
+		Component:     &fundamentals.Component{Name: "firstNumberTextBox", Type: "TextBox"},
+		ComponentType: "Button",
+		Property:      "Text",
+	})
 }
 
 func parseSimulationRuntimeTestSource(t *testing.T, src string) []ast.Expr {

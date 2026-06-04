@@ -44,6 +44,8 @@ type stackFrame struct {
 }
 
 type ComponentHost interface {
+	ComponentType(componentName string) string
+	ComponentNames(componentType string) []string
 	GetProperty(componentName, componentType, property string) Value
 	SetProperty(componentName, componentType, property string, value Value)
 	CallMethod(componentName, componentType, method string, args []Value) Value
@@ -216,6 +218,9 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 	case *fundamentals.Yield:
 		return i.Eval(e.GetExpr())
 	case *fundamentals.Component:
+		if i.componentHost != nil {
+			return StrVal(e.Name)
+		}
 		i.stub("component reference @" + e.Name + " (" + e.Type + ")")
 		return NullVal()
 
@@ -387,10 +392,10 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		return VoidVal()
 	case *components.GenericMethodCall:
 		if i.componentHost != nil {
-			i.componentHost.Unsupported("generic-method", e.ComponentType+"."+e.Method)
-		} else {
-			i.stub("generic component method " + e.ComponentType + "." + e.Method + "(...)")
+			componentName := i.resolveComponentName(i.Eval(e.Component), e.ComponentType)
+			return i.componentHost.CallMethod(componentName, e.ComponentType, e.Method, i.evalExprs(e.Args))
 		}
+		i.stub("generic component method " + e.ComponentType + "." + e.Method + "(...)")
 		return VoidVal()
 	case *components.PropertyGet:
 		if i.componentHost != nil {
@@ -400,10 +405,10 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		return NullVal() // property reads are expressions
 	case *components.GenericPropertyGet:
 		if i.componentHost != nil {
-			i.componentHost.Unsupported("generic-property-get", e.ComponentType+"."+e.Property)
-		} else {
-			i.stub("generic property get " + e.ComponentType + "." + e.Property)
+			componentName := i.resolveComponentName(i.Eval(e.Component), e.ComponentType)
+			return i.componentHost.GetProperty(componentName, e.ComponentType, e.Property)
 		}
+		i.stub("generic property get " + e.ComponentType + "." + e.Property)
 		return NullVal() // property reads are expressions
 	case *components.PropertySet:
 		if i.componentHost != nil {
@@ -414,16 +419,15 @@ func (i *Interpreter) Eval(expr ast.Expr) Value {
 		return VoidVal()
 	case *components.GenericPropertySet:
 		if i.componentHost != nil {
-			i.componentHost.Unsupported("generic-property-set", e.ComponentType+"."+e.Property)
-		} else {
-			i.stub("generic property set " + e.ComponentType + "." + e.Property)
+			componentName := i.resolveComponentName(i.Eval(e.Component), e.ComponentType)
+			i.componentHost.SetProperty(componentName, e.ComponentType, e.Property, i.Eval(e.Value))
+			return VoidVal()
 		}
+		i.stub("generic property set " + e.ComponentType + "." + e.Property)
 		return VoidVal()
 	case *components.EveryComponent:
 		if i.componentHost != nil {
-			i.componentHost.Unsupported("every-component", "every("+e.Type+")")
-		} else {
-			i.stub("every(" + e.Type + ")")
+			return componentList(i.componentHost.ComponentNames(e.Type))
 		}
 		return EmptyList()
 
@@ -982,4 +986,30 @@ func (i *Interpreter) evalExprs(exprs []ast.Expr) []Value {
 		vals[k] = i.Eval(expr)
 	}
 	return vals
+}
+
+func (i *Interpreter) resolveComponentName(value Value, expectedType string) string {
+	name := strings.TrimSpace(value.AsStr())
+	if name == "" {
+		panic("expected component reference")
+	}
+	if i.componentHost == nil || expectedType == "" {
+		return name
+	}
+	actualType := i.componentHost.ComponentType(name)
+	if actualType == "" {
+		panic("unknown component: " + name)
+	}
+	if actualType != expectedType {
+		panic("expected component of type " + expectedType + " but got " + actualType + ": " + name)
+	}
+	return name
+}
+
+func componentList(names []string) Value {
+	values := make([]Value, len(names))
+	for index, name := range names {
+		values[index] = StrVal(name)
+	}
+	return ListVal(values)
 }

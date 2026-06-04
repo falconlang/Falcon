@@ -4,13 +4,22 @@ package runtime
 // Numeric specials (base conversions, colour, random, statistics) live in numops.go.
 
 import (
+	"Falcon/code/ast"
 	"Falcon/code/ast/common"
+	"Falcon/code/ast/fundamentals"
+	"Falcon/code/ast/variables"
 	"math"
+	"strings"
 )
 
 func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 	savedToken := i.lastToken
 	savedHighlight := i.lastHighlight
+	if i.componentHost != nil && isGenericComponentFunc(e.Name) {
+		i.lastToken = savedToken
+		i.lastHighlight = savedHighlight
+		return i.evalGenericComponentFunc(e)
+	}
 	args := make([]Value, len(e.Args))
 	for k, a := range e.Args {
 		args[k] = i.Eval(a)
@@ -187,4 +196,55 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 	default:
 		panic("unknown built-in function: " + e.Name)
 	}
+}
+
+func isGenericComponentFunc(name string) bool {
+	switch name {
+	case "set", "get", "call", "vcall", "every":
+		return true
+	default:
+		return false
+	}
+}
+
+func (i *Interpreter) evalGenericComponentFunc(e *common.FuncCall) Value {
+	switch e.Name {
+	case "every":
+		componentType := i.componentTypeArgument(e.Args[0])
+		return componentList(i.componentHost.ComponentNames(componentType))
+	case "get":
+		componentType := i.componentTypeArgument(e.Args[0])
+		componentName := i.resolveComponentName(i.Eval(e.Args[1]), componentType)
+		property := i.Eval(e.Args[2]).AsStr()
+		return i.componentHost.GetProperty(componentName, componentType, property)
+	case "set":
+		componentType := i.componentTypeArgument(e.Args[0])
+		componentName := i.resolveComponentName(i.Eval(e.Args[1]), componentType)
+		property := i.Eval(e.Args[2]).AsStr()
+		i.componentHost.SetProperty(componentName, componentType, property, i.Eval(e.Args[3]))
+		return VoidVal()
+	case "call", "vcall":
+		componentType := i.componentTypeArgument(e.Args[0])
+		componentName := i.resolveComponentName(i.Eval(e.Args[1]), componentType)
+		method := i.Eval(e.Args[2]).AsStr()
+		args := make([]Value, 0, len(e.Args)-3)
+		for _, arg := range e.Args[3:] {
+			args = append(args, i.Eval(arg))
+		}
+		return i.componentHost.CallMethod(componentName, componentType, method, args)
+	default:
+		panic("unknown generic component function: " + e.Name)
+	}
+}
+
+func (i *Interpreter) componentTypeArgument(expr ast.Expr) string {
+	switch n := ast.UnwrapAnnotated(expr).(type) {
+	case *fundamentals.Text:
+		return strings.TrimSpace(n.Content)
+	case *variables.Get:
+		if !n.Global && len(i.componentHost.ComponentNames(n.Name)) > 0 {
+			return n.Name
+		}
+	}
+	return strings.TrimSpace(i.Eval(expr).AsStr())
 }

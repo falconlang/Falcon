@@ -45,6 +45,7 @@ type simulationHost struct {
 	unsupported    []map[string]any
 	tinyDB         map[string]map[string]runtime.Value
 	componentTypes map[string]string
+	componentNames map[string][]string
 	runEvent       func(componentName, componentType, eventName string, args []runtime.Value) bool
 
 	// Property patches originating from browser input already carry their event.
@@ -54,7 +55,7 @@ type simulationHost struct {
 var simulationSessions = map[int]*simulationSession{}
 var nextSimulationSessionID = 1
 
-func newSimulationHost(initial map[string]map[string]runtime.Value, componentTypes map[string]string, tinyDBInitial map[string]map[string]runtime.Value) *simulationHost {
+func newSimulationHost(initial map[string]map[string]runtime.Value, componentNames map[string][]string, componentTypes map[string]string, tinyDBInitial map[string]map[string]runtime.Value) *simulationHost {
 	state := make(map[string]map[string]runtime.Value)
 	for component, props := range initial {
 		state[component] = make(map[string]runtime.Value)
@@ -65,6 +66,10 @@ func newSimulationHost(initial map[string]map[string]runtime.Value, componentTyp
 	typeCopy := make(map[string]string)
 	for component, componentType := range componentTypes {
 		typeCopy[component] = componentType
+	}
+	nameCopy := make(map[string][]string)
+	for componentType, names := range componentNames {
+		nameCopy[componentType] = append([]string(nil), names...)
 	}
 	tinyDB := make(map[string]map[string]runtime.Value)
 	for namespace, store := range tinyDBInitial {
@@ -78,7 +83,26 @@ func newSimulationHost(initial map[string]map[string]runtime.Value, componentTyp
 		statePatch:     map[string]map[string]any{},
 		tinyDB:         tinyDB,
 		componentTypes: typeCopy,
+		componentNames: nameCopy,
 	}
+}
+
+func (h *simulationHost) ComponentType(componentName string) string {
+	return h.componentType(componentName, "")
+}
+
+func (h *simulationHost) ComponentNames(componentType string) []string {
+	if names, ok := h.componentNames[componentType]; ok {
+		return append([]string(nil), names...)
+	}
+	names := make([]string, 0)
+	for name, typ := range h.componentTypes {
+		if typ == componentType {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
 }
 
 func (h *simulationHost) GetProperty(componentName, componentType, property string) runtime.Value {
@@ -112,11 +136,44 @@ func (h *simulationHost) GetProperty(componentName, componentType, property stri
 			return runtime.StrVal("simulator")
 		}
 	}
+	if componentType == "Trendline" {
+		if value, ok := h.trendlineProperty(componentName, property); ok {
+			return value
+		}
+	}
+	if componentType == "Label" && property == "HTMLContent" {
+		return h.GetProperty(componentName, componentType, "Text")
+	}
+	if componentType == "ListView" && property == "SelectionDetailText" {
+		index := int(valueAsNumber(h.GetProperty(componentName, componentType, "SelectionIndex"), 0)) - 1
+		elements := valueList(h.GetProperty(componentName, componentType, "Elements"))
+		if index >= 0 && index < len(elements) {
+			return runtime.StrVal(listViewDetailText(elements[index]))
+		}
+		return runtime.StrVal("")
+	}
+	if isMapFeatureType(componentType) && property == "Type" {
+		return runtime.StrVal(componentType)
+	}
 	return runtime.NullVal()
 }
 
 func (h *simulationHost) SetProperty(componentName, componentType, property string, value runtime.Value) {
 	componentType = h.componentType(componentName, componentType)
+	if property == "WidthPercent" || property == "HeightPercent" {
+		target := "Width"
+		if property == "HeightPercent" {
+			target = "Height"
+		}
+		percent := clampFloat(value.AsNum(), 0, 100)
+		h.setProperty(componentName, target, runtime.NumVal(-(1000 + percent)))
+		return
+	}
+	if property == "TextSize" {
+		h.setProperty(componentName, "TextSize", value)
+		h.setProperty(componentName, "FontSize", value)
+		return
+	}
 	if property == "ElementsFromString" {
 		h.setProperty(componentName, "ElementsFromString", value)
 		h.setElements(componentName, componentType, runtime.ListVal(elementsFromString(value.AsStr())))
@@ -185,6 +242,33 @@ func (h *simulationHost) SetProperty(componentName, componentType, property stri
 		h.effects = append(h.effects, componentActionWith(componentName, "navigate", map[string]any{"url": value.AsStr()}))
 		return
 	}
+	if componentType == "Map" && property == "CenterFromString" {
+		h.setProperty(componentName, property, value)
+		coords := numbersFromValue(value)
+		if len(coords) >= 2 {
+			h.setProperty(componentName, "Latitude", runtime.NumVal(coords[0]))
+			h.setProperty(componentName, "Longitude", runtime.NumVal(coords[1]))
+		} else {
+			h.logs = append(h.logs, "Map.CenterFromString ignored invalid coordinate string: "+value.AsStr())
+		}
+		return
+	}
+	if componentType == "ImageSprite" && property == "MarkOrigin" {
+		h.setProperty(componentName, property, value)
+		coords := numbersFromValue(value)
+		if len(coords) >= 2 {
+			h.setProperty(componentName, "OriginX", runtime.NumVal(coords[0]))
+			h.setProperty(componentName, "OriginY", runtime.NumVal(coords[1]))
+		}
+		return
+	}
+	if componentType == "VideoPlayer" && property == "FullScreen" {
+		h.setProperty(componentName, property, value)
+		if valueAsBool(value) {
+			h.effects = append(h.effects, componentAction(componentName, "fullscreen"))
+		}
+		return
+	}
 	if (componentType == "CheckBox" && property == "Checked") || (componentType == "Switch" && property == "On") {
 		changed := valueAsBool(h.GetProperty(componentName, componentType, property)) != valueAsBool(value)
 		h.setProperty(componentName, property, value)
@@ -194,6 +278,15 @@ func (h *simulationHost) SetProperty(componentName, componentType, property stri
 		return
 	}
 	h.setProperty(componentName, property, value)
+}
+
+func isMapFeatureType(componentType string) bool {
+	switch componentType {
+	case "Marker", "Circle", "LineString", "Polygon", "Rectangle":
+		return true
+	default:
+		return false
+	}
 }
 
 func (h *simulationHost) componentType(componentName, explicit string) string {
@@ -793,6 +886,8 @@ func (h *simulationHost) CallMethod(componentName, componentType, method string,
 		return h.callChartMethod(componentName, method, args)
 	case "ChartData2D":
 		return h.callChartData2DMethod(componentName, method, args)
+	case "Trendline":
+		return h.callTrendlineMethod(componentName, method, args)
 	case "Map":
 		return h.callMapMethod(componentName, method, args)
 	case "Marker", "Circle", "LineString", "Polygon", "Rectangle":
@@ -1314,13 +1409,135 @@ func (h *simulationHost) callSpriteMethod(componentName, componentType, method s
 			h.setProperty(componentName, "Heading", runtime.NumVal(heading))
 		}
 	case "Bounce", "MoveIntoBounds", "PointTowards":
-		h.Unsupported("method", componentName+"."+method+" requires a running animation loop")
+		switch method {
+		case "Bounce":
+			if len(args) >= 1 {
+				h.bounceSprite(componentName, componentType, int(valueAsNumber(args[0], 0)))
+			}
+		case "MoveIntoBounds":
+			h.moveSpriteIntoBounds(componentName, componentType)
+		case "PointTowards":
+			if len(args) >= 1 {
+				h.pointSpriteTowards(componentName, componentType, args[0].AsStr())
+			}
+		}
 	case "CollidingWith":
+		if len(args) >= 1 {
+			return runtime.BoolVal(h.spritesCollide(componentName, componentType, args[0].AsStr()))
+		}
 		return runtime.BoolVal(false)
 	default:
 		h.Unsupported("method", componentName+"."+method)
 	}
 	return runtime.VoidVal()
+}
+
+type spriteBounds struct {
+	x      float64
+	y      float64
+	width  float64
+	height float64
+}
+
+func (h *simulationHost) spriteBounds(componentName, componentType string) spriteBounds {
+	x := valueAsNumber(h.GetProperty(componentName, componentType, "X"), 0)
+	y := valueAsNumber(h.GetProperty(componentName, componentType, "Y"), 0)
+	if componentType == "Ball" {
+		r := math.Max(0, valueAsNumber(h.GetProperty(componentName, componentType, "Radius"), 5))
+		return spriteBounds{x: x, y: y, width: r * 2, height: r * 2}
+	}
+	width := math.Max(0, valueAsNumber(h.GetProperty(componentName, componentType, "Width"), 0))
+	height := math.Max(0, valueAsNumber(h.GetProperty(componentName, componentType, "Height"), 0))
+	return spriteBounds{x: x, y: y, width: width, height: height}
+}
+
+func (b spriteBounds) center() (float64, float64) {
+	return b.x + b.width/2, b.y + b.height/2
+}
+
+func (h *simulationHost) spritesCollide(aName, aType, bName string) bool {
+	bType := h.componentType(bName, "")
+	if bType != "Ball" && bType != "ImageSprite" {
+		return false
+	}
+	a := h.spriteBounds(aName, aType)
+	b := h.spriteBounds(bName, bType)
+	return a.x < b.x+b.width && a.x+a.width > b.x && a.y < b.y+b.height && a.y+a.height > b.y
+}
+
+func (h *simulationHost) bounceSprite(componentName, componentType string, edge int) {
+	heading := valueAsNumber(h.GetProperty(componentName, componentType, "Heading"), 0)
+	switch edge {
+	case 1, 3:
+		heading = 360 - heading
+	case 2, 4:
+		heading = 180 - heading
+	default:
+		return
+	}
+	h.setProperty(componentName, "Heading", runtime.NumVal(normalizeDegrees(heading)))
+}
+
+func normalizeDegrees(value float64) float64 {
+	value = math.Mod(value, 360)
+	if value < 0 {
+		value += 360
+	}
+	return value
+}
+
+func (h *simulationHost) moveSpriteIntoBounds(componentName, componentType string) {
+	canvasWidth, canvasHeight := h.firstCanvasSize()
+	bounds := h.spriteBounds(componentName, componentType)
+	x := bounds.x
+	y := bounds.y
+	if bounds.x < 0 {
+		x = 0
+	}
+	if bounds.y < 0 {
+		y = 0
+	}
+	if bounds.x+bounds.width > canvasWidth {
+		x = math.Max(0, canvasWidth-bounds.width)
+	}
+	if bounds.y+bounds.height > canvasHeight {
+		y = math.Max(0, canvasHeight-bounds.height)
+	}
+	h.setProperty(componentName, "X", runtime.NumVal(x))
+	h.setProperty(componentName, "Y", runtime.NumVal(y))
+}
+
+func (h *simulationHost) firstCanvasSize() (float64, float64) {
+	names := make([]string, 0, len(h.componentTypes))
+	for name, componentType := range h.componentTypes {
+		if componentType == "Canvas" {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	if len(names) == 0 {
+		return 360, 300
+	}
+	width := valueAsNumber(h.GetProperty(names[0], "Canvas", "Width"), 360)
+	height := valueAsNumber(h.GetProperty(names[0], "Canvas", "Height"), 300)
+	if width < 0 {
+		width = 360
+	}
+	if height < 0 {
+		height = 300
+	}
+	return width, height
+}
+
+func (h *simulationHost) pointSpriteTowards(componentName, componentType, targetName string) {
+	targetType := h.componentType(targetName, "")
+	if targetType != "Ball" && targetType != "ImageSprite" {
+		return
+	}
+	x1, y1 := h.spriteBounds(componentName, componentType).center()
+	x2, y2 := h.spriteBounds(targetName, targetType).center()
+	heading := math.Atan2(-(y2-y1), x2-x1) * 180 / math.Pi
+	h.setProperty(componentName, "Heading", runtime.NumVal(normalizeDegrees(heading)))
 }
 
 func (h *simulationHost) callChartMethod(componentName, method string, args []runtime.Value) runtime.Value {
@@ -1340,12 +1557,30 @@ func (h *simulationHost) callChartMethod(componentName, method string, args []ru
 		h.setProperty(componentName, "XMax", runtime.NullVal())
 		h.setProperty(componentName, "YMin", runtime.NullVal())
 		h.setProperty(componentName, "YMax", runtime.NullVal())
-	case "ExtendDomainToInclude", "ExtendRangeToInclude":
-		// Client-side concern; just log
+	case "ExtendDomainToInclude":
+		if len(args) >= 1 {
+			h.extendChartAxis(componentName, "XMin", "XMax", args[0].AsNum())
+		}
+	case "ExtendRangeToInclude":
+		if len(args) >= 1 {
+			h.extendChartAxis(componentName, "YMin", "YMax", args[0].AsNum())
+		}
 	default:
 		h.Unsupported("method", componentName+"."+method)
 	}
 	return runtime.VoidVal()
+}
+
+func (h *simulationHost) extendChartAxis(componentName, minProp, maxProp string, value float64) {
+	minValue := h.GetProperty(componentName, "Chart", minProp)
+	maxValue := h.GetProperty(componentName, "Chart", maxProp)
+	if minValue.Type() == runtime.Null || maxValue.Type() == runtime.Null {
+		h.setProperty(componentName, minProp, runtime.NumVal(value))
+		h.setProperty(componentName, maxProp, runtime.NumVal(value))
+		return
+	}
+	h.setProperty(componentName, minProp, runtime.NumVal(math.Min(valueAsNumber(minValue, value), value)))
+	h.setProperty(componentName, maxProp, runtime.NumVal(math.Max(valueAsNumber(maxValue, value), value)))
 }
 
 func (h *simulationHost) callChartData2DMethod(componentName, method string, args []runtime.Value) runtime.Value {
@@ -1437,6 +1672,246 @@ func (h *simulationHost) callChartData2DMethod(componentName, method string, arg
 	return runtime.VoidVal()
 }
 
+type regressionPoint struct {
+	x float64
+	y float64
+}
+
+type linearRegressionResult struct {
+	slope     float64
+	intercept float64
+	r         float64
+	r2        float64
+	ok        bool
+}
+
+func (h *simulationHost) callTrendlineMethod(componentName, method string, args []runtime.Value) runtime.Value {
+	switch method {
+	case "GetResultValue":
+		if len(args) < 1 {
+			return runtime.NullVal()
+		}
+		results := h.trendlineResults(componentName)
+		key := args[0].AsStr()
+		if value, ok := results.Get(key); ok {
+			return value
+		}
+		return runtime.NullVal()
+	case "DisconnectFromChartData":
+		h.setProperty(componentName, "ChartData", runtime.StrVal(""))
+		return runtime.VoidVal()
+	default:
+		h.Unsupported("method", componentName+"."+method)
+		return runtime.VoidVal()
+	}
+}
+
+func (h *simulationHost) trendlineProperty(componentName, property string) (runtime.Value, bool) {
+	result := h.linearRegressionForTrendline(componentName)
+	results := h.trendlineResults(componentName)
+	switch property {
+	case "Results":
+		return runtime.DictVal(results), true
+	case "CorrelationCoefficient":
+		return runtime.NumVal(result.r), true
+	case "LinearCoefficient":
+		return runtime.NumVal(result.slope), true
+	case "RSquared":
+		return runtime.NumVal(result.r2), true
+	case "YIntercept":
+		return runtime.NumVal(result.intercept), true
+	case "XIntercepts":
+		if !result.ok || result.slope == 0 {
+			return runtime.ListVal(nil), true
+		}
+		return runtime.ListVal([]runtime.Value{runtime.NumVal(-result.intercept / result.slope)}), true
+	case "Predictions":
+		points := h.trendlinePoints(componentName)
+		predictions := make([]runtime.Value, 0, len(points))
+		for _, point := range points {
+			predictions = append(predictions, runtime.NumVal(result.slope*point.x+result.intercept))
+		}
+		return runtime.ListVal(predictions), true
+	case "ExponentialBase", "ExponentialCoefficient":
+		coef, base, ok := exponentialRegression(h.trendlinePoints(componentName))
+		if !ok {
+			return runtime.NumVal(0), true
+		}
+		if property == "ExponentialBase" {
+			return runtime.NumVal(base), true
+		}
+		return runtime.NumVal(coef), true
+	case "LogarithmCoefficient", "LogarithmConstant":
+		coef, constant, ok := logarithmicRegression(h.trendlinePoints(componentName))
+		if !ok {
+			return runtime.NumVal(0), true
+		}
+		if property == "LogarithmCoefficient" {
+			return runtime.NumVal(coef), true
+		}
+		return runtime.NumVal(constant), true
+	case "QuadraticCoefficient":
+		a, _, _, ok := quadraticRegression(h.trendlinePoints(componentName))
+		if !ok {
+			return runtime.NumVal(0), true
+		}
+		return runtime.NumVal(a), true
+	default:
+		return runtime.NullVal(), false
+	}
+}
+
+func (h *simulationHost) trendlineResults(componentName string) *runtime.OrderedDict {
+	result := h.linearRegressionForTrendline(componentName)
+	out := runtime.NewOrderedDict()
+	out.Set("slope", runtime.NumVal(result.slope))
+	out.Set("intercept", runtime.NumVal(result.intercept))
+	out.Set("r", runtime.NumVal(result.r))
+	out.Set("rSquared", runtime.NumVal(result.r2))
+	out.Set("LinearCoefficient", runtime.NumVal(result.slope))
+	out.Set("YIntercept", runtime.NumVal(result.intercept))
+	out.Set("CorrelationCoefficient", runtime.NumVal(result.r))
+	out.Set("RSquared", runtime.NumVal(result.r2))
+	return out
+}
+
+func (h *simulationHost) linearRegressionForTrendline(componentName string) linearRegressionResult {
+	return linearRegression(h.trendlinePoints(componentName))
+}
+
+func (h *simulationHost) trendlinePoints(componentName string) []regressionPoint {
+	target := strings.TrimSpace(h.GetProperty(componentName, "Trendline", "ChartData").AsStr())
+	if target == "" || h.componentType(target, "") != "ChartData2D" {
+		names := make([]string, 0, len(h.componentTypes))
+		for name, componentType := range h.componentTypes {
+			if componentType == "ChartData2D" {
+				names = append(names, name)
+			}
+		}
+		sort.Strings(names)
+		if len(names) > 0 {
+			target = names[0]
+		}
+	}
+	if target == "" {
+		return nil
+	}
+	return chartPointsFromValue(h.GetProperty(target, "ChartData2D", "Elements"))
+}
+
+func chartPointsFromValue(value runtime.Value) []regressionPoint {
+	items := valueList(value)
+	points := make([]regressionPoint, 0, len(items))
+	for _, item := range items {
+		if item.Type() == runtime.Dict {
+			x, okX := dictFloatAny(item, "x", "X", "Text1")
+			y, okY := dictFloatAny(item, "y", "Y", "Text2")
+			if okX && okY {
+				points = append(points, regressionPoint{x: x, y: y})
+			}
+			continue
+		}
+		nums := numbersFromValue(item)
+		if len(nums) >= 2 {
+			points = append(points, regressionPoint{x: nums[0], y: nums[1]})
+		}
+	}
+	return points
+}
+
+func dictFloatAny(value runtime.Value, keys ...string) (float64, bool) {
+	if val, ok := dictValueAny(value, keys...); ok {
+		n, ok := runtime.CoerceNum(val)
+		if ok && !math.IsNaN(n) && !math.IsInf(n, 0) {
+			return n, true
+		}
+	}
+	return 0, false
+}
+
+func linearRegression(points []regressionPoint) linearRegressionResult {
+	n := float64(len(points))
+	if n < 2 {
+		return linearRegressionResult{}
+	}
+	var sumX, sumY, sumXY, sumXX, sumYY float64
+	for _, point := range points {
+		sumX += point.x
+		sumY += point.y
+		sumXY += point.x * point.y
+		sumXX += point.x * point.x
+		sumYY += point.y * point.y
+	}
+	denom := n*sumXX - sumX*sumX
+	if denom == 0 {
+		return linearRegressionResult{}
+	}
+	slope := (n*sumXY - sumX*sumY) / denom
+	intercept := (sumY - slope*sumX) / n
+	rDenom := math.Sqrt((n*sumXX - sumX*sumX) * (n*sumYY - sumY*sumY))
+	r := 0.0
+	if rDenom != 0 {
+		r = (n*sumXY - sumX*sumY) / rDenom
+	}
+	return linearRegressionResult{slope: slope, intercept: intercept, r: r, r2: r * r, ok: true}
+}
+
+func exponentialRegression(points []regressionPoint) (float64, float64, bool) {
+	transformed := make([]regressionPoint, 0, len(points))
+	for _, point := range points {
+		if point.y <= 0 {
+			continue
+		}
+		transformed = append(transformed, regressionPoint{x: point.x, y: math.Log(point.y)})
+	}
+	result := linearRegression(transformed)
+	if !result.ok {
+		return 0, 0, false
+	}
+	return math.Exp(result.intercept), math.Exp(result.slope), true
+}
+
+func logarithmicRegression(points []regressionPoint) (float64, float64, bool) {
+	transformed := make([]regressionPoint, 0, len(points))
+	for _, point := range points {
+		if point.x <= 0 {
+			continue
+		}
+		transformed = append(transformed, regressionPoint{x: math.Log(point.x), y: point.y})
+	}
+	result := linearRegression(transformed)
+	if !result.ok {
+		return 0, 0, false
+	}
+	return result.slope, result.intercept, true
+}
+
+func quadraticRegression(points []regressionPoint) (float64, float64, float64, bool) {
+	if len(points) < 3 {
+		return 0, 0, 0, false
+	}
+	var sx, sx2, sx3, sx4, sy, sxy, sx2y float64
+	n := float64(len(points))
+	for _, point := range points {
+		x2 := point.x * point.x
+		sx += point.x
+		sx2 += x2
+		sx3 += x2 * point.x
+		sx4 += x2 * x2
+		sy += point.y
+		sxy += point.x * point.y
+		sx2y += x2 * point.y
+	}
+	det := n*(sx2*sx4-sx3*sx3) - sx*(sx*sx4-sx2*sx3) + sx2*(sx*sx3-sx2*sx2)
+	if det == 0 {
+		return 0, 0, 0, false
+	}
+	c := (sy*(sx2*sx4-sx3*sx3) - sx*(sxy*sx4-sx3*sx2y) + sx2*(sxy*sx3-sx2*sx2y)) / det
+	b := (n*(sxy*sx4-sx3*sx2y) - sy*(sx*sx4-sx2*sx3) + sx2*(sx*sx2y-sxy*sx2)) / det
+	a := (n*(sx2*sx2y-sxy*sx3) - sx*(sx*sx2y-sxy*sx2) + sy*(sx*sx3-sx2*sx2)) / det
+	return a, b, c, true
+}
+
 func (h *simulationHost) callMapMethod(componentName, method string, args []runtime.Value) runtime.Value {
 	switch method {
 	case "PanTo":
@@ -1492,10 +1967,30 @@ func (h *simulationHost) callMapFeatureMethod(componentName, componentType, meth
 		h.effects = append(h.effects, componentAction(componentName, "show-infobox"))
 	case "HideInfobox":
 		h.effects = append(h.effects, componentAction(componentName, "hide-infobox"))
-	case "DistanceToPoint", "DistanceToFeature", "BearingToPoint", "BearingToFeature":
-		h.Unsupported("method", componentName+"."+method+" — geo calculations not yet implemented in the simulator")
+	case "DistanceToPoint":
+		if len(args) >= 2 {
+			return runtime.NumVal(h.mapFeatureDistanceToPoint(componentName, componentType, args[0].AsNum(), args[1].AsNum()))
+		}
+		return runtime.NumVal(0)
+	case "DistanceToFeature":
+		if len(args) >= 1 {
+			return runtime.NumVal(h.mapFeatureDistanceToFeature(componentName, componentType, args[0].AsStr()))
+		}
+		return runtime.NumVal(0)
+	case "BearingToPoint":
+		if len(args) >= 2 {
+			return runtime.NumVal(h.mapFeatureBearingToPoint(componentName, componentType, args[0].AsNum(), args[1].AsNum()))
+		}
+		return runtime.NumVal(0)
+	case "BearingToFeature":
+		if len(args) >= 1 {
+			return runtime.NumVal(h.mapFeatureBearingToFeature(componentName, componentType, args[0].AsStr()))
+		}
 		return runtime.NumVal(0)
 	case "Centroid":
+		if lat, lng, ok := h.mapFeatureCenter(componentName, componentType); ok {
+			return runtime.ListVal([]runtime.Value{runtime.NumVal(lat), runtime.NumVal(lng)})
+		}
 		return runtime.ListVal(nil)
 	case "Bounds":
 		n := valueAsNumber(h.GetProperty(componentName, componentType, "NorthLatitude"), 0)
@@ -1513,6 +2008,99 @@ func (h *simulationHost) callMapFeatureMethod(componentName, componentType, meth
 		h.Unsupported("method", componentName+"."+method)
 	}
 	return runtime.VoidVal()
+}
+
+func (h *simulationHost) mapFeatureDistanceToPoint(componentName, componentType string, lat, lng float64) float64 {
+	fromLat, fromLng, ok := h.mapFeatureCenter(componentName, componentType)
+	if !ok {
+		return 0
+	}
+	return haversineMeters(fromLat, fromLng, lat, lng)
+}
+
+func (h *simulationHost) mapFeatureDistanceToFeature(componentName, componentType, otherName string) float64 {
+	otherType := h.componentType(otherName, "")
+	lat, lng, ok := h.mapFeatureCenter(otherName, otherType)
+	if !ok {
+		return 0
+	}
+	return h.mapFeatureDistanceToPoint(componentName, componentType, lat, lng)
+}
+
+func (h *simulationHost) mapFeatureBearingToPoint(componentName, componentType string, lat, lng float64) float64 {
+	fromLat, fromLng, ok := h.mapFeatureCenter(componentName, componentType)
+	if !ok {
+		return 0
+	}
+	return bearingDegrees(fromLat, fromLng, lat, lng)
+}
+
+func (h *simulationHost) mapFeatureBearingToFeature(componentName, componentType, otherName string) float64 {
+	otherType := h.componentType(otherName, "")
+	lat, lng, ok := h.mapFeatureCenter(otherName, otherType)
+	if !ok {
+		return 0
+	}
+	return h.mapFeatureBearingToPoint(componentName, componentType, lat, lng)
+}
+
+func (h *simulationHost) mapFeatureCenter(componentName, componentType string) (float64, float64, bool) {
+	switch componentType {
+	case "Marker", "Circle":
+		return valueAsNumber(h.GetProperty(componentName, componentType, "Latitude"), 0),
+			valueAsNumber(h.GetProperty(componentName, componentType, "Longitude"), 0),
+			true
+	case "Rectangle":
+		n := valueAsNumber(h.GetProperty(componentName, componentType, "NorthLatitude"), 0)
+		s := valueAsNumber(h.GetProperty(componentName, componentType, "SouthLatitude"), 0)
+		e := valueAsNumber(h.GetProperty(componentName, componentType, "EastLongitude"), 0)
+		w := valueAsNumber(h.GetProperty(componentName, componentType, "WestLongitude"), 0)
+		return (n + s) / 2, (e + w) / 2, true
+	case "LineString", "Polygon":
+		points := h.mapFeaturePoints(componentName, componentType)
+		if len(points) == 0 {
+			return 0, 0, false
+		}
+		var lat, lng float64
+		for _, point := range points {
+			lat += point.x
+			lng += point.y
+		}
+		return lat / float64(len(points)), lng / float64(len(points)), true
+	default:
+		return 0, 0, false
+	}
+}
+
+func (h *simulationHost) mapFeaturePoints(componentName, componentType string) []regressionPoint {
+	values := numbersFromValue(h.GetProperty(componentName, componentType, "Points"))
+	if len(values) == 0 {
+		values = numbersFromValue(h.GetProperty(componentName, componentType, "PointsFromString"))
+	}
+	points := make([]regressionPoint, 0, len(values)/2)
+	for i := 0; i+1 < len(values); i += 2 {
+		points = append(points, regressionPoint{x: values[i], y: values[i+1]})
+	}
+	return points
+}
+
+func haversineMeters(lat1, lng1, lat2, lng2 float64) float64 {
+	const earthRadiusMeters = 6371000.0
+	phi1 := lat1 * math.Pi / 180
+	phi2 := lat2 * math.Pi / 180
+	dPhi := (lat2 - lat1) * math.Pi / 180
+	dLambda := (lng2 - lng1) * math.Pi / 180
+	a := math.Sin(dPhi/2)*math.Sin(dPhi/2) + math.Cos(phi1)*math.Cos(phi2)*math.Sin(dLambda/2)*math.Sin(dLambda/2)
+	return earthRadiusMeters * 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+}
+
+func bearingDegrees(lat1, lng1, lat2, lng2 float64) float64 {
+	phi1 := lat1 * math.Pi / 180
+	phi2 := lat2 * math.Pi / 180
+	dLambda := (lng2 - lng1) * math.Pi / 180
+	y := math.Sin(dLambda) * math.Cos(phi2)
+	x := math.Cos(phi1)*math.Sin(phi2) - math.Sin(phi1)*math.Cos(phi2)*math.Cos(dLambda)
+	return normalizeDegrees(math.Atan2(y, x) * 180 / math.Pi)
 }
 
 func (h *simulationHost) Unsupported(kind, detail string) {
@@ -1658,6 +2246,37 @@ func valueList(value runtime.Value) []runtime.Value {
 	return []runtime.Value{value}
 }
 
+func numbersFromValue(value runtime.Value) []float64 {
+	if value.Type() == runtime.List || value.Type() == runtime.Matrix {
+		items := valueList(value)
+		out := make([]float64, 0, len(items))
+		for _, item := range items {
+			if n, ok := runtime.CoerceNum(item); ok && !math.IsNaN(n) && !math.IsInf(n, 0) {
+				out = append(out, n)
+			}
+		}
+		return out
+	}
+	text := strings.TrimSpace(value.AsStr())
+	if text == "" {
+		return nil
+	}
+	clean := strings.NewReplacer("[", " ", "]", " ", "(", " ", ")", " ", ";", " ", "\n", " ", "\t", " ").Replace(text)
+	fields := strings.FieldsFunc(clean, func(r rune) bool {
+		return r == ',' || r == ' '
+	})
+	out := make([]float64, 0, len(fields))
+	for _, field := range fields {
+		if field == "" {
+			continue
+		}
+		if n, err := strconv.ParseFloat(field, 64); err == nil && !math.IsNaN(n) && !math.IsInf(n, 0) {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
 func elementsFromString(text string) []runtime.Value {
 	parts := strings.Split(text, ",")
 	values := make([]runtime.Value, 0, len(parts))
@@ -1794,7 +2413,7 @@ func createSimulationSession(this js.Value, p []js.Value) any {
 	if len(p) >= 4 {
 		tinyDBInitial = jsTinyDBStores(p[3])
 	}
-	host := newSimulationHost(jsInitialState(p[2]), reverseComponentMap, tinyDBInitial)
+	host := newSimulationHost(jsInitialState(p[2]), componentContextMap, reverseComponentMap, tinyDBInitial)
 	interp := runtime.NewInterpreterWithOutput(func(line string) {
 		host.logs = append(host.logs, line)
 	})
