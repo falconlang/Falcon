@@ -304,13 +304,32 @@
   }
 
   const CALLOUT_DEBOUNCE_MS = 280;
-  const LINE_HEIGHT = 13 * 1.4; // must match .code-area font-size × line-height
-  const CODE_PAD_TOP = 12;        // must match .code-area padding-top
+  const FALLBACK_CODE_LINE_HEIGHT = 13 * 1.4;
+  const FALLBACK_CODE_PAD_TOP = 12;
+  const FALLBACK_CODE_PAD_LEFT = 4;
   const CALLOUT_GAP = 8;
   const CALLOUT_PADDING = 12; // 6px × 2
   const DEBUG_ERROR_PREFIX = '🐛 ';
   const PARSE_ERROR_PREFIX = 'error: ';
   const PARSE_CHECK_DEBOUNCE_MS = 450;
+
+  function codeMetric(property, fallback) {
+    if (!codeEl || typeof getComputedStyle === 'undefined') return fallback;
+    const value = Number.parseFloat(getComputedStyle(codeEl)[property] || '');
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  function codeLineHeight() {
+    return codeMetric('lineHeight', FALLBACK_CODE_LINE_HEIGHT);
+  }
+
+  function codePadTop() {
+    return codeMetric('paddingTop', FALLBACK_CODE_PAD_TOP);
+  }
+
+  function codePadLeft() {
+    return codeMetric('paddingLeft', FALLBACK_CODE_PAD_LEFT);
+  }
 
   $: parseDiagnosticLine = Number.isFinite(Number(parseDiagnostic?.line)) ? Math.trunc(Number(parseDiagnostic.line)) : null;
   $: lineCount = Math.max(editorValue.split('\n').length, 1);
@@ -765,7 +784,7 @@
     if (!codeEl || !editorContainerEl) return 0;
     const rect = codeEl.getBoundingClientRect();
     const centerLine = (startLine + endLine) / 2;
-    return rect.top + CODE_PAD_TOP + (centerLine - 1) * LINE_HEIGHT - codeEl.scrollTop;
+    return rect.top + codePadTop() + (centerLine - 1) * codeLineHeight() - codeEl.scrollTop;
   }
 
   function calloutX(startLine, endLine) {
@@ -777,7 +796,7 @@
     ctx.font = getComputedStyle(codeEl).font;
     const maxPx = Math.max(0, ...selLines.map(l => ctx.measureText(l).width));
     const rect = codeEl.getBoundingClientRect();
-    const rawX = rect.left + 4 + maxPx; // 4px matches .code-area padding-left
+    const rawX = rect.left + codePadLeft() + maxPx;
     const frameRight = wrapEl ? wrapEl.getBoundingClientRect().right : window.innerWidth;
     const overflowed = rawX + CALLOUT_GAP > frameRight;
     return { x: overflowed ? frameRight : rawX, overflowed };
@@ -797,8 +816,8 @@
     const colPx = ctx.measureText(textToSel).width;
 
     // x = left content edge + column offset - horizontal scroll
-    const x = rect.left + 4 + colPx - (codeEl.scrollLeft || 0);
-    const y = rect.top + CODE_PAD_TOP + (startLine - 1) * LINE_HEIGHT - codeEl.scrollTop;
+    const x = rect.left + codePadLeft() + colPx - (codeEl.scrollLeft || 0);
+    const y = rect.top + codePadTop() + (startLine - 1) * codeLineHeight() - codeEl.scrollTop;
     const frameRight = wrapEl ? wrapEl.getBoundingClientRect().right : window.innerWidth;
     const maxWidth = Math.max(120, Math.min(320, frameRight - x - 16));
     return { x, y, maxWidth };
@@ -834,7 +853,7 @@
   }
 
   function debugLineTop(line) {
-    return `${CODE_PAD_TOP + (Math.max(1, Number(line) || 1) - 1) * LINE_HEIGHT}px`;
+    return `${codePadTop() + (Math.max(1, Number(line) || 1) - 1) * codeLineHeight()}px`;
   }
 
   function scheduleInjectedAnnotationReflow() {
@@ -964,10 +983,10 @@
     const catalog = $debugExpressionCatalog;
     if (!catalog?.length) return null;
     const rect = codeEl.getBoundingClientRect();
-    const relY = e.clientY - rect.top - CODE_PAD_TOP + (codeEl.scrollTop || 0);
-    const relX = e.clientX - rect.left - 4 + (codeEl.scrollLeft || 0);
+    const relY = e.clientY - rect.top - codePadTop() + (codeEl.scrollTop || 0);
+    const relX = e.clientX - rect.left - codePadLeft() + (codeEl.scrollLeft || 0);
     if (relY < 0) return null;
-    const lineIdx = Math.floor(relY / LINE_HEIGHT);
+    const lineIdx = Math.floor(relY / codeLineHeight());
     const lines = editorValue.split('\n');
     if (lineIdx >= lines.length) return null;
     const lineText = lines[lineIdx];
@@ -1012,9 +1031,10 @@
     const lineText = lines[lineIdx] || '';
     const startPx = columnToPxUnified(lineText, entry.startColumn);
     const endPx = columnToPxUnified(lineText, entry.endColumn);
-    const x = rect.left + 4 + startPx - (codeEl.scrollLeft || 0);
-    const y = rect.top + CODE_PAD_TOP + lineIdx * LINE_HEIGHT - (codeEl.scrollTop || 0);
-    return { x, y, width: Math.max(4, endPx - startPx), height: LINE_HEIGHT };
+    const lineHeight = codeLineHeight();
+    const x = rect.left + codePadLeft() + startPx - (codeEl.scrollLeft || 0);
+    const y = rect.top + codePadTop() + lineIdx * lineHeight - (codeEl.scrollTop || 0);
+    return { x, y, width: Math.max(4, endPx - startPx), height: lineHeight };
   }
 
   function findExprAtCursorUnified(cursorOffset) {
@@ -1147,7 +1167,7 @@
     const startLine = sourceLineToViewLine(sourceStartLine);
     const endLine = Math.max(startLine, viewEndLine);
 
-    const imgHeight = Math.round((endLine - startLine + 1) * LINE_HEIGHT);
+    const imgHeight = Math.round((endLine - startLine + 1) * codeLineHeight());
     const { x: cx, overflowed } = calloutX(startLine, endLine);
     const maxWidth = Math.max(80, window.innerWidth - cx - CALLOUT_GAP - CALLOUT_PADDING);
     if (callout?.imgUrl) URL.revokeObjectURL(callout.imgUrl);

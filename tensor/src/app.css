@@ -36,6 +36,11 @@
   --tok-t: #4830A0;
   --tok-o: #6E6960;
   --tok-p: #3A3730;
+  --code-font-size: 13px;
+  --code-line-height: 1.4;
+  --code-line-box: 18.2px;
+  --code-padding-y: 12px;
+  --code-padding-left: 4px;
 }
 
 [data-theme="dark"] {
@@ -790,19 +795,20 @@ html, body {
 .line-nums {
   position: relative;
   z-index: 1;
-  padding: 12px 0;
+  padding: var(--code-padding-y) 0;
   min-width: 40px;
   text-align: right;
   background: transparent;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--code-font-size);
   color: var(--text-faint);
   user-select: none;
   flex-shrink: 0;
-  line-height: 1.65;
+  line-height: var(--code-line-height);
 }
 .line-nums div {
-  min-height: 1.65em;
+  height: var(--code-line-box);
+  min-height: var(--code-line-box);
   padding: 0 10px 0 8px;
   display: flex;
   align-items: center;
@@ -851,10 +857,10 @@ html, body {
 .code-highlight,
 .code-area {
   width: 100%;
-  padding: 12px 16px 12px 4px;
+  padding: var(--code-padding-y) 16px var(--code-padding-y) var(--code-padding-left);
   font-family: var(--mono);
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: var(--code-font-size);
+  line-height: var(--code-line-height);
   tab-size: 2;
   white-space: pre;
 }

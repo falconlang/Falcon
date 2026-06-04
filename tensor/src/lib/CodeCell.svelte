@@ -48,14 +48,33 @@
 
   const HISTORY_LIMIT = 100;
   const BLOCKLY_HEIGHT_TRANSITION_MS = 180;
-  const CODE_LINE_HEIGHT = 13 * 1.4;
-  const CODE_PAD_TOP = 12;
+  const FALLBACK_CODE_LINE_HEIGHT = 13 * 1.4;
+  const FALLBACK_CODE_PAD_TOP = 12;
+  const FALLBACK_CODE_PAD_LEFT = 4;
   const AUTO_PAIRS = {
     '{': '}',
     '(': ')',
     '[': ']',
     '"': '"',
   };
+
+  function codeMetric(property, fallback) {
+    if (!codeEl || typeof getComputedStyle === 'undefined') return fallback;
+    const value = Number.parseFloat(getComputedStyle(codeEl)[property] || '');
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  function codeLineHeight() {
+    return codeMetric('lineHeight', FALLBACK_CODE_LINE_HEIGHT);
+  }
+
+  function codePadTop() {
+    return codeMetric('paddingTop', FALLBACK_CODE_PAD_TOP);
+  }
+
+  function codePadLeft() {
+    return codeMetric('paddingLeft', FALLBACK_CODE_PAD_LEFT);
+  }
 
   $: isDoItVisible = $doItCellId === cell.id;
   $: isCompanionConnected = $liveTestState.status === 'connected';
@@ -822,7 +841,7 @@
   }
 
   function debugLineTop(line) {
-    return `${CODE_PAD_TOP + (Math.max(1, Number(line) || 1) - 1) * CODE_LINE_HEIGHT}px`;
+    return `${codePadTop() + (Math.max(1, Number(line) || 1) - 1) * codeLineHeight()}px`;
   }
 
   async function revealSourceLine(line) {
@@ -834,7 +853,8 @@
       behavior: 'smooth',
     });
     if (codeEl) {
-      codeEl.scrollTop = Math.max(0, (targetLine - 1) * CODE_LINE_HEIGHT - CODE_LINE_HEIGHT * 2);
+      const lineHeight = codeLineHeight();
+      codeEl.scrollTop = Math.max(0, (targetLine - 1) * lineHeight - lineHeight * 2);
       codeEl.focus({ preventScroll: true });
     }
     syncEditorScroll();
@@ -875,8 +895,8 @@
     const ctx = canvas.getContext('2d');
     ctx.font = getComputedStyle(codeEl).font;
     const colPx = ctx.measureText(textToSel).width;
-    const x = rect.left + 4 + colPx - (codeEl.scrollLeft || 0);
-    const y = rect.top + CODE_PAD_TOP + (startLine - 1) * CODE_LINE_HEIGHT - codeEl.scrollTop;
+    const x = rect.left + codePadLeft() + colPx - (codeEl.scrollLeft || 0);
+    const y = rect.top + codePadTop() + (startLine - 1) * codeLineHeight() - codeEl.scrollTop;
     const frameRight = editorEl ? editorEl.getBoundingClientRect().right : window.innerWidth;
     const maxWidth = Math.max(120, Math.min(320, frameRight - x - 16));
     return { x, y, maxWidth };
@@ -909,10 +929,10 @@
     const catalog = $debugExpressionCatalog;
     if (!catalog?.length) return null;
     const rect = codeEl.getBoundingClientRect();
-    const relY = e.clientY - rect.top - CODE_PAD_TOP + (codeEl.scrollTop || 0);
-    const relX = e.clientX - rect.left - 4 + (codeEl.scrollLeft || 0);
+    const relY = e.clientY - rect.top - codePadTop() + (codeEl.scrollTop || 0);
+    const relX = e.clientX - rect.left - codePadLeft() + (codeEl.scrollLeft || 0);
     if (relY < 0) return null;
-    const lineIdx = Math.floor(relY / CODE_LINE_HEIGHT);
+    const lineIdx = Math.floor(relY / codeLineHeight());
     const lines = codeValue.split('\n');
     if (lineIdx >= lines.length) return null;
     const lineText = lines[lineIdx];
@@ -955,9 +975,10 @@
     const lineText = lines[lineIdx] || '';
     const startPx = columnToPx(lineText, entry.startColumn);
     const endPx = columnToPx(lineText, entry.endColumn);
-    const x = rect.left + 4 + startPx - (codeEl.scrollLeft || 0);
-    const y = rect.top + CODE_PAD_TOP + lineIdx * CODE_LINE_HEIGHT - (codeEl.scrollTop || 0);
-    return { x, y, width: Math.max(4, endPx - startPx), height: CODE_LINE_HEIGHT };
+    const lineHeight = codeLineHeight();
+    const x = rect.left + codePadLeft() + startPx - (codeEl.scrollLeft || 0);
+    const y = rect.top + codePadTop() + lineIdx * lineHeight - (codeEl.scrollTop || 0);
+    return { x, y, width: Math.max(4, endPx - startPx), height: lineHeight };
   }
 
   function findExprAtCursor(cursorOffset) {
