@@ -163,6 +163,28 @@ func (h *simulationHost) SetProperty(componentName, componentType, property stri
 		}
 		return
 	}
+	if componentType == "LinearProgress" && property == "Progress" {
+		min := valueAsNumber(h.GetProperty(componentName, componentType, "Minimum"), 0)
+		max := valueAsNumber(h.GetProperty(componentName, componentType, "Maximum"), 100)
+		clamped := clampFloat(value.AsNum(), min, max)
+		prev := valueAsNumber(h.GetProperty(componentName, componentType, "Progress"), 0)
+		h.setProperty(componentName, property, runtime.NumVal(clamped))
+		if clamped != prev && !h.suppressTextChanged && h.runEvent != nil {
+			h.runEvent(componentName, componentType, "ProgressChanged", []runtime.Value{runtime.NumVal(clamped)})
+		}
+		return
+	}
+	if componentType == "WebViewer" && property == "HomeUrl" {
+		h.setProperty(componentName, property, value)
+		h.setProperty(componentName, "CurrentUrl", value)
+		h.effects = append(h.effects, componentActionWith(componentName, "navigate", map[string]any{"url": value.AsStr()}))
+		return
+	}
+	if componentType == "WebViewer" && property == "CurrentUrl" {
+		h.setProperty(componentName, property, value)
+		h.effects = append(h.effects, componentActionWith(componentName, "navigate", map[string]any{"url": value.AsStr()}))
+		return
+	}
 	if (componentType == "CheckBox" && property == "Checked") || (componentType == "Switch" && property == "On") {
 		changed := valueAsBool(h.GetProperty(componentName, componentType, property)) != valueAsBool(value)
 		h.setProperty(componentName, property, value)
@@ -740,6 +762,46 @@ func (h *simulationHost) CallMethod(componentName, componentType, method string,
 		return h.callTinyDBMethod(componentName, method, args)
 	case "Screen", "Form":
 		return h.callScreenMethod(componentName, method, args)
+	case "EmailPicker":
+		return h.callTextBoxMethod(componentName, method, args)
+	case "ImagePicker", "FilePicker", "ContactPicker", "PhoneNumberPicker":
+		return h.callPickerMethod(componentName, componentType, method, args)
+	case "VideoPlayer":
+		return h.callVideoPlayerMethod(componentName, method, args)
+	case "WebViewer":
+		return h.callWebViewerMethod(componentName, method, args)
+	case "LinearProgress":
+		if method == "IncrementProgressBy" {
+			if len(args) >= 1 {
+				cur := valueAsNumber(h.GetProperty(componentName, componentType, "Progress"), 0)
+				min := valueAsNumber(h.GetProperty(componentName, componentType, "Minimum"), 0)
+				max := valueAsNumber(h.GetProperty(componentName, componentType, "Maximum"), 100)
+				next := clampFloat(cur+args[0].AsNum(), min, max)
+				prev := cur
+				h.setProperty(componentName, "Progress", runtime.NumVal(next))
+				if next != prev && h.runEvent != nil {
+					h.runEvent(componentName, componentType, "ProgressChanged", []runtime.Value{runtime.NumVal(next)})
+				}
+			}
+			return runtime.VoidVal()
+		}
+	case "Canvas":
+		return h.callCanvasMethod(componentName, method, args)
+	case "Ball", "ImageSprite":
+		return h.callSpriteMethod(componentName, componentType, method, args)
+	case "Chart":
+		return h.callChartMethod(componentName, method, args)
+	case "ChartData2D":
+		return h.callChartData2DMethod(componentName, method, args)
+	case "Map":
+		return h.callMapMethod(componentName, method, args)
+	case "Marker", "Circle", "LineString", "Polygon", "Rectangle":
+		return h.callMapFeatureMethod(componentName, componentType, method, args)
+	case "FeatureCollection":
+		if method == "LoadFromURL" || method == "FeatureFromDescription" {
+			h.Unsupported("method", componentName+"."+method+" is not supported in the web simulator")
+			return runtime.VoidVal()
+		}
 	}
 	h.Unsupported("method", componentName+"."+method)
 	return runtime.VoidVal()
@@ -1081,6 +1143,376 @@ func (h *simulationHost) callTinyDBMethod(componentName, method string, args []r
 		h.Unsupported("method", "TinyDB."+method)
 		return runtime.VoidVal()
 	}
+}
+
+func (h *simulationHost) callPickerMethod(componentName, componentType, method string, args []runtime.Value) runtime.Value {
+	switch method {
+	case "Open":
+		if h.runEvent != nil {
+			h.runEvent(componentName, componentType, "BeforePicking", nil)
+		}
+		h.effects = append(h.effects, componentAction(componentName, "open"))
+	case "ViewContact":
+		h.Unsupported("method", componentName+".ViewContact is not supported in the web simulator")
+	default:
+		h.Unsupported("method", componentName+"."+method)
+	}
+	return runtime.VoidVal()
+}
+
+func (h *simulationHost) callVideoPlayerMethod(componentName, method string, args []runtime.Value) runtime.Value {
+	switch method {
+	case "Start":
+		h.effects = append(h.effects, componentAction(componentName, "play"))
+	case "Pause":
+		h.effects = append(h.effects, componentAction(componentName, "pause"))
+	case "Stop":
+		h.effects = append(h.effects, componentActionWith(componentName, "seek", map[string]any{"ms": float64(0)}))
+		h.effects = append(h.effects, componentAction(componentName, "pause"))
+	case "SeekTo":
+		if len(args) >= 1 {
+			h.effects = append(h.effects, componentActionWith(componentName, "seek", map[string]any{"ms": args[0].AsNum()}))
+		}
+	case "GetDuration":
+		dur := valueAsNumber(h.GetProperty(componentName, "VideoPlayer", "Duration"), 0)
+		return runtime.NumVal(dur)
+	default:
+		h.Unsupported("method", componentName+"."+method)
+	}
+	return runtime.VoidVal()
+}
+
+func (h *simulationHost) callWebViewerMethod(componentName, method string, args []runtime.Value) runtime.Value {
+	switch method {
+	case "GoToUrl":
+		if len(args) >= 1 {
+			url := args[0].AsStr()
+			h.setProperty(componentName, "CurrentUrl", runtime.StrVal(url))
+			h.effects = append(h.effects, componentActionWith(componentName, "navigate", map[string]any{"url": url}))
+		}
+	case "GoHome":
+		home := h.GetProperty(componentName, "WebViewer", "HomeUrl").AsStr()
+		h.setProperty(componentName, "CurrentUrl", runtime.StrVal(home))
+		h.effects = append(h.effects, componentActionWith(componentName, "navigate", map[string]any{"url": home}))
+	case "GoBack":
+		h.effects = append(h.effects, componentAction(componentName, "goback"))
+	case "GoForward":
+		h.effects = append(h.effects, componentAction(componentName, "goforward"))
+	case "Reload":
+		h.effects = append(h.effects, componentAction(componentName, "reload"))
+	case "CanGoBack":
+		return runtime.BoolVal(false)
+	case "CanGoForward":
+		return runtime.BoolVal(false)
+	case "RunJavaScript":
+		h.Unsupported("method", componentName+".RunJavaScript requires same-origin page")
+	case "ClearCaches", "ClearCookies", "ClearLocations", "StopLoading":
+		// No-ops in the browser simulator
+	default:
+		h.Unsupported("method", componentName+"."+method)
+	}
+	return runtime.VoidVal()
+}
+
+func (h *simulationHost) callCanvasMethod(componentName, method string, args []runtime.Value) runtime.Value {
+	switch method {
+	case "Clear":
+		h.effects = append(h.effects, componentActionWith(componentName, "canvas-clear", nil))
+	case "DrawLine":
+		if len(args) >= 4 {
+			h.effects = append(h.effects, componentActionWith(componentName, "canvas-draw", map[string]any{
+				"op": "line", "x1": args[0].AsNum(), "y1": args[1].AsNum(), "x2": args[2].AsNum(), "y2": args[3].AsNum(),
+				"color":     h.GetProperty(componentName, "Canvas", "PaintColor").AsStr(),
+				"lineWidth": valueAsNumber(h.GetProperty(componentName, "Canvas", "LineWidth"), 2),
+			}))
+		}
+	case "DrawCircle":
+		if len(args) >= 4 {
+			h.effects = append(h.effects, componentActionWith(componentName, "canvas-draw", map[string]any{
+				"op": "circle", "cx": args[0].AsNum(), "cy": args[1].AsNum(), "r": args[2].AsNum(),
+				"fill":  args[3].AsBool(),
+				"color": h.GetProperty(componentName, "Canvas", "PaintColor").AsStr(),
+			}))
+		}
+	case "DrawPoint":
+		if len(args) >= 2 {
+			h.effects = append(h.effects, componentActionWith(componentName, "canvas-draw", map[string]any{
+				"op": "point", "x": args[0].AsNum(), "y": args[1].AsNum(),
+				"color":     h.GetProperty(componentName, "Canvas", "PaintColor").AsStr(),
+				"lineWidth": valueAsNumber(h.GetProperty(componentName, "Canvas", "LineWidth"), 2),
+			}))
+		}
+	case "DrawText":
+		if len(args) >= 3 {
+			h.effects = append(h.effects, componentActionWith(componentName, "canvas-draw", map[string]any{
+				"op": "text", "text": args[0].AsStr(), "x": args[1].AsNum(), "y": args[2].AsNum(),
+				"color":    h.GetProperty(componentName, "Canvas", "PaintColor").AsStr(),
+				"fontSize": valueAsNumber(h.GetProperty(componentName, "Canvas", "FontSize"), 14),
+			}))
+		}
+	case "DrawArc":
+		if len(args) >= 8 {
+			h.effects = append(h.effects, componentActionWith(componentName, "canvas-draw", map[string]any{
+				"op": "arc", "left": args[0].AsNum(), "top": args[1].AsNum(), "right": args[2].AsNum(), "bottom": args[3].AsNum(),
+				"startAngle": args[4].AsNum(), "sweepAngle": args[5].AsNum(),
+				"useCenter": args[6].AsBool(), "fill": args[7].AsBool(),
+				"color": h.GetProperty(componentName, "Canvas", "PaintColor").AsStr(),
+			}))
+		}
+	case "DrawShape":
+		if len(args) >= 2 {
+			h.effects = append(h.effects, componentActionWith(componentName, "canvas-draw", map[string]any{
+				"op": "shape", "points": runtimeValueToJS(args[0]), "fill": args[1].AsBool(),
+				"color":     h.GetProperty(componentName, "Canvas", "PaintColor").AsStr(),
+				"lineWidth": valueAsNumber(h.GetProperty(componentName, "Canvas", "LineWidth"), 2),
+			}))
+		}
+	case "DrawTextAtAngle":
+		if len(args) >= 4 {
+			h.effects = append(h.effects, componentActionWith(componentName, "canvas-draw", map[string]any{
+				"op": "textAngle", "text": args[0].AsStr(), "x": args[1].AsNum(), "y": args[2].AsNum(), "angle": args[3].AsNum(),
+				"color":    h.GetProperty(componentName, "Canvas", "PaintColor").AsStr(),
+				"fontSize": valueAsNumber(h.GetProperty(componentName, "Canvas", "FontSize"), 14),
+			}))
+		}
+	case "SetBackgroundPixelColor":
+		h.Unsupported("method", componentName+".SetBackgroundPixelColor is not supported")
+	case "GetPixelColor", "GetBackgroundPixelColor":
+		return runtime.NumVal(0)
+	case "Save", "SaveAs":
+		h.Unsupported("method", componentName+"."+method+" cannot write device storage in the web simulator")
+		return runtime.StrVal("")
+	default:
+		h.Unsupported("method", componentName+"."+method)
+	}
+	return runtime.VoidVal()
+}
+
+func (h *simulationHost) callSpriteMethod(componentName, componentType, method string, args []runtime.Value) runtime.Value {
+	switch method {
+	case "MoveTo":
+		if len(args) >= 2 {
+			h.setProperty(componentName, "X", runtime.NumVal(args[0].AsNum()))
+			h.setProperty(componentName, "Y", runtime.NumVal(args[1].AsNum()))
+		}
+	case "MoveToPoint":
+		if len(args) >= 1 {
+			coords := valueList(args[0])
+			if len(coords) >= 2 {
+				h.setProperty(componentName, "X", runtime.NumVal(coords[0].AsNum()))
+				h.setProperty(componentName, "Y", runtime.NumVal(coords[1].AsNum()))
+			}
+		}
+	case "PointInDirection":
+		if len(args) >= 2 {
+			dx := args[0].AsNum() - valueAsNumber(h.GetProperty(componentName, componentType, "X"), 0)
+			dy := args[1].AsNum() - valueAsNumber(h.GetProperty(componentName, componentType, "Y"), 0)
+			heading := math.Atan2(-dy, dx) * 180 / math.Pi
+			if heading < 0 {
+				heading += 360
+			}
+			h.setProperty(componentName, "Heading", runtime.NumVal(heading))
+		}
+	case "Bounce", "MoveIntoBounds", "PointTowards":
+		h.Unsupported("method", componentName+"."+method+" requires a running animation loop")
+	case "CollidingWith":
+		return runtime.BoolVal(false)
+	default:
+		h.Unsupported("method", componentName+"."+method)
+	}
+	return runtime.VoidVal()
+}
+
+func (h *simulationHost) callChartMethod(componentName, method string, args []runtime.Value) runtime.Value {
+	switch method {
+	case "SetDomain":
+		if len(args) >= 2 {
+			h.setProperty(componentName, "XMin", runtime.NumVal(args[0].AsNum()))
+			h.setProperty(componentName, "XMax", runtime.NumVal(args[1].AsNum()))
+		}
+	case "SetRange":
+		if len(args) >= 2 {
+			h.setProperty(componentName, "YMin", runtime.NumVal(args[0].AsNum()))
+			h.setProperty(componentName, "YMax", runtime.NumVal(args[1].AsNum()))
+		}
+	case "ResetAxes":
+		h.setProperty(componentName, "XMin", runtime.NullVal())
+		h.setProperty(componentName, "XMax", runtime.NullVal())
+		h.setProperty(componentName, "YMin", runtime.NullVal())
+		h.setProperty(componentName, "YMax", runtime.NullVal())
+	case "ExtendDomainToInclude", "ExtendRangeToInclude":
+		// Client-side concern; just log
+	default:
+		h.Unsupported("method", componentName+"."+method)
+	}
+	return runtime.VoidVal()
+}
+
+func (h *simulationHost) callChartData2DMethod(componentName, method string, args []runtime.Value) runtime.Value {
+	elements := valueList(h.GetProperty(componentName, "ChartData2D", "Elements"))
+	switch method {
+	case "AddEntry":
+		if len(args) >= 2 {
+			pair := runtime.ListVal([]runtime.Value{args[0], args[1]})
+			elements = append(elements, pair)
+			h.setProperty(componentName, "Elements", runtime.ListVal(elements))
+		}
+	case "RemoveEntry":
+		if len(args) >= 2 {
+			xS := args[0].AsStr()
+			yS := args[1].AsStr()
+			next := make([]runtime.Value, 0, len(elements))
+			for _, el := range elements {
+				pair := valueList(el)
+				if len(pair) >= 2 && (pair[0].AsStr() == xS && pair[1].AsStr() == yS) {
+					continue
+				}
+				next = append(next, el)
+			}
+			h.setProperty(componentName, "Elements", runtime.ListVal(next))
+		}
+	case "Clear":
+		h.setProperty(componentName, "Elements", runtime.ListVal(nil))
+	case "ImportFromList":
+		if len(args) >= 1 {
+			h.setProperty(componentName, "Elements", args[0])
+		}
+	case "ImportFromTinyDB":
+		if len(args) >= 2 {
+			namespace := args[0].AsStr()
+			tag := args[1].AsStr()
+			if store, ok := h.tinyDB[namespace]; ok {
+				if val, ok := store[tag]; ok {
+					h.setProperty(componentName, "Elements", val)
+				}
+			}
+		}
+	case "GetAllEntries":
+		return h.GetProperty(componentName, "ChartData2D", "Elements")
+	case "DoesEntryExist":
+		if len(args) >= 2 {
+			xS := args[0].AsStr()
+			yS := args[1].AsStr()
+			for _, el := range elements {
+				pair := valueList(el)
+				if len(pair) >= 2 && pair[0].AsStr() == xS && pair[1].AsStr() == yS {
+					return runtime.BoolVal(true)
+				}
+			}
+		}
+		return runtime.BoolVal(false)
+	case "GetEntriesWithXValue":
+		if len(args) >= 1 {
+			xS := args[0].AsStr()
+			result := []runtime.Value{}
+			for _, el := range elements {
+				pair := valueList(el)
+				if len(pair) >= 2 && pair[0].AsStr() == xS {
+					result = append(result, el)
+				}
+			}
+			return runtime.ListVal(result)
+		}
+		return runtime.ListVal(nil)
+	case "GetEntriesWithYValue":
+		if len(args) >= 1 {
+			yS := args[0].AsStr()
+			result := []runtime.Value{}
+			for _, el := range elements {
+				pair := valueList(el)
+				if len(pair) >= 2 && pair[1].AsStr() == yS {
+					result = append(result, el)
+				}
+			}
+			return runtime.ListVal(result)
+		}
+		return runtime.ListVal(nil)
+	case "HighlightDataPoints":
+		h.setProperty(componentName, "HighlightColor", argValue(args, 1))
+	case "ChangeDataSource", "RemoveDataSource", "ImportFromCloudDB", "ImportFromDataFile", "ImportFromSpreadsheet", "ImportFromWeb":
+		h.Unsupported("method", componentName+"."+method+" — live data sources are not available in the web simulator")
+	default:
+		h.Unsupported("method", componentName+"."+method)
+	}
+	return runtime.VoidVal()
+}
+
+func (h *simulationHost) callMapMethod(componentName, method string, args []runtime.Value) runtime.Value {
+	switch method {
+	case "PanTo":
+		if len(args) >= 2 {
+			h.setProperty(componentName, "Latitude", runtime.NumVal(args[0].AsNum()))
+			h.setProperty(componentName, "Longitude", runtime.NumVal(args[1].AsNum()))
+			if len(args) >= 3 {
+				h.setProperty(componentName, "ZoomLevel", runtime.NumVal(args[2].AsNum()))
+			}
+		}
+	case "CreateMarker":
+		if len(args) >= 2 {
+			h.effects = append(h.effects, componentActionWith(componentName, "map-create-marker", map[string]any{
+				"latitude": args[0].AsNum(), "longitude": args[1].AsNum(),
+			}))
+		}
+		return runtime.NullVal()
+	case "LoadFromURL":
+		h.Unsupported("method", componentName+".LoadFromURL is subject to CORS restrictions in the web simulator")
+	case "FeatureFromDescription":
+		return runtime.NullVal()
+	case "Save":
+		h.Unsupported("method", componentName+".Save cannot write device storage in the web simulator")
+	default:
+		h.Unsupported("method", componentName+"."+method)
+	}
+	return runtime.VoidVal()
+}
+
+func (h *simulationHost) callMapFeatureMethod(componentName, componentType, method string, args []runtime.Value) runtime.Value {
+	switch method {
+	case "SetLocation":
+		if len(args) >= 2 {
+			h.setProperty(componentName, "Latitude", runtime.NumVal(args[0].AsNum()))
+			h.setProperty(componentName, "Longitude", runtime.NumVal(args[1].AsNum()))
+		}
+	case "SetCenter":
+		if len(args) >= 2 {
+			lat := args[0].AsNum()
+			lng := args[1].AsNum()
+			north := valueAsNumber(h.GetProperty(componentName, componentType, "NorthLatitude"), 0)
+			south := valueAsNumber(h.GetProperty(componentName, componentType, "SouthLatitude"), 0)
+			east := valueAsNumber(h.GetProperty(componentName, componentType, "EastLongitude"), 0)
+			west := valueAsNumber(h.GetProperty(componentName, componentType, "WestLongitude"), 0)
+			halfLat := (north - south) / 2
+			halfLng := (east - west) / 2
+			h.setProperty(componentName, "NorthLatitude", runtime.NumVal(lat+halfLat))
+			h.setProperty(componentName, "SouthLatitude", runtime.NumVal(lat-halfLat))
+			h.setProperty(componentName, "EastLongitude", runtime.NumVal(lng+halfLng))
+			h.setProperty(componentName, "WestLongitude", runtime.NumVal(lng-halfLng))
+		}
+	case "ShowInfobox":
+		h.effects = append(h.effects, componentAction(componentName, "show-infobox"))
+	case "HideInfobox":
+		h.effects = append(h.effects, componentAction(componentName, "hide-infobox"))
+	case "DistanceToPoint", "DistanceToFeature", "BearingToPoint", "BearingToFeature":
+		h.Unsupported("method", componentName+"."+method+" — geo calculations not yet implemented in the simulator")
+		return runtime.NumVal(0)
+	case "Centroid":
+		return runtime.ListVal(nil)
+	case "Bounds":
+		n := valueAsNumber(h.GetProperty(componentName, componentType, "NorthLatitude"), 0)
+		s := valueAsNumber(h.GetProperty(componentName, componentType, "SouthLatitude"), 0)
+		e := valueAsNumber(h.GetProperty(componentName, componentType, "EastLongitude"), 0)
+		w := valueAsNumber(h.GetProperty(componentName, componentType, "WestLongitude"), 0)
+		return runtime.ListVal([]runtime.Value{runtime.NumVal(n), runtime.NumVal(w), runtime.NumVal(s), runtime.NumVal(e)})
+	case "Center":
+		n := valueAsNumber(h.GetProperty(componentName, componentType, "NorthLatitude"), 0)
+		s := valueAsNumber(h.GetProperty(componentName, componentType, "SouthLatitude"), 0)
+		e := valueAsNumber(h.GetProperty(componentName, componentType, "EastLongitude"), 0)
+		w := valueAsNumber(h.GetProperty(componentName, componentType, "WestLongitude"), 0)
+		return runtime.ListVal([]runtime.Value{runtime.NumVal((n + s) / 2), runtime.NumVal((e + w) / 2)})
+	default:
+		h.Unsupported("method", componentName+"."+method)
+	}
+	return runtime.VoidVal()
 }
 
 func (h *simulationHost) Unsupported(kind, detail string) {

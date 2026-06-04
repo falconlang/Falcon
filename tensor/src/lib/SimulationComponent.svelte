@@ -1,5 +1,6 @@
 <script>
-  import { createEventDispatcher, onDestroy, tick } from 'svelte';
+  import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
+  import 'leaflet/dist/leaflet.css';
   import {
     elementsFromString,
     isSimulationNonVisibleType,
@@ -43,6 +44,7 @@
   let textInputEl;
   let buttonEl;
   let pickerWrapEl;
+  let webViewerFrame;
   let longClickTimer = null;
   let suppressClick = false;
 
@@ -60,7 +62,10 @@
   $: filteredListRows = listRows.filter(row => textIncludes(`${row.text1} ${row.text2}`, listFilter));
   $: handleComponentActions(actions?.[node?.name] ?? {});
 
-  onDestroy(() => clearLongClick());
+  onDestroy(() => {
+    clearLongClick();
+    if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+  });
 
   function hasValue(value) {
     return value !== undefined && value !== null && value !== '';
@@ -382,6 +387,20 @@
       if (node?.type === 'DatePicker') openNativePicker(dateInput, true);
       if (node?.type === 'TimePicker') openNativePicker(timeInput, true);
     });
+    runAction(actionState, 'navigate', ['navigate'], () => {
+      const url = actionState.url ?? '';
+      if (node?.type === 'WebViewer' && webViewerFrame) {
+        webViewerFrame.src = url;
+      }
+    });
+    runAction(actionState, 'goback', ['goback'], () => { try { webViewerFrame?.contentWindow?.history?.back(); } catch {} });
+    runAction(actionState, 'goforward', ['goforward'], () => { try { webViewerFrame?.contentWindow?.history?.forward(); } catch {} });
+    runAction(actionState, 'reload', ['reload'], () => { try { webViewerFrame?.contentWindow?.location?.reload(); } catch {} });
+    runAction(actionState, 'play', ['play'], () => { videoEl?.play().catch(() => {}); });
+    runAction(actionState, 'pause', ['pause'], () => { videoEl?.pause(); });
+    runAction(actionState, 'seek', ['seek'], () => {
+      if (videoEl) videoEl.currentTime = (numberOr(actionState.ms, 0)) / 1000;
+    });
     runAction(actionState, 'focus', ['focus', 'Focus', 'RequestFocus'], () => focusCurrentInput());
     runAction(actionState, 'blur', ['blur', 'Blur', 'HideKeyboard'], () => blurCurrentInput());
     runAction(actionState, 'cursorStart', ['MoveCursorToStart', 'cursorStart', 'cursor-start'], () => setTextCursor(0));
@@ -483,6 +502,505 @@
 
   function listViewImageStyle() {
     return `width: ${numberOr(props.ImageWidth, 200)}px; height: ${numberOr(props.ImageHeight, 200)}px; max-width: 100%;`;
+  }
+
+  // ── LinearProgress helpers ──────────────────────────────────────────────
+  function linearProgressPct() {
+    const min = numberOr(props.Minimum, 0);
+    const max = numberOr(props.Maximum, 100);
+    const val = numberOr(props.Progress, 0);
+    if (max <= min) return 0;
+    return Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+  }
+
+  // ── WebViewer helpers ───────────────────────────────────────────────────
+  function webViewerLoad(e) {
+    try {
+      const url = e.currentTarget.contentWindow?.location?.href || props.CurrentUrl || '';
+      emitInteraction([{ component: node.name, property: 'CurrentUrl', value: url }], null);
+      emitEvent(node.name, 'PageLoaded', [url]);
+    } catch {}
+  }
+  function webViewerError() {
+    emitEvent(node.name, 'ErrorOccurred', [-6, 'Failed to load', props.CurrentUrl || '']);
+  }
+
+  // ── VideoPlayer helpers ─────────────────────────────────────────────────
+  let videoEl;
+  function videoLoadedMetadata() {
+    if (!videoEl) return;
+    const dur = Math.round((videoEl.duration || 0) * 1000);
+    emitInteraction([{ component: node.name, property: 'Duration', value: dur }], null);
+  }
+
+  // ── File / Image / Contact pickers ─────────────────────────────────────
+  let fileInput;
+  const MOCK_CONTACTS = [
+    { name: 'Alice Example', phone: '555-0101', email: 'alice@example.com' },
+    { name: 'Bob Example',   phone: '555-0102', email: 'bob@example.com' },
+    { name: 'Carol Example', phone: '555-0103', email: 'carol@example.com' },
+  ];
+
+  function filePickerAccept() {
+    if (node?.type === 'ImagePicker') return 'image/*';
+    if (node?.type === 'FilePicker') return props.MimeType && props.MimeType !== '*/*' ? props.MimeType : '';
+    return '';
+  }
+
+  async function openFilePicker() {
+    if (!enabled || consumeLongClick()) return;
+    await emitEvent(node.name, 'BeforePicking');
+    await tick();
+    if (!enabled || !visible) return;
+    if (node?.type === 'ContactPicker' || node?.type === 'PhoneNumberPicker') {
+      pickerFilter = '';
+      pickerOpen = true;
+    } else {
+      fileInput?.click();
+    }
+  }
+
+  async function filePickerChange(e) {
+    const file = e.currentTarget.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const patches = [{ component: node.name, property: 'Selection', value: file.name }];
+    if (node?.type === 'ImagePicker') patches.push({ component: node.name, property: 'ImagePath', value: url });
+    emitInteraction(patches, { component: node.name, event: 'AfterPicking', args: [] });
+    e.currentTarget.value = '';
+  }
+
+  function pickContact(contact) {
+    pickerOpen = false;
+    const patches = [];
+    if (node?.type === 'PhoneNumberPicker') {
+      patches.push({ component: node.name, property: 'PhoneNumber', value: contact.phone });
+      patches.push({ component: node.name, property: 'ContactName', value: contact.name });
+    } else {
+      patches.push({ component: node.name, property: 'ContactName', value: contact.name });
+      patches.push({ component: node.name, property: 'EmailAddress', value: contact.email });
+      patches.push({ component: node.name, property: 'PhoneNumber', value: contact.phone });
+    }
+    patches.push({ component: node.name, property: 'Selection', value: contact.name });
+    emitInteraction(patches, { component: node.name, event: 'AfterPicking', args: [] });
+  }
+
+  // ── Canvas helpers ──────────────────────────────────────────────────────
+  let canvasEl;
+  let canvasCtx = null;
+  let canvasDragStart = null;
+  let canvasPrev = null;
+  let canvasTouchStart = null;
+  let canvasTouchTime = null;
+  const CANVAS_PAD_PX = 0;
+
+  function canvasWidth() {
+    const v = props.Width;
+    if (v === -2 || v === undefined || v === null) return 360;
+    if (v === -1 || v === '') return 360;
+    return Math.max(1, Number(v) || 360);
+  }
+
+  function canvasHeight() {
+    const v = props.Height;
+    if (v === -1 || v === undefined || v === null || v === '') return 300;
+    if (v === -2) {
+      // fill parent — use parent rendered height if available, else 300
+      return canvasEl?.parentElement?.clientHeight || 300;
+    }
+    return Math.max(1, Number(v) || 300);
+  }
+
+  function canvasSprites() {
+    return (node?.children || []).filter(c => c.type === 'Ball' || c.type === 'ImageSprite');
+  }
+
+  function getCanvas() {
+    if (!canvasEl) return null;
+    if (!canvasCtx) canvasCtx = canvasEl.getContext('2d');
+    return canvasCtx;
+  }
+
+  function canvasPoint(e) {
+    if (!canvasEl) return { x: 0, y: 0 };
+    const rect = canvasEl.getBoundingClientRect();
+    const scaleX = canvasEl.width / rect.width;
+    const scaleY = canvasEl.height / rect.height;
+    return {
+      x: Math.round((e.clientX - rect.left) * scaleX),
+      y: Math.round((e.clientY - rect.top) * scaleY),
+    };
+  }
+
+  function canvasPointerDown(e) {
+    if (!enabled) return;
+    canvasEl?.setPointerCapture(e.pointerId);
+    const pt = canvasPoint(e);
+    canvasDragStart = pt;
+    canvasPrev = pt;
+    canvasTouchStart = pt;
+    canvasTouchTime = Date.now();
+    emitEvent(node.name, 'TouchDown', [pt.x, pt.y]);
+  }
+
+  function canvasPointerMove(e) {
+    if (!enabled || !canvasDragStart) return;
+    const pt = canvasPoint(e);
+    emitEvent(node.name, 'Dragged', [
+      canvasDragStart.x, canvasDragStart.y,
+      canvasPrev.x, canvasPrev.y,
+      pt.x, pt.y,
+      false,
+    ]);
+    canvasPrev = pt;
+  }
+
+  function canvasPointerUp(e) {
+    if (!enabled) return;
+    const pt = canvasPoint(e);
+    emitEvent(node.name, 'TouchUp', [pt.x, pt.y]);
+    const elapsed = Date.now() - (canvasTouchTime || 0);
+    const dx = pt.x - (canvasTouchStart?.x ?? pt.x);
+    const dy = pt.y - (canvasTouchStart?.y ?? pt.y);
+    const dist = Math.hypot(dx, dy);
+    if (dist < numberOr(props.TapThreshold, 15)) {
+      emitEvent(node.name, 'Touched', [pt.x, pt.y, false]);
+    } else if (elapsed > 0) {
+      const speed = dist / elapsed * 1000;
+      const heading = (Math.atan2(-dy, dx) * 180 / Math.PI + 360) % 360;
+      emitEvent(node.name, 'Flung', [pt.x, pt.y, speed, heading, dx / elapsed * 1000, -dy / elapsed * 1000, false]);
+    }
+    canvasDragStart = null;
+    canvasPrev = null;
+  }
+
+  function canvasPointerCancel() {
+    canvasDragStart = null;
+    canvasPrev = null;
+  }
+
+  // Re-render canvas drawing ops when state changes
+  $: if (canvasEl && state) applyCanvasOps();
+
+  function applyCanvasOps() {
+    const ctx = getCanvas();
+    if (!ctx || !canvasEl) return;
+    // Clear + background
+    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+    const bg = colorValue(props.BackgroundColor, '#ffffff');
+    if (bg && bg !== 'transparent') {
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+    }
+    // Background image
+    if (assetUrl && props.BackgroundImage) {
+      const img = new Image();
+      img.onload = () => { ctx.drawImage(img, 0, 0, canvasEl.width, canvasEl.height); };
+      img.src = assetUrl;
+    }
+    // Draw sprites (Ball/ImageSprite) on canvas
+    for (const sprite of canvasSprites()) {
+      const sp = state?.[sprite.name] ?? {};
+      if (sp.Visible === false) continue;
+      ctx.save();
+      if (sprite.type === 'Ball') {
+        const r = numberOr(sp.Radius, 5);
+        const cx = numberOr(sp.X, 0) + (boolValue(sp.OriginAtCenter, false) ? 0 : r);
+        const cy = numberOr(sp.Y, 0) + (boolValue(sp.OriginAtCenter, false) ? 0 : r);
+        ctx.fillStyle = colorValue(sp.PaintColor, '#000000');
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (sprite.type === 'ImageSprite') {
+        const spUrl = resolveAssetUrl(assets, sp.Picture);
+        const w = numberOr(sp.Width, 0);
+        const h = numberOr(sp.Height, 0);
+        const x = numberOr(sp.X, 0);
+        const y = numberOr(sp.Y, 0);
+        if (spUrl && w > 0 && h > 0) {
+          const img = new Image();
+          img.onload = () => { ctx.drawImage(img, x, y, w, h); };
+          img.src = spUrl;
+        }
+      }
+      ctx.restore();
+    }
+  }
+
+  // Canvas draw op effects: the Go host emits 'canvas-draw' effects
+  $: if (node?.type === 'Canvas') handleCanvasEffects();
+  let lastCanvasDrawSeq = 0;
+  function handleCanvasEffects() { /* ops arrive via applyCanvasOps reactive */ }
+
+  // ── Chart helpers ───────────────────────────────────────────────────────
+  const CHART_PAD = 32;
+  const CHART_COLORS = ['#2196F3','#F44336','#4CAF50','#FF9800','#9C27B0','#00BCD4'];
+
+  function chartWidth() { return Math.max(80, numberOr(props.Width, 300)); }
+  function chartHeight() { return Math.max(60, numberOr(props.Height, 300)); }
+
+  function chartDataSeries() {
+    if (!node?.children) return [];
+    return node.children
+      .filter(c => c.type === 'ChartData2D')
+      .map((c, i) => {
+        const sp = state?.[c.name] ?? {};
+        const pts = parseChartPoints(sp.Elements || sp.ElementsFromPairs || '');
+        return {
+          label: sp.Label || c.name,
+          color: colorValue(sp.Color, CHART_COLORS[i % CHART_COLORS.length]),
+          points: pts,
+          name: c.name,
+        };
+      });
+  }
+
+  function parseChartPoints(value) {
+    if (Array.isArray(value)) return value.map(p => Array.isArray(p) ? [Number(p[0])||0, Number(p[1])||0] : [0,0]);
+    const text = String(value ?? '').trim();
+    if (!text) return [];
+    const pairs = text.split(',');
+    const pts = [];
+    for (let i = 0; i + 1 < pairs.length; i += 2) {
+      pts.push([Number(pairs[i].trim()) || 0, Number(pairs[i + 1].trim()) || 0]);
+    }
+    return pts;
+  }
+
+  function chartXRange() {
+    const all = chartDataSeries().flatMap(s => s.points.map(p => p[0]));
+    if (!all.length) return [0, 1];
+    const min = boolValue(props.XFromZero, false) ? 0 : Math.min(...all);
+    return [min, Math.max(...all, min + 1)];
+  }
+
+  function chartYRange() {
+    const all = chartDataSeries().flatMap(s => s.points.map(p => p[1]));
+    if (!all.length) return [0, 1];
+    const min = boolValue(props.YFromZero, false) ? 0 : Math.min(...all);
+    return [min, Math.max(...all, min + 1)];
+  }
+
+  function chartX(v) {
+    const [xMin, xMax] = chartXRange();
+    const w = chartWidth() - CHART_PAD * 2;
+    return CHART_PAD + ((v - xMin) / (xMax - xMin)) * w;
+  }
+
+  function chartY(v) {
+    const [yMin, yMax] = chartYRange();
+    const h = chartHeight() - CHART_PAD * 2;
+    return chartHeight() - CHART_PAD - ((v - yMin) / (yMax - yMin)) * h;
+  }
+
+  function chartPolylinePoints(pts) {
+    return pts.map(p => `${chartX(p[0])},${chartY(p[1])}`).join(' ');
+  }
+
+  function chartAreaPath(pts) {
+    if (!pts.length) return '';
+    const base = chartHeight() - CHART_PAD;
+    const points = [`${chartX(pts[0][0])},${base}`]
+      .concat(pts.map(p => `${chartX(p[0])},${chartY(p[1])}`))
+      .concat([`${chartX(pts[pts.length - 1][0])},${base}`]);
+    return 'M' + points.join('L') + 'Z';
+  }
+
+  function chartBarX(si, pi, numSeries, numPts) {
+    const w = chartWidth() - CHART_PAD * 2;
+    const groupW = w / Math.max(1, numPts);
+    const barW = chartBarWidth(numSeries, numPts);
+    return CHART_PAD + pi * groupW + si * barW + (groupW - numSeries * barW) / 2;
+  }
+
+  function chartBarWidth(numSeries, numPts) {
+    const w = chartWidth() - CHART_PAD * 2;
+    return Math.max(2, (w / Math.max(1, numPts)) / Math.max(1, numSeries) - 2);
+  }
+
+  function pieSectors(pts, si) {
+    const total = pts.reduce((s, p) => s + Math.abs(p[1]), 0) || 1;
+    const cx = chartWidth() / 2;
+    const cy = chartHeight() / 2;
+    const r = Math.min(cx, cy) - CHART_PAD;
+    let angle = -Math.PI / 2;
+    return pts.map((p, i) => {
+      const sweep = (Math.abs(p[1]) / total) * Math.PI * 2;
+      const x1 = cx + r * Math.cos(angle);
+      const y1 = cy + r * Math.sin(angle);
+      const x2 = cx + r * Math.cos(angle + sweep);
+      const y2 = cy + r * Math.sin(angle + sweep);
+      const large = sweep > Math.PI ? 1 : 0;
+      const d = `M${cx},${cy}L${x1},${y1}A${r},${r},0,${large},1,${x2},${y2}Z`;
+      const fill = CHART_COLORS[(si * pts.length + i) % CHART_COLORS.length];
+      angle += sweep;
+      return { d, fill };
+    });
+  }
+
+  // ── Map helpers (Leaflet) ───────────────────────────────────────────────
+  let mapEl;
+  let mapInstance = null;
+  let mapLayers = {};
+
+  // Map setup runs reactively via the $: if (mapEl) initOrUpdateMap() block below
+
+  $: if (node?.type === 'Map' && mapEl) initOrUpdateMap();
+
+  async function initOrUpdateMap() {
+    const L = await import('leaflet').catch(() => null);
+    if (!L || !mapEl) return;
+    if (!mapInstance) {
+      // Fix Leaflet default icon path for Vite bundling
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
+      mapInstance = L.map(mapEl, {
+        center: [numberOr(props.Latitude, 42.359144), numberOr(props.Longitude, -71.093612)],
+        zoom: numberOr(props.ZoomLevel, 13),
+        zoomControl: boolValue(props.ShowZoom, false),
+        dragging: boolValue(props.EnablePan, true),
+        scrollWheelZoom: boolValue(props.EnableZoom, true),
+        touchZoom: boolValue(props.EnableZoom, true),
+        doubleClickZoom: boolValue(props.EnableZoom, true),
+        attributionControl: true,
+      });
+      const tileUrl = props.CustomUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+      L.tileLayer(tileUrl, { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(mapInstance);
+      mapInstance.on('moveend', () => emitEvent(node.name, 'BoundsChange'));
+      mapInstance.on('zoomend', () => emitEvent(node.name, 'ZoomChange'));
+      mapInstance.on('click', (e) => emitEvent(node.name, 'TapAtPoint', [e.latlng.lat, e.latlng.lng]));
+      mapInstance.on('dblclick', (e) => emitEvent(node.name, 'DoubleTapAtPoint', [e.latlng.lat, e.latlng.lng]));
+      mapInstance.on('contextmenu', (e) => emitEvent(node.name, 'LongPressAtPoint', [e.latlng.lat, e.latlng.lng]));
+      emitEvent(node.name, 'Ready');
+    } else {
+      mapInstance.setView(
+        [numberOr(props.Latitude, 42.359144), numberOr(props.Longitude, -71.093612)],
+        numberOr(props.ZoomLevel, 13),
+        { animate: false },
+      );
+    }
+    updateMapFeatures(L);
+  }
+
+  function updateMapFeatures(L) {
+    if (!mapInstance || !L) return;
+    const nextKeys = new Set();
+    for (const child of node?.children || []) {
+      const sp = state?.[child.name] ?? {};
+      if (sp.Visible === false) continue;
+      const key = child.name;
+      nextKeys.add(key);
+      if (mapLayers[key]) {
+        updateMapLayer(L, child, sp, mapLayers[key]);
+      } else {
+        mapLayers[key] = createMapLayer(L, child, sp);
+        if (mapLayers[key]) mapLayers[key].addTo(mapInstance);
+      }
+    }
+    for (const k of Object.keys(mapLayers)) {
+      if (!nextKeys.has(k)) { mapLayers[k]?.remove(); delete mapLayers[k]; }
+    }
+  }
+
+  function featureStyle(sp) {
+    return {
+      color: colorValue(sp.StrokeColor, '#000000'),
+      opacity: numberOr(sp.StrokeOpacity, 1),
+      weight: numberOr(sp.StrokeWidth, 1),
+      fillColor: colorValue(sp.FillColor, '#ff0000'),
+      fillOpacity: numberOr(sp.FillOpacity, 1),
+    };
+  }
+
+  function createMapLayer(L, child, sp) {
+    switch (child.type) {
+      case 'Marker': {
+        const icon = L.divIcon({
+          html: `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg" width="24" height="36"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="${colorValue(sp.FillColor,'#ff0000')}" stroke="${colorValue(sp.StrokeColor,'#000')}"/><circle cx="12" cy="12" r="5" fill="white"/></svg>`,
+          className: '',
+          iconSize: [24, 36],
+          iconAnchor: [12, 36],
+          popupAnchor: [0, -36],
+        });
+        const m = L.marker([numberOr(sp.Latitude, 0), numberOr(sp.Longitude, 0)], { icon, draggable: boolValue(sp.Draggable, false) });
+        if (sp.Title || sp.Description) m.bindPopup(`<b>${sp.Title || ''}</b><br>${sp.Description || ''}`);
+        m.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
+        m.on('contextmenu', () => emitEvent(node.name, 'FeatureLongClick', [child.name]));
+        return m;
+      }
+      case 'Circle': {
+        const c = L.circle([numberOr(sp.Latitude, 0), numberOr(sp.Longitude, 0)], { radius: numberOr(sp.Radius, 10), ...featureStyle(sp), draggable: boolValue(sp.Draggable, false) });
+        c.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
+        c.on('contextmenu', () => emitEvent(node.name, 'FeatureLongClick', [child.name]));
+        return c;
+      }
+      case 'LineString': {
+        const pts = parseLatLngList(sp.PointsFromString);
+        if (!pts.length) return null;
+        const l = L.polyline(pts, { ...featureStyle(sp), draggable: boolValue(sp.Draggable, false) });
+        l.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
+        return l;
+      }
+      case 'Polygon': {
+        const pts = parseLatLngList(sp.PointsFromString);
+        if (!pts.length) return null;
+        const pg = L.polygon(pts, { ...featureStyle(sp), draggable: boolValue(sp.Draggable, false) });
+        pg.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
+        return pg;
+      }
+      case 'Rectangle': {
+        const bounds = [
+          [numberOr(sp.SouthLatitude, 0), numberOr(sp.WestLongitude, 0)],
+          [numberOr(sp.NorthLatitude, 0), numberOr(sp.EastLongitude, 0)],
+        ];
+        const r = L.rectangle(bounds, { ...featureStyle(sp), draggable: boolValue(sp.Draggable, false) });
+        r.on('click', () => emitEvent(node.name, 'FeatureClick', [child.name]));
+        return r;
+      }
+      default: return null;
+    }
+  }
+
+  function updateMapLayer(L, child, sp, layer) {
+    if (child.type === 'Marker') {
+      layer.setLatLng([numberOr(sp.Latitude, 0), numberOr(sp.Longitude, 0)]);
+    } else if (child.type === 'Circle') {
+      layer.setLatLng([numberOr(sp.Latitude, 0), numberOr(sp.Longitude, 0)]);
+      layer.setRadius(numberOr(sp.Radius, 10));
+      layer.setStyle(featureStyle(sp));
+    } else if (child.type === 'LineString') {
+      const pts = parseLatLngList(sp.PointsFromString);
+      if (pts.length) layer.setLatLngs(pts);
+      layer.setStyle(featureStyle(sp));
+    } else if (child.type === 'Polygon') {
+      const pts = parseLatLngList(sp.PointsFromString);
+      if (pts.length) layer.setLatLngs(pts);
+      layer.setStyle(featureStyle(sp));
+    } else if (child.type === 'Rectangle') {
+      const bounds = [
+        [numberOr(sp.SouthLatitude, 0), numberOr(sp.WestLongitude, 0)],
+        [numberOr(sp.NorthLatitude, 0), numberOr(sp.EastLongitude, 0)],
+      ];
+      layer.setBounds(bounds);
+      layer.setStyle(featureStyle(sp));
+    }
+  }
+
+  function parseLatLngList(value) {
+    const text = String(value ?? '').trim();
+    if (!text) return [];
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parsed.map(p => Array.isArray(p) ? [Number(p[0]), Number(p[1])] : [0, 0]);
+    } catch {}
+    const nums = text.split(/[\s,]+/).map(Number).filter(Number.isFinite);
+    const pts = [];
+    for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+    return pts;
   }
 
   function childEvent(event) {
@@ -1125,6 +1643,237 @@
         {/each}
       </div>
     </div>
+  {:else if node.type === 'CircularProgress'}
+    <div
+      class="sim-circular-progress"
+      class:sim-unsupported={unsupportedHere}
+      style={baseStyle(`--cp-color: ${colorValue(props.Color, '#0000ff')};`, { typography: false, arrangement: false, backgroundImage: false })}
+      role="progressbar"
+      aria-label="Loading"
+      data-sim-component={node.name}
+    >
+      <span class="sim-cp-ring" aria-hidden="true"></span>
+    </div>
+  {:else if node.type === 'LinearProgress'}
+    <div
+      class="sim-linear-progress"
+      class:sim-linear-progress--indeterminate={boolValue(props.Indeterminate, true)}
+      class:sim-unsupported={unsupportedHere}
+      style={baseStyle(`--lp-color: ${colorValue(props.ProgressColor, '#0000ff')}; --lp-ind-color: ${colorValue(props.IndeterminateColor, '#0000ff')}; --lp-pct: ${linearProgressPct()}%;`, { typography: false, arrangement: false, backgroundImage: false })}
+      role="progressbar"
+      aria-valuenow={boolValue(props.Indeterminate, true) ? undefined : numberOr(props.Progress, 0)}
+      aria-valuemin={numberOr(props.Minimum, 0)}
+      aria-valuemax={numberOr(props.Maximum, 100)}
+      data-sim-component={node.name}
+    >
+      <div class="sim-lp-bar" aria-hidden="true"></div>
+    </div>
+  {:else if node.type === 'TableArrangement'}
+    <div
+      class="sim-table"
+      class:sim-unsupported={unsupportedHere}
+      style={baseStyle(`grid-template-columns: repeat(${numberOr(props.Columns, 2)}, 1fr); grid-template-rows: repeat(${numberOr(props.Rows, 2)}, auto);`, { typography: false, arrangement: false, backgroundImage: false })}
+      data-sim-component={node.name}
+    >
+      {#each node.children || [] as child (child.pathId || child.name)}
+        <svelte:self node={child} {state} {unsupported} {assets} {actions} {eventRunner} parentType={node.type} on:event={childEvent} on:property={childEvent} on:interaction={childEvent} />
+      {/each}
+    </div>
+  {:else if node.type === 'WebViewer'}
+    <div class="sim-webviewer" class:sim-unsupported={unsupportedHere} style={baseStyle()} data-sim-component={node.name}>
+      {#if props.HomeUrl || props.CurrentUrl}
+        <iframe
+          bind:this={webViewerFrame}
+          title="WebViewer"
+          src={props.CurrentUrl || props.HomeUrl || ''}
+          class="sim-webviewer-frame"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          allow="autoplay; camera; microphone"
+          on:load={webViewerLoad}
+          on:error={webViewerError}
+        ></iframe>
+      {:else}
+        <div class="sim-webviewer-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 8h18M8 3v18"/></svg>
+          <span>WebViewer</span>
+        </div>
+      {/if}
+    </div>
+  {:else if node.type === 'VideoPlayer'}
+    <div class="sim-videoplayer" class:sim-unsupported={unsupportedHere} style={baseStyle()} data-sim-component={node.name}>
+      {#if props.Source}
+        <video
+          bind:this={videoEl}
+          class="sim-videoplayer-video"
+          src={resolveAssetUrl(assets, props.Source) || props.Source}
+          volume={Math.max(0, Math.min(1, numberOr(props.Volume, 50) / 100))}
+          loop={boolValue(props.Loop, false)}
+          preload="metadata"
+          controls
+          on:ended={() => emitEvent(node.name, 'Completed')}
+          on:error={(e) => emitEvent(node.name, 'VideoPlayerError', [e.currentTarget.error?.message || 'Error'])}
+          on:loadedmetadata={videoLoadedMetadata}
+        >
+          <track kind="captions" />
+        </video>
+      {:else}
+        <div class="sim-videoplayer-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none"/></svg>
+          <span>VideoPlayer</span>
+        </div>
+      {/if}
+    </div>
+  {:else if node.type === 'EmailPicker'}
+    <input
+      bind:this={textInputEl}
+      class="sim-textbox"
+      class:sim-unsupported={unsupportedHere}
+      style={`${baseStyle()} ${hintColorStyle()}`}
+      type="email"
+      autocomplete="email"
+      value={props.Text ?? ''}
+      placeholder={props.Hint ?? ''}
+      disabled={!enabled}
+      data-sim-component={node.name}
+      on:input={textInput}
+      on:focus={focusEvent}
+      on:blur={blurEvent}
+    />
+  {:else if node.type === 'ImagePicker' || node.type === 'FilePicker' || node.type === 'ContactPicker' || node.type === 'PhoneNumberPicker'}
+    <div bind:this={pickerWrapEl} class="sim-picker" class:sim-unsupported={unsupportedHere} style={containerStyle()} data-sim-component={node.name}>
+      <button
+        bind:this={buttonEl}
+        type="button"
+        class="sim-button"
+        class:sim-no-feedback={!boolValue(props.ShowFeedback, true)}
+        style={buttonInnerStyle('width: 100%;')}
+        disabled={!enabled}
+        on:pointerdown={() => pointerDown(true)}
+        on:pointerup={pointerUp}
+        on:pointercancel={clearLongClick}
+        on:focus={focusEvent}
+        on:blur={blurEvent}
+        on:click={openFilePicker}
+      >{props.Text ?? ''}</button>
+      <input
+        bind:this={fileInput}
+        type="file"
+        accept={filePickerAccept()}
+        class="sim-native-picker-input"
+        tabindex="-1"
+        aria-hidden="true"
+        on:change={filePickerChange}
+      />
+      {#if node.type === 'ContactPicker' || node.type === 'PhoneNumberPicker'}
+        {#if pickerOpen}
+          <div class="sim-picker-menu" style={pickerMenuStyle()}>
+            <div class="sim-picker-title">
+              {node.type === 'PhoneNumberPicker' ? 'Pick Phone Number' : 'Pick Contact'}
+            </div>
+            {#each MOCK_CONTACTS as contact, i (i)}
+              <button type="button" on:click={() => pickContact(contact)}>{contact.name}</button>
+            {/each}
+          </div>
+        {/if}
+      {/if}
+    </div>
+  {:else if node.type === 'Canvas'}
+    <div
+      class="sim-canvas-wrap"
+      class:sim-unsupported={unsupportedHere}
+      style={baseStyle()}
+      data-sim-component={node.name}
+    >
+      <canvas
+        bind:this={canvasEl}
+        class="sim-canvas"
+        width={canvasWidth()}
+        height={canvasHeight()}
+        on:pointerdown={canvasPointerDown}
+        on:pointermove={canvasPointerMove}
+        on:pointerup={canvasPointerUp}
+        on:pointercancel={canvasPointerCancel}
+      ></canvas>
+      {#each canvasSprites() as sprite (sprite.name)}
+        <svelte:self node={sprite} {state} {unsupported} {assets} {actions} {eventRunner} parentType={node.type} on:event={childEvent} on:property={childEvent} on:interaction={childEvent} />
+      {/each}
+    </div>
+  {:else if node.type === 'Ball'}
+    <!-- Ball is rendered by the Canvas parent onto its canvas element; this node renders nothing itself -->
+  {:else if node.type === 'ImageSprite'}
+    <!-- ImageSprite is rendered by the Canvas parent onto its canvas element; this node renders nothing itself -->
+  {:else if node.type === 'Chart'}
+    <div
+      class="sim-chart"
+      class:sim-unsupported={unsupportedHere}
+      style={baseStyle()}
+      data-sim-component={node.name}
+    >
+      <svg class="sim-chart-svg" viewBox={`0 0 ${chartWidth()} ${chartHeight()}`} preserveAspectRatio="none">
+        {#each chartDataSeries() as series, si}
+          {#if numberOr(props.Type, 0) === 4}
+            <!-- Pie chart -->
+            {#each pieSectors(series.points, si) as sector}
+              <path d={sector.d} fill={sector.fill} stroke="white" stroke-width="1" />
+            {/each}
+          {:else if numberOr(props.Type, 0) === 3}
+            <!-- Bar chart -->
+            {#each series.points as pt, pi}
+              <rect
+                role="button"
+                tabindex="0"
+                x={chartBarX(si, pi, chartDataSeries().length, series.points.length)}
+                y={chartY(pt[1])}
+                width={chartBarWidth(chartDataSeries().length, series.points.length)}
+                height={chartHeight() - CHART_PAD - chartY(pt[1])}
+                fill={series.color}
+                on:click={() => emitEvent(node.name, 'EntryClick', [series.label, pt[0], pt[1]])}
+                on:keydown={(e) => e.key === 'Enter' && emitEvent(node.name, 'EntryClick', [series.label, pt[0], pt[1]])}
+              />
+            {/each}
+          {:else}
+            <!-- Line / scatter / area -->
+            {#if numberOr(props.Type, 0) === 2}
+              <!-- Area fill -->
+              <path d={chartAreaPath(series.points)} fill={series.color} opacity="0.3" />
+            {/if}
+            {#if numberOr(props.Type, 0) !== 1}
+              <!-- Line -->
+              <polyline points={chartPolylinePoints(series.points)} fill="none" stroke={series.color} stroke-width="2" />
+            {/if}
+            {#each series.points as pt}
+              <circle
+                role="button"
+                tabindex="0"
+                cx={chartX(pt[0])}
+                cy={chartY(pt[1])}
+                r="4"
+                fill={series.color}
+                on:click={() => emitEvent(node.name, 'EntryClick', [series.label, pt[0], pt[1]])}
+                on:keydown={(e) => e.key === 'Enter' && emitEvent(node.name, 'EntryClick', [series.label, pt[0], pt[1]])}
+              />
+            {/each}
+          {/if}
+        {/each}
+      </svg>
+      {#if boolValue(props.LegendEnabled, true) && chartDataSeries().length > 0}
+        <div class="sim-chart-legend">
+          {#each chartDataSeries() as series}
+            <span><span class="sim-chart-legend-dot" style="background:{series.color}"></span>{series.label}</span>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {:else if node.type === 'Map'}
+    <div
+      bind:this={mapEl}
+      class="sim-map"
+      class:sim-unsupported={unsupportedHere}
+      style={baseStyle()}
+      data-sim-component={node.name}
+    ></div>
+  {:else if node.type === 'FeatureCollection'}
+    <!-- FeatureCollection is a non-rendering logical container; map features render inside the Map host -->
   {:else}
     <div class="sim-unsupported sim-placeholder" style={baseStyle()} data-sim-component={node.name}>
       {node.type}.{node.name}
@@ -1543,5 +2292,202 @@
     color: #92400e;
     font-size: 12px;
     overflow-wrap: anywhere;
+  }
+
+  /* ── CircularProgress ────────────────────────────────────────── */
+  .sim-circular-progress {
+    display: inline-grid;
+    place-items: center;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .sim-cp-ring {
+    width: 28px;
+    height: 28px;
+    border: 3px solid rgba(0, 0, 255, 0.2);
+    border-top-color: var(--cp-color, #0000ff);
+    border-radius: 50%;
+    animation: sim-cp-spin 0.9s linear infinite;
+  }
+
+  @keyframes sim-cp-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sim-cp-ring { animation-duration: 2.4s; }
+  }
+
+  /* ── LinearProgress ──────────────────────────────────────────── */
+  .sim-linear-progress {
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 255, 0.15);
+    border-radius: 3px;
+    overflow: hidden;
+    min-height: 6px;
+    position: relative;
+  }
+
+  .sim-lp-bar {
+    height: 100%;
+    background: var(--lp-color, #0000ff);
+    border-radius: 3px;
+    width: var(--lp-pct, 0%);
+    transition: width 0.2s;
+  }
+
+  .sim-linear-progress--indeterminate .sim-lp-bar {
+    width: 40%;
+    animation: sim-lp-slide 1.2s ease-in-out infinite;
+    background: var(--lp-ind-color, #0000ff);
+  }
+
+  @keyframes sim-lp-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sim-linear-progress--indeterminate .sim-lp-bar { animation-duration: 3s; }
+  }
+
+  /* ── TableArrangement ────────────────────────────────────────── */
+  .sim-table {
+    display: grid;
+    gap: 0;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* ── WebViewer ───────────────────────────────────────────────── */
+  .sim-webviewer {
+    min-height: 80px;
+    border: 1px solid #c9cdd3;
+    border-radius: 3px;
+    overflow: hidden;
+    background: #fff;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sim-webviewer-frame {
+    flex: 1 1 auto;
+    width: 100%;
+    border: none;
+    min-height: 0;
+  }
+
+  .sim-webviewer-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 80px;
+    color: #9aa0a6;
+    font-size: 11px;
+  }
+
+  .sim-webviewer-empty svg {
+    width: 28px;
+    height: 28px;
+    opacity: 0.5;
+  }
+
+  /* ── VideoPlayer ─────────────────────────────────────────────── */
+  .sim-videoplayer {
+    min-height: 60px;
+    background: #000;
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .sim-videoplayer-video {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .sim-videoplayer-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #9aa0a6;
+    font-size: 11px;
+    padding: 14px;
+  }
+
+  .sim-videoplayer-empty svg {
+    width: 32px;
+    height: 32px;
+    opacity: 0.55;
+    color: #fff;
+  }
+
+  /* ── Canvas ──────────────────────────────────────────────────── */
+  .sim-canvas-wrap {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sim-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: crosshair;
+  }
+
+  /* ── Chart ───────────────────────────────────────────────────── */
+  .sim-chart {
+    display: flex;
+    flex-direction: column;
+    min-height: 80px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .sim-chart-svg {
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+
+  .sim-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    padding: 4px 8px;
+    font-size: 10px;
+    color: #555;
+    border-top: 1px solid #eee;
+  }
+
+  .sim-chart-legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 3px;
+    vertical-align: middle;
+  }
+
+  /* ── Map ─────────────────────────────────────────────────────── */
+  .sim-map {
+    min-height: 80px;
+    border: 1px solid #c9cdd3;
+    border-radius: 3px;
+    z-index: 0;
   }
 </style>

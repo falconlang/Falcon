@@ -174,10 +174,11 @@ test('design tree helpers build simulator inputs', () => {
 });
 
 test('simulator unsupported helper reports components outside the v1 surface', () => {
-  const tree = parseDesignSchema('Screen.Screen1 { Canvas.Canvas1 }');
+  // Canvas is now supported; use a non-simulated component like Clock
+  const tree = parseDesignSchema('Screen.Screen1 { Spreadsheet.Spreadsheet1 }');
 
   assert.deepEqual(unsupportedSimulationComponents(tree), [
-    { kind: 'component', detail: 'Canvas.Canvas1' },
+    { kind: 'component', detail: 'Spreadsheet.Spreadsheet1' },
   ]);
 });
 
