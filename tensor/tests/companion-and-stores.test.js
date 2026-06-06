@@ -87,20 +87,9 @@ import {
 } from '../src/lib/listview-data.js';
 import {
   designTreeToComponentDefinitions,
-  designTreeToInitialState,
-  mergeSimulationStatePatch,
   parseDesignSchema,
   serializeDesignTree,
-  unsupportedSimulationComponents,
 } from '../src/lib/design-schema-tree.js';
-import {
-  coerceSimulationValue,
-  elementsFromString,
-  isSimulationNonVisibleType,
-  normalizeElements,
-  parseListData,
-  resolveAssetUrl,
-} from '../src/lib/simulation-capabilities.js';
 
 const simpleComponents = JSON.parse(readFileSync(new URL('../../lang/code/compdb/simple_components.json', import.meta.url), 'utf8'));
 
@@ -154,7 +143,7 @@ test('shared design schema parser round trips component trees', () => {
   assert.match(serializeDesignTree(tree), /TextBox\.Input/);
 });
 
-test('design tree helpers build simulator inputs', () => {
+test('design tree helpers build component definitions', () => {
   const tree = parseDesignSchema('Screen.Screen1 { TextBox.Input { Text: "7" }, Button.Go, Notifier.Notifier1 }');
 
   assert.deepEqual(designTreeToComponentDefinitions(tree), {
@@ -162,142 +151,6 @@ test('design tree helpers build simulator inputs', () => {
     TextBox: ['Input'],
     Button: ['Go'],
     Notifier: ['Notifier1'],
-  });
-
-  const state = designTreeToInitialState(tree);
-  assert.equal(state.Input.Text, '7');
-  assert.equal(state.Input.Width, 160);
-  assert.equal(state.Go.Width, -1);
-  assert.equal(state.Go.Enabled, true);
-  assert.equal(state.Notifier1.Visible, false);
-  assert.deepEqual(unsupportedSimulationComponents(tree), []);
-});
-
-test('simulator unsupported helper reports components outside the v1 surface', () => {
-  // Canvas is now supported; use a non-simulated component like Clock
-  const tree = parseDesignSchema('Screen.Screen1 { Spreadsheet.Spreadsheet1 }');
-
-  assert.deepEqual(unsupportedSimulationComponents(tree), [
-    { kind: 'component', detail: 'Spreadsheet.Spreadsheet1' },
-  ]);
-});
-
-test('simulator registry defaults cover core UI input components', () => {
-  const tree = parseDesignSchema(`
-    Screen.Screen1 {
-      CheckBox.Agree { Text: "Agree", Checked: true }
-      Switch.Power { Text: "Power", On: true }
-      Slider.Level { MinValue: 0, MaxValue: 10, ThumbPosition: 4 }
-      PasswordTextBox.Secret { PasswordVisible: false }
-      Spinner.Choice { ElementsFromString: "Red, Green, Blue" }
-      ListView.Items { ElementsFromString: "One, Two" }
-      TinyDB.Store
-    }
-  `);
-  const state = designTreeToInitialState(tree);
-
-  assert.equal(state.Agree.Checked, true);
-  assert.equal(state.Power.On, true);
-  assert.equal(state.Level.ThumbPosition, 4);
-  assert.equal(state.Secret.PasswordVisible, false);
-  assert.deepEqual(state.Choice.Elements, ['Red', 'Green', 'Blue']);
-  assert.deepEqual(state.Items.Elements, ['One', 'Two']);
-  assert.equal(state.Store.Visible, false);
-  assert.equal(state.Store.Namespace, 'TinyDB1');
-  assert.equal(isSimulationNonVisibleType('TinyDB'), true);
-  assert.equal(isSimulationNonVisibleType('Notifier'), true);
-  assert.deepEqual(unsupportedSimulationComponents(tree), []);
-});
-
-test('simulator reviewed defaults match App Inventor component semantics', () => {
-  const tree = parseDesignSchema(`
-    Screen.Screen1 {
-      Button.Go
-      Slider.Level
-      Image.Photo
-      HorizontalArrangement.Row
-      VerticalArrangement.Col
-      HorizontalScrollArrangement.HScroll
-      VerticalScrollArrangement.VScroll
-      AbsoluteArrangement.Abs
-      ListPicker.Choose
-      ListView.Items
-      Notifier.Notifier1
-    }
-  `);
-  const state = designTreeToInitialState(tree);
-
-  assert.equal(state.Screen1.Width, 360);
-  assert.equal(state.Screen1.Height, 640);
-  assert.equal(state.Screen1.Scrollable, false);
-  assert.equal(state.Go.Text, '');
-  assert.equal(state.Level.Height, -1);
-  assert.equal(state.Level.ThumbColor, '&HFF444444');
-  assert.equal(state.Level.NumberOfSteps, 100);
-  assert.equal(state.Photo.Enabled, undefined);
-  assert.equal(state.Photo.ScalePictureToFit, false);
-  assert.equal(state.Row.Width, -1);
-  assert.equal(state.Row.Height, -1);
-  assert.equal(state.Col.Width, -1);
-  assert.equal(state.HScroll.Width, -1);
-  assert.equal(state.VScroll.Width, -1);
-  assert.equal(state.Abs.Width, -2);
-  assert.equal(state.Abs.Height, 100);
-  assert.equal(state.Choose.ItemBackgroundColor, '&HFF000000');
-  assert.equal(state.Items.BackgroundColor, '&HFF000000');
-  assert.equal(state.Items.TextColor, '&HFFFFFFFF');
-  assert.equal(state.Items.SelectionColor, '&HFFD3D3D3');
-  assert.equal(state.Notifier1.NotifierLength, 1);
-});
-
-test('simulator preserves nonvisual and rich list state props', () => {
-  const tree = parseDesignSchema(`
-    Screen.Screen1 {
-      TinyDB.Store { Namespace: "Scores" }
-      ListView.Items {
-        ListViewLayout: 4,
-        ListData: "[{\\"Text1\\":\\"Main\\",\\"Text2\\":\\"Detail\\",\\"Image\\":\\"icon.png\\"}]"
-      }
-    }
-  `);
-  const state = designTreeToInitialState(tree);
-
-  assert.equal(state.Store.Namespace, 'Scores');
-  assert.equal(state.Items.ListData.includes('Main'), true);
-  assert.equal(state.Items.Elements.length, 1);
-  assert.equal(state.Items.Elements[0].Text1, 'Main');
-  assert.equal(state.Items.Elements[0].Text2, 'Detail');
-  assert.equal(state.Items.Elements[0].Image, 'icon.png');
-  assert.equal(String(state.Items.Elements[0]), 'Main');
-});
-
-test('simulator capability helpers normalize elements and assets', () => {
-  assert.deepEqual(elementsFromString('A, B,, C'), ['A', 'B', 'C']);
-  assert.deepEqual(normalizeElements(['A', 2]), ['A', '2']);
-  assert.deepEqual(parseListData('[{"Text1":"Main","Text2":"Detail","Image":"icon.png"}]', 4), [
-    { Text1: 'Main', Text2: 'Detail', Image: 'icon.png' },
-  ]);
-  assert.equal(
-    resolveAssetUrl([{ name: 'images/logo.png', url: 'blob:logo' }], 'logo.png'),
-    'blob:logo',
-  );
-});
-
-test('simulator coercion covers reviewed visual property types', () => {
-  assert.equal(coerceSimulationValue('TextBox', 'ReadOnly', 'true'), true);
-  assert.equal(coerceSimulationValue('Slider', 'NumberOfSteps', '250'), 250);
-  assert.equal(coerceSimulationValue('ListPicker', 'ShowFilterBar', 'False'), false);
-  assert.equal(coerceSimulationValue('HorizontalArrangement', 'AlignHorizontal', '3'), 3);
-});
-
-test('simulator state patch merge preserves untouched component state', () => {
-  const state = {
-    Input: { Text: '1', Enabled: true },
-    Result: { Text: 'old' },
-  };
-  assert.deepEqual(mergeSimulationStatePatch(state, { Input: { Text: '2' } }), {
-    Input: { Text: '2', Enabled: true },
-    Result: { Text: 'old' },
   });
 });
 

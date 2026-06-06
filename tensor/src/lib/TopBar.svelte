@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { liveTestOpen, simulateOpen, liveTestState, companionCommand, loadProjectState, projectName } from './stores.js';
+  import { liveTestOpen, liveTestState, companionCommand, loadProjectState, projectName } from './stores.js';
   import {
     downloadBlob,
     exportCurrentProjectToAia,
@@ -34,7 +34,6 @@
   function testAction(action) {
     testMenuOpen = false;
     if (action === 'connect') { liveTestOpen.set(true); return; }
-    if (action === 'simulate') { simulateOpen.set(true); return; }
     if (action === 'refresh') { companionCommand.set(action); return; }
     liveTestOpen.set(true);
     companionCommand.set(action);
@@ -254,10 +253,6 @@
     <button class="ctx-item" role="menuitem" on:click={() => testAction('connect')}>
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="1" width="6" height="12" rx="1.5"/><path d="M5.5 3.5h3" stroke-linecap="round"/><path d="M5.5 10.5h3" stroke-linecap="round"/></svg>
       Live test
-    </button>
-    <button class="ctx-item" role="menuitem" on:click={() => testAction('simulate')}>
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2" width="11" height="10" rx="1.5"/><path d="M4 5h6M4 7.5h3" stroke-linecap="round"/><path d="M9 8.5l2 1-2 1z" fill="currentColor" stroke="none"/></svg>
-      Simulate
     </button>
     <div class="ctx-sep"></div>
     <button class="ctx-item" role="menuitem" disabled={!isConnected} on:click={() => testAction('refresh')}>

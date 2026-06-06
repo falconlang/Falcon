@@ -88,19 +88,12 @@ export const activeCellId = writable('c1');
 export const execCounter = writable(6);
 export const ctxMenu = writable({ show: false, x: 0, y: 0, cellId: null });
 export const liveTestOpen = writable(false);
-export const simulateOpen = writable(false);
 export const companionCommand = writable(null);
 export const liveTestState = writable({
   status: 'idle',
   code: null,
   error: null,
   messageCount: 0,
-});
-export const simulateState = writable({
-  status: 'idle',
-  sessionId: null,
-  error: null,
-  diagnostics: [],
 });
 export const doItCellId = writable(null);
 export const doItResults = writable({});

@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { hideCtx, liveTestOpen, simulateOpen, doItCellId, sidebarVisible, undoDeleteCell, redoDeleteCell, toggleSearch, searchOpen } from './lib/stores.js';
+  import { hideCtx, liveTestOpen, doItCellId, sidebarVisible, undoDeleteCell, redoDeleteCell, toggleSearch, searchOpen } from './lib/stores.js';
   import TopBar from './lib/TopBar.svelte';
   import Toolbar from './lib/Toolbar.svelte';
   import Sidebar from './lib/Sidebar.svelte';
@@ -10,7 +10,6 @@
   import StatusBar from './lib/StatusBar.svelte';
   import ContextMenu from './lib/ContextMenu.svelte';
   import LiveTestOverlay from './lib/LiveTestOverlay.svelte';
-  import SimulateOverlay from './lib/SimulateOverlay.svelte';
   import UniversalSearch from './lib/UniversalSearch.svelte';
   import { warmBlocklyPreviewRuntime } from './lib/blockly-preview.js';
 
@@ -34,7 +33,6 @@
       if (e.key === 'Escape') {
         hideCtx();
         liveTestOpen.set(false);
-        simulateOpen.set(false);
         searchOpen.set(false);
         return;
       }
@@ -126,7 +124,6 @@
     </div>
     <DesignerPanel />
     <LiveTestOverlay />
-    <SimulateOverlay />
   </div>
 
   <StatusBar />

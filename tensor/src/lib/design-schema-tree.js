@@ -8,13 +8,6 @@ import {
   isValidComponentName,
   isValidScreenName,
 } from './appinventor-validation.js';
-import {
-  SIMULATION_DEFAULTS,
-  coerceSimulationValue,
-  deriveStateFromDesignerProps,
-  isSimulationSupportedType,
-} from './simulation-capabilities.js';
-
 const TYPE_ALIASES = {
   Screen: 'Form',
   Form: 'Form',
@@ -292,51 +285,4 @@ export function designTreeToComponentDefinitions(root) {
   }
   visit(root);
   return defs;
-}
-
-export function designTreeToInitialState(root) {
-  const state = {};
-  function visit(node) {
-    if (!node) return;
-    const type = node.type === 'Form' ? 'Screen' : node.type;
-    const defaults = SIMULATION_DEFAULTS[type] || {};
-    const props = { ...defaults, ...deriveStateFromDesignerProps(type, node.props || {}) };
-    state[node.name] = props;
-    for (const child of node.children || []) visit(child);
-  }
-  visit(root);
-  return state;
-}
-
-export function unsupportedSimulationComponents(root) {
-  const unsupported = [];
-  function visit(node) {
-    if (!node) return;
-    if (!isSimulationSupportedType(node.type)) {
-      unsupported.push({ kind: 'component', detail: `${node.type}.${node.name}` });
-    }
-    for (const child of node.children || []) visit(child);
-  }
-  visit(root);
-  return unsupported;
-}
-
-export function mergeSimulationStatePatch(state, patch) {
-  const next = { ...(state || {}) };
-  for (const [component, props] of Object.entries(patch || {})) {
-    next[component] = { ...(next[component] || {}), ...(props || {}) };
-  }
-  return next;
-}
-
-export function coerceDesignerValue(value, propName = '') {
-  return coerceSimulationValue('', propName, value);
-}
-
-export function isSimulationVisible(state, componentName) {
-  return state?.[componentName]?.Visible !== false;
-}
-
-export function isSimulationEnabled(state, componentName) {
-  return state?.[componentName]?.Enabled !== false;
 }

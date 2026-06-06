@@ -23,7 +23,7 @@ type componentHostTestDouble struct {
 	componentNames map[string][]string
 }
 
-var defaultSimulationRuntimeComponentTypes = map[string]string{
+var defaultComponentHostRuntimeComponentTypes = map[string]string{
 	"Screen1":             "Screen",
 	"AddButton":           "Button",
 	"Level":               "Slider",
@@ -36,7 +36,7 @@ func (h *componentHostTestDouble) ComponentType(componentName string) string {
 	if h.componentTypes != nil {
 		return h.componentTypes[componentName]
 	}
-	return defaultSimulationRuntimeComponentTypes[componentName]
+	return defaultComponentHostRuntimeComponentTypes[componentName]
 }
 
 func (h *componentHostTestDouble) ComponentNames(componentType string) []string {
@@ -45,7 +45,7 @@ func (h *componentHostTestDouble) ComponentNames(componentType string) []string 
 	}
 	types := h.componentTypes
 	if types == nil {
-		types = defaultSimulationRuntimeComponentTypes
+		types = defaultComponentHostRuntimeComponentTypes
 	}
 	names := make([]string, 0)
 	for name, typ := range types {
@@ -88,7 +88,7 @@ func (h *componentHostTestDouble) Unsupported(kind, detail string) {
 	h.unsupported = append(h.unsupported, kind+":"+detail)
 }
 
-func TestSimulationRuntimeGenericComponentBlocksDelegateToHost(t *testing.T) {
+func TestComponentHostRuntimeGenericComponentBlocksDelegateToHost(t *testing.T) {
 	host := &componentHostTestDouble{
 		state: map[string]map[string]Value{
 			"firstNumberTextBox": {"Text": StrVal("")},
@@ -144,13 +144,13 @@ func TestSimulationRuntimeGenericComponentBlocksDelegateToHost(t *testing.T) {
 	}
 }
 
-func TestSimulationRuntimeGenericHelpersDelegateToHost(t *testing.T) {
+func TestComponentHostRuntimeGenericHelpersDelegateToHost(t *testing.T) {
 	host := &componentHostTestDouble{state: map[string]map[string]Value{
 		"firstNumberTextBox": {"Text": StrVal("")},
 		"Level":              {"ThumbPosition": NumVal(7)},
 		"Notifier1":          {},
 	}}
-	interp, events := newSimulationRuntimeTestSession(t, strings.Join([]string{
+	interp, events := newComponentHostRuntimeTestSession(t, strings.Join([]string{
 		`when AddButton.Click {`,
 		`  set("TextBox", firstNumberTextBox, "Text", get("Slider", Level, "ThumbPosition"))`,
 		`  call("Notifier", Notifier1, "ShowAlert", get("TextBox", firstNumberTextBox, "Text"))`,
@@ -167,7 +167,7 @@ func TestSimulationRuntimeGenericHelpersDelegateToHost(t *testing.T) {
 	}
 }
 
-func TestSimulationRuntimeGenericBlockRejectsWrongComponentType(t *testing.T) {
+func TestComponentHostRuntimeGenericBlockRejectsWrongComponentType(t *testing.T) {
 	host := &componentHostTestDouble{state: map[string]map[string]Value{
 		"firstNumberTextBox": {"Text": StrVal("")},
 	}}
@@ -191,9 +191,9 @@ func TestSimulationRuntimeGenericBlockRejectsWrongComponentType(t *testing.T) {
 	})
 }
 
-func parseSimulationRuntimeTestSource(t *testing.T, src string) []ast.Expr {
+func parseComponentHostRuntimeTestSource(t *testing.T, src string) []ast.Expr {
 	t.Helper()
-	ctx := &context.CodeContext{SourceCode: &src, FileName: "simulation_runtime_test.mist"}
+	ctx := &context.CodeContext{SourceCode: &src, FileName: "component_host_runtime_test.mist"}
 	parser := mistparser.NewLangParser(true, lex.NewLexer(ctx).Lex())
 	parser.SetComponentDefinitions(
 		map[string][]string{
@@ -218,9 +218,9 @@ func parseSimulationRuntimeTestSource(t *testing.T, src string) []ast.Expr {
 	return parser.ParseAll()
 }
 
-func newSimulationRuntimeTestSession(t *testing.T, src string, host *componentHostTestDouble) (*Interpreter, map[string]*components.Event) {
+func newComponentHostRuntimeTestSession(t *testing.T, src string, host *componentHostTestDouble) (*Interpreter, map[string]*components.Event) {
 	t.Helper()
-	exprs := parseSimulationRuntimeTestSource(t, src)
+	exprs := parseComponentHostRuntimeTestSource(t, src)
 	interp := NewInterpreter()
 	interp.SetComponentHost(host)
 	events := map[string]*components.Event{}
@@ -241,11 +241,11 @@ func newSimulationRuntimeTestSession(t *testing.T, src string, host *componentHo
 	return interp, events
 }
 
-func TestSimulationRuntimeRegistersEventsWithoutExecuting(t *testing.T) {
+func TestComponentHostRuntimeRegistersEventsWithoutExecuting(t *testing.T) {
 	host := &componentHostTestDouble{state: map[string]map[string]Value{
 		"firstNumberTextBox": {"Text": StrVal("")},
 	}}
-	_, events := newSimulationRuntimeTestSession(t, strings.Join([]string{
+	_, events := newComponentHostRuntimeTestSession(t, strings.Join([]string{
 		`when AddButton.Click {`,
 		`  firstNumberTextBox.Text = "clicked"`,
 		`}`,
@@ -259,12 +259,12 @@ func TestSimulationRuntimeRegistersEventsWithoutExecuting(t *testing.T) {
 	}
 }
 
-func TestSimulationRuntimeButtonClickMutatesTextBoxText(t *testing.T) {
+func TestComponentHostRuntimeButtonClickMutatesTextBoxText(t *testing.T) {
 	host := &componentHostTestDouble{state: map[string]map[string]Value{
 		"firstNumberTextBox":  {"Text": StrVal("2")},
 		"secondNumberTextBox": {"Text": StrVal("3")},
 	}}
-	interp, events := newSimulationRuntimeTestSession(t, strings.Join([]string{
+	interp, events := newComponentHostRuntimeTestSession(t, strings.Join([]string{
 		`when AddButton.Click {`,
 		`  firstNumberTextBox.Text = firstNumberTextBox.Text + secondNumberTextBox.Text`,
 		`}`,
@@ -277,12 +277,12 @@ func TestSimulationRuntimeButtonClickMutatesTextBoxText(t *testing.T) {
 	}
 }
 
-func TestSimulationRuntimeScreenInitializeAndNotifierEffect(t *testing.T) {
+func TestComponentHostRuntimeScreenInitializeAndNotifierEffect(t *testing.T) {
 	host := &componentHostTestDouble{state: map[string]map[string]Value{
 		"firstNumberTextBox": {"Text": StrVal("")},
 		"Notifier1":          {},
 	}}
-	interp, events := newSimulationRuntimeTestSession(t, strings.Join([]string{
+	interp, events := newComponentHostRuntimeTestSession(t, strings.Join([]string{
 		`when Screen1.Initialize {`,
 		`  firstNumberTextBox.Text = "ready"`,
 		`  Notifier1.ShowAlert("Started")`,
@@ -299,11 +299,11 @@ func TestSimulationRuntimeScreenInitializeAndNotifierEffect(t *testing.T) {
 	}
 }
 
-func TestSimulationRuntimeEventArgumentsBindAsLocals(t *testing.T) {
+func TestComponentHostRuntimeEventArgumentsBindAsLocals(t *testing.T) {
 	host := &componentHostTestDouble{state: map[string]map[string]Value{
 		"firstNumberTextBox": {"Text": StrVal("")},
 	}}
-	interp, events := newSimulationRuntimeTestSession(t, strings.Join([]string{
+	interp, events := newComponentHostRuntimeTestSession(t, strings.Join([]string{
 		`when Level.PositionChanged(thumbPosition) {`,
 		`  firstNumberTextBox.Text = thumbPosition`,
 		`}`,
