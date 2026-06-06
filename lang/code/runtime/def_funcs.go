@@ -161,7 +161,11 @@ func (i *Interpreter) evalFuncCall(e *common.FuncCall) Value {
 
 	// --- App Inventor screen stubs ---
 	case "openScreen":
-		i.stub("openScreen(" + args[0].AsStr() + ")")
+		if len(args) == 2 {
+			i.stub("openScreen(" + args[0].AsStr() + ", ...)")
+		} else {
+			i.stub("openScreen(" + args[0].AsStr() + ")")
+		}
 		return VoidVal()
 	case "openScreenWithValue":
 		i.stub("openScreenWithValue(" + args[0].AsStr() + ", ...)")

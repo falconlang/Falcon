@@ -10,7 +10,13 @@ type Do struct {
 }
 
 func (d *Do) String() string {
-	return ast.JoinExprs("\n", d.Body) + "\n" + d.Result.String()
+	if len(d.Body) == 0 {
+		return d.Result.String()
+	}
+	body := make([]ast.Expr, 0, len(d.Body)+1)
+	body = append(body, d.Body...)
+	body = append(body, d.Result)
+	return "{\n" + ast.PadBody(body) + "}"
 }
 
 func (d *Do) Blockly(flags ...bool) ast.Block {
@@ -26,7 +32,7 @@ func (d *Do) Continuous() bool {
 }
 
 func (d *Do) Consumable() bool {
-	return false
+	return true
 }
 
 func (d *Do) Signature() []ast.Signature {

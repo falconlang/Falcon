@@ -361,7 +361,8 @@ func safe_div(a, b) = {
 
 - `println(any)`
 - `openScreen(name)` opens an App Inventor screen
-- `openScreenWithValue()` opens App Inventor screen with a value
+- `openScreen(name, startValue)` opens an App Inventor screen with a value
+- `openScreenWithValue(name, startValue)` opens an App Inventor screen with a value
 - `closeScreenWithValue()` closes the screen with a val
 - `getStartValue()` returns start value of the App
 - `closeSceen()` closes current App Inventor screen

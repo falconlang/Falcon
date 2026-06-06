@@ -143,7 +143,7 @@ func (p *Parser) parseBlock(block ast.Block) ast.Expr {
 		return common.MakeFuncCall("openScreen", p.singleExpr(block))
 	case "controls_openAnotherScreenWithStartValue":
 		pVals := p.makeValueMap(block.Values)
-		return common.MakeFuncCall("openScreenWithValue", pVals.get("SCREENNAME"), pVals.get("STARTVALUE"))
+		return common.MakeFuncCall("openScreen", pVals.get("SCREENNAME"), pVals.get("STARTVALUE"))
 	case "controls_getStartValue":
 		return common.MakeFuncCall("getStartValue")
 	case "controls_closeScreen":

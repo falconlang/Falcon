@@ -109,6 +109,45 @@ func TestNumericPowerStillGeneratesMathPower(t *testing.T) {
 	}
 }
 
+func TestOpenScreenAcceptsStartValueArgument(t *testing.T) {
+	src := `openScreen("Screen2", "payload")`
+	expr := parseOneForTest(t, src)
+	if got := expr.String(); got != src {
+		t.Fatalf("String() = %q, want %q", got, src)
+	}
+
+	call, ok := expr.(*common.FuncCall)
+	if !ok {
+		t.Fatalf("expression = %T, want *common.FuncCall", expr)
+	}
+	if got := call.Blockly(true).Type; got != "controls_openAnotherScreenWithStartValue" {
+		t.Fatalf("Blockly type = %q, want controls_openAnotherScreenWithStartValue", got)
+	}
+}
+
+func TestOpenScreenSmartBodyArgumentSerializesToDoThenReturn(t *testing.T) {
+	src := "openScreen({\n  closeScreen()\n  \"Menu\"\n})"
+	expr := parseOneForTest(t, src)
+	if got := expr.String(); got != src {
+		t.Fatalf("String() = %q, want %q", got, src)
+	}
+
+	call, ok := expr.(*common.FuncCall)
+	if !ok {
+		t.Fatalf("expression = %T, want *common.FuncCall", expr)
+	}
+	block := call.Blockly(true)
+	if got := block.Type; got != "controls_openAnotherScreen" {
+		t.Fatalf("Blockly type = %q, want controls_openAnotherScreen", got)
+	}
+	if len(block.Values) != 1 {
+		t.Fatalf("Blockly values = %d, want 1", len(block.Values))
+	}
+	if got := block.Values[0].Block.Type; got != "controls_do_then_return" {
+		t.Fatalf("screen value block type = %q, want controls_do_then_return", got)
+	}
+}
+
 func serializeBlocklyForTest(t *testing.T, src string) string {
 	t.Helper()
 	ctx := &context.CodeContext{SourceCode: &src, FileName: "test.mist"}

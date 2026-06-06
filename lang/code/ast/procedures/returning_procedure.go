@@ -2,7 +2,6 @@ package procedures
 
 import (
 	"Falcon/code/ast"
-	"Falcon/code/ast/control"
 	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/variables"
 	"Falcon/code/sugar"
@@ -17,7 +16,7 @@ type RetProcedure struct {
 func (v *RetProcedure) String() string {
 	var resultString string
 	switch v.Result.(type) {
-	case *control.Do, *variables.VarResult:
+	case *variables.VarResult:
 		resultString = ast.Pad("{\n" + ast.Pad(v.Result.String()) + "}")
 	default:
 		if sb, ok := v.Result.(*fundamentals.SmartBody); ok && len(sb.Body) == 1 {

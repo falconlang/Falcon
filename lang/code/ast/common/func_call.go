@@ -193,6 +193,13 @@ func TestSignature(funcName string, argsCount int) (string, *FuncCallSignature) 
 		}
 		return "No function named " + funcName + "()", nil
 	}
+	if funcName == "openScreen" {
+		if argsCount == 1 || argsCount == 2 {
+			return "", callSignature
+		}
+		return sugar.Format("Expected 1 or 2 args but got % for function openScreen()",
+			strconv.Itoa(argsCount)), nil
+	}
 	if callSignature.ParamCount == -1 {
 		if argsCount == 0 {
 			return sugar.Format("Expected a positive number of args for function %()", funcName), nil
@@ -263,6 +270,9 @@ func (f *FuncCall) Blockly(flags ...bool) ast.Block {
 	case "println":
 		return f.println()
 	case "openScreen":
+		if len(f.Args) == 2 {
+			return f.openScreenWithValue()
+		}
 		return f.openScreen()
 	case "openScreenWithValue":
 		return f.openScreenWithValue()

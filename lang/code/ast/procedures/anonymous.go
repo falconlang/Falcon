@@ -2,7 +2,6 @@ package procedures
 
 import (
 	"Falcon/code/ast"
-	"Falcon/code/ast/control"
 	"Falcon/code/ast/fundamentals"
 	"Falcon/code/ast/variables"
 	"Falcon/code/sugar"
@@ -213,7 +212,7 @@ func (g *GetWithDropdown) Signature() []ast.Signature {
 func formatProcedureResult(result ast.Expr) string {
 	var resultString string
 	switch result.(type) {
-	case *control.Do, *variables.VarResult:
+	case *variables.VarResult:
 		resultString = ast.Pad("{\n" + ast.Pad(result.String()) + "}")
 	default:
 		if sb, ok := result.(*fundamentals.SmartBody); ok && len(sb.Body) == 1 {

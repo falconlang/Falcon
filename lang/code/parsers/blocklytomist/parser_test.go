@@ -51,6 +51,57 @@ func TestGenericComponentEventUsesMetadataParamsWhenMutationArgsMissing(t *testi
 	}
 }
 
+func TestOpenScreenWithStartValueBlockStringUsesComma(t *testing.T) {
+	xml := `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="controls_openAnotherScreenWithStartValue">
+    <value name="SCREENNAME"><block type="text"><field name="TEXT">Screen2</field></block></value>
+    <value name="STARTVALUE"><block type="text"><field name="TEXT">payload</field></block></value>
+  </block>
+</xml>`
+
+	exprs, err := NewParser(xml).TryGenerateAST()
+	if err != nil {
+		t.Fatalf("TryGenerateAST() error = %v", err)
+	}
+	if len(exprs) != 1 {
+		t.Fatalf("TryGenerateAST() produced %d expressions, want 1", len(exprs))
+	}
+
+	if got, want := exprs[0].String(), `openScreen("Screen2", "payload")`; got != want {
+		t.Fatalf("source = %q, want %q", got, want)
+	}
+}
+
+func TestOpenScreenDoThenReturnArgumentStringIsSmartBody(t *testing.T) {
+	xml := `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="controls_openAnotherScreen">
+    <value name="SCREEN">
+      <block type="controls_do_then_return">
+        <statement name="STM">
+          <block type="controls_closeScreen"></block>
+        </statement>
+        <value name="VALUE">
+          <block type="helpers_screen_names"><field name="SCREEN">Menu</field></block>
+        </value>
+      </block>
+    </value>
+  </block>
+</xml>`
+
+	exprs, err := NewParser(xml).TryGenerateAST()
+	if err != nil {
+		t.Fatalf("TryGenerateAST() error = %v", err)
+	}
+	if len(exprs) != 1 {
+		t.Fatalf("TryGenerateAST() produced %d expressions, want 1", len(exprs))
+	}
+
+	want := "openScreen({\n  closeScreen()\n  \"Menu\"\n})"
+	if got := exprs[0].String(); got != want {
+		t.Fatalf("source = %q, want %q", got, want)
+	}
+}
+
 func TestComponentEventParameterNameMismatchReturnsError(t *testing.T) {
 	xml := `<xml xmlns="https://developers.google.com/blockly/xml">
   <block type="component_event">
@@ -338,7 +389,7 @@ func TestProcedureCategoryAliasesRoundTripToMist(t *testing.T) {
     <value name="VALUE"><block type="math_number"><field name="NUM">5</field></block></value>
   </block>
 </xml>`,
-			want: "greet()\n5",
+			want: "{\n  greet()\n  5\n}",
 		},
 	}
 
